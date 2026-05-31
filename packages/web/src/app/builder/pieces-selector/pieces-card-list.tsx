@@ -3,7 +3,7 @@ import {
   FlowOperationType,
   FlowTriggerType,
 } from '@activepieces/shared';
-import React, { useState } from 'react';
+import { Show, createSignal } from 'solid-js';
 
 import { CardListItemSkeleton } from '@/components/custom/card-list';
 import { Separator } from '@/components/ui/separator';
@@ -33,7 +33,7 @@ type PiecesCardListProps = {
   stepToReplacePieceDisplayName?: string;
 };
 
-export const PiecesCardList: React.FC<PiecesCardListProps> = ({
+export const PiecesCardList: any = ({
   searchQuery,
   operation,
   stepToReplacePieceDisplayName,
@@ -53,7 +53,7 @@ export const PiecesCardList: React.FC<PiecesCardListProps> = ({
     });
 
   const noResultsFound = !isLoadingPieces && categories.length === 0;
-  const [mouseMoved, setMouseMoved] = useState(false);
+  const [mouseMoved, setMouseMoved] = createSignal(false);
   const showActionsOrTriggersInsidePiecesList =
     searchQuery.length > 0 || isMobile;
   const virtualizedItems = transformPiecesMetadataToVirtualizedItems(
@@ -89,13 +89,13 @@ export const PiecesCardList: React.FC<PiecesCardListProps> = ({
           'w-full md:w-full': searchQuery.length > 0 || noResultsFound,
         })}
       >
-        {isLoading && (
+        <Show when={isLoading()}>
           <div className="flex flex-col gap-2">
             <CardListItemSkeleton numberOfCards={2} withCircle={false} />
           </div>
-        )}
+        </Show>
 
-        {showPiecesList && (
+        <Show when={showPiecesList()}>
           <VirtualizedScrollArea
             key={`${selectedTab}-${searchQuery}`}
             initialScroll={{
@@ -126,21 +126,23 @@ export const PiecesCardList: React.FC<PiecesCardListProps> = ({
               );
             }}
           />
-        )}
+        </Show>
 
-        {noResultsFound && <NoResultsFound />}
+        <Show when={noResultsFound()}>
+          <NoResultsFound />
+        </Show>
       </div>
 
-      {showActionsOrTriggersList && (
+      <Show when={showActionsOrTriggersList()}>
         <>
-          <Separator orientation="vertical" className="h-full" />
+          <Separator orientation="vertical" class="h-full" />
           <PieceActionsOrTriggersList
             stepMetadataWithSuggestions={selectedPieceMetadataInPieceSelector}
             hidePieceIconAndDescription={false}
             operation={operation}
           />
         </>
-      )}
+      </Show>
     </>
   );
 };

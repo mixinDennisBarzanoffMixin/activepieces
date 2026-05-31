@@ -5,7 +5,7 @@ import {
   Note,
   apId,
 } from '@activepieces/shared';
-import { StoreApi } from 'zustand';
+import type { StoreApi } from 'zustand/vanilla';
 
 import { authenticationSession } from '@/lib/authentication-session';
 

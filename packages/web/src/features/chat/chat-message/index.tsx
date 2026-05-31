@@ -1,5 +1,4 @@
 import { FileResponseInterface } from '@activepieces/shared';
-import React from 'react';
 
 import { FileMessage } from './file-message';
 import { ImageMessage } from './image-message';
@@ -12,7 +11,7 @@ interface MultiMediaMessageProps {
   setSelectedImage: (image: string | null) => void;
 }
 
-export const MultiMediaMessage: React.FC<MultiMediaMessageProps> = ({
+export const MultiMediaMessage = ({
   textContent,
   role,
   attachments,

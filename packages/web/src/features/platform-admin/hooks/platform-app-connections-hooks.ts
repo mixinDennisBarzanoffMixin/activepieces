@@ -1,6 +1,6 @@
 import { AppConnectionStatus } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from '@solidjs/router';
+import { createQuery } from '@tanstack/solid-query';
 
 import {
   CURSOR_QUERY_PARAM,
@@ -18,7 +18,7 @@ export const platformAppConnectionsKeys = {
 export const platformAppConnectionsQueries = {
   useList: () => {
     const [searchParams] = useSearchParams();
-    return useQuery({
+    return createQuery(() => ({
       queryKey: platformAppConnectionsKeys.list(searchParams.toString()),
       staleTime: 0,
       gcTime: 0,
@@ -39,11 +39,11 @@ export const platformAppConnectionsQueries = {
           ownerIds: ownerIds.length > 0 ? ownerIds : undefined,
         });
       },
-    });
+    }));
   },
   useOwners: () =>
-    useQuery({
+    createQuery(() => ({
       queryKey: platformAppConnectionsKeys.owners(),
       queryFn: () => platformAppConnectionsApi.listOwners(),
-    }),
+    })),
 };

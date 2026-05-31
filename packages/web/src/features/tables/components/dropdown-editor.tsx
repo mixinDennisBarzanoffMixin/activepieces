@@ -1,5 +1,4 @@
 import { FieldType, StaticDropdownEmptyOption } from '@activepieces/shared';
-import { useRef } from 'react';
 
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { cn } from '@/lib/utils';
@@ -17,7 +16,7 @@ const DropdownEditor = () => {
     disabled,
   } = useCellContext();
   const field = useTableState((state) => state.fields[columnIdx]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = null;
   const handleChange = (newValue: string | null) => {
     handleCellChange(newValue ?? '');
   };

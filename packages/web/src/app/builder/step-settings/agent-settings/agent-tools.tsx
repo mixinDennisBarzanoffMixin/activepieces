@@ -5,8 +5,9 @@ import type {
   AgentTool,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Plus } from 'lucide-react';
-import { ControllerRenderProps } from 'react-hook-form';
+import { Plus } from 'lucide-solid';
+import { BuilderField } from '@/app/builder/builder-form';
+import { For, Show } from 'solid-js';
 
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,7 @@ const icons = [
 ];
 
 interface AgentToolsProps {
-  toolsField: ControllerRenderProps;
+  toolsField: BuilderField;
   disabled?: boolean;
   selectedProvider?: AIProviderName;
 }
@@ -72,82 +73,91 @@ export const AgentTools = ({
       <h2 className="text-sm font-medium">{t('Agent Tools')}</h2>
 
       <div className="mt-2">
-        {flowTools.length +
-          mcpTools.length +
-          Object.keys(pieceToToolMap).length >
-        0 ? (
+        <Show
+          when={
+            flowTools.length +
+              mcpTools.length +
+              Object.keys(pieceToToolMap).length >
+            0()
+          }
+          fallback={
+            <div className="flex flex-col items-center justify-center gap-4 rounded-xl border bg-card px-4 py-8 text-center">
+              <div className="flex items-center">
+                <For each={icons.slice(0, 4)}>
+                  {(icon, index) => (
+                    <div
+                      key={icon}
+                      className="relative flex size-9 items-center justify-center rounded-full border bg-background"
+                      style={{ marginLeft: index === 0 ? 0 : -10 }}
+                    >
+                      <img
+                        src={icon}
+                        alt={icon}
+                        className="size-4 object-contain"
+                      />
+                    </div>
+                  )}
+                </For>
+                <div
+                  className="relative flex size-9 items-center justify-center rounded-full border text-[10px] bg-background text-foreground font-medium"
+                  style={{ marginLeft: -10 }}
+                >
+                  <span>+500</span>
+                </div>
+              </div>
+
+              <p className="text-sm font-medium text-muted-foreground">
+                {t('Connect apps, flows, MCPs and more.')}
+              </p>
+
+              <AddToolDropdown disabled={disabled} align="center">
+                <Button variant="outline" class="gap-2">
+                  <Plus class="size-4" />
+                  {t('Add')}
+                </Button>
+              </AddToolDropdown>
+            </div>
+          }
+        >
           <>
             <Accordion
               type="single"
               collapsible
-              className="border rounded-md overflow-hidden shadow-none"
+              class="border rounded-md overflow-hidden shadow-none"
             >
-              {Object.entries(pieceToToolMap).map(([pieceName, tools]) => (
-                <AgentPieceToolComponent
-                  key={pieceName}
-                  disabled={disabled}
-                  tools={tools}
-                  removeTool={removeTool}
-                />
-              ))}
-              {flowTools.length > 0 && (
+              <For each={Object.entries(pieceToToolMap)}>
+                {([pieceName, tools]) => (
+                  <AgentPieceToolComponent
+                    key={pieceName}
+                    disabled={disabled}
+                    tools={tools}
+                    removeTool={removeTool}
+                  />
+                )}
+              </For>
+              <Show when={flowTools.length > 0()}>
                 <AgentFlowToolComponent
                   disabled={disabled}
                   tools={flowTools}
                   removeTool={removeTool}
                 />
-              )}
-              {mcpTools.length > 0 && (
+              </Show>
+              <Show when={mcpTools.length > 0()}>
                 <AgentMcpToolComponent
                   disabled={disabled}
                   tools={mcpTools}
                   removeTool={removeTool}
                 />
-              )}
+              </Show>
             </Accordion>
             <AddToolDropdown disabled={disabled} align="start">
-              <Button variant="outline" className="mt-2">
-                <Plus className="size-4 mr-2" />
+              <Button variant="outline" class="mt-2">
+                <Plus class="size-4 mr-2" />
                 {t('Add')}
               </Button>
             </AddToolDropdown>
           </>
-        ) : (
-          <div className="flex flex-col items-center justify-center gap-4 rounded-xl border bg-card px-4 py-8 text-center">
-            <div className="flex items-center">
-              {icons.slice(0, 4).map((icon, index) => (
-                <div
-                  key={icon}
-                  className="relative flex size-9 items-center justify-center rounded-full border bg-background"
-                  style={{ marginLeft: index === 0 ? 0 : -10 }}
-                >
-                  <img
-                    src={icon}
-                    alt={icon}
-                    className="size-4 object-contain"
-                  />
-                </div>
-              ))}
-              <div
-                className="relative flex size-9 items-center justify-center rounded-full border text-[10px] bg-background text-foreground font-medium"
-                style={{ marginLeft: -10 }}
-              >
-                <span>+500</span>
-              </div>
-            </div>
-
-            <p className="text-sm font-medium text-muted-foreground">
-              {t('Connect apps, flows, MCPs and more.')}
-            </p>
-
-            <AddToolDropdown disabled={disabled} align="center">
-              <Button variant="outline" className="gap-2">
-                <Plus className="size-4" />
-                {t('Add')}
-              </Button>
-            </AddToolDropdown>
-          </div>
-        )}
+        </Show>
       </div>
 
       <KnowledgeBaseSection

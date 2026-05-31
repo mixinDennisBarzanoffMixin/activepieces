@@ -1,8 +1,8 @@
 import { ErrorCode, isNil } from '@activepieces/shared';
+import { useLocation, useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
-import React, { useEffect, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { createEffect } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { authenticationApi } from '@/api/authentication-api';
 import { LoadingScreen } from '@/components/custom/loading-screen';
@@ -16,16 +16,16 @@ import {
   STATE_QUERY_PARAM,
 } from '@/lib/navigation-utils';
 
-const RedirectPage: React.FC = React.memo(() => {
+const RedirectPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const hasCheckedParams = useRef(false);
-  useEffect(() => {
-    if (hasCheckedParams.current) {
+  let hasCheckedParams = false;
+  createEffect(() => {
+    if (hasCheckedParams) {
       return;
     }
     console.log('redirection works, redirecting....');
-    hasCheckedParams.current = true;
+    hasCheckedParams = true;
     const params = new URLSearchParams(location.search);
     const code = params.get('code');
     const state = tryParseState(params.get(STATE_QUERY_PARAM));
@@ -77,10 +77,10 @@ const RedirectPage: React.FC = React.memo(() => {
     if (!window.opener && !code) {
       navigate('/');
     }
-  }, [location.search]);
+  });
 
   return <LoadingScreen />;
-});
+};
 
 RedirectPage.displayName = 'RedirectPage';
 const tryParseState = (state: string | null) => {

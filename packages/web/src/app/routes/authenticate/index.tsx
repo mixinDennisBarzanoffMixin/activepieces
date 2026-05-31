@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from '@solidjs/router';
+import { createEffect } from 'solid-js';
 
 import { authenticationSession } from '@/lib/authentication-session';
 
@@ -10,13 +10,13 @@ const AuthenticatePage = () => {
   const searchParams = new URLSearchParams(location.search);
   const response = searchParams.get('response');
 
-  useEffect(() => {
+  createEffect(() => {
     if (response) {
       const decodedResponse = JSON.parse(response);
       authenticationSession.saveResponse(decodedResponse, false);
       navigate('/flows');
     }
-  }, [response]);
+  });
 
   return <>Please wait...</>;
 };

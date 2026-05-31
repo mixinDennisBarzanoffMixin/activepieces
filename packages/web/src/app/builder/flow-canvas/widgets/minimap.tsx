@@ -1,5 +1,6 @@
 import { flowStructureUtil, isNil, Step } from '@activepieces/shared';
-import { MiniMap, MiniMapNodeProps } from '@xyflow/react';
+import { MiniMap, MiniMapNodeProps } from '../solid-flow-adapter';
+import { Show } from 'solid-js';
 
 import { useTheme } from '@/components/providers/theme-provider';
 import { stepsHooks, StepMetadata } from '@/features/pieces';
@@ -13,10 +14,10 @@ const Minimap = () => {
   const maskTransparency = theme === 'dark' ? 0.8 : 0.055;
   return (
     <>
-      {showMinimap && (
+      <Show when={showMinimap()}>
         <MiniMap
           position="bottom-left"
-          className="!rounded-md border border-border !left-0 !ml-2 overflow-hidden !bottom-[45px] animate-in fade-in duration-300"
+          class="!rounded-md border border-border !left-0 !ml-2 overflow-hidden !bottom-[45px] animate-in fade-in duration-300"
           zoomable
           pannable
           zoomStep={0.3}
@@ -24,7 +25,7 @@ const Minimap = () => {
           maskColor={`rgba(0, 0, 0, ${maskTransparency})`}
           nodeComponent={(node) => <MinimapNode node={node} />}
         />
-      )}
+      </Show>
     </>
   );
 };

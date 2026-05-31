@@ -1,5 +1,6 @@
 import { FlowStatus, PopulatedMcpServer } from '@activepieces/shared';
 import { t } from 'i18next';
+import { For } from 'solid-js';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -22,31 +23,32 @@ export function McpFlows({ mcpServer }: McpFlowsProps) {
 
   return (
     <div className="border rounded-lg overflow-hidden divide-y">
-      {flows.map((flow) => {
-        const isEnabled = flow.status === FlowStatus.ENABLED;
-        return (
-          <div
-            key={flow.id}
-            className="flex items-center justify-between px-4 py-3"
-          >
-            <span className="text-sm font-medium">
-              {flow.version.displayName}
-            </span>
-            <Badge
-              variant={isEnabled ? 'success' : 'outline'}
-              className="flex items-center gap-1.5"
-            >
-              <div
-                className={cn(
-                  'w-2 h-2 rounded-full',
-                  isEnabled ? 'bg-success' : 'bg-gray-400',
-                )}
-              />
-              <span>{isEnabled ? t('On') : t('Off')}</span>
-            </Badge>
-          </div>
-        );
-      })}
+      {
+        <For each={flows}>
+          {(flow) => {
+            const isEnabled = flow.status === FlowStatus.ENABLED;
+            return (
+              <div className="flex items-center justify-between px-4 py-3">
+                <span className="text-sm font-medium">
+                  {flow.version.displayName}
+                </span>
+                <Badge
+                  variant={isEnabled ? 'success' : 'outline'}
+                  class="flex items-center gap-1.5"
+                >
+                  <div
+                    className={cn(
+                      'w-2 h-2 rounded-full',
+                      isEnabled ? 'bg-success' : 'bg-gray-400',
+                    )}
+                  />
+                  <span>{isEnabled ? t('On') : t('Off')}</span>
+                </Badge>
+              </div>
+            );
+          }}
+        </For>
+      }
     </div>
   );
 }

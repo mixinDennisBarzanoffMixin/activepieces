@@ -1,5 +1,5 @@
-import { ChevronDown, Circle } from 'lucide-react';
-import React from 'react';
+import { ChevronDown, Circle } from 'lucide-solid';
+import { JSX } from 'solid-js';
 
 import {
   Collapsible,
@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 
-export type ChainOfThoughtItemProps = React.ComponentProps<'div'>;
+export type ChainOfThoughtItemProps = ComponentProps<'div'>;
 
 export const ChainOfThoughtItem = ({
   children,
@@ -20,10 +20,10 @@ export const ChainOfThoughtItem = ({
   </div>
 );
 
-export type ChainOfThoughtTriggerProps = React.ComponentProps<
+export type ChainOfThoughtTriggerProps = ComponentProps<
   typeof CollapsibleTrigger
 > & {
-  leftIcon?: React.ReactNode;
+  leftIcon?: JSX.Element;
   swapIconOnHover?: boolean;
 };
 
@@ -35,7 +35,7 @@ export const ChainOfThoughtTrigger = ({
   ...props
 }: ChainOfThoughtTriggerProps) => (
   <CollapsibleTrigger
-    className={cn(
+    class={cn(
       'group text-muted-foreground hover:text-foreground flex cursor-pointer items-center justify-start gap-1 text-left text-sm transition-colors',
       className,
     )}
@@ -53,23 +53,23 @@ export const ChainOfThoughtTrigger = ({
             {leftIcon}
           </span>
           {swapIconOnHover && (
-            <ChevronDown className="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100 group-data-[state=open]:rotate-180" />
+            <ChevronDown class="absolute size-4 opacity-0 transition-opacity group-hover:opacity-100 group-data-[state=open]:rotate-180" />
           )}
         </span>
       ) : (
         <span className="relative inline-flex size-4 items-center justify-center">
-          <Circle className="size-2 fill-current" />
+          <Circle class="size-2 fill-current" />
         </span>
       )}
       <span>{children}</span>
     </div>
     {!leftIcon && (
-      <ChevronDown className="size-4 transition-transform group-data-[state=open]:rotate-180" />
+      <ChevronDown class="size-4 transition-transform group-data-[state=open]:rotate-180" />
     )}
   </CollapsibleTrigger>
 );
 
-export type ChainOfThoughtContentProps = React.ComponentProps<
+export type ChainOfThoughtContentProps = ComponentProps<
   typeof CollapsibleContent
 >;
 
@@ -80,7 +80,7 @@ export const ChainOfThoughtContent = ({
 }: ChainOfThoughtContentProps) => {
   return (
     <CollapsibleContent
-      className={cn(
+      class={cn(
         'text-popover-foreground data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden',
         className,
       )}
@@ -96,32 +96,29 @@ export const ChainOfThoughtContent = ({
 };
 
 export type ChainOfThoughtProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   className?: string;
 };
 
 export function ChainOfThought({ children, className }: ChainOfThoughtProps) {
-  const childrenArray = React.Children.toArray(children);
+  const childrenArray = toArray(children);
 
   return (
     <div className={cn('space-y-0', className)}>
       {childrenArray.map((child, index) => (
-        <React.Fragment key={index}>
-          {React.isValidElement(child) &&
-            React.cloneElement(
-              child as React.ReactElement<ChainOfThoughtStepProps>,
-              {
-                isLast: index === childrenArray.length - 1,
-              },
-            )}
-        </React.Fragment>
+        <Fragment key={index}>
+          {isValidElement(child) &&
+            cloneElement(child as JSX.Element<ChainOfThoughtStepProps>, {
+              isLast: index === childrenArray.length - 1,
+            })}
+        </Fragment>
       ))}
     </div>
   );
 }
 
 export type ChainOfThoughtStepProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   className?: string;
   isLast?: boolean;
 };
@@ -131,13 +128,9 @@ export const ChainOfThoughtStep = ({
   className,
   isLast = false,
   ...props
-}: ChainOfThoughtStepProps & React.ComponentProps<typeof Collapsible>) => {
+}: ChainOfThoughtStepProps & ComponentProps<typeof Collapsible>) => {
   return (
-    <Collapsible
-      className={cn('group', className)}
-      data-last={isLast}
-      {...props}
-    >
+    <Collapsible class={cn('group', className)} data-last={isLast} {...props}>
       {children}
       <div className="flex justify-start group-data-[last=true]:hidden">
         <div className="bg-primary/20 ml-1.75 h-4 w-px" />

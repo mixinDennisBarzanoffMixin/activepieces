@@ -6,7 +6,8 @@ import {
   PieceAction,
   PieceActionSettings,
 } from '@activepieces/shared';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext } from '@/app/builder/builder-form';
+import { For } from 'solid-js';
 
 import { AgentTools } from '@/app/builder/step-settings/agent-settings/agent-tools';
 import { FormField } from '@/components/ui/form';
@@ -33,15 +34,17 @@ export const AgentSettings = (props: AgentSettingsProps) => {
   if (isNil(pieceModel)) {
     return (
       <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, index) => (
-          <div className="space-y-2" key={index}>
-            <div className="flex justify-between items-center">
-              <Skeleton className="w-40 h-4" />
-              <Skeleton className="size-8" />
+        <For each={Array.from({ length: 5 })}>
+          {(_, index) => (
+            <div className="space-y-2" key={index}>
+              <div className="flex justify-between items-center">
+                <Skeleton class="w-40 h-4" />
+                <Skeleton class="size-8" />
+              </div>
+              <Skeleton class="w-full h-12" />
             </div>
-            <Skeleton className="w-full h-12" />
-          </div>
-        ))}
+          )}
+        </For>
       </div>
     );
   }
@@ -54,38 +57,40 @@ export const AgentSettings = (props: AgentSettingsProps) => {
   return (
     <div className="w-full">
       <div className="flex flex-col gap-4 w-full">
-        {Object.keys(properties).map((propertyName) => {
-          return (
-            <FormField
-              key={propertyName}
-              name={`settings.input.${propertyName}`}
-              control={form.control}
-              render={({ field }) =>
-                selectAgentFormComponentForProperty({
-                  field,
-                  allowDynamicValues: false,
-                  dynamicInputModeToggled: false,
-                  markdownVariables: {},
-                  propertyName: propertyName,
-                  inputName: `settings.input.${propertyName}`,
-                  property: properties[propertyName],
-                  useMentionTextInput: true,
-                  disabled: props.readonly,
-                  form: form,
-                  dynamicPropsInfo: {
-                    pieceName: props.step.settings.pieceName,
-                    pieceVersion: props.step.settings.pieceVersion,
-                    actionOrTriggerName: actionName,
-                    placedInside: 'stepSettings',
-                    updateFormSchema,
-                    updatePropertySettingsSchema,
-                  },
-                  propertySettings: null,
-                })
-              }
-            />
-          );
-        })}
+        <For each={Object.keys(properties)}>
+          {(propertyName) => {
+            return (
+              <FormField
+                key={propertyName}
+                name={`settings.input.${propertyName}`}
+                control={form.control}
+                render={({ field }) =>
+                  selectAgentFormComponentForProperty({
+                    field,
+                    allowDynamicValues: false,
+                    dynamicInputModeToggled: false,
+                    markdownVariables: {},
+                    propertyName: propertyName,
+                    inputName: `settings.input.${propertyName}`,
+                    property: properties[propertyName],
+                    useMentionTextInput: true,
+                    disabled: props.readonly,
+                    form: form,
+                    dynamicPropsInfo: {
+                      pieceName: props.step.settings.pieceName,
+                      pieceVersion: props.step.settings.pieceVersion,
+                      actionOrTriggerName: actionName,
+                      placedInside: 'stepSettings',
+                      updateFormSchema,
+                      updatePropertySettingsSchema,
+                    },
+                    propertySettings: null,
+                  })
+                }
+              />
+            );
+          }}
+        </For>
       </div>
     </div>
   );

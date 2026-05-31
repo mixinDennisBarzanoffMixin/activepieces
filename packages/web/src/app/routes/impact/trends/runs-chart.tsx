@@ -1,6 +1,6 @@
 import { PlatformAnalyticsReport } from '@activepieces/shared';
 import { t } from 'i18next';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp } from 'lucide-solid';
 
 import { AnalyticsAreaChart } from './analytics-area-chart';
 
@@ -26,7 +26,7 @@ export function RunsChart({ report }: RunsChartProps) {
       gradientId="fillRuns"
       chartData={chartData}
       isLoading={!report}
-      emptyIcon={<TrendingUp className="h-10 w-10 text-muted-foreground/50" />}
+      emptyIcon={<TrendingUp class="h-10 w-10 text-muted-foreground/50" />}
       emptyText={t(
         'No runs recorded yet. Data will appear here once your flows start running.',
       )}

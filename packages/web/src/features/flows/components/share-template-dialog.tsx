@@ -1,9 +1,8 @@
 import { Template } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createForm, zodForm } from '@modular-forms/solid';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import React, { useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { JSX, Show, createSignal } from 'solid-js';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { flowsApi } from '@/features/flows/api/flows-api';
@@ -31,24 +29,31 @@ const ShareTemplateSchema = z.object({
 
 type ShareTemplateSchema = z.infer<typeof ShareTemplateSchema>;
 
-const ShareTemplateDialog: React.FC<{
-  children: React.ReactNode;
+const ShareTemplateDialog = ({
+  children,
+  flowId,
+  flowVersionId,
+}: {
+  children: JSX.Element;
   flowId: string;
   flowVersionId: string;
-}> = ({ children, flowId, flowVersionId }) => {
-  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
-  const shareTemplateForm = useForm<ShareTemplateSchema>({
-    resolver: zodResolver(ShareTemplateSchema),
+}) => {
+  const [isShareDialogOpen, setIsShareDialogOpen] = createSignal(false);
+  const [form, { Form, Field }] = createForm<ShareTemplateSchema>({
+    initialValues: {
+      description: '',
+    },
+    validate: zodForm(ShareTemplateSchema),
   });
   const openNewIndow = useNewWindow();
   const { data: currentUser } = userHooks.useCurrentUser();
-  const { mutate, isPending } = useMutation<
+  const { mutate, isPending } = createMutation<
     Template,
     Error,
     { flowId: string; description: string }
-  >({
-    mutationFn: async () => {
-      const template = await flowsApi.getTemplate(flowId, {
+  >(() => ({
+    mutationFn: async (data) => {
+      const template = await flowsApi.getTemplate(data.flowId, {
         versionId: flowVersionId,
       });
 
@@ -58,7 +63,7 @@ const ShareTemplateDialog: React.FC<{
 
       const flowTemplate = await templatesApi.create({
         name: template.name,
-        description: shareTemplateForm.getValues().description,
+        description: data.description,
         summary: template.summary,
         tags: template.tags,
         blogUrl: template.blogUrl ?? undefined,
@@ -75,11 +80,9 @@ const ShareTemplateDialog: React.FC<{
       openNewIndow(`/templates/${data.id}`);
       setIsShareDialogOpen(false);
     },
-  });
+  }));
 
-  const onShareTemplateSubmit: SubmitHandler<{
-    description: string;
-  }> = (data) => {
+  const submit = (data: ShareTemplateSchema) => {
     mutate({
       flowId,
       description: data.description,
@@ -95,7 +98,7 @@ const ShareTemplateDialog: React.FC<{
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Share Template')}</DialogTitle>
-          <DialogDescription className="flex flex-col gap-2">
+          <DialogDescription class="flex flex-col gap-2">
             <span>
               {t(
                 'Generate or update a template link for the current flow to easily share it with others.',
@@ -108,35 +111,28 @@ const ShareTemplateDialog: React.FC<{
             </span>
           </DialogDescription>
         </DialogHeader>
-        <Form {...shareTemplateForm}>
-          <form
-            className="grid space-y-4"
-            onSubmit={shareTemplateForm.handleSubmit(onShareTemplateSubmit)}
-          >
-            <FormField
-              control={shareTemplateForm.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem className="grid space-y-2">
-                  <Label htmlFor="description">{t('Description')}</Label>
-                  <Input
-                    {...field}
-                    required
-                    id="description"
-                    placeholder={t('A short description of the template')}
-                    className="rounded-sm"
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {shareTemplateForm?.formState?.errors?.root?.serverError && (
-              <FormMessage>
-                {shareTemplateForm.formState.errors.root.serverError.message}
-              </FormMessage>
+        <Form class="grid space-y-4" onSubmit={submit}>
+          <Field name="description">
+            {(field, props) => (
+              <div class="grid space-y-2">
+                <Label for="description">{t('Description')}</Label>
+                <Input
+                  {...props}
+                  value={field.value ?? ''}
+                  required
+                  id="description"
+                  placeholder={t('A short description of the template')}
+                  class="rounded-sm"
+                />
+                <Show when={field.error}>
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {t(field.error)}
+                  </p>
+                </Show>
+              </div>
             )}
-            <Button loading={isPending}>{t('Share')}</Button>
-          </form>
+          </Field>
+          <Button loading={isPending}>{t('Share')}</Button>
         </Form>
       </DialogContent>
     </Dialog>

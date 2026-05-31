@@ -1,5 +1,9 @@
 import { KnowledgeBaseFile } from '@activepieces/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/solid-query';
 
 import { authenticationSession } from '@/lib/authentication-session';
 
@@ -7,7 +11,7 @@ import { knowledgeBaseApi } from './knowledge-base-api';
 
 export const useKnowledgeBaseFiles = () => {
   const projectId = authenticationSession.getProjectId();
-  return useQuery<KnowledgeBaseFile[]>({
+  return createQuery<KnowledgeBaseFile[]>({
     queryKey: ['knowledge-base-files', projectId],
     queryFn: () => knowledgeBaseApi.list(),
   });
@@ -16,7 +20,7 @@ export const useKnowledgeBaseFiles = () => {
 export const useUploadKnowledgeBaseFile = () => {
   const queryClient = useQueryClient();
   const projectId = authenticationSession.getProjectId();
-  return useMutation<KnowledgeBaseFile, Error, FormData>({
+  return createMutation<KnowledgeBaseFile, Error, FormData>({
     mutationFn: (formData: FormData) => knowledgeBaseApi.upload(formData),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -29,7 +33,7 @@ export const useUploadKnowledgeBaseFile = () => {
 export const useDeleteKnowledgeBaseFile = () => {
   const queryClient = useQueryClient();
   const projectId = authenticationSession.getProjectId();
-  return useMutation<void, Error, string>({
+  return createMutation<void, Error, string>({
     mutationFn: (fileId: string) => knowledgeBaseApi.delete(fileId),
     onSuccess: () => {
       queryClient.invalidateQueries({

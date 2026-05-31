@@ -1,6 +1,6 @@
 import { AuthFormTemplate } from '@/features/authentication';
 
-const SignInPage: React.FC = () => {
+const SignInPage: any = () => {
   return <AuthFormTemplate form={'signin'} />;
 };
 

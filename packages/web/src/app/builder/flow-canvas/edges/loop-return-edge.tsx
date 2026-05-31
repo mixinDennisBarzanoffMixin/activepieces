@@ -1,5 +1,7 @@
 import { StepLocationRelativeToParent } from '@activepieces/shared';
-import { BaseEdge, EdgeProps } from '@xyflow/react';
+import { BaseEdge } from '../solid-flow-adapter';
+import type { EdgeProps } from '../solid-flow-adapter';
+import { Show } from 'solid-js';
 
 import { flowCanvasConsts } from '../utils/consts';
 import { ApLoopReturnEdge } from '../utils/types';
@@ -31,10 +33,10 @@ export const ApLoopReturnLineCanvasEdge = ({
   ${flowCanvasConsts.ARC_LEFT_DOWN} h -${horizontalLineLength}
   ${flowCanvasConsts.ARC_RIGHT_UP} v -${verticalLineLength}
   a15,15 0 0,1 15,-15
-  
+
   h ${horizontalLineLength / 2 - 2 * flowCanvasConsts.ARC_LENGTH}
    ${ARROW_RIGHT}
- 
+
   M ${sourceX - flowCanvasConsts.ARC_LENGTH - horizontalLineLength / 2} ${
     sourceY +
     flowCanvasConsts.VERTICAL_SPACE_BETWEEN_STEP_AND_LINE +
@@ -42,7 +44,7 @@ export const ApLoopReturnLineCanvasEdge = ({
   }
    v${endLineLength} ${
     data.drawArrowHeadAfterEnd ? flowCanvasConsts.ARROW_DOWN : ''
-  } 
+  }
    `;
   const buttonPosition = {
     x:
@@ -58,9 +60,9 @@ export const ApLoopReturnLineCanvasEdge = ({
       <BaseEdge
         path={path}
         style={{ strokeWidth: `${flowCanvasConsts.LINE_WIDTH}px` }}
-        className="relative"
+        class="relative"
       ></BaseEdge>
-      {showDebugForLineEndPoint && (
+      <Show when={showDebugForLineEndPoint()}>
         <foreignObject
           x={targetX}
           y={targetY}
@@ -68,7 +70,7 @@ export const ApLoopReturnLineCanvasEdge = ({
         >
           <div className=" w-[20px] h-[20px] rounded-full bg-[red] flex items-center justify-center"></div>
         </foreignObject>
-      )}
+      </Show>
 
       {
         <foreignObject
@@ -86,7 +88,7 @@ export const ApLoopReturnLineCanvasEdge = ({
         </foreignObject>
       }
 
-      {showDebugForLineEndPoint && (
+      <Show when={showDebugForLineEndPoint()}>
         <foreignObject
           x={sourceX}
           y={sourceY}
@@ -94,7 +96,7 @@ export const ApLoopReturnLineCanvasEdge = ({
         >
           <div className=" w-[20px] h-[20px] rounded-full bg-[red] flex items-center justify-center"></div>
         </foreignObject>
-      )}
+      </Show>
     </>
   );
 };

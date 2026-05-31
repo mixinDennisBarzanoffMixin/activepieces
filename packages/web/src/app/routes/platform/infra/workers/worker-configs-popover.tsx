@@ -1,6 +1,6 @@
 import { t } from 'i18next';
-import { SlidersHorizontal } from 'lucide-react';
-import React from 'react';
+import { SlidersHorizontal } from 'lucide-solid';
+import { For } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
-export const WorkerConfigsPopover: React.FC<Props> = ({ workerProps }) => {
+export const WorkerConfigsPopover: any = ({ workerProps }) => {
   const entries = Object.entries(workerProps ?? {});
 
   return (
@@ -18,13 +18,13 @@ export const WorkerConfigsPopover: React.FC<Props> = ({ workerProps }) => {
         <Button
           variant="ghost"
           size="icon"
-          className="size-7 text-muted-foreground hover:text-foreground"
+          class="size-7 text-muted-foreground hover:text-foreground"
           title={t('Configs')}
         >
           <SlidersHorizontal size={14} />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="end">
+      <PopoverContent class="w-auto p-0" align="end">
         <table className="text-xs">
           <thead>
             <tr className="border-b">
@@ -37,14 +37,16 @@ export const WorkerConfigsPopover: React.FC<Props> = ({ workerProps }) => {
             </tr>
           </thead>
           <tbody>
-            {entries.map(([key, value]) => (
-              <tr key={key} className="border-b last:border-b-0">
-                <td className="px-3 py-2 font-mono font-medium">{key}</td>
-                <td className="px-3 py-2 font-mono text-muted-foreground">
-                  {value}
-                </td>
-              </tr>
-            ))}
+            <For each={entries}>
+              {([key, value]) => (
+                <tr key={key} className="border-b last:border-b-0">
+                  <td className="px-3 py-2 font-mono font-medium">{key}</td>
+                  <td className="px-3 py-2 font-mono text-muted-foreground">
+                    {value}
+                  </td>
+                </tr>
+              )}
+            </For>
           </tbody>
         </table>
       </PopoverContent>

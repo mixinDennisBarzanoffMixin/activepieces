@@ -1,5 +1,3 @@
-import * as React from 'react';
-
 import { cn } from '@/lib/utils';
 
 function TextShimmer({
@@ -11,11 +9,11 @@ function TextShimmer({
   ...props
 }: TextShimmerProps) {
   const dynamicSpread = Math.min(Math.max(spread, 5), 45);
-  const Component = as as React.ElementType;
+  const Component = as as any;
 
   return (
     <Component
-      className={cn(
+      class={cn(
         'bg-[length:200%_auto] bg-clip-text font-medium text-transparent',
         'animate-[shimmer_4s_infinite_linear]',
         className,
@@ -39,8 +37,8 @@ type TextShimmerProps = {
   as?: string;
   duration?: number;
   spread?: number;
-  children: React.ReactNode;
-} & React.HTMLAttributes<HTMLElement>;
+  children: JSX.Element;
+} & JSX.HTMLAttributes<HTMLElement>;
 
 export { TextShimmer };
 export type { TextShimmerProps };

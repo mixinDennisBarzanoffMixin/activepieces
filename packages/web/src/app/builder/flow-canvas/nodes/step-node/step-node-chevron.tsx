@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 
@@ -7,7 +7,7 @@ const StepNodeChevron = () => {
     <Button
       variant="ghost"
       size="sm"
-      className="p-1 size-7 "
+      class="p-1 size-7 "
       onClick={(e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -24,7 +24,7 @@ const StepNodeChevron = () => {
         }
       }}
     >
-      <ChevronDown className="w-4 h-4 stroke-muted-foreground" />
+      <ChevronDown class="w-4 h-4 stroke-muted-foreground" />
     </Button>
   );
 };

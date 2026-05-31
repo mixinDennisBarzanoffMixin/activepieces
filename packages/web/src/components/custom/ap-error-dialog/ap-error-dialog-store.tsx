@@ -1,18 +1,14 @@
-import { create } from 'zustand';
+import { createSignal } from 'solid-js';
 
 type ApErrorDialogParams = {
   title: string;
-  description: React.ReactNode;
+  description: any;
   error: unknown;
 };
-interface ApErrorDialogStore {
-  params: ApErrorDialogParams | null;
-  openDialog: (params: ApErrorDialogParams) => void;
-  closeDialog: () => void;
-}
+const [params, setParams] = createSignal<ApErrorDialogParams | null>(null);
 
-export const useApErrorDialogStore = create<ApErrorDialogStore>((set) => ({
-  params: null,
-  openDialog: (params) => set({ params }),
-  closeDialog: () => set({ params: null }),
-}));
+export const useApErrorDialogStore = () => ({
+  params: params(),
+  openDialog: setParams,
+  closeDialog: () => setParams(null),
+});

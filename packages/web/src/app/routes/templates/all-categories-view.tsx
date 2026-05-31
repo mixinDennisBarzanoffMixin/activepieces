@@ -1,5 +1,5 @@
 import { Template } from '@activepieces/shared';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal, For, Show } from 'solid-js';
 
 import { CategorySection } from './category-section';
 import { CategorySectionSkeleton } from './skeletons/category-section-skeleton';
@@ -13,9 +13,11 @@ const AllCategoriesViewSkeleton = ({
 }: AllCategoriesViewSkeletonProps) => {
   return (
     <div className="space-y-6">
-      {[...Array(4)].map((_, index) => (
-        <CategorySectionSkeleton key={index} hideHeader={hideHeader} />
-      ))}
+      <For each={[...Array(4)]}>
+        {(_, index) => (
+          <CategorySectionSkeleton key={index} hideHeader={hideHeader} />
+        )}
+      </For>
     </div>
   );
 };
@@ -31,11 +33,11 @@ function LazyCategorySection({
   onCategorySelect: (category: string) => void;
   onTemplateSelect: (template: Template) => void;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
+  let ref = null;
+  const [isVisible, setIsVisible] = createSignal(false);
 
-  useEffect(() => {
-    const el = ref.current;
+  createEffect(() => {
+    const el = ref;
     if (!el) return;
 
     const observer = new IntersectionObserver(
@@ -50,20 +52,18 @@ function LazyCategorySection({
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  });
 
   return (
-    <div ref={ref}>
-      {isVisible ? (
+    <div ref={(el) => (ref = el)}>
+      <Show when={isVisible} fallback={<CategorySectionSkeleton />}>
         <CategorySection
           category={category}
           templates={templates}
           onCategorySelect={onCategorySelect}
           onTemplateSelect={onTemplateSelect}
         />
-      ) : (
-        <CategorySectionSkeleton />
-      )}
+      </Show>
     </div>
   );
 }
@@ -85,12 +85,8 @@ export const AllCategoriesView = ({
   isLoading = false,
   hideHeader = false,
 }: AllCategoriesViewProps) => {
-  const stableOnCategorySelect = useCallback(onCategorySelect, [
-    onCategorySelect,
-  ]);
-  const stableOnTemplateSelect = useCallback(onTemplateSelect, [
-    onTemplateSelect,
-  ]);
+  const stableOnCategorySelect = onCategorySelect;
+  const stableOnTemplateSelect = onTemplateSelect;
 
   if (isLoading) {
     return <AllCategoriesViewSkeleton hideHeader={hideHeader} />;
@@ -98,19 +94,21 @@ export const AllCategoriesView = ({
 
   return (
     <div className="space-y-6">
-      {categories.map((category) => {
-        const categoryTemplates = templatesByCategory[category];
+      <For each={categories}>
+        {(category) => {
+          const categoryTemplates = templatesByCategory[category];
 
-        return (
-          <LazyCategorySection
-            key={category}
-            category={category}
-            templates={categoryTemplates}
-            onCategorySelect={stableOnCategorySelect}
-            onTemplateSelect={stableOnTemplateSelect}
-          />
-        );
-      })}
+          return (
+            <LazyCategorySection
+              key={category}
+              category={category}
+              templates={categoryTemplates}
+              onCategorySelect={stableOnCategorySelect}
+              onTemplateSelect={stableOnTemplateSelect}
+            />
+          );
+        }}
+      </For>
     </div>
   );
 };

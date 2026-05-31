@@ -1,8 +1,8 @@
 import { isObject } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Check, ChevronDown, Loader2, Pause, XCircle } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Pause, XCircle } from 'lucide-solid';
 import { motion } from 'motion/react';
-import { useState } from 'react';
+import { createSignal } from 'solid-js';
 
 import {
   Collapsible,
@@ -21,7 +21,7 @@ function StatusIcon({ status }: { status: ToolStatus }) {
   switch (status) {
     case 'running':
       return (
-        <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />
+        <Loader2 class="h-3.5 w-3.5 animate-spin text-muted-foreground shrink-0" />
       );
     case 'completed':
       return (
@@ -29,16 +29,16 @@ function StatusIcon({ status }: { status: ToolStatus }) {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-          className="shrink-0 flex items-center justify-center"
+          class="shrink-0 flex items-center justify-center"
         >
-          <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+          <Check class="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
         </motion.span>
       );
     case 'failed':
-      return <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0" />;
+      return <XCircle class="h-3.5 w-3.5 text-red-500 shrink-0" />;
     case 'stopped':
       return (
-        <Pause className="h-3.5 w-3.5 text-muted-foreground shrink-0 fill-current" />
+        <Pause class="h-3.5 w-3.5 text-muted-foreground shrink-0 fill-current" />
       );
   }
 }
@@ -51,7 +51,7 @@ export function ToolCallCard({ toolPart }: { toolPart: AnyToolPart }) {
   const hasInput = input && Object.keys(input).length > 0;
   const hasOutput = Boolean(output);
   const hasContent = hasInput || hasOutput;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
 
   if (!hasContent) {
     return (
@@ -64,14 +64,14 @@ export function ToolCallCard({ toolPart }: { toolPart: AnyToolPart }) {
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center gap-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
+      <CollapsibleTrigger class="flex w-full items-center gap-2 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer">
         <StatusIcon status={status} />
         <span className="flex-1 text-left">{displayName}</span>
         <ChevronDown
-          className={cn('h-3 w-3 transition-transform', open && 'rotate-180')}
+          class={cn('h-3 w-3 transition-transform', open && 'rotate-180')}
         />
       </CollapsibleTrigger>
-      <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
+      <CollapsibleContent class="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
         <div className="ml-5 mt-1 mb-1 space-y-1.5 rounded-md bg-muted/40 p-2.5 text-xs">
           {hasInput && input && (
             <div>

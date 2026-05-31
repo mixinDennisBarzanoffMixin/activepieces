@@ -1,4 +1,5 @@
 import { isNil, ProjectReleaseType } from '@activepieces/shared';
+import { useParams } from '@solidjs/router';
 import { formatDistance } from 'date-fns';
 import { t } from 'i18next';
 import {
@@ -6,8 +7,8 @@ import {
   GitBranch,
   FolderOpenDot,
   RotateCcw,
-} from 'lucide-react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+} from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,19 +28,19 @@ const getReleaseSummaryType = (type: ProjectReleaseType) => {
     case ProjectReleaseType.GIT:
       return (
         <span className="flex items-center gap-1">
-          <GitBranch className="size-4" /> {t('Git')}
+          <GitBranch class="size-4" /> {t('Git')}
         </span>
       );
     case ProjectReleaseType.PROJECT:
       return (
         <span className="flex items-center gap-1">
-          <FolderOpenDot className="size-4" /> {t('Project')}
+          <FolderOpenDot class="size-4" /> {t('Project')}
         </span>
       );
     case ProjectReleaseType.ROLLBACK:
       return (
         <span className="flex items-center gap-1">
-          <RotateCcw className="size-4" /> {t('Rollback')}
+          <RotateCcw class="size-4" /> {t('Rollback')}
         </span>
       );
   }
@@ -47,18 +48,19 @@ const getReleaseSummaryType = (type: ProjectReleaseType) => {
 
 const ViewRelease = () => {
   const { releaseId } = useParams();
-  const navigate = useNavigate();
   const { data: release, isLoading } = projectReleaseQueries.useProjectRelease(
     releaseId || '',
     !!releaseId,
   );
 
   if (!releaseId) {
-    return <Navigate to="/releases" replace />;
+    window.location.replace('/releases');
+    return null;
   }
 
   if (!isLoading && isNil(release)) {
-    return <Navigate to="/404" replace />;
+    window.location.replace('/404');
+    return null;
   }
 
   const createdDate = new Date(release?.created ?? 0);
@@ -70,12 +72,12 @@ const ViewRelease = () => {
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Button
             variant="link"
-            className="p-0 h-auto text-sm text-muted-foreground hover:text-primary"
-            onClick={() => navigate('/releases')}
+            class="p-0 h-auto text-sm text-muted-foreground hover:text-primary"
+            onClick={() => window.location.assign('/releases')}
           >
             {t('Releases')}
           </Button>
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight class="h-4 w-4" />
           <span>{release?.name}</span>
         </div>
         <div className="flex justify-between items-center w-full">
@@ -89,7 +91,7 @@ const ViewRelease = () => {
                       navigate('/releases');
                     }}
                     variant="ghost"
-                    className=" p-0"
+                    class=" p-0"
                     request={{
                       projectId: authenticationSession.getProjectId()!,
                       type: ProjectReleaseType.ROLLBACK,
@@ -112,46 +114,52 @@ const ViewRelease = () => {
 
       <div className="space-y-2">
         <span className="text-md font-semibold">{t('Summary')}</span>
-        {isLoading ? (
-          <Skeleton className="h-24 w-full" />
-        ) : (
-          <div className="flex flex-col items-start gap-2">
-            {release?.importedBy ? (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="flex items-center flex-row gap-1">
-                      {t('Imported by')}
-                      <span className="font-semibold text-md">
-                        {release?.importedByUser?.firstName}{' '}
-                        {release?.importedByUser?.lastName}
+        <Show
+          when={isLoading}
+          fallback={
+            <div className="flex flex-col items-start gap-2">
+              <Show when={release?.importedBy} fallback={null}>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex items-center flex-row gap-1">
+                        {t('Imported by')}
+                        <span className="font-semibold text-md">
+                          {release?.importedByUser?.firstName}{' '}
+                          {release?.importedByUser?.lastName}
+                        </span>
+                        {t('from')}{' '}
+                        {getReleaseSummaryType(
+                          release?.type ?? ProjectReleaseType.GIT,
+                        )}
                       </span>
-                      {t('from')}{' '}
-                      {getReleaseSummaryType(
-                        release?.type ?? ProjectReleaseType.GIT,
-                      )}
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{release?.importedByUser?.email}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            ) : null}
-          </div>
-        )}
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{release?.importedByUser?.email}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Show>
+            </div>
+          }
+        >
+          <Skeleton class="h-24 w-full" />
+        </Show>
       </div>
       <div className="space-y-2">
         <span className="text-md font-semibold">{t('Description')}</span>
-        {isLoading ? (
-          <Skeleton className="h-24 w-full" />
-        ) : (
-          <div className="flex flex-col items-start gap-2">
-            <pre className="whitespace-pre-wrap">
-              {release?.description || t('No description provided')}
-            </pre>
-          </div>
-        )}
+        <Show
+          when={isLoading}
+          fallback={
+            <div className="flex flex-col items-start gap-2">
+              <pre className="whitespace-pre-wrap">
+                {release?.description || t('No description provided')}
+              </pre>
+            </div>
+          }
+        >
+          <Skeleton class="h-24 w-full" />
+        </Show>
       </div>
     </div>
   );

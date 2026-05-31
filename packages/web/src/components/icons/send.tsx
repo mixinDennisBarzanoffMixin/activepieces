@@ -1,9 +1,6 @@
-'use client';
-
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { createSignal } from 'solid-js';
+import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -12,7 +9,7 @@ export interface SendIconHandle {
   stopAnimation: () => void;
 }
 
-interface SendIconProps extends HTMLAttributes<HTMLDivElement> {
+interface SendIconProps extends JSX.HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
@@ -41,86 +38,89 @@ const trailVariants: Variants = {
   },
 };
 
-const SendIcon = forwardRef<SendIconHandle, SendIconProps>(
-  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
+function SendIcon(props: SendIconProps & { ref?: SendIconHandle }) {
+  const ref = props.ref;
+  const {
+    onMouseEnter,
+    onMouseLeave,
+    class: className,
+    size = 28,
+    ...divProps
+  } = props;
+  const [controls, setControls] = createSignal('normal');
+  let isControlledRef = false;
 
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
+  if (ref) {
+    isControlledRef = true;
+    const handle = {
+      startAnimation: () => setControls('animate'),
+      stopAnimation: () => setControls('normal'),
+    };
+    if (typeof ref === 'function') {
+      ref(handle);
+    } else {
+      Object.assign(ref, handle);
+    }
+  }
 
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
+  const handleMouseEnter = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseEnter?.(e);
+    } else {
+      setControls('animate');
+    }
+  };
 
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
+  const handleMouseLeave = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseLeave?.(e);
+    } else {
+      setControls('normal');
+    }
+  };
 
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
-
-    return (
-      <div
-        className={cn(className)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        {...props}
+  return (
+    <div
+      className={cn(className)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...divProps}
+    >
+      <svg
+        className="overflow-visible"
+        fill="none"
+        height={size}
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        width={size}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg
-          className="overflow-visible"
-          fill="none"
-          height={size}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          width={size}
-          xmlns="http://www.w3.org/2000/svg"
+        <motion.g
+          animate={controls()}
+          transition={{ duration: 0.5 }}
+          variants={groupVariants}
         >
-          <motion.g
-            animate={controls}
-            transition={{ duration: 0.5 }}
-            variants={groupVariants}
-          >
-            <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
-            <path d="m21.854 2.147-10.94 10.939" />
-          </motion.g>
-          <motion.path
-            animate={controls}
-            d="M -3 28 C -0.5 26.8 1.6 24.6 3.3 22 C 4.8 19.7 5.2 17.6 4.2 16.1 C 3.2 14.7 1.4 14.5 0.3 15.8 C -0.9 17.2 -0.6 19.4 1.2 20.4 C 3.4 21.5 6.4 19.4 9 15.8"
-            fill="none"
-            initial={{ opacity: 0, pathLength: 0 }}
-            stroke="currentColor"
-            strokeDasharray="2 2"
-            strokeWidth="1"
-            transition={{ duration: 0.55, delay: 0.1 }}
-            variants={trailVariants}
-          />
-        </svg>
-      </div>
-    );
-  },
-);
-
+          <path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z" />
+          <path d="m21.854 2.147-10.94 10.939" />
+        </motion.g>
+        <motion.path
+          animate={controls()}
+          d="M -3 28 C -0.5 26.8 1.6 24.6 3.3 22 C 4.8 19.7 5.2 17.6 4.2 16.1 C 3.2 14.7 1.4 14.5 0.3 15.8 C -0.9 17.2 -0.6 19.4 1.2 20.4 C 3.4 21.5 6.4 19.4 9 15.8"
+          fill="none"
+          initial={{ opacity: 0, pathLength: 0 }}
+          stroke="currentColor"
+          strokeDasharray="2 2"
+          strokeWidth="1"
+          transition={{ duration: 0.55, delay: 0.1 }}
+          variants={trailVariants}
+        />
+      </svg>
+    </div>
+  );
+}
 SendIcon.displayName = 'SendIcon';
 
 export { SendIcon };

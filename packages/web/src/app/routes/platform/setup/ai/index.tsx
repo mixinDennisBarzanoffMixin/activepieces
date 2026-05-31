@@ -4,7 +4,8 @@ import {
   PlatformRole,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare } from 'lucide-solid';
+import { For, Show } from 'solid-js';
 
 import { CenteredPage } from '@/app/components/centered-page';
 import {
@@ -69,7 +70,7 @@ export default function AIProvidersPage() {
               )
         }
       >
-        {allowWrite && configuredProviders.length > 0 && (
+        <Show when={allowWrite && configuredProviders.length > 0}>
           <ChatProviderSelector
             providers={configuredProviders}
             providerInfos={SUPPORTED_AI_PROVIDERS}
@@ -78,25 +79,27 @@ export default function AIProvidersPage() {
               toggleChatProvider({ providerId, displayName })
             }
           />
-        )}
+        </Show>
 
         <div className="flex flex-col gap-4">
-          {SUPPORTED_AI_PROVIDERS.map((providerDef) => {
-            const config = providers?.find(
-              (p) => p.provider === providerDef.provider,
-            );
+          <For each={SUPPORTED_AI_PROVIDERS}>
+            {(providerDef) => {
+              const config = providers?.find(
+                (p) => p.provider === providerDef.provider,
+              );
 
-            return (
-              <AIProviderCard
-                key={providerDef.provider}
-                providerInfo={providerDef}
-                providerConfig={config}
-                onDelete={(id) => deleteProvider(id)}
-                onSave={() => refetch()}
-                allowWrite={allowWrite}
-              />
-            );
-          })}
+              return (
+                <AIProviderCard
+                  key={providerDef.provider}
+                  providerInfo={providerDef}
+                  providerConfig={config}
+                  onDelete={(id) => deleteProvider(id)}
+                  onSave={() => refetch()}
+                  allowWrite={allowWrite}
+                />
+              );
+            }}
+          </For>
         </div>
       </CenteredPage>
     </LockedFeatureGuard>
@@ -123,7 +126,7 @@ function ChatProviderSelector({
   return (
     <div className="flex items-center gap-3 rounded-lg border bg-card p-4 mb-6">
       <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shrink-0">
-        <MessageSquare className="size-4 text-muted-foreground" />
+        <MessageSquare class="size-4 text-muted-foreground" />
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium leading-none">{t('Chat Provider')}</p>
@@ -138,27 +141,29 @@ function ChatProviderSelector({
           if (provider) onSelect(provider.id, provider.name);
         }}
       >
-        <SelectTrigger className="w-52">
+        <SelectTrigger class="w-52">
           <SelectValue placeholder={t('Select provider')} />
         </SelectTrigger>
         <SelectContent>
-          {providers.map((provider) => {
-            const logoUrl = getLogoUrl(provider.provider);
-            return (
-              <SelectItem key={provider.id} value={provider.id}>
-                <div className="flex items-center gap-2">
-                  {logoUrl && (
-                    <img
-                      src={logoUrl}
-                      alt={provider.provider}
-                      className="size-4 object-contain"
-                    />
-                  )}
-                  <span>{provider.name}</span>
-                </div>
-              </SelectItem>
-            );
-          })}
+          <For each={providers}>
+            {(provider) => {
+              const logoUrl = getLogoUrl(provider.provider);
+              return (
+                <SelectItem key={provider.id} value={provider.id}>
+                  <div className="flex items-center gap-2">
+                    <Show when={logoUrl}>
+                      <img
+                        src={logoUrl}
+                        alt={provider.provider}
+                        className="size-4 object-contain"
+                      />
+                    </Show>
+                    <span>{provider.name}</span>
+                  </div>
+                </SelectItem>
+              );
+            }}
+          </For>
         </SelectContent>
       </Select>
     </div>

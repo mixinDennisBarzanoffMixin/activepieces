@@ -1,8 +1,8 @@
 import { FlowVersionState, Permission } from '@activepieces/shared';
+import { useLocation, useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
-import { EyeIcon, PencilIcon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useLocation } from 'react-use';
+import { EyeIcon, PencilIcon } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { useAuthorization } from '@/hooks/authorization-hooks';
@@ -38,21 +38,21 @@ const EditFlowOrViewDraftButton = ({ onCanvas }: { onCanvas: boolean }) => {
 
   return (
     <>
-      {onCanvas && (
+      <Show when={onCanvas()}>
         <AboveTriggerButton
           shortCutIsEscape={true}
           showPrimaryBg={false}
           onClick={handleClick}
           text={text}
         ></AboveTriggerButton>
-      )}
+      </Show>
 
-      {!onCanvas && (
+      <Show when={!onCanvas()}>
         <Button
           size={'sm'}
           variant={'basic'}
           loading={isSwitchingToDraftPending}
-          className="gap-2"
+          class="gap-2"
           onClick={() => {
             if (location.pathname?.includes('/runs')) {
               navigate(`/flows/${flowId}`);
@@ -64,7 +64,7 @@ const EditFlowOrViewDraftButton = ({ onCanvas }: { onCanvas: boolean }) => {
           {icon}
           {text}
         </Button>
-      )}
+      </Show>
     </>
   );
 };
@@ -79,12 +79,12 @@ function getButtonTextAndIcon({
 
   if (hasPermissionToEditFlow) {
     return {
-      icon: <PencilIcon className="size-4" />,
+      icon: <PencilIcon class="size-4" />,
       text,
     };
   }
   return {
-    icon: <EyeIcon className="size-4" />,
+    icon: <EyeIcon class="size-4" />,
     text,
   };
 }

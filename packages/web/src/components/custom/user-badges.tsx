@@ -1,6 +1,6 @@
 import { ApFlagId, BADGES, UserWithBadges } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Lock } from 'lucide-react';
+import { Lock } from 'lucide-solid';
 
 import {
   Tooltip,
@@ -51,41 +51,43 @@ export const UserBadges = ({
         {t('Badges')}
       </h5>
       <div className="flex items-center gap-1 flex-wrap">
-        {badgesToShow.map(([badgeName, badge]) => {
-          const isUnlocked = userBadges.some(
-            (userBadge: { name: string; created: string }) =>
-              userBadge.name === badgeName,
-          );
+        <For each={badgesToShow}>
+          {([badgeName, badge]) => {
+            const isUnlocked = userBadges.some(
+              (userBadge: { name: string; created: string }) =>
+                userBadge.name === badgeName,
+            );
 
-          return (
-            <Tooltip key={badgeName}>
-              <TooltipTrigger asChild>
-                <div className="cursor-pointer relative">
-                  <img
-                    src={badge.imageUrl}
-                    alt={badge.title}
-                    className={`h-12 w-12 object-cover rounded-md ${
-                      !isUnlocked && showLockedBadges
-                        ? 'opacity-50 grayscale'
-                        : ''
-                    }`}
-                  />
-                  {!isUnlocked && showLockedBadges && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded">
-                      <Lock className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent className="text-left">
-                <div className="flex flex-col">
-                  <p className="font-semibold">{badge.title}</p>
-                  <p className="text-xs">{badge.description}</p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          );
-        })}
+            return (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="cursor-pointer relative">
+                    <img
+                      src={badge.imageUrl}
+                      alt={badge.title}
+                      className={`h-12 w-12 object-cover rounded-md ${
+                        !isUnlocked && showLockedBadges
+                          ? 'opacity-50 grayscale'
+                          : ''
+                      }`}
+                    />
+                    <Show when={!isUnlocked && showLockedBadges}>
+                      <div className="absolute inset-0 flex items-center justify-center rounded">
+                        <Lock class="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </Show>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent class="text-left">
+                  <div className="flex flex-col">
+                    <p className="font-semibold">{badge.title}</p>
+                    <p className="text-xs">{badge.description}</p>
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            );
+          }}
+        </For>
       </div>
     </div>
   );

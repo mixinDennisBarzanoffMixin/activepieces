@@ -1,30 +1,25 @@
 import { t } from 'i18next';
-import { UseFormReturn } from 'react-hook-form';
 
-import { FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { FormItem, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { RoleSelector } from '@/features/members/components/role-selector';
 
-type PlatformRoleSelectProps = {
-  form: UseFormReturn<any>;
-};
-export const PlatformRoleSelect = ({ form }: PlatformRoleSelectProps) => {
+export const PlatformRoleSelect = ({ value, onChange }: PlatformRoleSelectProps) => {
   return (
-    <FormField
-      control={form.control}
-      name="platformRole"
-      render={({ field }) => (
-        <FormItem className="grid gap-3">
-          <Label>{t('Platform Role')}</Label>
-          <RoleSelector
-            type="platform"
-            value={field.value}
-            onValueChange={field.onChange}
-            placeholder={t('Select a platform role')}
-          />
-          <FormMessage />
-        </FormItem>
-      )}
-    ></FormField>
+    <FormItem class="grid gap-3">
+      <Label>{t('Platform Role')}</Label>
+      <RoleSelector
+        type="platform"
+        value={value}
+        onValueChange={onChange}
+        placeholder={t('Select a platform role')}
+      />
+      <FormMessage />
+    </FormItem>
   );
+};
+
+type PlatformRoleSelectProps = {
+  value: string | undefined;
+  onChange: (value: string) => void;
 };

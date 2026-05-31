@@ -1,7 +1,6 @@
 import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { createSignal, createEffect } from 'solid-js';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { internalErrorToast } from '@/components/ui/sonner';
@@ -10,19 +9,18 @@ import { api } from '../../../lib/api';
 import { userInvitationMutations } from '../hooks/user-invitations-hooks';
 
 const AcceptInvitation = () => {
-  const [isInvitationLinkValid, setIsInvitationLinkValid] = useState(true);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [isInvitationLinkValid, setIsInvitationLinkValid] = createSignal(true);
+  const searchParams = new URLSearchParams(window.location.search);
   const { mutate, isPending } = userInvitationMutations.useAcceptInvitation({
     onSuccess: (registered) => {
       setIsInvitationLinkValid(true);
       if (!registered) {
         setTimeout(() => {
           const email = searchParams.get('email');
-          navigate(`/sign-up?email=${email}`);
+          window.location.assign(`/sign-up?email=${email || ''}`);
         }, 3000);
       } else {
-        navigate('/sign-in');
+        window.location.assign('/sign-in');
       }
     },
     onError: (error) => {
@@ -41,14 +39,14 @@ const AcceptInvitation = () => {
       }
     },
   });
-  useEffect(() => {
+  createEffect(() => {
     const invitationToken = searchParams.get('token');
     if (!invitationToken) {
       setIsInvitationLinkValid(false);
       return;
     }
     mutate(invitationToken);
-  }, [mutate, searchParams]);
+  });
 
   return isPending ? (
     <div className="w-screen h-screen flex justify-center items-center">

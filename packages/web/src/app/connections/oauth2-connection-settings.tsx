@@ -8,15 +8,11 @@ import {
   ApFlagId,
   AppConnectionType,
   OAuth2GrantType,
-  UpsertCloudOAuth2Request,
-  UpsertOAuth2Request,
-  UpsertPlatformOAuth2Request,
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ChevronDown } from 'lucide-react';
-import { Dispatch, SetStateAction, useState } from 'react';
-import { useFormContext, UseFormReturn } from 'react-hook-form';
+import { ChevronDown } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import {
   MultiSelect,
@@ -28,21 +24,14 @@ import {
   MultiSelectValue,
 } from '@/components/custom/multi-select';
 import { Button } from '@/components/ui/button';
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { OAuth2App, oauth2Utils } from '@/features/connections';
 import { appConnectionsApi } from '@/features/connections/api/app-connections';
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { cn } from '@/lib/utils';
 
-import { GenericPropertiesForm } from '../builder/piece-properties/generic-properties-form';
-
+import { SolidConnectionForm } from './connection-form';
 import { SecretInput } from './secret-input';
 
 function OAuth2ConnectionSettings({
@@ -50,27 +39,23 @@ function OAuth2ConnectionSettings({
   oauth2App,
   piece,
   grantType,
+  form,
 }: OAuth2ConnectionSettingsProps) {
-  const form = useFormContext<{
-    request:
-      | UpsertCloudOAuth2Request
-      | UpsertOAuth2Request
-      | UpsertPlatformOAuth2Request;
-  }>();
-
-  const isClientIdValid = isNil(
-    form.formState.errors.request?.value?.client_id,
-  );
-  const isClientSecretValid =
+  const isClientIdValid = () => isNil(form.errors()['request.value.client_id']);
+  const isClientSecretValid = () =>
     oauth2App.oauth2Type !== AppConnectionType.OAUTH2 ||
-    form.getValues('request.value.client_secret');
-  const isPropsValid = isNil(form.formState.errors.request?.value?.props);
-  const selectedScopeString = form.watch('request.value.scope') ?? '';
+    String(form.getValue('request.value.client_secret') ?? '').length > 0;
+  const isPropsValid = () => isNil(form.errors()['request.value.props']);
+  const selectedScopeString = () =>
+    String(form.getValue('request.value.scope') ?? '');
   const showScopeSelector = authProperty.scope.length > 1;
-  const hasSelectedScopes =
-    !showScopeSelector || selectedScopeString.trim().length > 0;
-  const isConnectButtonEnabled =
-    isClientIdValid && isClientSecretValid && isPropsValid && hasSelectedScopes;
+  const hasSelectedScopes = () =>
+    !showScopeSelector || selectedScopeString().trim().length > 0;
+  const isConnectButtonEnabled = () =>
+    isClientIdValid() &&
+    isClientSecretValid() &&
+    isPropsValid() &&
+    hasSelectedScopes();
   const { data: thirdPartyUrl } = flagsHooks.useFlag<string>(
     ApFlagId.THIRD_PARTY_AUTH_PROVIDER_REDIRECT_URL,
   );
@@ -82,78 +67,49 @@ function OAuth2ConnectionSettings({
   const showRedirectUrlInput =
     oauth2App.oauth2Type === AppConnectionType.OAUTH2 &&
     grantType === OAuth2GrantType.AUTHORIZATION_CODE;
-  const [loading, setLoading] = useState(false);
-  const [scopesEditing, setScopesEditing] = useState(false);
+  const [loading, setLoading] = createSignal(false);
+  const [scopesEditing, setScopesEditing] = createSignal(false);
 
   return (
     <div className="flex flex-col gap-4">
       {showRedirectUrlInput && (
         <div className="flex flex-col gap-2">
-          <FormLabel>{t('Redirect URL')}</FormLabel>
-          <FormControl>
-            <Input disabled type="text" value={redirectUrl} />
-          </FormControl>
-          <FormMessage />
+          <Label>{t('Redirect URL')}</Label>
+          <Input disabled type="text" value={redirectUrl} />
         </div>
       )}
 
       {oauth2App.oauth2Type === AppConnectionType.OAUTH2 && (
         <>
-          <FormField
-            name="request.value.client_id"
-            control={form.control}
-            render={({ field }) => (
-              <FormItem className="flex flex-col gap-2">
-                <FormLabel
-                  className="flex items-center gap-1"
-                  showRequiredIndicator
-                >
-                  <span>{t('Client ID')}</span>
-                </FormLabel>
-                <FormControl>
-                  <SecretInput {...field} type="text" />
-                </FormControl>
-              </FormItem>
-            )}
-          ></FormField>
-          <FormField
-            name="request.value.client_secret"
-            control={form.control}
-            render={({ field }) => (
-              <FormItem className="flex flex-col gap-2">
-                <FormLabel
-                  className="flex items-center gap-1"
-                  showRequiredIndicator
-                >
-                  <span>{t('Client Secret')}</span>
-                </FormLabel>
-                <FormControl>
-                  <SecretInput {...field} type="password" />
-                </FormControl>
-              </FormItem>
-            )}
-          ></FormField>
+          <div class="flex flex-col gap-2">
+            <Label class="flex items-center gap-1" showRequiredIndicator>
+              <span>{t('Client ID')}</span>
+            </Label>
+            <SecretInput
+              value={String(form.getValue('request.value.client_id') ?? '')}
+              onChange={(value) =>
+                form.setValue('request.value.client_id', value)
+              }
+              type="text"
+            />
+          </div>
+          <div class="flex flex-col gap-2">
+            <Label class="flex items-center gap-1" showRequiredIndicator>
+              <span>{t('Client Secret')}</span>
+            </Label>
+            <SecretInput
+              value={String(form.getValue('request.value.client_secret') ?? '')}
+              onChange={(value) =>
+                form.setValue('request.value.client_secret', value)
+              }
+              type="password"
+            />
+          </div>
         </>
-      )}
-      {authProperty.props && (
-        <GenericPropertiesForm
-          prefixValue="request.value.props"
-          props={authProperty.props}
-          useMentionTextInput={false}
-          propertySettings={null}
-          dynamicPropsInfo={null}
-        />
       )}
 
       {showScopeSelector && (
-        <FormField
-          name="request.value.scope"
-          control={form.control}
-          render={({ field }) => {
-            const selected = parseScopeString(field.value);
-            return (
-              <FormItem className="flex flex-col gap-2">
-                <FormControl>
+        <div class="flex flex-col gap-2">
                   <div className="flex flex-col gap-2">
                     <div
                       role="button"
@@ -169,30 +125,32 @@ function OAuth2ConnectionSettings({
                     >
                       <span className="leading-none">{t('Permissions')}</span>
                       <ChevronDown
-                        className={cn(
+                        class={cn(
                           'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
-                          !scopesEditing && '-rotate-90',
+                          !scopesEditing() && '-rotate-90',
                         )}
                       />
                     </div>
-                    {scopesEditing && (
-                      <MultiSelect
-                        modal={true}
-                        value={selected}
-                        onValueChange={(next) => field.onChange(next.join(' '))}
+                      {scopesEditing() && (
+                        <MultiSelect
+                          modal={true}
+                        value={parseScopeString(selectedScopeString())}
+                        onValueChange={(next) =>
+                          form.setValue('request.value.scope', next.join(' '))
+                        }
                         items={authProperty.scope.map((scope) => ({
                           value: scope,
                           label: scope,
                         }))}
                       >
                         <MultiSelectTrigger>
-                          {selected.length < 10 ? (
+                          {parseScopeString(selectedScopeString()).length < 10 ? (
                             <MultiSelectValue
                               placeholder={t('Select permissions')}
                             />
                           ) : (
                             t('{number} items selected', {
-                              number: selected.length,
+                              number: parseScopeString(selectedScopeString()).length,
                             })
                           )}
                         </MultiSelectTrigger>
@@ -205,7 +163,10 @@ function OAuth2ConnectionSettings({
                               onClick={(e) => {
                                 e.stopPropagation();
                                 e.preventDefault();
-                                field.onChange(authProperty.scope.join(' '));
+                                form.setValue(
+                                  'request.value.scope',
+                                  authProperty.scope.join(' '),
+                                );
                               }}
                             >
                               <MultiSelectItem>
@@ -224,25 +185,23 @@ function OAuth2ConnectionSettings({
                       </MultiSelect>
                     )}
                   </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            );
-          }}
-        />
+              </div>
       )}
 
       {grantType !== OAuth2GrantType.CLIENT_CREDENTIALS && (
-        <FormField
-          name="request.value.code"
-          control={form.control}
-          render={({ field }) => {
-            const hasCode = !isNil(field.value) && field.value !== '';
-            return (
-              <FormItem className="flex flex-col gap-2">
-                <FormControl>
-                  <input type="hidden" {...field} />
-                </FormControl>
+        <div class="flex flex-col gap-2">
+                {(() => {
+                  const code = form.getValue('request.value.code');
+                  const hasCode = !isNil(code) && code !== '';
+                  return (
+                    <>
+                  <input
+                    type="hidden"
+                    value={String(code ?? '')}
+                    onInput={(e) =>
+                      form.setValue('request.value.code', e.currentTarget.value)
+                    }
+                  />
                 <div className="border border-solid p-2 rounded-lg gap-2 flex text-center items-center justify-center h-full">
                   <div className="rounded-full  border border-solid p-1 flex items-center justify-center">
                     <img src={piece.logoUrl} className="w-5 h-5"></img>
@@ -252,19 +211,21 @@ function OAuth2ConnectionSettings({
                   <Button
                     size={'sm'}
                     variant={'basic'}
-                    className={cn(hasCode && 'text-destructive')}
-                    disabled={!isConnectButtonEnabled}
-                    loading={loading}
+                    class={cn(hasCode && 'text-destructive')}
+                    disabled={!isConnectButtonEnabled()}
+                    loading={loading()}
                     type="button"
                     onClick={async () => {
                       if (!hasCode) {
                         const scopesList = parseScopeString(
-                          form.getValues().request.value.scope,
+                          String(form.getValue('request.value.scope') ?? ''),
                         );
                         openPopup({
                           redirectUrl,
-                          clientId: form.getValues().request.value.client_id,
-                          props: form.getValues().request.value.props,
+                          clientId: String(
+                            form.getValue('request.value.client_id') ?? '',
+                          ),
+                          props: record(form.getValue('request.value.props')),
                           pieceName: piece.name,
                           form,
                           pieceVersion: piece.version,
@@ -273,21 +234,18 @@ function OAuth2ConnectionSettings({
                           setLoading,
                         });
                       } else {
-                        field.onChange('');
-                        form.setValue('request.value.code_challenge', '', {
-                          shouldValidate: true,
-                        });
+                        form.setValue('request.value.code', '');
+                        form.setValue('request.value.code_challenge', '');
                       }
                     }}
                   >
                     {hasCode ? t('Disconnect') : t('Connect')}
                   </Button>
                 </div>
-                <FormMessage />
-              </FormItem>
-            );
-          }}
-        />
+                    </>
+                  );
+                })()}
+              </div>
       )}
     </div>
   );
@@ -316,7 +274,7 @@ async function openPopup({
   let authorizationUrl, codeVerifier;
   try {
     setLoading(true);
-    const formProjectId = form.getValues().request.projectId;
+    const formProjectId = String(form.getValue('request.projectId') ?? '');
     const result = await appConnectionsApi.getOAuth2AuthorizationUrl({
       pieceName,
       clientId,
@@ -330,7 +288,6 @@ async function openPopup({
     codeVerifier = result.codeVerifier;
   } catch (error: unknown) {
     form.setError('request.value.client_id', {
-      type: 'manual',
       message:
         error instanceof Error
           ? error.message
@@ -345,10 +302,15 @@ async function openPopup({
     redirectUrl,
     codeVerifier,
   });
-  form.setValue('request.value.code', code, { shouldValidate: true });
-  form.setValue('request.value.code_challenge', codeVerifier ?? '', {
-    shouldValidate: true,
-  });
+  form.setValue('request.value.code', code);
+  form.setValue('request.value.code_challenge', codeVerifier ?? '');
+}
+
+function record(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as Record<string, unknown>;
 }
 
 type OAuth2ConnectionSettingsProps = {
@@ -356,6 +318,7 @@ type OAuth2ConnectionSettingsProps = {
   authProperty: OAuth2Property<OAuth2Props>;
   oauth2App: OAuth2App;
   grantType: OAuth2GrantType;
+  form: SolidConnectionForm<unknown>;
 };
 
 type OpenPopupParams = {
@@ -365,11 +328,6 @@ type OpenPopupParams = {
   pieceName: string;
   pieceVersion: string;
   scopes: string[] | undefined;
-  form: UseFormReturn<{
-    request:
-      | UpsertCloudOAuth2Request
-      | UpsertOAuth2Request
-      | UpsertPlatformOAuth2Request;
-  }>;
-  setLoading: Dispatch<SetStateAction<boolean>>;
+  form: SolidConnectionForm<unknown>;
+  setLoading: (loading: boolean) => void;
 };

@@ -5,7 +5,11 @@ import {
   EmbedSubdomainStatus,
   GenerateEmbedSubdomainRequest,
 } from '@activepieces/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/solid-query';
 
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { platformHooks } from '@/hooks/platform-hooks';
@@ -20,7 +24,7 @@ export const embedSubdomainQueries = {
   useEmbedSubdomain: () => {
     const { platform } = platformHooks.useCurrentPlatform();
     const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
-    return useQuery<EmbedSubdomain | null>({
+    return createQuery<EmbedSubdomain | null>({
       queryKey: embedSubdomainKeys.current,
       queryFn: () => embedSubdomainApi.get(),
       enabled: platform.plan.embeddingEnabled && edition === ApEdition.CLOUD,
@@ -43,7 +47,7 @@ export const embedSubdomainQueries = {
 export const embedSubdomainMutations = {
   useUpsert: () => {
     const queryClient = useQueryClient();
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (request: GenerateEmbedSubdomainRequest) =>
         embedSubdomainApi.upsert(request),
       onSuccess: () => {
@@ -51,6 +55,6 @@ export const embedSubdomainMutations = {
           queryKey: embedSubdomainKeys.current,
         });
       },
-    });
+    }));
   },
 };

@@ -1,9 +1,6 @@
-'use client';
-
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { createSignal } from 'solid-js';
+import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -12,7 +9,7 @@ export interface ChartLineIconHandle {
   stopAnimation: () => void;
 }
 
-interface ChartLineIconProps extends HTMLAttributes<HTMLDivElement> {
+interface ChartLineIconProps extends JSX.HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
@@ -32,72 +29,77 @@ const VARIANTS: Variants = {
   },
 };
 
-const ChartLineIcon = forwardRef<ChartLineIconHandle, ChartLineIconProps>(
-  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
+function ChartLineIcon(
+  props: ChartLineIconProps & { ref?: ChartLineIconHandle },
+) {
+  const ref = props.ref;
+  const {
+    onMouseEnter,
+    onMouseLeave,
+    class: className,
+    size = 28,
+    ...divProps
+  } = props;
+  const [controls, setControls] = createSignal('normal');
+  let isControlledRef = false;
 
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
+  if (ref) {
+    isControlledRef = true;
+    const handle = {
+      startAnimation: () => setControls('animate'),
+      stopAnimation: () => setControls('normal'),
+    };
+    if (typeof ref === 'function') {
+      ref(handle);
+    } else {
+      Object.assign(ref, handle);
+    }
+  }
 
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
+  const handleMouseEnter = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseEnter?.(e);
+    } else {
+      setControls('animate');
+    }
+  };
 
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
+  const handleMouseLeave = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseLeave?.(e);
+    } else {
+      setControls('normal');
+    }
+  };
 
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
-
-    return (
-      <div
-        className={cn(className)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        {...props}
+  return (
+    <div
+      className={cn(className)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...divProps}
+    >
+      <svg
+        fill="none"
+        height={size}
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        width={size}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg
-          fill="none"
-          height={size}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          width={size}
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M3 3v16a2 2 0 0 0 2 2h16" />
-          <motion.path
-            animate={controls}
-            d="m7 13 3-3 4 4 5-5"
-            variants={VARIANTS}
-          />
-        </svg>
-      </div>
-    );
-  },
-);
-
+        <path d="M3 3v16a2 2 0 0 0 2 2h16" />
+        <motion.path
+          animate={controls()}
+          d="m7 13 3-3 4 4 5-5"
+          variants={VARIANTS}
+        />
+      </svg>
+    </div>
+  );
+}
 ChartLineIcon.displayName = 'ChartLineIcon';
 
 export { ChartLineIcon };

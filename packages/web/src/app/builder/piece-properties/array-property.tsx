@@ -4,11 +4,11 @@ import {
   PropertyType,
 } from '@activepieces/pieces-framework';
 import { t } from 'i18next';
-import { Plus, TrashIcon } from 'lucide-react';
+import { Plus, TrashIcon } from 'lucide-solid';
 import { nanoid } from 'nanoid';
-import React, { useState } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { For, Show, createSignal } from 'solid-js';
 
+import { useFormContext } from '@/app/builder/builder-form';
 import { ArrayInput } from '@/components/custom/array-input';
 import { TextWithIcon } from '@/components/custom/text-with-icon';
 import { Button } from '@/components/ui/button';
@@ -63,73 +63,73 @@ const getDefaultValuesForInputs = (arrayProperties: ArraySubProps<boolean>) => {
     }
   }, {} as Record<string, unknown>);
 };
-const ArrayPieceProperty = React.memo(
-  ({
-    inputName,
-    useMentionTextInput,
-    disabled,
-    arrayProperty,
-  }: ArrayPropertyProps) => {
-    const form = useFormContext();
+const ArrayPieceProperty = ({
+  inputName,
+  useMentionTextInput,
+  disabled,
+  arrayProperty,
+}: ArrayPropertyProps) => {
+  const form = useFormContext();
 
-    const [fields, setFields] = useState<ArrayField[]>(() => {
-      const formValues = form.getValues(inputName);
-      if (formValues) {
-        return formValues.map((value: string | Record<string, unknown>) => ({
-          id: nanoid(),
-          value,
-        }));
-      } else {
-        return [];
-      }
-    });
+  const [fields, setFields] = createSignal<ArrayField[]>(() => {
+    const formValues = form.getValues(inputName);
+    if (formValues) {
+      return formValues.map((value: string | Record<string, unknown>) => ({
+        id: nanoid(),
+        value,
+      }));
+    } else {
+      return [];
+    }
+  });
 
-    const updateFormValue = (newFields: ArrayField[]) => {
-      form.setValue(
-        inputName,
-        newFields.map((f) => f.value),
-        { shouldValidate: true },
-      );
-    };
+  const updateFormValue = (newFields: ArrayField[]) => {
+    form.setValue(
+      inputName,
+      newFields.map((f) => f.value),
+      { shouldValidate: true },
+    );
+  };
 
-    const append = () => {
-      //passing empty object will result in react form putting in the initial values when the user first started editing
-      const value = arrayProperty.properties
-        ? getDefaultValuesForInputs(arrayProperty.properties)
-        : '';
-      const formValues = form.getValues(inputName) || [];
-      const newFields = [
-        ...formValues.map((value: string | Record<string, unknown>) => ({
-          id: nanoid(),
-          value,
-        })),
-        { id: nanoid(), value },
-      ];
+  const append = () => {
+    //passing empty object will result in react form putting in the initial values when the user first started editing
+    const value = arrayProperty.properties
+      ? getDefaultValuesForInputs(arrayProperty.properties)
+      : '';
+    const formValues = form.getValues(inputName) || [];
+    const newFields = [
+      ...formValues.map((value: string | Record<string, unknown>) => ({
+        id: nanoid(),
+        value,
+      })),
+      { id: nanoid(), value },
+    ];
 
-      setFields(newFields);
-      updateFormValue(newFields);
-    };
+    setFields(newFields);
+    updateFormValue(newFields);
+  };
 
-    const remove = (index: number) => {
-      const currentFields: ArrayField[] = form
-        .getValues(inputName)
-        .map((value: string | Record<string, unknown>) => ({
-          id: nanoid(),
-          value,
-        }));
-      const newFields = currentFields.filter((_, i) => i !== index);
-      setFields(newFields);
-      updateFormValue(newFields);
-    };
+  const remove = (index: number) => {
+    const currentFields: ArrayField[] = form
+      .getValues(inputName)
+      .map((value: string | Record<string, unknown>) => ({
+        id: nanoid(),
+        value,
+      }));
+    const newFields = currentFields.filter((_, i) => i !== index);
+    setFields(newFields);
+    updateFormValue(newFields);
+  };
 
-    return (
-      <>
-        {arrayProperty.properties && (
-          <>
-            <div
-              className={cn('flex w-full flex-col', GAP_SIZE_FOR_STEP_SETTINGS)}
-            >
-              {fields.map((field, index) => (
+  return (
+    <>
+      <Show when={arrayProperty.properties()}>
+        <>
+          <div
+            className={cn('flex w-full flex-col', GAP_SIZE_FOR_STEP_SETTINGS)}
+          >
+            <For each={fields}>
+              {(field, index) => (
                 <div
                   className={cn(
                     'p-4 border rounded-md flex flex-col',
@@ -142,14 +142,14 @@ const ArrayPieceProperty = React.memo(
                     <Button
                       variant="outline"
                       size="icon"
-                      className="size-8 shrink-0"
+                      class="size-8 shrink-0"
                       onClick={() => {
                         remove(index);
                       }}
                       disabled={disabled}
                     >
                       <TrashIcon
-                        className="size-4 text-destructive"
+                        class="size-4 text-destructive"
                         aria-hidden="true"
                       />
                       <span className="sr-only">{t('Remove')}</span>
@@ -167,53 +167,53 @@ const ArrayPieceProperty = React.memo(
                     }}
                   ></GenericPropertiesForm>
                 </div>
-              ))}
-            </div>
-            {!disabled && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => {
-                  append();
-                }}
-                type="button"
-              >
-                <TextWithIcon icon={<Plus size={18} />} text={t('Add Item')} />
-              </Button>
-            )}
-          </>
-        )}
+              )}
+            </For>
+          </div>
+          <Show when={!disabled()}>
+            <Button
+              variant="outline"
+              size="sm"
+              class="mt-2"
+              onClick={() => {
+                append();
+              }}
+              type="button"
+            >
+              <TextWithIcon icon={<Plus size={18} />} text={t('Add Item')} />
+            </Button>
+          </Show>
+        </>
+      </Show>
 
-        {!arrayProperty.properties && (
-          <ArrayInput
-            inputName={inputName}
-            disabled={disabled}
-            required={arrayProperty.required}
-            customInputNode={(onChange, value, disabled) => {
-              if (!useMentionTextInput) {
-                return (
-                  <Input
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    disabled={disabled}
-                  />
-                );
-              }
+      <Show when={!arrayProperty.properties()}>
+        <ArrayInput
+          inputName={inputName}
+          disabled={disabled}
+          required={arrayProperty.required}
+          customInputNode={(onChange, value, disabled) => {
+            if (!useMentionTextInput) {
               return (
-                <TextInputWithMentions
-                  initialValue={value}
-                  onChange={(newValue) => onChange(newValue)}
+                <Input
+                  value={value}
+                  onChange={(e) => onChange(e.target.value)}
                   disabled={disabled}
                 />
               );
-            }}
-          />
-        )}
-      </>
-    );
-  },
-);
+            }
+            return (
+              <TextInputWithMentions
+                initialValue={value}
+                onChange={(newValue) => onChange(newValue)}
+                disabled={disabled}
+              />
+            );
+          }}
+        />
+      </Show>
+    </>
+  );
+};
 
 ArrayPieceProperty.displayName = 'ArrayPieceProperty';
 export { ArrayPieceProperty };

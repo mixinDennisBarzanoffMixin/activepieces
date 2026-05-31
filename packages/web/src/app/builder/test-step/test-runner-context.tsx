@@ -4,14 +4,8 @@ import {
   FlowTrigger,
   FlowTriggerType,
 } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-} from 'react';
+import { useQueryClient } from '@tanstack/solid-query';
+import { Show, createContext, createSignal, useContext } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { ChatDrawerSource } from '@/app/builder/types';
@@ -45,7 +39,7 @@ const ActionTestRunnerProvider = ({
     (state) => state.isStepBeingTested,
   );
   const { isLoadingDynamicProperties } = useContext(DynamicPropertiesContext);
-  const [showWebhookDialog, setShowWebhookDialog] = useState(false);
+  const [showWebhookDialog, setShowWebhookDialog] = createSignal(false);
 
   const isTesting =
     isWaitingTestResult || isStepBeingTested(step.name) || showWebhookDialog;
@@ -53,28 +47,28 @@ const ActionTestRunnerProvider = ({
   const canFireTest =
     step.valid !== false && !isTesting && !isLoadingDynamicProperties;
 
-  const fireTest = useCallback(() => {
+  const fireTest = () => {
     if (!canFireTest) return;
     if (isReturnResponseAndWaitForWebhook(step)) {
       setShowWebhookDialog(true);
     } else {
       testAction(undefined);
     }
-  }, [canFireTest, step, testAction]);
+  };
 
   return (
     <ActionTestRunnerContext.Provider
       value={{ fireTest, isTesting, canFireTest }}
     >
       {children}
-      {showWebhookDialog && (
+      <Show when={showWebhookDialog()}>
         <TestWebhookDialog
           testingMode="returnResponseAndWaitForNextWebhook"
           open={true}
           onOpenChange={(open) => !open && setShowWebhookDialog(false)}
           currentStep={step}
         />
-      )}
+      </Show>
     </ActionTestRunnerContext.Provider>
   );
 };
@@ -90,11 +84,11 @@ const TriggerTestRunnerProvider = ({
   step,
   children,
 }: TriggerTestRunnerProviderProps) => {
-  const [errorMessage, setErrorMessage] = useState<string | undefined>(
+  const [errorMessage, setErrorMessage] = createSignal<string | undefined>(
     undefined,
   );
-  const [isTestingDialogOpen, setIsTestingDialogOpen] = useState(false);
-  const abortControllerRef = useRef<AbortController>(new AbortController());
+  const [isTestingDialogOpen, setIsTestingDialogOpen] = createSignal(false);
+  let abortControllerRef: AbortController | undefined;
 
   const [setChatDrawerOpenSource, flowVersionId] = useBuilderStateContext(
     (state) => [state.setChatDrawerOpenSource, state.flowVersion.id],
@@ -126,11 +120,11 @@ const TriggerTestRunnerProvider = ({
       ? pieceSelectorUtils.isManualTrigger({ pieceName, triggerName })
       : false;
 
-  const onTestSuccess = useCallback(async () => {
+  const onTestSuccess = async () => {
     await queryClient.invalidateQueries({
       queryKey: ['triggerEvents', flowVersionId],
     });
-  }, [queryClient, flowVersionId]);
+  };
 
   const { mutate: saveMockAsSampleData, isPending: isSavingMockdata } =
     testStepHooks.useSaveMockData({
@@ -167,16 +161,16 @@ const TriggerTestRunnerProvider = ({
     !isManualTrigger &&
     testType !== null;
 
-  const fireTest = useCallback(() => {
+  const fireTest = () => {
     if (!canFireTest || !testType) return;
     switch (testType) {
       case 'chat-trigger':
         setChatDrawerOpenSource(ChatDrawerSource.TEST_STEP);
-        simulateTrigger(abortControllerRef.current.signal);
+        simulateTrigger(abortControllerRef.signal);
         break;
       case 'simulation':
       case 'webhook':
-        simulateTrigger(abortControllerRef.current.signal);
+        simulateTrigger(abortControllerRef.signal);
         break;
       case 'polling':
         pollTrigger();
@@ -185,13 +179,7 @@ const TriggerTestRunnerProvider = ({
         setIsTestingDialogOpen(true);
         break;
     }
-  }, [
-    canFireTest,
-    testType,
-    simulateTrigger,
-    pollTrigger,
-    setChatDrawerOpenSource,
-  ]);
+  };
 
   return (
     <TriggerTestRunnerContext.Provider
@@ -221,13 +209,13 @@ const TriggerTestRunnerProvider = ({
       }}
     >
       {children}
-      {testType === 'mcp-tool' && (
+      <Show when={testType === 'mcp-tool'()}>
         <McpToolTestingDialog
           open={isTestingDialogOpen}
           onOpenChange={setIsTestingDialogOpen}
           onTestingSuccess={onTestSuccess}
         />
-      )}
+      </Show>
     </TriggerTestRunnerContext.Provider>
   );
 };
@@ -251,7 +239,7 @@ type ActionTestRunnerContextValue = {
 
 type ActionTestRunnerProviderProps = {
   step: FlowAction;
-  children: React.ReactNode;
+  children: any;
 };
 
 type TriggerTestRunnerContextValue = {
@@ -270,7 +258,7 @@ type TriggerTestRunnerContextValue = {
   setErrorMessage: (msg: string | undefined) => void;
   isTestingDialogOpen: boolean;
   setIsTestingDialogOpen: (open: boolean) => void;
-  abortControllerRef: React.MutableRefObject<AbortController>;
+  abortControllerRef: AbortController | undefined;
   simulateTrigger: (signal: AbortSignal) => void;
   pollTrigger: () => void;
   saveMockAsSampleData: (mockData: unknown) => void;
@@ -281,5 +269,5 @@ type TriggerTestRunnerContextValue = {
 
 type TriggerTestRunnerProviderProps = {
   step: FlowTrigger;
-  children: React.ReactNode;
+  children: any;
 };

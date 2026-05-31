@@ -4,10 +4,10 @@ import {
   UpdateProjectPlatformRequest,
   PlatformRole,
 } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { createForm } from 'solid-hook-form';
+import { toast } from 'solid-sonner';
 
 import { GlobalConnectionWarning } from '@/components/custom/global-connection-utils';
 import { MultiSelectPieceProperty } from '@/components/custom/multi-select-piece-property';
@@ -19,13 +19,6 @@ import {
   DialogFooter,
   DialogHeader,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { SkeletonList } from '@/components/ui/skeleton';
@@ -65,7 +58,7 @@ export function EditProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-full">
+      <DialogContent class="max-w-md w-full">
         <DialogHeader>
           {' '}
           <DialogTitle>
@@ -82,7 +75,7 @@ export function EditProjectDialog({
             globalConnectionsEnabled={globalConnectionsEnabled}
           />
         ) : (
-          <SkeletonList numberOfItems={3} className="h-10" />
+          <SkeletonList numberOfItems={3} class="h-10" />
         )}
       </DialogContent>
     </Dialog>
@@ -127,20 +120,20 @@ const EditProjectForm = ({
     },
   );
 
-  const form = useForm<UpdateProjectPlatformRequest>({
+  const form = createForm<UpdateProjectPlatformRequest>({
     defaultValues: {
-      displayName: initialValues?.projectName,
-      externalId: initialValues?.externalId,
+      displayName: initialValues?.projectName ?? '',
+      externalId: initialValues?.externalId ?? '',
       globalConnectionExternalIds: currentConnectionExternalIds,
     },
-    disabled: checkAccess(Permission.WRITE_PROJECT) === false,
   });
+  const disabled = checkAccess(Permission.WRITE_PROJECT) === false;
 
   return (
-    <Form {...form}>
-      <form
-        className="space-y-4"
-        onSubmit={form.handleSubmit((values) => {
+    <form
+      className="space-y-4"
+      onSubmit={form.handleSubmit((values) => {
+        if (!disabled) {
           mutate({
             projectId,
             request: {
@@ -149,81 +142,66 @@ const EditProjectForm = ({
               globalConnectionExternalIds: values.globalConnectionExternalIds,
             },
           });
-        })}
-      >
-        {globalConnectionsEnabled && <GlobalConnectionWarning />}
-        <FormField
-          name="displayName"
-          render={({ field }) => (
-            <FormItem>
-              <Label htmlFor="displayName">{t('Project Name')}</Label>
-              <Input
-                {...field}
-                id="displayName"
-                placeholder={t('Project Name')}
-                className="rounded-sm"
-              />
-              <FormMessage />
-            </FormItem>
-          )}
+        }
+      })}
+    >
+      {globalConnectionsEnabled && <GlobalConnectionWarning />}
+      <div>
+        <Label for="displayName">{t('Project Name')}</Label>
+        <Input
+          {...form.register('displayName')}
+          id="displayName"
+          placeholder={t('Project Name')}
+          class="rounded-sm"
+          disabled={disabled}
         />
+      </div>
 
-        {platform.plan.embeddingEnabled &&
-          platformRole === PlatformRole.ADMIN && (
-            <FormField
-              name="externalId"
-              render={({ field }) => (
-                <FormItem>
-                  <Label htmlFor="externalId">{t('External ID')}</Label>
-                  <FormDescription>
-                    {t('Used to identify the project based on your SaaS ID')}
-                  </FormDescription>
-                  <Input
-                    {...field}
-                    id="externalId"
-                    placeholder={t('org-3412321')}
-                    className="rounded-sm"
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-        {globalConnectionsEnabled && (
-          <FormField
-            name="globalConnectionExternalIds"
-            render={({ field }) => (
-              <FormItem>
-                <Label>{t('Global Connections')}</Label>
-                <MultiSelectPieceProperty
-                  placeholder={t('Select global connections')}
-                  options={globalConnections.map((connection) => ({
-                    value: connection.externalId,
-                    label: connection.displayName,
-                  }))}
-                  loading={false}
-                  onChange={(value) => {
-                    field.onChange(value ?? []);
-                  }}
-                  initialValues={field.value ?? []}
-                  showDeselect={(field.value ?? []).length > 0}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
+      {platform.plan.embeddingEnabled && platformRole === PlatformRole.ADMIN && (
+        <div>
+          <Label for="externalId">{t('External ID')}</Label>
+          <p class="text-sm text-muted-foreground">
+            {t('Used to identify the project based on your SaaS ID')}
+          </p>
+          <Input
+            {...form.register('externalId')}
+            id="externalId"
+            placeholder={t('org-3412321')}
+            class="rounded-sm"
+            disabled={disabled}
           />
-        )}
+        </div>
+      )}
 
-        <DialogFooter className="justify-end mt-6">
-          <Button type="button" variant="outline" onClick={onClose}>
-            {t('Cancel')}
-          </Button>
-          <Button type="submit" disabled={isPending} loading={isPending}>
-            {t('Save')}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
+      {globalConnectionsEnabled && (
+        <div>
+          <Label>{t('Global Connections')}</Label>
+          <MultiSelectPieceProperty
+            placeholder={t('Select global connections')}
+            options={globalConnections.map((connection) => ({
+              value: connection.externalId,
+              label: connection.displayName,
+            }))}
+            loading={false}
+            onChange={(value) => {
+              form.setValue('globalConnectionExternalIds', value ?? []);
+            }}
+            initialValues={form.values().globalConnectionExternalIds ?? []}
+            showDeselect={
+              (form.values().globalConnectionExternalIds ?? []).length > 0
+            }
+          />
+        </div>
+      )}
+
+      <DialogFooter class="justify-end mt-6">
+        <Button type="button" variant="outline" onClick={onClose}>
+          {t('Cancel')}
+        </Button>
+        <Button type="submit" disabled={isPending || disabled} loading={isPending}>
+          {t('Save')}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 };

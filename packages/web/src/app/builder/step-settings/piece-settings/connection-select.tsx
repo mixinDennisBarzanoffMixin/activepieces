@@ -12,9 +12,9 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Plus, Globe, Key } from 'lucide-react';
-import { useState } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { Plus, Globe, Key } from 'lucide-solid';
+import { useFormContext } from '@/app/builder/builder-form';
+import { For, Show, createSignal } from 'solid-js';
 
 import { AutoFormFieldWrapper } from '@/app/builder/piece-properties/auto-form-field-wrapper';
 import { CreateOrEditConnectionDialog } from '@/app/connections/create-edit-connection-dialog';
@@ -40,10 +40,10 @@ import { authenticationSession } from '@/lib/authentication-session';
 import { cn } from '@/lib/utils';
 
 function ConnectionSelect(params: ConnectionSelectProps) {
-  const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
-  const [selectConnectionOpen, setSelectConnectionOpen] = useState(false);
+  const [connectionDialogOpen, setConnectionDialogOpen] = createSignal(false);
+  const [selectConnectionOpen, setSelectConnectionOpen] = createSignal(false);
   const [reconnectConnection, setReconnectConnection] =
-    useState<AppConnectionWithoutSensitiveData | null>(null);
+    createSignal<AppConnectionWithoutSensitiveData | null>(null);
   //in case of reconnection we need to use the piece version from the connection
   const { pieceModel: pieceWithCorrectVersion, isLoading: isLoadingPiece } =
     piecesHooks.usePiece({
@@ -87,7 +87,7 @@ function ConnectionSelect(params: ConnectionSelectProps) {
       name={'settings.input.auth'}
       render={({ field }) => (
         <>
-          {(isLoadingConnections || !pieceWithCorrectVersion) && (
+          <Show when={(isLoadingConnections || !pieceWithCorrectVersion)()}>
             <div className="flex flex-col gap-2">
               <FormLabel showRequiredIndicator>{t('Connection')}</FormLabel>
               <SearchableSelect
@@ -95,177 +95,204 @@ function ConnectionSelect(params: ConnectionSelectProps) {
                 disabled={true}
                 loading={isLoadingConnections}
                 placeholder={t('Select a connection')}
-                value={field.value as React.Key}
+                value={field.value as any}
                 onChange={(value) => field.onChange(value)}
                 showDeselect={false}
                 onRefresh={() => {}}
                 showRefresh={false}
               />
             </div>
-          )}
-          {!isLoadingConnections &&
-            pieceWithCorrectVersion &&
-            params.piece.auth && (
-              <AutoFormFieldWrapper
-                property={params.piece.auth}
-                propertyName="auth"
-                field={field}
+          </Show>
+          <Show
+            when={
+              !isLoadingConnections &&
+              pieceWithCorrectVersion &&
+              params.piece.auth()
+            }
+          >
+            <AutoFormFieldWrapper
+              property={params.piece.auth}
+              propertyName="auth"
+              field={field}
+              disabled={params.disabled}
+              inputName="settings.input.auth"
+              allowDynamicValues={!params.isTrigger}
+              dynamicInputModeToggled={dynamicInputModeToggled}
+              isForConnectionSelect={true}
+            >
+              <CreateOrEditConnectionDialog
+                reconnectConnection={reconnectConnection}
+                isGlobalConnection={isGlobalConnection}
+                piece={pieceWithCorrectVersion}
+                key={`CreateOrEditConnectionDialog-open-${connectionDialogOpen}`}
+                open={connectionDialogOpen}
+                setOpen={(open, connection) => {
+                  setConnectionDialogOpen(open);
+                  if (connection) {
+                    refetch();
+                    field.onChange(addBrackets(connection.externalId));
+                  }
+                }}
+              ></CreateOrEditConnectionDialog>
+              <Select
+                open={selectConnectionOpen}
+                onOpenChange={setSelectConnectionOpen}
+                defaultValue={field.value as string | undefined}
+                onValueChange={field.onChange}
                 disabled={params.disabled}
-                inputName="settings.input.auth"
-                allowDynamicValues={!params.isTrigger}
-                dynamicInputModeToggled={dynamicInputModeToggled}
-                isForConnectionSelect={true}
               >
-                <CreateOrEditConnectionDialog
-                  reconnectConnection={reconnectConnection}
-                  isGlobalConnection={isGlobalConnection}
-                  piece={pieceWithCorrectVersion}
-                  key={`CreateOrEditConnectionDialog-open-${connectionDialogOpen}`}
-                  open={connectionDialogOpen}
-                  setOpen={(open, connection) => {
-                    setConnectionDialogOpen(open);
-                    if (connection) {
-                      refetch();
-                      field.onChange(addBrackets(connection.externalId));
-                    }
-                  }}
-                ></CreateOrEditConnectionDialog>
-                <Select
-                  open={selectConnectionOpen}
-                  onOpenChange={setSelectConnectionOpen}
-                  defaultValue={field.value as string | undefined}
-                  onValueChange={field.onChange}
-                  disabled={params.disabled}
-                >
-                  <div className="relative">
-                    {field.value &&
+                <div className="relative">
+                  <Show
+                    when={
+                      field.value &&
                       !field.disabled &&
                       selectedConnection &&
-                      (!isGlobalConnection || isPLatformAdmin) && (
-                        <div className="z-50 absolute right-8 top-1 ">
-                          <PermissionNeededTooltip
-                            hasPermission={hasPermissionToCreateConnection}
-                          >
-                            <Button
-                              variant="ghost"
-                              size="xs"
-                              loading={isLoadingPiece}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setReconnectConnection(selectedConnection);
-                                setSelectConnectionOpen(false);
-                                setConnectionDialogOpen(true);
-                              }}
-                              disabled={!hasPermissionToCreateConnection}
-                            >
-                              {t('Reconnect')}
-                            </Button>
-                          </PermissionNeededTooltip>
-                        </div>
-                      )}
-
-                    <SelectTrigger className="flex gap-2 items-center">
-                      <SelectValue
-                        className="truncate grow shrink"
-                        placeholder={t('Select a connection')}
-                        data-testid="select-connection-value"
+                      (!isGlobalConnection || isPLatformAdmin)()
+                    }
+                  >
+                    <div className="z-50 absolute right-8 top-1 ">
+                      <PermissionNeededTooltip
+                        hasPermission={hasPermissionToCreateConnection}
                       >
-                        {!isNil(field.value) &&
-                        !isNil(
-                          connections?.data?.find(
-                            (connection) =>
-                              connection.externalId ===
-                              removeBrackets(field.value),
-                          ),
-                        ) ? (
-                          <div className="truncate grow shrink flex items-center gap-2">
-                            {connections?.data?.find(
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          loading={isLoadingPiece}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setReconnectConnection(selectedConnection);
+                            setSelectConnectionOpen(false);
+                            setConnectionDialogOpen(true);
+                          }}
+                          disabled={!hasPermissionToCreateConnection}
+                        >
+                          {t('Reconnect')}
+                        </Button>
+                      </PermissionNeededTooltip>
+                    </div>
+                  </Show>
+
+                  <SelectTrigger class="flex gap-2 items-center">
+                    <SelectValue
+                      class="truncate grow shrink"
+                      placeholder={t('Select a connection')}
+                      data-testid="select-connection-value"
+                    >
+                      <Show
+                        when={
+                          !isNil(field.value) &&
+                          !isNil(
+                            connections?.data?.find(
                               (connection) =>
                                 connection.externalId ===
                                 removeBrackets(field.value),
-                            )?.scope === AppConnectionScope.PLATFORM && (
-                              <Globe size={16} className="shrink-0" />
-                            )}
-                            {
+                            ),
+                          )()
+                        }
+                        fallback={null}
+                      >
+                        <div className="truncate grow shrink flex items-center gap-2">
+                          <Show
+                            when={
                               connections?.data?.find(
                                 (connection) =>
                                   connection.externalId ===
                                   removeBrackets(field.value),
-                              )?.displayName
+                              )?.scope === AppConnectionScope.PLATFORM()
                             }
-                          </div>
-                        ) : null}
-                      </SelectValue>
-                      <div className="grow"></div>
-                      {field.value &&
+                          >
+                            <Globe size={16} class="shrink-0" />
+                          </Show>
+                          {
+                            connections?.data?.find(
+                              (connection) =>
+                                connection.externalId ===
+                                removeBrackets(field.value),
+                            )?.displayName
+                          }
+                        </div>
+                      </Show>
+                    </SelectValue>
+                    <div className="grow"></div>
+                    <Show
+                      when={
+                        field.value &&
                         connections?.data?.find(
                           (connection) =>
                             connection.externalId ===
                               removeBrackets(field.value) &&
                             connection.scope !== AppConnectionScope.PLATFORM,
-                        ) && (
-                          <span
-                            role="button"
-                            className="z-50 opacity-0 pointer-events-none"
-                          >
-                            {t('Reconnect')}
-                          </span>
-                        )}
-                    </SelectTrigger>
-                  </div>
-
-                  <SelectContent>
-                    <PermissionNeededTooltip
-                      hasPermission={hasPermissionToCreateConnection}
+                        )()
+                      }
                     >
-                      <SelectAction
-                        onClick={() => {
-                          setSelectConnectionOpen(false);
-                          setReconnectConnection(null);
-                          setConnectionDialogOpen(true);
-                        }}
-                        disabled={!hasPermissionToCreateConnection}
+                      <span
+                        role="button"
+                        className="z-50 opacity-0 pointer-events-none"
                       >
-                        <span
-                          className={cn(
-                            'flex items-center gap-1 text-primary w-full',
-                            {
-                              'text-muted-foreground cursor-not-allowed':
-                                !hasPermissionToCreateConnection,
-                            },
-                          )}
-                        >
-                          <Plus size={16} />
-                          {t('Create Connection')}
-                        </span>
-                      </SelectAction>
-                    </PermissionNeededTooltip>
+                        {t('Reconnect')}
+                      </span>
+                    </Show>
+                  </SelectTrigger>
+                </div>
 
-                    {connections &&
-                      connections.data &&
-                      connections.data?.map((connection) => {
+                <SelectContent>
+                  <PermissionNeededTooltip
+                    hasPermission={hasPermissionToCreateConnection}
+                  >
+                    <SelectAction
+                      onClick={() => {
+                        setSelectConnectionOpen(false);
+                        setReconnectConnection(null);
+                        setConnectionDialogOpen(true);
+                      }}
+                      disabled={!hasPermissionToCreateConnection}
+                    >
+                      <span
+                        className={cn(
+                          'flex items-center gap-1 text-primary w-full',
+                          {
+                            'text-muted-foreground cursor-not-allowed':
+                              !hasPermissionToCreateConnection,
+                          },
+                        )}
+                      >
+                        <Plus size={16} />
+                        {t('Create Connection')}
+                      </span>
+                    </SelectAction>
+                  </PermissionNeededTooltip>
+
+                  <Show when={connections && connections.data()}>
+                    <For each={connections.data}>
+                      {(connection) => {
                         return (
                           <SelectItem
                             value={addBrackets(connection.externalId)}
                             key={connection.externalId}
                           >
                             <div className="flex items-center gap-2">
-                              {connection.usingSecretManager && (
-                                <Key size={16} className="shrink-0" />
-                              )}
-                              {connection.scope ===
-                                AppConnectionScope.PLATFORM && (
-                                <Globe size={16} className="shrink-0" />
-                              )}
+                              <Show when={connection.usingSecretManager()}>
+                                <Key size={16} class="shrink-0" />
+                              </Show>
+                              <Show
+                                when={
+                                  connection.scope ===
+                                  AppConnectionScope.PLATFORM()
+                                }
+                              >
+                                <Globe size={16} class="shrink-0" />
+                              </Show>
                               {connection.displayName}
                             </div>
                           </SelectItem>
                         );
-                      })}
-                  </SelectContent>
-                </Select>
-              </AutoFormFieldWrapper>
-            )}
+                      }}
+                    </For>
+                  </Show>
+                </SelectContent>
+              </Select>
+            </AutoFormFieldWrapper>
+          </Show>
         </>
       )}
     ></FormField>

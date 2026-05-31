@@ -1,8 +1,8 @@
 import { FlowOperationType } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useContext, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { useContext, createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,7 @@ import { hmsToSeconds, secondsToHMS } from '../lib/impact-utils';
 type EditTimeSavedPopoverProps = {
   flowId: string;
   currentValue: number | null | undefined;
-  children: React.ReactNode;
+  children: JSX.Element;
 };
 
 export function EditTimeSavedPopover({
@@ -30,22 +30,22 @@ export function EditTimeSavedPopover({
   children,
 }: EditTimeSavedPopoverProps) {
   const { setTimeSavedPerRunOverride } = useContext(RefreshAnalyticsContext);
-  const previousValueRef = useRef<number | null | undefined>(currentValue);
-  const [isOpen, setIsOpen] = useState(false);
+  let previousValueRef = currentValue;
+  const [isOpen, setIsOpen] = createSignal(false);
 
-  const [hms, setHms] = useState({ hours: '', mins: '', secs: '' });
-  const minsRef = useRef<HTMLInputElement>(null);
-  const secsRef = useRef<HTMLInputElement>(null);
+  const [hms, setHms] = createSignal({ hours: '', mins: '', secs: '' });
+  let minsRef = null;
+  let secsRef = null;
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
       setHms(secondsToHMS(currentValue));
-      previousValueRef.current = currentValue;
+      previousValueRef = currentValue;
     }
     setIsOpen(open);
   };
 
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending } = createMutation({
     mutationFn: async (timeSavedPerRun: number | null) => {
       await flowsApi.update(flowId, {
         type: FlowOperationType.UPDATE_MINUTES_SAVED,
@@ -59,9 +59,9 @@ export function EditTimeSavedPopover({
     },
     onSuccess: () => {
       const isEdit =
-        previousValueRef.current !== null &&
-        previousValueRef.current !== undefined &&
-        previousValueRef.current > 0;
+        previousValueRef !== null &&
+        previousValueRef !== undefined &&
+        previousValueRef > 0;
       toast.success(
         isEdit
           ? t('Time saved updated successfully')
@@ -69,7 +69,7 @@ export function EditTimeSavedPopover({
       );
     },
     onError: () => {
-      setTimeSavedPerRunOverride(flowId, previousValueRef.current ?? null);
+      setTimeSavedPerRunOverride(flowId, previousValueRef ?? null);
       toast.error(t('Failed to update time saved'));
     },
   });
@@ -78,7 +78,7 @@ export function EditTimeSavedPopover({
     mutate(hmsToSeconds(hms.hours, hms.mins, hms.secs));
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter') handleSave();
     else if (e.key === 'Escape') setIsOpen(false);
   };
@@ -87,7 +87,7 @@ export function EditTimeSavedPopover({
     value: string,
     field: keyof typeof hms,
     max: number,
-    nextRef: React.RefObject<HTMLInputElement | null> | null,
+    nextRef: RefObject<HTMLInputElement | null> | null,
   ) => {
     const numericValue = value.replace(/\D/g, '');
 
@@ -138,7 +138,7 @@ export function EditTimeSavedPopover({
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent className="w-[260px] p-4" align="start">
+      <PopoverContent class="w-[260px] p-4" align="start">
         <div className="flex flex-col gap-4">
           <div className="text-sm font-semibold">{t('Time Saved Per Run')}</div>
 
@@ -161,7 +161,7 @@ export function EditTimeSavedPopover({
             <span className="text-muted-foreground font-medium">:</span>
             <div className="flex flex-col items-center gap-0.5 flex-1">
               <input
-                ref={minsRef}
+                ref={(el) => (minsRef = el)}
                 type="text"
                 inputMode="numeric"
                 placeholder="mm"
@@ -178,7 +178,7 @@ export function EditTimeSavedPopover({
             <span className="text-muted-foreground font-medium">:</span>
             <div className="flex flex-col items-center gap-0.5 flex-1">
               <input
-                ref={secsRef}
+                ref={(el) => (secsRef = el)}
                 type="text"
                 inputMode="numeric"
                 placeholder="ss"

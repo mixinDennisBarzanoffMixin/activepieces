@@ -1,22 +1,17 @@
 import { t } from 'i18next';
-import { RefreshCcw } from 'lucide-react';
-import { useRef, useState } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
+import { RefreshCcw } from 'lucide-solid';
+import { createSignal, ErrorBoundary } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 
-const DynamicPropertiesErrorBoundary = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  const [key, setKey] = useState(Date.now());
-  const triedRerenderingRef = useRef(false);
+const DynamicPropertiesErrorBoundary = ({ children }: { children: any }) => {
+  const [key, setKey] = createSignal(Date.now());
+  let triedRerenderingRef: any | undefined;
   return (
     <ErrorBoundary
       key={key}
       fallback={
-        !triedRerenderingRef.current ? (
+        !triedRerenderingRef ? (
           <div className="text-sm text-destructive italic flex justify-between items-center">
             {t('Unexpected error, please retry')}
             <Button
@@ -24,10 +19,10 @@ const DynamicPropertiesErrorBoundary = ({
               variant="outline"
               onClick={() => {
                 setKey(Date.now());
-                triedRerenderingRef.current = true;
+                triedRerenderingRef = true;
               }}
             >
-              {<RefreshCcw className="w-4 h-4 text-foreground!"></RefreshCcw>}{' '}
+              {<RefreshCcw class="w-4 h-4 text-foreground!"></RefreshCcw>}{' '}
             </Button>
           </div>
         ) : (
@@ -40,7 +35,7 @@ const DynamicPropertiesErrorBoundary = ({
                 window.location.reload();
               }}
             >
-              {<RefreshCcw className="w-4 h-4 text-foreground!"></RefreshCcw>}{' '}
+              {<RefreshCcw class="w-4 h-4 text-foreground!"></RefreshCcw>}{' '}
             </Button>
           </div>
         )

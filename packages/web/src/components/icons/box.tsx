@@ -1,7 +1,6 @@
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { createSignal } from 'solid-js';
+import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -10,7 +9,7 @@ export interface BoxIconHandle {
   stopAnimation: () => void;
 }
 
-interface BoxIconProps extends HTMLAttributes<HTMLDivElement> {
+interface BoxIconProps extends JSX.HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
@@ -32,83 +31,87 @@ const BODY_VARIANTS: Variants = {
   },
 };
 
-const BoxIcon = forwardRef<BoxIconHandle, BoxIconProps>(
-  ({ onMouseEnter, onMouseLeave, className, size = 16, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
+function BoxIcon(props: BoxIconProps & { ref?: BoxIconHandle }) {
+  const ref = props.ref;
+  const {
+    onMouseEnter,
+    onMouseLeave,
+    class: className,
+    size = 16,
+    ...divProps
+  } = props;
+  const [controls, setControls] = createSignal('normal');
+  let isControlledRef = false;
 
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
+  if (ref) {
+    isControlledRef = true;
+    const handle = {
+      startAnimation: () => setControls('animate'),
+      stopAnimation: () => setControls('normal'),
+    };
+    if (typeof ref === 'function') {
+      ref(handle);
+    } else {
+      Object.assign(ref, handle);
+    }
+  }
 
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
+  const handleMouseEnter = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseEnter?.(e);
+    } else {
+      setControls('animate');
+    }
+  };
 
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
+  const handleMouseLeave = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseLeave?.(e);
+    } else {
+      setControls('normal');
+    }
+  };
 
-    return (
-      <div
-        className={cn(className)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        {...props}
+  return (
+    <div
+      className={cn(className)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...divProps}
+    >
+      <svg
+        fill="none"
+        height={size}
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        width={size}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg
-          fill="none"
-          height={size}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          width={size}
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Box body */}
-          <motion.path
-            animate={controls}
-            variants={BODY_VARIANTS}
-            d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
-          />
-          {/* Horizontal crease (lid line) */}
-          <motion.path
-            animate={controls}
-            variants={LID_VARIANTS}
-            d="m3.3 7 8.7 5 8.7-5"
-          />
-          {/* Vertical center line */}
-          <motion.path
-            animate={controls}
-            variants={BODY_VARIANTS}
-            d="M12 22V12"
-          />
-        </svg>
-      </div>
-    );
-  },
-);
-
+        {/* Box body */}
+        <motion.path
+          animate={controls()}
+          variants={BODY_VARIANTS}
+          d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"
+        />
+        {/* Horizontal crease (lid line) */}
+        <motion.path
+          animate={controls()}
+          variants={LID_VARIANTS}
+          d="m3.3 7 8.7 5 8.7-5"
+        />
+        {/* Vertical center line */}
+        <motion.path
+          animate={controls()}
+          variants={BODY_VARIANTS}
+          d="M12 22V12"
+        />
+      </svg>
+    </div>
+  );
+}
 BoxIcon.displayName = 'BoxIcon';
 
 export { BoxIcon };

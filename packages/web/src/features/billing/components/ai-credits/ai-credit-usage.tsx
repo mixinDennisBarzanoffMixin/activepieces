@@ -4,10 +4,10 @@ import {
   ApFlagId,
   PlatformBillingInformation,
 } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Sparkles, Settings } from 'lucide-react';
-import { useState } from 'react';
+import { Sparkles, Settings } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import {
   Item,
@@ -34,9 +34,9 @@ interface AiCreditUsageProps {
 export function AICreditUsage({ platformSubscription }: AiCreditUsageProps) {
   const queryClient = useQueryClient();
   const { plan, usage } = platformSubscription;
-  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
-  const [isAutoTopUpDialogOpen, setIsAutoTopUpDialogOpen] = useState(false);
-  const [isAutoTopUpEditing, setIsAutoTopUpEditing] = useState(false);
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = createSignal(false);
+  const [isAutoTopUpDialogOpen, setIsAutoTopUpDialogOpen] = createSignal(false);
+  const [isAutoTopUpEditing, setIsAutoTopUpEditing] = createSignal(false);
 
   const totalCreditsUsed = usage.totalAiCreditsUsed;
   const creditsRemaining = usage.aiCreditsRemaining;
@@ -104,13 +104,13 @@ export function AICreditUsage({ platformSubscription }: AiCreditUsageProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                class="h-8 w-8"
                 onClick={() => {
                   setIsAutoTopUpEditing(true);
                   setIsAutoTopUpDialogOpen(true);
                 }}
               >
-                <Settings className="size-4" />
+                <Settings class="size-4" />
               </Button>
             )}
             <Switch

@@ -1,7 +1,11 @@
 import { Tag } from '@activepieces/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { piecesTagsApi } from '../api/pieces-tags';
 
@@ -11,19 +15,19 @@ export const piecesTagKeys = {
 
 export const piecesTagQueries = {
   useTags: () =>
-    useQuery({
+    createQuery(() => ({
       queryKey: piecesTagKeys.all,
       queryFn: async () => {
         const response = await piecesTagsApi.list({ limit: 100 });
         return response.data;
       },
-    }),
+    })),
 };
 
 export const piecesTagMutations = {
   useDeleteTag: ({ onSuccess }: { onSuccess: () => void }) => {
     const queryClient = useQueryClient();
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (id: string) => piecesTagsApi.delete(id),
       onSuccess: () => {
         toast.success(t('Tag deleted'));
@@ -31,10 +35,10 @@ export const piecesTagMutations = {
         queryClient.invalidateQueries({ queryKey: ['pieces'] });
         onSuccess();
       },
-    });
+    }));
   },
   useApplyTags: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async ({ piecesName, tags }: ApplyTagsParams) => {
         await piecesTagsApi.tagPieces({ piecesName, tags });
       },
@@ -42,7 +46,7 @@ export const piecesTagMutations = {
         toast(t('Tags applied.'), {});
         onSuccess();
       },
-    });
+    }));
   },
   useCreateTag: ({
     onTagCreated,
@@ -51,7 +55,7 @@ export const piecesTagMutations = {
     onTagCreated: (tag: Tag) => void;
     setIsOpen: (open: boolean) => void;
   }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (name: string) => piecesTagsApi.upsert({ name }),
       onSuccess: (data) => {
         toast.success(t('Tag created'), {
@@ -60,7 +64,7 @@ export const piecesTagMutations = {
         onTagCreated(data);
         setIsOpen(false);
       },
-    });
+    }));
   },
 };
 

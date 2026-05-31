@@ -1,7 +1,7 @@
 import { ExportTableResponse, FieldType } from '@activepieces/shared';
 import JSZip from 'jszip';
-import { Type, Calendar, Hash, ChevronDownCircle } from 'lucide-react';
-import { createContext, ReactNode } from 'react';
+import { Type, Calendar, Hash, ChevronDownCircle } from 'lucide-solid';
+import { createContext, JSX } from 'solid-js';
 
 import { downloadFile } from '@/lib/dom-utils';
 
@@ -10,16 +10,18 @@ import {
   ClientRecordData,
 } from '../stores/store/ap-tables-client-state';
 
-function getColumnIcon(type: FieldType): ReactNode {
+function getColumnIcon(
+  type: FieldType,
+): JSX.Element | string | number | null | undefined {
   switch (type) {
     case FieldType.TEXT:
-      return <Type className="h-4 w-4" />;
+      return <Type class="h-4 w-4" />;
     case FieldType.DATE:
-      return <Calendar className="h-4 w-4" />;
+      return <Calendar class="h-4 w-4" />;
     case FieldType.NUMBER:
-      return <Hash className="h-4 w-4" />;
+      return <Hash class="h-4 w-4" />;
     case FieldType.STATIC_DROPDOWN:
-      return <ChevronDownCircle className="h-4 w-4" />;
+      return <ChevronDownCircle class="h-4 w-4" />;
     default:
       return null;
   }
@@ -98,7 +100,7 @@ export const tablesUtils = {
 
 export const FieldHeaderContext = createContext<{
   setIsPopoverOpen: (open: boolean) => void;
-  setPopoverContent: (content: React.ReactNode) => void;
+  setPopoverContent: (content: any) => void;
   field: ClientField & { index: number };
   userHasTableWritePermission: boolean;
 } | null>(null);

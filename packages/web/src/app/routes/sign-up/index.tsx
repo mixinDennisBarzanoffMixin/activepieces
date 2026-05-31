@@ -1,6 +1,6 @@
 import { AuthFormTemplate } from '@/features/authentication';
 
-const SignUpPage: React.FC = () => {
+const SignUpPage: any = () => {
   return <AuthFormTemplate form={'signup'} />;
 };
 

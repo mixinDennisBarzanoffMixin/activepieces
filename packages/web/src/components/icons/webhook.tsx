@@ -1,9 +1,6 @@
-'use client';
-
 import type { Transition, Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { createSignal } from 'solid-js';
+import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -12,7 +9,7 @@ export interface WebhookIconHandle {
   stopAnimation: () => void;
 }
 
-interface WebhookIconProps extends HTMLAttributes<HTMLDivElement> {
+interface WebhookIconProps extends JSX.HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
@@ -36,81 +33,84 @@ const VARIANTS: Variants = {
   },
 };
 
-const WebhookIcon = forwardRef<WebhookIconHandle, WebhookIconProps>(
-  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
+function WebhookIcon(props: WebhookIconProps & { ref?: WebhookIconHandle }) {
+  const ref = props.ref;
+  const {
+    onMouseEnter,
+    onMouseLeave,
+    class: className,
+    size = 28,
+    ...divProps
+  } = props;
+  const [controls, setControls] = createSignal('normal');
+  let isControlledRef = false;
 
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
+  if (ref) {
+    isControlledRef = true;
+    const handle = {
+      startAnimation: () => setControls('animate'),
+      stopAnimation: () => setControls('normal'),
+    };
+    if (typeof ref === 'function') {
+      ref(handle);
+    } else {
+      Object.assign(ref, handle);
+    }
+  }
 
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
+  const handleMouseEnter = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseEnter?.(e);
+    } else {
+      setControls('animate');
+    }
+  };
 
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
+  const handleMouseLeave = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseLeave?.(e);
+    } else {
+      setControls('normal');
+    }
+  };
 
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
-
-    return (
-      <div
-        className={cn(className)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        {...props}
+  return (
+    <div
+      className={cn(className)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...divProps}
+    >
+      <svg
+        fill="none"
+        height={size}
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        width={size}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg
-          fill="none"
-          height={size}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          width={size}
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <motion.path
-            animate={controls}
-            d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2"
-            variants={VARIANTS}
-          />
-          <motion.path
-            animate={controls}
-            d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06"
-            variants={VARIANTS}
-          />
-          <motion.path
-            animate={controls}
-            d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8"
-            variants={VARIANTS}
-          />
-        </svg>
-      </div>
-    );
-  },
-);
-
+        <motion.path
+          animate={controls()}
+          d="M18 16.98h-5.99c-1.1 0-1.95.94-2.48 1.9A4 4 0 0 1 2 17c.01-.7.2-1.4.57-2"
+          variants={VARIANTS}
+        />
+        <motion.path
+          animate={controls()}
+          d="m6 17 3.13-5.78c.53-.97.1-2.18-.5-3.1a4 4 0 1 1 6.89-4.06"
+          variants={VARIANTS}
+        />
+        <motion.path
+          animate={controls()}
+          d="m12 6 3.13 5.73C15.66 12.7 16.9 13 18 13a4 4 0 0 1 0 8"
+          variants={VARIANTS}
+        />
+      </svg>
+    </div>
+  );
+}
 WebhookIcon.displayName = 'WebhookIcon';
 
 export { WebhookIcon };

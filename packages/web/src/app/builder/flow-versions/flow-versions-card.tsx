@@ -4,8 +4,8 @@ import {
   Permission,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { EllipsisVertical, Eye, EyeIcon, Pencil } from 'lucide-react';
-import React, { useState } from 'react';
+import { EllipsisVertical, Eye, EyeIcon, Pencil } from 'lucide-solid';
+import { Show, createSignal } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { CardListItem } from '@/components/custom/card-list';
@@ -29,119 +29,117 @@ import { useAuthorization } from '@/hooks/authorization-hooks';
 
 import { OverwriteDraftDialog } from './overwrite-draft-dialog';
 
-const FlowVersionDetailsCard = React.memo(
-  ({
-    flowVersion,
-    selected,
-    publishedVersionId,
-    flowVersionNumber,
-  }: FlowVersionDetailsCardProps) => {
-    const { checkAccess } = useAuthorization();
-    const userHasPermissionToWriteFlow = checkAccess(Permission.WRITE_FLOW);
-    const [setVersion, setReadonly] = useBuilderStateContext((state) => [
-      state.setVersion,
-      state.setReadOnly,
-    ]);
-    const [dropdownMenuOpen, setDropdownMenuOpen] = useState(false);
-    const { mutate: viewVersion, isPending } = flowHooks.useFetchFlowVersion({
-      onSuccess: (populatedFlowVersion) => {
-        setVersion(populatedFlowVersion);
-        setReadonly(
-          populatedFlowVersion.state === FlowVersionState.LOCKED ||
-            !userHasPermissionToWriteFlow,
-        );
-      },
-    });
+const FlowVersionDetailsCard = ({
+  flowVersion,
+  selected,
+  publishedVersionId,
+  flowVersionNumber,
+}: FlowVersionDetailsCardProps) => {
+  const { checkAccess } = useAuthorization();
+  const userHasPermissionToWriteFlow = checkAccess(Permission.WRITE_FLOW);
+  const [setVersion, setReadonly] = useBuilderStateContext((state) => [
+    state.setVersion,
+    state.setReadOnly,
+  ]);
+  const [dropdownMenuOpen, setDropdownMenuOpen] = createSignal(false);
+  const { mutate: viewVersion, isPending } = flowHooks.useFetchFlowVersion({
+    onSuccess: (populatedFlowVersion) => {
+      setVersion(populatedFlowVersion);
+      setReadonly(
+        populatedFlowVersion.state === FlowVersionState.LOCKED ||
+          !userHasPermissionToWriteFlow,
+      );
+    },
+  });
 
-    const showAvatar = !useEmbedding().embedState.isEmbedded;
+  const showAvatar = !useEmbedding().embedState.isEmbedded;
 
-    return (
-      <CardListItem interactive={false} className="px-4">
-        {showAvatar && flowVersion.updatedByUser && (
-          <UserAvatar
-            size={45}
-            withoutBorder={true}
-            name={
-              flowVersion.updatedByUser.firstName +
-              ' ' +
-              flowVersion.updatedByUser.lastName
-            }
-            email={flowVersion.updatedByUser.email}
-          />
-        )}
-        <div className="grid gap-2">
-          <FormattedDate
-            date={new Date(flowVersion.created)}
-            includeTime={true}
-            className="text-sm font-medium leading-none select-none cursor-default"
-          ></FormattedDate>
-          <p className="flex gap-1 text-xs text-muted-foreground">
-            {t('Version')} #{flowVersionNumber}
-          </p>
-        </div>
-        <div className="grow"></div>
-        <div className="flex font-medium gap-2 justify-center items-center">
-          {selected && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="size-10 flex justify-center items-center">
-                  <EyeIcon className="w-5 h-5 "></EyeIcon>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>{t('Viewing')}</TooltipContent>
-            </Tooltip>
-          )}
+  return (
+    <CardListItem interactive={false} class="px-4">
+      <Show when={showAvatar && flowVersion.updatedByUser()}>
+        <UserAvatar
+          size={45}
+          withoutBorder={true}
+          name={
+            flowVersion.updatedByUser.firstName +
+            ' ' +
+            flowVersion.updatedByUser.lastName
+          }
+          email={flowVersion.updatedByUser.email}
+        />
+      </Show>
+      <div className="grid gap-2">
+        <FormattedDate
+          date={new Date(flowVersion.created)}
+          includeTime={true}
+          class="text-sm font-medium leading-none select-none cursor-default"
+        ></FormattedDate>
+        <p className="flex gap-1 text-xs text-muted-foreground">
+          {t('Version')} #{flowVersionNumber}
+        </p>
+      </div>
+      <div className="grow"></div>
+      <div className="flex font-medium gap-2 justify-center items-center">
+        <Show when={selected()}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="size-10 flex justify-center items-center">
+                <EyeIcon class="w-5 h-5 "></EyeIcon>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>{t('Viewing')}</TooltipContent>
+          </Tooltip>
+        </Show>
 
-          <FlowVersionStateDot
-            state={flowVersion.state}
-            versionId={flowVersion.id}
-            publishedVersionId={publishedVersionId}
-          ></FlowVersionStateDot>
+        <FlowVersionStateDot
+          state={flowVersion.state}
+          versionId={flowVersion.id}
+          publishedVersionId={publishedVersionId}
+        ></FlowVersionStateDot>
 
-          <DropdownMenu
-            onOpenChange={(open) => setDropdownMenuOpen(open)}
-            open={dropdownMenuOpen}
-          >
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" disabled={isPending} size={'icon'}>
-                <EllipsisVertical />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-40">
-              <DropdownMenuItem
-                onClick={() => viewVersion(flowVersion)}
-                className="w-full"
+        <DropdownMenu
+          onOpenChange={(open) => setDropdownMenuOpen(open)}
+          open={dropdownMenuOpen}
+        >
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" disabled={isPending} size={'icon'}>
+              <EllipsisVertical />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent class="w-40">
+            <DropdownMenuItem
+              onClick={() => viewVersion(flowVersion)}
+              class="w-full"
+            >
+              <Eye class="mr-2 h-4 w-4" />
+              <span>{t('View')}</span>
+            </DropdownMenuItem>
+            <Show when={flowVersion.state !== FlowVersionState.DRAFT()}>
+              <OverwriteDraftDialog
+                versionNumber={flowVersionNumber.toString()}
+                versionId={flowVersion.id}
+                onConfirm={() => {
+                  setDropdownMenuOpen(false);
+                }}
               >
-                <Eye className="mr-2 h-4 w-4" />
-                <span>{t('View')}</span>
-              </DropdownMenuItem>
-              {flowVersion.state !== FlowVersionState.DRAFT && (
-                <OverwriteDraftDialog
-                  versionNumber={flowVersionNumber.toString()}
-                  versionId={flowVersion.id}
-                  onConfirm={() => {
-                    setDropdownMenuOpen(false);
+                <DropdownMenuItem
+                  class="w-full"
+                  onSelect={(e) => {
+                    e.preventDefault();
                   }}
+                  disabled={!userHasPermissionToWriteFlow}
                 >
-                  <DropdownMenuItem
-                    className="w-full"
-                    onSelect={(e) => {
-                      e.preventDefault();
-                    }}
-                    disabled={!userHasPermissionToWriteFlow}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    <span>{t('Use as Draft')}</span>
-                  </DropdownMenuItem>
-                </OverwriteDraftDialog>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </CardListItem>
-    );
-  },
-);
+                  <Pencil class="mr-2 h-4 w-4" />
+                  <span>{t('Use as Draft')}</span>
+                </DropdownMenuItem>
+              </OverwriteDraftDialog>
+            </Show>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </CardListItem>
+  );
+};
 
 FlowVersionDetailsCard.displayName = 'FlowVersionDetailsCard';
 export { FlowVersionDetailsCard };

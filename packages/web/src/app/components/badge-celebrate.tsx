@@ -5,9 +5,9 @@ import {
   WebsocketClientEvent,
 } from '@activepieces/shared';
 import confetti from 'canvas-confetti';
-import { Trophy } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { Trophy } from 'lucide-solid';
+import { createSignal, createEffect } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { useSocket } from '@/components/providers/socket-provider';
 import { flagsHooks } from '@/hooks/flags-hooks';
@@ -18,19 +18,19 @@ import { AccountSettingsDialog } from './account-settings';
 export const BadgeCelebrate = () => {
   const socket = useSocket();
   const { refetch } = userHooks.useCurrentUser();
-  const cleanupRef = useRef<() => void>(undefined);
+  let cleanupRef = undefined;
   const { data: showBadges } = flagsHooks.useFlag<boolean>(
     ApFlagId.SHOW_BADGES,
   );
-  const isCelebrating = useRef(false);
-  const celebrationTimeout = useRef<number | null>(null);
-  const [showAccountSettings, setShowAccountSettings] = useState(false);
-  const openAccountSettingsRef = useRef(() => setShowAccountSettings(true));
+  let isCelebrating = false;
+  let celebrationTimeout = undefined;
+  const [showAccountSettings, setShowAccountSettings] = createSignal(false);
+  const openAccountSettingsRef = () => setShowAccountSettings(true);
 
-  useEffect(() => {
+  createEffect(() => {
     if (!socket || !showBadges) return;
-    if (cleanupRef.current) {
-      cleanupRef.current();
+    if (cleanupRef) {
+      cleanupRef();
     }
 
     const handleBadgeAwarded = (data: BadgeAwarded) => {
@@ -49,7 +49,7 @@ export const BadgeCelebrate = () => {
             imageUrl={badgeImageUrl}
             title={badgeTitle}
             description={badgeDescription}
-            onClick={openAccountSettingsRef.current}
+            onClick={openAccountSettingsRef}
           />
         ),
         {
@@ -60,10 +60,10 @@ export const BadgeCelebrate = () => {
       );
 
       refetch();
-      if (isCelebrating.current) {
+      if (isCelebrating) {
         return;
       }
-      isCelebrating.current = true;
+      isCelebrating = true;
 
       const duration = 6000;
       const animationEnd = Date.now() + duration;
@@ -95,28 +95,28 @@ export const BadgeCelebrate = () => {
       }, 250);
 
       // Set a timeout to reset the celebrating flag when finished
-      if (celebrationTimeout.current) {
-        clearTimeout(celebrationTimeout.current);
+      if (celebrationTimeout) {
+        clearTimeout(celebrationTimeout);
       }
-      celebrationTimeout.current = window.setTimeout(() => {
-        isCelebrating.current = false;
-        celebrationTimeout.current = null;
+      celebrationTimeout = window.setTimeout(() => {
+        isCelebrating = false;
+        celebrationTimeout = null;
       }, duration);
     };
 
     socket.on(WebsocketClientEvent.BADGE_AWARDED, handleBadgeAwarded);
 
-    cleanupRef.current = () => {
+    cleanupRef = () => {
       socket.off(WebsocketClientEvent.BADGE_AWARDED, handleBadgeAwarded);
-      isCelebrating.current = false;
-      if (celebrationTimeout.current) {
-        clearTimeout(celebrationTimeout.current);
-        celebrationTimeout.current = null;
+      isCelebrating = false;
+      if (celebrationTimeout) {
+        clearTimeout(celebrationTimeout);
+        celebrationTimeout = null;
       }
     };
 
-    return cleanupRef.current;
-  }, [socket, showBadges]);
+    return cleanupRef;
+  });
 
   return (
     <AccountSettingsDialog
@@ -154,7 +154,7 @@ const BadgeToast = ({
       <div className="flex items-center gap-2">
         <span className="font-semibold text-foreground text-sm">{title}</span>
         <span className="text-[10px] font-medium text-primary uppercase tracking-wide flex items-center gap-1">
-          <Trophy className="w-3 h-3" />
+          <Trophy class="w-3 h-3" />
           Badge Earned!
         </span>
       </div>

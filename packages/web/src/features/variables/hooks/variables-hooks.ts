@@ -1,9 +1,9 @@
 import { ListVariablesRequestQuery } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useLocation } from '@solidjs/router';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
-import { toast } from 'sonner';
+import { createMemo } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import {
   CURSOR_QUERY_PARAM,
@@ -27,19 +27,19 @@ export const variablesQueries = {
     enabled,
     showErrorDialog,
   }: UseVariablesProps) => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['variables', ...extraKeys],
       meta: showErrorDialog
         ? { showErrorDialog: true, loadSubsetOptions: {} }
         : undefined,
       queryFn: () => variablesApi.list(request),
       enabled,
-    });
+    }));
   },
 
   useListSearchParams: () => {
     const { search } = useLocation();
-    return useMemo(() => {
+    return createMemo(() => {
       const sp = new URLSearchParams(search);
       const limitParam = sp.get(LIMIT_QUERY_PARAM);
       return {
@@ -52,20 +52,20 @@ export const variablesQueries = {
   },
 
   useVariableOwners: (projectId: string) => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['variable-owners', projectId],
       queryFn: async () => {
         const page = await variablesApi.getOwners({ projectId });
         return page.data;
       },
       enabled: !!projectId,
-    });
+    }));
   },
 };
 
 export const variablesMutations = {
   useBulkDeleteVariables: (refetch: () => void) =>
-    useMutation({
+    createMutation(() => ({
       mutationFn: async (ids: string[]) => {
         await Promise.all(ids.map((id) => variablesApi.delete(id)));
       },
@@ -76,5 +76,5 @@ export const variablesMutations = {
       onError: () => {
         internalErrorToast();
       },
-    }),
+    })),
 };

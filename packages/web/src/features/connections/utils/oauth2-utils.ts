@@ -6,7 +6,6 @@ import {
   OAuth2GrantType,
   ThirdPartyAuthnProviderEnum,
 } from '@activepieces/shared';
-import { useSearchParams } from 'react-router-dom';
 
 import {
   FROM_QUERY_PARAM,
@@ -18,10 +17,8 @@ import {
 let currentPopup: Window | null = null;
 
 function useThirdPartyLogin() {
-  const [searchParams] = useSearchParams();
-
   return (loginUrl: string, providerName: ThirdPartyAuthnProviderEnum) => {
-    const from = searchParams.get(FROM_QUERY_PARAM) || '/flows';
+    const from = new URLSearchParams(window.location.search).get(FROM_QUERY_PARAM) || '/flows';
     const state = {
       [PROVIDER_NAME_QUERY_PARAM]: providerName,
       [FROM_QUERY_PARAM]: from,

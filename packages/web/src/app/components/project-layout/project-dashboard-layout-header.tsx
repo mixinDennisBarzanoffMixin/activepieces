@@ -1,7 +1,7 @@
 import { Permission } from '@activepieces/shared';
+import { useLocation } from '@solidjs/router';
 import { t } from 'i18next';
-import { useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Show, For } from 'solid-js';
 
 import { BoxIcon } from '@/components/icons/box';
 import { ConnectIcon } from '@/components/icons/connect';
@@ -33,31 +33,28 @@ const AnimatedTab = ({
   isActive: boolean;
   onClick: () => void;
 }) => {
-  const iconRef = useRef<AnimatedIconHandle>(null);
-  const IconComponent = tab.icon as React.ForwardRefExoticComponent<
-    {
-      className?: string;
-      size?: number;
-    } & React.RefAttributes<AnimatedIconHandle>
-  >;
+  let iconRef = undefined;
+  const IconComponent = tab.icon as any;
 
   return (
     <TabsTrigger
       value={tab.to}
       variant="outline"
-      className="pb-3"
+      class="pb-3"
       onClick={onClick}
       data-state={isActive ? 'active' : 'inactive'}
-      onMouseEnter={() => iconRef.current?.startAnimation()}
-      onMouseLeave={() => iconRef.current?.stopAnimation()}
+      onMouseEnter={() => iconRef?.startAnimation()}
+      onMouseLeave={() => iconRef?.stopAnimation()}
     >
-      <IconComponent ref={iconRef} size={16} className="mr-2" />
+      <IconComponent ref={(el) => (iconRef = el)} size={16} class="mr-2" />
       {tab.label}
-      {tab.beta && (
-        <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary">
-          Beta
-        </span>
-      )}
+      {
+        <Show when={tab.beta}>
+          <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary">
+            Beta
+          </span>
+        </Show>
+      }
     </TabsTrigger>
   );
 };
@@ -67,7 +64,6 @@ export const ProjectDashboardLayoutHeader = () => {
   const { checkAccess } = useAuthorization();
   const { embedState } = useEmbedding();
   const location = useLocation();
-  const navigate = useNavigate();
   const isEmbedded = embedState.isEmbedded;
 
   const primaryTabs: ProjectDashboardLayoutHeaderTab[] = [
@@ -123,40 +119,56 @@ export const ProjectDashboardLayoutHeader = () => {
 
   return (
     <div className="flex flex-col">
-      {!isEmbedded && <ProjectDashboardPageHeader />}
-      {!embedState.hideSideNav && (
-        <Tabs className="px-3 pt-2 border-b">
-          <TabsList variant="outline">
-            {visiblePrimaryTabs.map((tab) => (
-              <AnimatedTab
-                key={tab.to}
-                tab={tab}
-                isActive={location.pathname.includes(tab.to)}
-                onClick={() => navigate(tab.to)}
-              />
-            ))}
-            {visiblePrimaryTabs.length > 0 &&
-              visibleSecondaryTabs.length > 0 && (
-                <Separator
-                  orientation="vertical"
-                  className="mx-2 h-5 self-center mb-2"
-                />
-              )}
-            {visibleSecondaryTabs.map((tab) => (
-              <AnimatedTab
-                key={tab.to}
-                tab={tab}
-                isActive={location.pathname.includes(tab.to)}
-                onClick={() => navigate(tab.to)}
-              />
-            ))}
-          </TabsList>
-        </Tabs>
-      )}
+      {
+        <Show when={!isEmbedded}>
+          <ProjectDashboardPageHeader />
+        </Show>
+      }
+      {
+        <Show when={!embedState.hideSideNav}>
+          <Tabs class="px-3 pt-2 border-b">
+            <TabsList variant="outline">
+              {
+                <For each={visiblePrimaryTabs}>
+                  {(tab) => (
+                    <AnimatedTab
+                      tab={tab}
+                      isActive={location.pathname.includes(tab.to)}
+                      onClick={() => (window.location.href = tab.to)}
+                    />
+                  )}
+                </For>
+              }
+              {
+                <Show
+                  when={
+                    visiblePrimaryTabs.length > 0 &&
+                    visibleSecondaryTabs.length > 0
+                  }
+                >
+                  <Separator
+                    orientation="vertical"
+                    class="mx-2 h-5 self-center mb-2"
+                  />
+                </Show>
+              }
+              {
+                <For each={visibleSecondaryTabs}>
+                  {(tab) => (
+                    <AnimatedTab
+                      tab={tab}
+                      isActive={location.pathname.includes(tab.to)}
+                      onClick={() => (window.location.href = tab.to)}
+                    />
+                  )}
+                </For>
+              }
+            </TabsList>
+          </Tabs>
+        </Show>
+      }
     </div>
   );
 };
-
-ProjectDashboardLayoutHeader.displayName = 'ProjectDashboardLayoutHeader';
 
 export default ProjectDashboardLayoutHeader;

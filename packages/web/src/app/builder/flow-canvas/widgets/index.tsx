@@ -1,5 +1,5 @@
-import { ViewportPortal } from '@xyflow/react';
-import React from 'react';
+import { ViewportPortal } from '../solid-flow-adapter';
+import { Show } from 'solid-js';
 
 import FlowEndWidget from '@/app/builder/flow-canvas/widgets/flow-end-widget';
 import IncompleteSettingsButton from '@/app/builder/flow-canvas/widgets/incomplete-settings-widget';
@@ -8,7 +8,7 @@ import { TestFlowWidget } from '@/app/builder/flow-canvas/widgets/test-flow-widg
 import { useBuilderStateContext } from '../../builder-hooks';
 import { flowCanvasConsts } from '../utils/consts';
 
-const AboveFlowWidgets = React.memo(() => {
+const AboveFlowWidgets = () => {
   const [flowVersion, selectStepByName, readonly] = useBuilderStateContext(
     (state) => [state.flowVersion, state.selectStepByName, state.readonly],
   );
@@ -24,20 +24,20 @@ const AboveFlowWidgets = React.memo(() => {
         >
           <div className="justify-center items-center flex w-[260px]">
             <TestFlowWidget></TestFlowWidget>
-            {!readonly && (
+            <Show when={!readonly()}>
               <IncompleteSettingsButton
                 flowVersion={flowVersion}
                 selectStepByName={selectStepByName}
               ></IncompleteSettingsButton>
-            )}
+            </Show>
           </div>
         </div>
       </WidgetWrapper>
     </ViewportPortal>
   );
-});
+};
 AboveFlowWidgets.displayName = 'AboveFlowWidgets';
-const BelowFlowWidget = React.memo(() => {
+const BelowFlowWidget = () => {
   return (
     <ViewportPortal>
       <WidgetWrapper>
@@ -56,9 +56,9 @@ const BelowFlowWidget = React.memo(() => {
       </WidgetWrapper>
     </ViewportPortal>
   );
-});
+};
 
-const WidgetWrapper = ({ children }: { children: React.ReactNode }) => {
+const WidgetWrapper = ({ children }: { children: any }) => {
   return (
     <div
       style={{ width: flowCanvasConsts.AP_NODE_SIZE.STEP.width + 'px' }}

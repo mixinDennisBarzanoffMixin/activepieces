@@ -35,7 +35,7 @@ export type FeatureKey =
 
 type RequestTrialProps = {
   featureKey: FeatureKey;
-  customButton?: React.ReactNode;
+  customButton?: JSX.Element;
   buttonVariant?: 'default' | 'basic';
   buttonSize?: 'default' | 'sm' | 'xs';
 };

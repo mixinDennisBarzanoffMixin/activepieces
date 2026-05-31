@@ -3,7 +3,8 @@ import {
   AppConnectionWithoutSensitiveData,
   Permission,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { useLocation } from '@solidjs/router';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   CheckIcon,
@@ -14,9 +15,8 @@ import {
   Clock,
   FolderOpen,
   Puzzle,
-} from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+} from 'lucide-solid';
+import { createMemo, createSignal, Show } from 'solid-js';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import { LockedFeatureGuard } from '@/app/components/locked-feature-guard';
@@ -76,8 +76,8 @@ const filters: DataTableFilters<keyof AppConnectionWithoutSensitiveData>[] = [
 ];
 
 const GlobalConnectionsTable = () => {
-  const [refresh, setRefresh] = useState(0);
-  const [selectedRows, setSelectedRows] = useState<
+  const [refresh, setRefresh] = createSignal(0);
+  const [selectedRows, setSelectedRows] = createSignal<
     Array<AppConnectionWithoutSensitiveData>
   >([]);
   const { checkAccess } = useAuthorization();
@@ -155,7 +155,7 @@ const GlobalConnectionsTable = () => {
         return (
           <FormattedDate
             date={new Date(row.original.updated)}
-            className="text-left"
+            class="text-left"
           />
         );
       },
@@ -181,7 +181,9 @@ const GlobalConnectionsTable = () => {
       cell: ({ row }) => {
         return (
           <div className="flex items-center gap-2 justify-end">
-            {row.original.preSelectForNewProjects && <DefaultTag />}
+            <Show when={row.original.preSelectForNewProjects}>
+              <DefaultTag />
+            </Show>
             <EditGlobalConnectionDialog
               connectionId={row.original.id}
               currentName={row.original.displayName}
@@ -239,8 +241,8 @@ const GlobalConnectionsTable = () => {
       refetchGlobalConnections,
     );
 
-  const bulkActions: BulkAction<AppConnectionWithoutSensitiveData>[] = useMemo(
-    () => [
+  const bulkActions: BulkAction<AppConnectionWithoutSensitiveData>[] =
+    createMemo(() => [
       {
         render: (
           _selectedRows: RowDataWithActions<AppConnectionWithoutSensitiveData>[],
@@ -268,43 +270,38 @@ const GlobalConnectionsTable = () => {
                   }
                 }}
               >
-                {selectedRows.length > 0 && (
+                <Show when={selectedRows.length > 0}>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    class="text-destructive hover:text-destructive"
                     disabled={!userHasPermissionToWriteAppConnection}
                   >
-                    <Trash className="mr-1 w-4" />
+                    <Trash class="mr-1 w-4" />
                     {`${t('Delete')} (${selectedRows.length})`}
                   </Button>
-                )}
+                </Show>
               </ConfirmationDeleteDialog>
             </div>
           );
         },
       },
-    ],
-    [bulkDeleteGlobalConnections, selectedRows],
-  );
+    ]);
 
-  const toolbarButtons = useMemo(
-    () => [
-      <NewConnectionDialog
-        key="new-connection"
-        isGlobalConnection={true}
-        onConnectionCreated={() => {
-          setRefresh(refresh + 1);
-          refetchGlobalConnections();
-        }}
-      >
-        <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
-          {t('New Connection')}
-        </AnimatedIconButton>
-      </NewConnectionDialog>,
-    ],
-    [refresh],
-  );
+  const toolbarButtons = createMemo(() => [
+    <NewConnectionDialog
+      key="new-connection"
+      isGlobalConnection={true}
+      onConnectionCreated={() => {
+        setRefresh(refresh + 1);
+        refetchGlobalConnections();
+      }}
+    >
+      <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
+        {t('New Connection')}
+      </AnimatedIconButton>
+    </NewConnectionDialog>,
+  ]);
 
   return (
     <div className="flex-col w-full">
@@ -328,7 +325,7 @@ const GlobalConnectionsTable = () => {
           emptyStateTextDescription={t(
             'Create a global connection that can be shared to multiple projects',
           )}
-          emptyStateIcon={<Globe className="size-14" />}
+          emptyStateIcon={<Globe class="size-14" />}
           columns={columns}
           page={globalConnections}
           isLoading={isLoadingGlobalConnections}

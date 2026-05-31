@@ -3,11 +3,10 @@ import {
   PROFILE_PICTURE_ALLOWED_TYPES,
   UserWithBadges,
 } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Camera, Mail } from 'lucide-react';
-import { useRef } from 'react';
-import { toast } from 'sonner';
+import { Camera, Mail } from 'lucide-solid';
+import { toast } from 'solid-sonner';
 
 import { UserAvatar } from '@/components/custom/user-avatar';
 import { UserBadges } from '@/components/custom/user-badges';
@@ -37,7 +36,7 @@ export function AccountSettingsDialog({
 }: AccountSettingsDialogProps) {
   const { data: user } = userHooks.useCurrentUser();
   const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  let fileInputRef = undefined;
 
   const uploadMutation = userMutations.useUploadProfilePicture({
     onSuccess: () => {
@@ -49,7 +48,7 @@ export function AccountSettingsDialog({
     },
   });
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: any) => {
     const file = event.target.files?.[0];
     if (file) {
       if (file.size > AP_MAXIMUM_PROFILE_PICTURE_SIZE) {
@@ -68,19 +67,19 @@ export function AccountSettingsDialog({
   };
 
   const handleAvatarClick = () => {
-    fileInputRef.current?.click();
+    fileInputRef?.click();
   };
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-full max-h-[90vh] pb-4 flex flex-col px-5">
+      <DialogContent class="max-w-2xl w-full max-h-[90vh] pb-4 flex flex-col px-5">
         <DialogHeader>
-          <DialogTitle className="font-semibold">
+          <DialogTitle class="font-semibold">
             {t('Account Settings')}
           </DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1" viewPortClassName="px-1">
+        <ScrollArea class="flex-1" viewPortClassName="px-1">
           <div className="space-y-6">
             <div className="flex items-center gap-4">
               <div
@@ -95,10 +94,10 @@ export function AccountSettingsDialog({
                   imageUrl={user?.imageUrl}
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Camera className="h-5 w-5 text-white" />
+                  <Camera class="h-5 w-5 text-white" />
                 </div>
                 <input
-                  ref={fileInputRef}
+                  ref={(el) => (fileInputRef = el)}
                   type="file"
                   accept="image/jpeg,image/png,image/gif,image/webp"
                   className="hidden"
@@ -111,7 +110,7 @@ export function AccountSettingsDialog({
                   {user?.firstName} {user?.lastName}
                 </div>
                 <div className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5" />
+                  <Mail class="w-3.5 h-3.5" />
                   {user?.email}
                 </div>
               </div>

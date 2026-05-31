@@ -3,6 +3,7 @@ import {
   FlowTriggerType,
   isNil,
 } from '@activepieces/shared';
+import { useDebounce } from '@/lib/debounce';
 import { t } from 'i18next';
 import {
   CheckCircle2Icon,
@@ -10,9 +11,8 @@ import {
   PuzzleIcon,
   SparklesIcon,
   WrenchIcon,
-} from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
-import { useDebounce } from 'use-debounce';
+} from 'lucide-solid';
+import { Show, createEffect } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import {
@@ -48,17 +48,17 @@ const getTabsList = (
     {
       value: PieceSelectorTabType.EXPLORE,
       name: t('Explore'),
-      icon: <LayoutGridIcon className="size-5" />,
+      icon: <LayoutGridIcon class="size-5" />,
     },
     {
       value: PieceSelectorTabType.APPS,
       name: t('Apps'),
-      icon: <PuzzleIcon className="size-5" />,
+      icon: <PuzzleIcon class="size-5" />,
     },
     {
       value: PieceSelectorTabType.UTILITY,
       name: t('Utility'),
-      icon: <WrenchIcon className="size-5" />,
+      icon: <WrenchIcon class="size-5" />,
     },
   ];
 
@@ -71,21 +71,21 @@ const getTabsList = (
     baseTabs.splice(1, 0, {
       value: PieceSelectorTabType.AI_AND_AGENTS,
       name: t('AI & Agents'),
-      icon: <SparklesIcon className="size-5" />,
+      icon: <SparklesIcon class="size-5" />,
     });
   }
   if (replaceOrAddAction) {
     baseTabs.push({
       value: PieceSelectorTabType.APPROVALS,
       name: t('Approvals'),
-      icon: <CheckCircle2Icon className="size-5" />,
+      icon: <CheckCircle2Icon class="size-5" />,
     });
   }
   return baseTabs;
 };
 
 type PieceSelectorProps = {
-  children: React.ReactNode;
+  children: any;
   id: string;
   operation: PieceSelectorOperation;
   openSelectorOnClick?: boolean;
@@ -131,14 +131,14 @@ const PieceSelectorContent = ({
   const { listHeightRef, popoverTriggerRef } =
     pieceSelectorUtils.useAdjustPieceListHeightToAvailableSpace();
   const listHeight = Math.min(listHeightRef.current, 300);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
+  let searchInputRef: HTMLInputElement | undefined;
+  createEffect(() => {
     if (isOpen) {
       setTimeout(() => {
-        searchInputRef.current?.focus();
+        searchInputRef?.focus();
       });
     }
-  }, [isOpen]);
+  });
   const { data: aiProviders } = aiProviderQueries.useAiProviders();
   const clearSearch = () => {
     setSearchQuery('');
@@ -192,7 +192,7 @@ const PieceSelectorContent = ({
           onContextMenu={(e) => {
             e.stopPropagation();
           }}
-          className="w-[340px] md:w-[600px] p-0 shadow-lg"
+          class="w-[340px] md:w-[600px] p-0 shadow-lg"
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
@@ -209,8 +209,10 @@ const PieceSelectorContent = ({
                   }
                 }}
               />
-              {!isMobile && <PieceSelectorTabs tabs={tabsList} />}
-              <Separator orientation="horizontal" className="mt-1" />
+              <Show when={!isMobile()}>
+                <PieceSelectorTabs tabs={tabsList} />
+              </Show>
+              <Separator orientation="horizontal" class="mt-1" />
             </div>
             <div
               className=" flex flex-row max-h-[300px]"

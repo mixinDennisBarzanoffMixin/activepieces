@@ -1,3 +1,5 @@
+import { JSX } from 'solid-js';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Tooltip,
@@ -10,9 +12,9 @@ import { cn } from '@/lib/utils';
 import { Markdown } from './markdown';
 
 export type MessageProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   className?: string;
-} & React.HTMLProps<HTMLDivElement>;
+} & JSX.HTMLAttributes<HTMLDivElement>;
 
 const Message = ({ children, className, ...props }: MessageProps) => (
   <div className={cn('flex gap-3', className)} {...props}>
@@ -36,7 +38,7 @@ const MessageAvatar = ({
   className,
 }: MessageAvatarProps) => {
   return (
-    <Avatar className={cn('h-8 w-8 shrink-0', className)}>
+    <Avatar class={cn('h-8 w-8 shrink-0', className)}>
       <AvatarImage src={src} alt={alt} />
       {fallback && (
         <AvatarFallback delayMs={delayMs}>{fallback}</AvatarFallback>
@@ -46,11 +48,11 @@ const MessageAvatar = ({
 };
 
 export type MessageContentProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   markdown?: boolean;
   className?: string;
-} & React.ComponentProps<typeof Markdown> &
-  React.HTMLProps<HTMLDivElement>;
+} & ComponentProps<typeof Markdown> &
+  JSX.HTMLAttributes<HTMLDivElement>;
 
 const MessageContent = ({
   children,
@@ -64,7 +66,7 @@ const MessageContent = ({
   );
 
   return markdown ? (
-    <Markdown className={classNames} {...props}>
+    <Markdown class={classNames} {...props}>
       {children as string}
     </Markdown>
   ) : (
@@ -75,9 +77,9 @@ const MessageContent = ({
 };
 
 export type MessageActionsProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   className?: string;
-} & React.HTMLProps<HTMLDivElement>;
+} & JSX.HTMLAttributes<HTMLDivElement>;
 
 const MessageActions = ({
   children,
@@ -94,10 +96,10 @@ const MessageActions = ({
 
 export type MessageActionProps = {
   className?: string;
-  tooltip: React.ReactNode;
-  children: React.ReactNode;
+  tooltip: JSX.Element;
+  children: JSX.Element;
   side?: 'top' | 'bottom' | 'left' | 'right';
-} & React.ComponentProps<typeof Tooltip>;
+} & ComponentProps<typeof Tooltip>;
 
 const MessageAction = ({
   tooltip,
@@ -110,7 +112,7 @@ const MessageAction = ({
     <TooltipProvider>
       <Tooltip {...props}>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={side} className={className}>
+        <TooltipContent side={side} class={className}>
           {tooltip}
         </TooltipContent>
       </Tooltip>

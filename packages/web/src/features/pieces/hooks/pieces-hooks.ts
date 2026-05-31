@@ -17,11 +17,10 @@ import {
   ApEnvironment,
   TelemetryEventName,
 } from '@activepieces/shared';
-import { useMutation, useQueries, useQuery } from '@tanstack/react-query';
-import { t } from 'i18next';
-import { useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import { createMutation, createQueries, createQuery } from '@tanstack/solid-query';
+import i18n, { t } from 'i18next';
 import semver from 'semver';
+import { createMemo } from 'solid-js';
 
 import { useTelemetry } from '@/components/providers/telemetry-provider';
 import { appConnectionsApi } from '@/features/connections/api/app-connections';
@@ -83,14 +82,13 @@ type UsePiecesSearchProps = {
 
 export const piecesHooks = {
   usePiece: ({ name, version, enabled = true }: UsePieceProps) => {
-    const { i18n } = useTranslation();
-    const query = useQuery<PieceMetadataModel, Error>({
+    const query = createQuery<PieceMetadataModel, Error>(() => ({
       queryKey: ['piece', name, version],
       queryFn: () =>
         piecesApi.get({ name, version, locale: i18n.language as LocalesEnum }),
       staleTime: Infinity,
       enabled,
-    });
+    }));
     return {
       pieceModel: query.data,
       isLoading: query.isLoading,
@@ -120,7 +118,7 @@ export const piecesHooks = {
   },
   useMultiplePieces: ({ names }: UseMultiplePiecesProps) => {
     const { i18n } = useTranslation();
-    return useQueries({
+    return createQueries(() => ({
       queries: names.map((name) => ({
         queryKey: ['piece', name, undefined],
         queryFn: () =>
@@ -131,11 +129,11 @@ export const piecesHooks = {
           }),
         staleTime: Infinity,
       })),
-    });
+    }));
   },
   usePieceSummariesByNames: ({ names }: UseMultiplePiecesProps) => {
     const { pieces, isLoading } = piecesHooks.usePieces({});
-    const summaries = useMemo(() => {
+    const summaries = createMemo(() => {
       if (!pieces) return [];
       const byName = new Map(pieces.map((p) => [p.name, p]));
       return names
@@ -146,7 +144,7 @@ export const piecesHooks = {
   },
   usePieceSummary: ({ name }: { name: string }) => {
     const { pieces, isLoading } = piecesHooks.usePieces({});
-    const summary = useMemo(
+    const summary = createMemo(
       () => pieces?.find((p) => p.name === name),
       [pieces, name],
     );
@@ -159,7 +157,7 @@ export const piecesHooks = {
     isTableQuery = false,
   }: UsePiecesProps) => {
     const { i18n } = useTranslation();
-    const query = useQuery<PieceMetadataModelSummary[], Error>({
+    const query = createQuery<PieceMetadataModelSummary[], Error>(() => ({
       queryKey: [
         isTableQuery ? 'pieces-table' : 'pieces',
         searchQuery,
@@ -177,7 +175,7 @@ export const piecesHooks = {
       meta: isTableQuery
         ? { showErrorDialog: true, loadSubsetOptions: {} }
         : undefined,
-    });
+    }));
     return {
       pieces: query.data,
       isLoading: query.isLoading,
@@ -328,11 +326,11 @@ export const piecesHooks = {
     onError: (error: Error) => void;
     onMutate: () => void;
   }) => {
-    return useMutation<
+    return createMutation<
       ExecutePropsResult<T>,
       Error,
       { request: PieceOptionRequest; propertyType: T }
-    >({
+    >(() => ({
       mutationFn: async ({ request, propertyType }) => {
         onMutate();
         return piecesApi.options(request, propertyType);
@@ -341,14 +339,14 @@ export const piecesHooks = {
       onError,
       retry: 1,
       retryDelay: 1000,
-    });
+    }));
   },
   usePieceVersions: (pieceName: string) => {
     const { data: release } = flagsHooks.useFlag<string>(
       ApFlagId.CURRENT_VERSION,
     );
     const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
-    const query = useQuery({
+    const query = createQuery(() => ({
       queryKey: ['pieces-registry', release, edition],
       queryFn: () => piecesApi.registry(release!, edition!),
       staleTime: Infinity,
@@ -358,7 +356,7 @@ export const piecesHooks = {
           .filter((entry) => entry.name === pieceName)
           .map((entry) => ({ version: entry.version }))
           .sort((a, b) => semver.rcompare(a.version, b.version)),
-    });
+    }));
     return {
       pieceVersions: query.data,
       isLoading: query.isLoading,
@@ -371,7 +369,7 @@ export const piecesHooks = {
     pieceName: string;
     connectionExternalId: string;
   }) => {
-    return useQuery<PieceMetadataModel, Error>({
+    return createQuery<PieceMetadataModel, Error>(() => ({
       queryKey: ['piece', pieceName, connectionExternalId],
       queryFn: async () => {
         const appConnection = (
@@ -392,7 +390,7 @@ export const piecesHooks = {
         });
       },
       staleTime: Infinity,
-    });
+    }));
   },
 };
 
@@ -404,11 +402,11 @@ export const piecesMutations = {
     onSuccess: () => void;
     onError: (error: unknown) => void;
   }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (data: AddPieceRequestBody) => piecesApi.install(data),
       onSuccess,
       onError,
-    });
+    }));
   },
 };
 

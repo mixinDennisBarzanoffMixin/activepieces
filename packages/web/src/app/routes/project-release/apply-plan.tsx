@@ -3,7 +3,7 @@ import {
   isNil,
   ProjectReleaseType,
 } from '@activepieces/shared';
-import { useState, ReactNode } from 'react';
+import { createSignal, Show } from 'solid-js';
 
 import { Button, ButtonProps } from '@/components/ui/button';
 import {
@@ -17,7 +17,7 @@ import { CreateReleaseDialog } from './create-release-dialog';
 
 type ApplyButtonProps = ButtonProps & {
   request: DiffReleaseRequest;
-  children: ReactNode;
+  children: JSX.Element;
   onSuccess: () => void;
   defaultName?: string;
 };
@@ -32,9 +32,11 @@ export const ApplyButton = ({
   const projectId = authenticationSession.getProjectId()!;
   const { gitSync } = gitSyncHooks.useGitSync(projectId, !isNil(projectId));
   const [isCreateReleaseDialogOpen, setIsCreateReleaseDialogOpen] =
-    useState(false);
-  const [syncPlan, setSyncPlan] = useState<any>(null);
-  const [loadingRequestId, setLoadingRequestId] = useState<string | null>(null);
+    createSignal(false);
+  const [syncPlan, setSyncPlan] = createSignal<any>(null);
+  const [loadingRequestId, setLoadingRequestId] = createSignal<string | null>(
+    null,
+  );
 
   const { mutate: loadSyncPlan } = projectReleaseMutations.useDiffRelease({
     onSuccess: (plan) => {
@@ -55,7 +57,7 @@ export const ApplyButton = ({
     },
   });
 
-  const [isConnectGitDialogOpen, setGitDialogOpen] = useState(false);
+  const [isConnectGitDialogOpen, setGitDialogOpen] = createSignal(false);
   const showGitDialog =
     isNil(gitSync) && request.type === ProjectReleaseType.GIT;
   const requestId = JSON.stringify(request);
@@ -80,25 +82,28 @@ export const ApplyButton = ({
         {children}
       </Button>
 
-      {isConnectGitDialogOpen ? (
+      <Show
+        when={isConnectGitDialogOpen}
+        fallback={
+          <Show when={isCreateReleaseDialogOpen}>
+            <CreateReleaseDialog
+              open={isCreateReleaseDialogOpen}
+              loading={isLoading}
+              setOpen={setIsCreateReleaseDialogOpen}
+              refetch={onSuccess}
+              plan={syncPlan}
+              defaultName={defaultName}
+              diffRequest={request}
+            />
+          </Show>
+        }
+      >
         <ConnectGitDialog
           open={isConnectGitDialogOpen}
           setOpen={setGitDialogOpen}
           showButton={false}
         />
-      ) : (
-        isCreateReleaseDialogOpen && (
-          <CreateReleaseDialog
-            open={isCreateReleaseDialogOpen}
-            loading={isLoading}
-            setOpen={setIsCreateReleaseDialogOpen}
-            refetch={onSuccess}
-            plan={syncPlan}
-            defaultName={defaultName}
-            diffRequest={request}
-          />
-        )
-      )}
+      </Show>
     </>
   );
 };

@@ -10,7 +10,7 @@ import {
   BarChart3,
   Clock,
   Calendar,
-} from 'lucide-react';
+} from 'lucide-solid';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import { DataTable } from '@/components/custom/data-table';
@@ -117,13 +117,13 @@ export default function TriggerHealthPage() {
   const getStatusIcon = (statusType: string) => {
     switch (statusType) {
       case STATUS.SUCCESS:
-        return <CheckCircle size={16} className="text-success-700" />;
+        return <CheckCircle size={16} class="text-success-700" />;
       case STATUS.WARNING:
-        return <AlertCircle size={16} className="text-amber-700" />;
+        return <AlertCircle size={16} class="text-amber-700" />;
       case STATUS.FAULT:
-        return <XCircle size={16} className="text-destructive" />;
+        return <XCircle size={16} class="text-destructive" />;
       default:
-        return <AlertCircle size={16} className="text-gray-500" />;
+        return <AlertCircle size={16} class="text-gray-500" />;
     }
   };
 
@@ -258,7 +258,7 @@ export default function TriggerHealthPage() {
         emptyStateTextDescription={t(
           'Trigger health information will appear here',
         )}
-        emptyStateIcon={<CheckCircle className="size-14" />}
+        emptyStateIcon={<CheckCircle class="size-14" />}
         hidePagination={true}
         columns={columns}
         page={{ data: triggerHealthData, previous: '', next: '' }}

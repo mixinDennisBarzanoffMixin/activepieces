@@ -1,7 +1,7 @@
+import { useParams } from '@solidjs/router';
+import { createSignal } from 'solid-js';
 import { t } from 'i18next';
-import { useCallback, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { authenticationSession } from '@/lib/authentication-session';
 
@@ -46,59 +46,41 @@ export function usePinnedItems() {
   const projectId = projectIdFromUrl ?? authenticationSession.getProjectId()!;
   const userId = authenticationSession.getCurrentUserId()!;
 
-  const [pinnedList, setPinnedList] = useState<string[]>(() =>
+  const [pinnedList, setPinnedList] = createSignal<string[]>(() =>
     readPinnedList(projectId, userId),
   );
 
-  const pinnedIds = new Set(pinnedList);
+  const pinnedIds = () => new Set(pinnedList());
 
-  const isPinned = useCallback(
-    (itemId: string) => pinnedList.includes(itemId),
-    [pinnedList],
-  );
+  const isPinned = (itemId: string) => pinnedList().includes(itemId);
 
-  const pinOrder = useCallback(
-    (itemId: string) => {
-      const idx = pinnedList.indexOf(itemId);
-      return idx === -1 ? Infinity : idx;
-    },
-    [pinnedList],
-  );
+  const pinOrder = (itemId: string) => {
+    const idx = pinnedList().indexOf(itemId);
+    return idx === -1 ? Infinity : idx;
+  };
 
-  const togglePin = useCallback(
-    (itemId: string) => {
-      const wasPinned = pinnedList.includes(itemId);
-      setPinnedList((prev) => {
-        const idx = prev.indexOf(itemId);
-        let next: string[];
-        if (idx !== -1) {
-          next = prev.filter((id) => id !== itemId);
-        } else {
-          next = [itemId, ...prev];
-        }
-        writePinnedList(projectId, userId, next);
-        return next;
-      });
-      if (wasPinned) {
-        toast.success(t('Removed from favorites.'));
-      } else {
-        toast.success(t('Favorited and moved to the top.'));
-      }
-    },
-    [projectId, userId, pinnedList],
-  );
+  const togglePin = (itemId: string) => {
+    const wasPinned = pinnedList().includes(itemId);
+    setPinnedList((prev) => {
+      const idx = prev.indexOf(itemId);
+      const next =
+        idx !== -1 ? prev.filter((id) => id !== itemId) : [itemId, ...prev];
+      writePinnedList(projectId, userId, next);
+      return next;
+    });
+    toast.success(
+      wasPinned ? t('Removed from favorites.') : t('Favorited and moved to the top.'),
+    );
+  };
 
-  const unpinItem = useCallback(
-    (itemId: string) => {
-      setPinnedList((prev) => {
-        if (!prev.includes(itemId)) return prev;
-        const next = prev.filter((id) => id !== itemId);
-        writePinnedList(projectId, userId, next);
-        return next;
-      });
-    },
-    [projectId, userId],
-  );
+  const unpinItem = (itemId: string) => {
+    setPinnedList((prev) => {
+      if (!prev.includes(itemId)) return prev;
+      const next = prev.filter((id) => id !== itemId);
+      writePinnedList(projectId, userId, next);
+      return next;
+    });
+  };
 
   return { pinnedIds, pinnedList, isPinned, pinOrder, togglePin, unpinItem };
 }

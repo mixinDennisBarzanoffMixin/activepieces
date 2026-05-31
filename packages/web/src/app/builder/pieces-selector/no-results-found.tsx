@@ -1,6 +1,7 @@
 import { ApFlagId, feedbackUrl } from '@activepieces/shared';
 import { t } from 'i18next';
-import { SearchX } from 'lucide-react';
+import { SearchX } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { Button } from '@/components/ui/button';
@@ -15,10 +16,10 @@ const NoResultsFound = () => {
 
   return (
     <div className="flex flex-col gap-2 items-center justify-center h-full ">
-      <SearchX className="w-14 h-14" />
+      <SearchX class="w-14 h-14" />
       <div className="text-sm ">{t('No pieces found')}</div>
       <div className="text-sm ">{t('Try adjusting your search')}</div>
-      {showRequestPieceButton && (
+      <Show when={showRequestPieceButton()}>
         <Button
           variant="default"
           size="sm"
@@ -28,7 +29,7 @@ const NoResultsFound = () => {
         >
           {t('Request Piece')}
         </Button>
-      )}
+      </Show>
     </div>
   );
 };

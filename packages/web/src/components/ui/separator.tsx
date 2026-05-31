@@ -1,5 +1,4 @@
-import { Separator as SeparatorPrimitive } from 'radix-ui';
-import * as React from 'react';
+import * as SeparatorPrimitive from '@kobalte/core/separator';
 
 import { cn } from '@/lib/utils';
 
@@ -8,13 +7,13 @@ function Separator({
   orientation = 'horizontal',
   decorative = true,
   ...props
-}: React.ComponentProps<typeof SeparatorPrimitive.Root>) {
+}: ComponentProps<typeof SeparatorPrimitive.Root>) {
   return (
     <SeparatorPrimitive.Root
       data-slot="separator"
       decorative={decorative}
       orientation={orientation}
-      className={cn(
+      class={cn(
         'shrink-0 bg-border',
         orientation === 'horizontal' ? 'h-px w-full' : 'h-full w-px',
         className,
@@ -41,5 +40,5 @@ export { Separator, HorizontalSeparatorWithText };
 
 type HorizontalSeparatorWithTextProps = {
   className?: string;
-  children: React.ReactNode;
+  children: JSX.Element;
 };

@@ -1,5 +1,5 @@
-import { Switch as SwitchPrimitive } from 'radix-ui';
-import * as React from 'react';
+import * as SwitchPrimitive from '@kobalte/core/switch';
+import { Show, createSignal } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -15,7 +15,7 @@ function Switch({
 }: SwitchProps) {
   const isControlled = props.checked !== undefined;
 
-  const [internalChecked, setInternalChecked] = React.useState(
+  const [internalChecked, setInternalChecked] = createSignal(
     props.defaultChecked ?? false,
   );
   const isChecked = isControlled ? props.checked : internalChecked;
@@ -27,7 +27,7 @@ function Switch({
   return (
     <SwitchPrimitive.Root
       data-slot="switch"
-      className={cn(
+      class={cn(
         'peer inline-flex shrink-0 cursor-pointer items-center border-2 border-transparent transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
         COLOR_CLASSES[color],
         variant === 'square' ? 'rounded-md' : 'rounded-full',
@@ -47,15 +47,15 @@ function Switch({
     >
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
-        className={cn(
+        class={cn(
           'pointer-events-none flex items-center justify-center bg-background dark:bg-foreground shadow-lg ring-0 transition-transform data-[state=unchecked]:translate-x-0',
           variant === 'square' ? 'rounded-sm' : 'rounded-full',
           THUMB_SIZE_CLASSES[size],
         )}
       >
-        {icon && (
+        <Show when={icon}>
           <span className="flex items-center justify-center">{icon}</span>
-        )}
+        </Show>
       </SwitchPrimitive.Thumb>
     </SwitchPrimitive.Root>
   );
@@ -88,7 +88,7 @@ const COLOR_CLASSES: Record<NonNullable<SwitchProps['color']>, string> = {
 function handleCheckedChange(
   checked: boolean,
   isControlled: boolean,
-  setInternalChecked: React.Dispatch<React.SetStateAction<boolean>>,
+  setInternalChecked: (value: boolean) => void,
   onCheckedChange?: (checked: boolean) => void,
 ) {
   if (!isControlled) {
@@ -101,9 +101,9 @@ function handleCheckedChange(
 
 // Type definitions
 
-type SwitchProps = React.ComponentProps<typeof SwitchPrimitive.Root> & {
-  checkedIcon?: React.ReactNode;
-  uncheckedIcon?: React.ReactNode;
+type SwitchProps = ComponentProps<typeof SwitchPrimitive.Root> & {
+  checkedIcon?: JSX.Element;
+  uncheckedIcon?: JSX.Element;
   variant?: 'default' | 'square';
   size?: 'default' | 'sm' | 'lg' | 'xl';
   color?: 'default' | 'secondary';

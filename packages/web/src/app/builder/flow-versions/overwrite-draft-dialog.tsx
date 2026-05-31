@@ -1,6 +1,6 @@
 import { Permission } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useState } from 'react';
+import { createSignal } from 'solid-js';
 
 import { RightSideBarType } from '@/app/builder/types';
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
@@ -38,13 +38,10 @@ const OverwriteDraftDialog = ({
       },
     });
   const userHasPermissionToWriteFlow = checkAccess(Permission.WRITE_FLOW);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        disabled={!userHasPermissionToWriteFlow}
-        className="w-full"
-      >
+      <DialogTrigger disabled={!userHasPermissionToWriteFlow} class="w-full">
         <PermissionNeededTooltip hasPermission={userHasPermissionToWriteFlow}>
           {children}
         </PermissionNeededTooltip>
@@ -61,7 +58,7 @@ const OverwriteDraftDialog = ({
             {t('This cannot be undone.')}
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter className="justify-end">
+        <DialogFooter class="justify-end">
           <DialogClose asChild>
             <Button variant={'outline'}>{t('Cancel')}</Button>
           </DialogClose>
@@ -86,7 +83,7 @@ const OverwriteDraftDialog = ({
 };
 type OverwriteDraftDialogProps = {
   onConfirm: (() => void) | undefined;
-  children: React.ReactNode;
+  children: any;
   versionId: string;
   versionNumber: string;
 };

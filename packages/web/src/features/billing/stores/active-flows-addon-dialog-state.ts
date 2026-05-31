@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithStore } from 'solid-zustand';
 
 interface ActiveFlowsAddonDialogStore {
   isOpen: boolean;
@@ -6,7 +6,7 @@ interface ActiveFlowsAddonDialogStore {
   closeDialog: () => void;
 }
 
-export const useManagePlanDialogStore = create<ActiveFlowsAddonDialogStore>(
+export const useManagePlanDialogStore = createWithStore<ActiveFlowsAddonDialogStore>(
   (set) => ({
     isOpen: false,
     openDialog: () => set({ isOpen: true }),

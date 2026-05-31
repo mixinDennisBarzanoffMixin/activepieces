@@ -1,6 +1,6 @@
 import { PieceMetadataModelSummary } from '@activepieces/pieces-framework';
 import { t } from 'i18next';
-import React, { useState } from 'react';
+import React, { createSignal } from 'solid-js';
 
 // eslint-disable-next-line import/no-restricted-paths
 import { CreateOrEditConnectionDialog } from '@/app/connections/create-edit-connection-dialog';
@@ -24,7 +24,7 @@ function unwrapConnection(input?: unknown): string | undefined {
   return match?.[1];
 }
 
-export const ConnectionDropdown = React.memo(
+export const ConnectionDropdown =
   ({
     piece,
     value,
@@ -33,7 +33,7 @@ export const ConnectionDropdown = React.memo(
     showError = false,
     placeholder = t('Select a connection'),
   }: ConnectionDropdownProps) => {
-    const [connectionDialogOpen, setConnectionDialogOpen] = useState(false);
+    const [connectionDialogOpen, setConnectionDialogOpen] = createSignal(false);
 
     const {
       data: connections,
@@ -89,7 +89,7 @@ export const ConnectionDropdown = React.memo(
           isGlobalConnection={false}
         />
 
-        <div className="space-y-2">
+        <div class="space-y-2">
           <SearchableSelect
             value={unwrapConnection(value)}
             onChange={handleChange}
@@ -101,14 +101,13 @@ export const ConnectionDropdown = React.memo(
             triggerClassName={showError ? 'border-destructive' : undefined}
           />
           {showError && (
-            <p className="text-sm font-medium text-destructive break-words">
+            <p class="text-sm font-medium text-destructive break-words">
               {t('Connection is required')}
             </p>
           )}
         </div>
       </>
     );
-  },
-);
+  };
 
 ConnectionDropdown.displayName = 'ConnectionDropdown';

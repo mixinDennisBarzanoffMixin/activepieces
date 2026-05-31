@@ -1,6 +1,6 @@
 import { AgentFlowTool } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Plus, Workflow, X } from 'lucide-react';
+import { Plus, Workflow, X } from 'lucide-solid';
 
 import {
   AccordionContent,
@@ -30,17 +30,17 @@ export const AgentFlowToolComponent = ({
   const { setShowAddFlowDialog } = useFlowToolDialogStore();
 
   return (
-    <AccordionItem value="flows" className="border-b last:border-0">
-      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent transition-all">
+    <AccordionItem value="flows" class="border-b last:border-0">
+      <AccordionTrigger class="px-4 py-3 hover:no-underline hover:bg-accent transition-all">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
-            <Workflow className="size-4 text-muted-foreground" />
+            <Workflow class="size-4 text-muted-foreground" />
           </div>
           <span className="text-sm font-medium">{t('Flows')}</span>
         </div>
       </AccordionTrigger>
 
-      <AccordionContent className="px-4 py-2">
+      <AccordionContent class="px-4 py-2">
         <div className="flex flex-wrap gap-2">
           {tools.map((tool) => (
             <div
@@ -62,7 +62,7 @@ export const AgentFlowToolComponent = ({
                     onClick={() => removeTool(tool.toolName)}
                     variant="ghost"
                     size="icon"
-                    className="
+                    class="
                       size-5 p-0.5
                       text-muted-foreground
                       hover:text-destructive
@@ -70,7 +70,7 @@ export const AgentFlowToolComponent = ({
                       transition
                     "
                   >
-                    <X className="h-3 w-3" />
+                    <X class="h-3 w-3" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{t('Remove flow')}</TooltipContent>
@@ -80,11 +80,11 @@ export const AgentFlowToolComponent = ({
         </div>
         <Button
           variant="link"
-          className="mt-4"
+          class="mt-4"
           size="xs"
           onClick={() => setShowAddFlowDialog(true)}
         >
-          <Plus className="size-3 mr-1" />
+          <Plus class="size-3 mr-1" />
           {t('Add Flow')}
         </Button>
       </AccordionContent>

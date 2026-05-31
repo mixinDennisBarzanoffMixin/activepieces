@@ -1,221 +1,158 @@
-import React, { Suspense } from 'react';
-import { Navigate } from 'react-router-dom';
-
 import { PageTitle } from '@/app/components/page-title';
-import { RouteLoadingBar } from '@/components/custom/route-loading-bar';
 import { Error, Success } from '@/features/billing';
 
 import { PlatformLayout } from '../components/platform-layout';
 
-const SettingsBilling = React.lazy(() => import('./platform/billing'));
-const EventDestinationsPage = React.lazy(
-  () => import('./platform/infra/event-destinations'),
-);
-const SettingsHealthPage = React.lazy(() => import('./platform/infra/health'));
-const TriggerHealthPage = React.lazy(() => import('./platform/infra/triggers'));
-const SettingsWorkersPage = React.lazy(
-  () => import('./platform/infra/workers'),
-);
-const ProjectsPage = React.lazy(() => import('./platform/projects'));
-const ApiKeysPage = React.lazy(() =>
-  import('./platform/security/api-keys').then((m) => ({
-    default: m.ApiKeysPage,
-  })),
-);
-const AuditLogsPage = React.lazy(
-  () => import('./platform/security/audit-logs'),
-);
-const ProjectRolePage = React.lazy(() =>
-  import('./platform/security/project-role').then((m) => ({
-    default: m.ProjectRolePage,
-  })),
-);
-const SecretManagersPage = React.lazy(
-  () => import('./platform/security/secret-managers'),
-);
-const EmbedPage = React.lazy(() =>
-  import('./platform/security/embed').then((m) => ({
-    default: m.EmbedPage,
-  })),
-);
-const SSOPage = React.lazy(() =>
-  import('./platform/security/sso').then((m) => ({ default: m.SSOPage })),
-);
-const AIProvidersPage = React.lazy(() => import('./platform/setup/ai'));
-const PlatformMcpPage = React.lazy(() => import('./platform/setup/mcp'));
-const BrandingPage = React.lazy(() =>
-  import('./platform/setup/branding').then((m) => ({
-    default: m.BrandingPage,
-  })),
-);
-const GlobalConnectionsTable = React.lazy(() =>
-  import('./platform/setup/connections').then((m) => ({
-    default: m.GlobalConnectionsTable,
-  })),
-);
-const PlatformPiecesPage = React.lazy(() =>
-  import('./platform/setup/pieces').then((m) => ({
-    default: m.PlatformPiecesPage,
-  })),
-);
-const PlatformTemplatesPage = React.lazy(() =>
-  import('./platform/setup/templates').then((m) => ({
-    default: m.PlatformTemplatesPage,
-  })),
-);
-const UsersPage = React.lazy(() => import('./platform/users'));
-const PlatformConnectionsPage = React.lazy(
-  () => import('./platform/connections'),
-);
+import SettingsBilling from './platform/billing';
+import PlatformConnectionsPage from './platform/connections';
+import EventDestinationsPage from './platform/infra/event-destinations';
+import SettingsHealthPage from './platform/infra/health';
+import TriggerHealthPage from './platform/infra/triggers';
+import SettingsWorkersPage from './platform/infra/workers';
+import ProjectsPage from './platform/projects';
+import { ApiKeysPage } from './platform/security/api-keys';
+import AuditLogsPage from './platform/security/audit-logs';
+import { EmbedPage } from './platform/security/embed';
+import { ProjectRolePage } from './platform/security/project-role';
+import SecretManagersPage from './platform/security/secret-managers';
+import { SSOPage } from './platform/security/sso';
+import AIProvidersPage from './platform/setup/ai';
+import { BrandingPage } from './platform/setup/branding';
+import { GlobalConnectionsTable } from './platform/setup/connections';
+import PlatformMcpPage from './platform/setup/mcp';
+import { PlatformPiecesPage } from './platform/setup/pieces';
+import { PlatformTemplatesPage } from './platform/setup/templates';
+import UsersPage from './platform/users';
 
-function SuspenseWrapper({ children }: { children: React.ReactNode }) {
-  return <Suspense fallback={<RouteLoadingBar />}>{children}</Suspense>;
+function Redirect({ to }: { to: string }) {
+  window.location.replace(to);
+  return null;
 }
 
 export const platformRoutes = [
   {
     path: '/platform',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Platform">
-          <Navigate to="/platform/projects" />
+          <Redirect to="/platform/projects" />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/projects',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Projects">
-          <SuspenseWrapper>
-            <ProjectsPage />
-          </SuspenseWrapper>
+          <ProjectsPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/users',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Users">
-          <SuspenseWrapper>
-            <UsersPage />
-          </SuspenseWrapper>
+          <UsersPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/connections',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Connections">
-          <SuspenseWrapper>
-            <PlatformConnectionsPage />
-          </SuspenseWrapper>
+          <PlatformConnectionsPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/setup',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Platform Setup">
-          <Navigate to="/platform/setup/ai" replace />
+          <Redirect to="/platform/setup/ai" />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/setup/ai',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="AI">
-          <SuspenseWrapper>
-            <AIProvidersPage />
-          </SuspenseWrapper>
+          <AIProvidersPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/setup/mcp',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="MCP Server">
-          <SuspenseWrapper>
-            <PlatformMcpPage />
-          </SuspenseWrapper>
+          <PlatformMcpPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/setup/pieces',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Pieces">
-          <SuspenseWrapper>
-            <PlatformPiecesPage />
-          </SuspenseWrapper>
+          <PlatformPiecesPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/setup/connections',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Connections">
-          <SuspenseWrapper>
-            <GlobalConnectionsTable />
-          </SuspenseWrapper>
+          <GlobalConnectionsTable />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/setup/templates',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Templates">
-          <SuspenseWrapper>
-            <PlatformTemplatesPage />
-          </SuspenseWrapper>
+          <PlatformTemplatesPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/setup/branding',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Branding">
-          <SuspenseWrapper>
-            <BrandingPage />
-          </SuspenseWrapper>
+          <BrandingPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/setup/billing',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Billing">
-          <SuspenseWrapper>
-            <SettingsBilling />
-          </SuspenseWrapper>
+          <SettingsBilling />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/setup/billing/success',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Billing">
           <Success />
@@ -225,7 +162,7 @@ export const platformRoutes = [
   },
   {
     path: '/platform/setup/billing/error',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Billing">
           <Error />
@@ -235,140 +172,120 @@ export const platformRoutes = [
   },
   {
     path: '/platform/security',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Platform Security">
-          <Navigate to="/platform/security/audit-logs" replace />
+          <Redirect to="/platform/security/audit-logs" />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/security/api-keys',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="API Keys">
-          <SuspenseWrapper>
-            <ApiKeysPage />
-          </SuspenseWrapper>
+          <ApiKeysPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/security/secret-managers',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Secret managers">
-          <SuspenseWrapper>
-            <SecretManagersPage />
-          </SuspenseWrapper>
+          <SecretManagersPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/security/audit-logs',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Audit Logs">
-          <SuspenseWrapper>
-            <AuditLogsPage />
-          </SuspenseWrapper>
+          <AuditLogsPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/security/embed',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Embedding">
-          <SuspenseWrapper>
-            <EmbedPage />
-          </SuspenseWrapper>
+          <EmbedPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/security/sso',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="SSO">
-          <SuspenseWrapper>
-            <SSOPage />
-          </SuspenseWrapper>
+          <SSOPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/security/project-roles',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Project Roles">
-          <SuspenseWrapper>
-            <ProjectRolePage />
-          </SuspenseWrapper>
+          <ProjectRolePage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/infrastructure',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Platform Infrastructure">
-          <Navigate to="/platform/infrastructure/workers" replace />
+          <Redirect to="/platform/infrastructure/workers" />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/infrastructure/workers',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Workers">
-          <SuspenseWrapper>
-            <SettingsWorkersPage />
-          </SuspenseWrapper>
+          <SettingsWorkersPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/infrastructure/health',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="System Health">
-          <SuspenseWrapper>
-            <SettingsHealthPage />
-          </SuspenseWrapper>
+          <SettingsHealthPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/infrastructure/triggers',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Trigger Health">
-          <SuspenseWrapper>
-            <TriggerHealthPage />
-          </SuspenseWrapper>
+          <TriggerHealthPage />
         </PageTitle>
       </PlatformLayout>
     ),
   },
   {
     path: '/platform/infrastructure/event-destinations',
-    element: (
+    component: () => (
       <PlatformLayout>
         <PageTitle title="Event Streaming">
-          <SuspenseWrapper>
-            <EventDestinationsPage />
-          </SuspenseWrapper>
+          <EventDestinationsPage />
         </PageTitle>
       </PlatformLayout>
     ),

@@ -1,9 +1,9 @@
 import { AgentTool, isNil, mcpToolNameUtils } from '@activepieces/shared';
+import { useDebounce } from '@/lib/debounce';
 import { t } from 'i18next';
-import { ChevronLeft } from 'lucide-react';
-import { useMemo, useEffect } from 'react';
-import { toast } from 'sonner';
-import { useDebounce } from 'use-debounce';
+import { ChevronLeft } from 'lucide-solid';
+import { Show, createEffect, createMemo } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -73,7 +73,7 @@ export function AgentPieceDialog({
       type: 'action',
     });
 
-  const pieceMetadata = useMemo(() => {
+  const pieceMetadata = createMemo(() => {
     return (
       metadata
         ?.filter(
@@ -82,9 +82,9 @@ export function AgentPieceDialog({
         )
         .filter((piece) => !excludedPieces.includes(piece.pieceName)) ?? []
     );
-  }, [metadata]);
+  });
 
-  useEffect(() => {
+  createEffect(() => {
     if (!showAddPieceDialog) return;
     if (!isNil(editingPieceTool) && pieceMetadata.length > 0) {
       const piece = pieceMetadata.find(
@@ -104,7 +104,7 @@ export function AgentPieceDialog({
         }
       }
     }
-  }, [showAddPieceDialog, editingPieceTool, pieceMetadata]);
+  });
 
   const authIsSetValue = isPieceAuthSet();
 
@@ -167,7 +167,7 @@ export function AgentPieceDialog({
                     size="icon"
                     onClick={goBackToPiecesList}
                   >
-                    <ChevronLeft className="size-4" />
+                    <ChevronLeft class="size-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{t('Back')}</TooltipContent>
@@ -188,7 +188,7 @@ export function AgentPieceDialog({
                     size="icon"
                     onClick={goBackToActionsList}
                   >
-                    <ChevronLeft className="size-4" />
+                    <ChevronLeft class="size-4" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{t('Back')}</TooltipContent>
@@ -203,15 +203,15 @@ export function AgentPieceDialog({
 
   return (
     <Dialog open={showAddPieceDialog} onOpenChange={handleDialogClose}>
-      <DialogContent className="w-[90vw] max-w-[750px] h-[80vh] max-h-[800px] flex flex-col overflow-hidden p-0">
-        <DialogHeader className="min-h-16 flex px-4 items-start justify-center mb-0 border-b">
+      <DialogContent class="w-[90vw] max-w-[750px] h-[80vh] max-h-[800px] flex flex-col overflow-hidden p-0">
+        <DialogHeader class="min-h-16 flex px-4 items-start justify-center mb-0 border-b">
           <DialogTitle>{renderDialogHeaderContent()}</DialogTitle>
         </DialogHeader>
 
         {renderDialogMainContent()}
 
-        {selectedPage === 'action-inputs' && (
-          <DialogFooter className="border-t p-4 mt-auto">
+        <Show when={selectedPage === 'action-inputs'()}>
+          <DialogFooter class="border-t p-4 mt-auto">
             <DialogClose asChild>
               <Button type="button" variant="outline">
                 {t('Close')}
@@ -223,10 +223,12 @@ export function AgentPieceDialog({
               type="button"
               onClick={handleSave}
             >
-              {editingPieceTool ? t('Update Tool') : t('Add Tool')}
+              <Show when={editingPieceTool()} fallback={t('Add Tool')}>
+                {t('Update Tool')}
+              </Show>
             </Button>
           </DialogFooter>
-        )}
+        </Show>
       </DialogContent>
     </Dialog>
   );

@@ -1,6 +1,6 @@
 import { FolderDto, UncategorizedFolderId } from '@activepieces/shared';
 import { t } from 'i18next';
-import { FolderIcon } from 'lucide-react';
+import { FolderIcon } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -51,17 +51,17 @@ export const MoveToFolderDialog = ({
         <div className="grid gap-2">
           <Label>{t('Folder')}</Label>
           <Select value={selectedFolderId} onValueChange={onFolderChange}>
-            <SelectTrigger className="w-full">
+            <SelectTrigger class="w-full">
               <SelectValue placeholder={t('Select a folder')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={UncategorizedFolderId}>
-                <FolderIcon className="mr-2 h-4 w-4" />
+                <FolderIcon class="mr-2 h-4 w-4" />
                 {t('Uncategorized (No Folder)')}
               </SelectItem>
               {folders?.map((folder) => (
                 <SelectItem key={folder.id} value={folder.id}>
-                  <FolderIcon className="mr-2 h-4 w-4" />
+                  <FolderIcon class="mr-2 h-4 w-4" />
                   {folder.displayName}
                 </SelectItem>
               ))}

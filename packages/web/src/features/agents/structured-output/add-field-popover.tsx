@@ -1,7 +1,7 @@
 import { AgentOutputFieldType } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { Plus } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -33,12 +33,12 @@ export const AddFieldPopover = ({
   onAddField,
   disabled,
 }: AddFieldPopoverProps) => {
-  const [fieldType, setFieldType] = useState<AgentOutputFieldType | undefined>(
-    undefined,
-  );
-  const [fieldName, setFieldName] = useState('');
-  const [fieldDescription, setFieldDescription] = useState('');
-  const [open, setOpen] = useState(false);
+  const [fieldType, setFieldType] = createSignal<
+    AgentOutputFieldType | undefined
+  >(undefined);
+  const [fieldName, setFieldName] = createSignal('');
+  const [fieldDescription, setFieldDescription] = createSignal('');
+  const [open, setOpen] = createSignal(false);
 
   const handleAdd = () => {
     if (fieldType && fieldName.trim() && fieldDescription.trim()) {
@@ -53,17 +53,12 @@ export const AddFieldPopover = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full" disabled={disabled}>
-          <Plus className="h-4 w-4 mr-2" />
+        <Button variant="outline" class="w-full" disabled={disabled}>
+          <Plus class="h-4 w-4 mr-2" />
           {t('Add Field')}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        className="w-80"
-        side="bottom"
-        align="center"
-        sideOffset={10}
-      >
+      <PopoverContent class="w-80" side="bottom" align="center" sideOffset={10}>
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Field Type</label>
@@ -81,7 +76,7 @@ export const AddFieldPopover = ({
                   <div className="flex items-center">
                     <FieldTypeIcon
                       type={AgentOutputFieldType.TEXT}
-                      className="h-4 w-4 mr-2 text-muted-foreground"
+                      class="h-4 w-4 mr-2 text-muted-foreground"
                     />
                     <span>Text</span>
                   </div>
@@ -90,7 +85,7 @@ export const AddFieldPopover = ({
                   <div className="flex items-center">
                     <FieldTypeIcon
                       type={AgentOutputFieldType.NUMBER}
-                      className="h-4 w-4 mr-2 text-muted-foreground"
+                      class="h-4 w-4 mr-2 text-muted-foreground"
                     />
                     <span>Number</span>
                   </div>
@@ -99,7 +94,7 @@ export const AddFieldPopover = ({
                   <div className="flex items-center">
                     <FieldTypeIcon
                       type={AgentOutputFieldType.BOOLEAN}
-                      className="h-4 w-4 mr-2 text-muted-foreground"
+                      class="h-4 w-4 mr-2 text-muted-foreground"
                     />
                     <span>Yes/No</span>
                   </div>
@@ -126,7 +121,7 @@ export const AddFieldPopover = ({
             />
           </div>
           <Button
-            className="w-full"
+            class="w-full"
             onClick={handleAdd}
             variant={'default'}
             disabled={

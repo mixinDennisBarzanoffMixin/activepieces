@@ -1,5 +1,5 @@
 import { ErrorCode, isNil } from '@activepieces/shared';
-import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query';
+import { MutationCache, QueryCache, QueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
 
 import { useApErrorDialogStore } from '@/components/custom/ap-error-dialog/ap-error-dialog-store';

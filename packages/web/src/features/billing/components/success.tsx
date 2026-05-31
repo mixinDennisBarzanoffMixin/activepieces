@@ -1,7 +1,7 @@
+import { useNavigate, useSearchParams } from '@solidjs/router';
 import { t } from 'i18next';
-import { Check, TrendingUp, TrendingDown } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Check, TrendingUp, TrendingDown } from 'lucide-solid';
+import { createSignal, createEffect } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { CardContent } from '@/components/ui/card';
@@ -9,11 +9,11 @@ import { CardContent } from '@/components/ui/card';
 export const Success = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = createSignal(5);
 
   const action = searchParams.get('action') || '';
 
-  useEffect(() => {
+  createEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
@@ -85,12 +85,12 @@ export const Success = () => {
   return (
     <div className="h-full bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <CardContent className="pt-8 pb-6 px-6">
+        <CardContent class="pt-8 pb-6 px-6">
           <div className="text-center space-y-6">
             <div
               className={`mx-auto w-20 h-20 ${config.iconBg} rounded-full flex items-center justify-center`}
             >
-              <IconComponent className={`w-10 h-10 ${config.iconColor}`} />
+              <IconComponent class={`w-10 h-10 ${config.iconColor}`} />
             </div>
 
             <div className="space-y-2">
@@ -103,14 +103,14 @@ export const Success = () => {
             </div>
 
             <div className="flex flex-col gap-3 pt-2">
-              <Button onClick={() => navigate('/')} className="w-full">
+              <Button onClick={() => navigate('/')} class="w-full">
                 {t('Go to Dashboard')}
               </Button>
 
               <Button
                 onClick={() => navigate('/platform/setup/billing')}
                 variant="outline"
-                className="w-full"
+                class="w-full"
               >
                 {t('View Billing Details')}
               </Button>

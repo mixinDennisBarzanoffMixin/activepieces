@@ -4,8 +4,8 @@ import {
   FileResponseInterface,
   isNil,
 } from '@activepieces/shared';
-import { BotIcon } from 'lucide-react';
-import React from 'react';
+import { BotIcon } from 'lucide-solid';
+import { JSX } from 'solid-js';
 import { z } from 'zod';
 
 import { cn } from '@/lib/utils';
@@ -29,8 +29,8 @@ export const Messages = z.array(
 );
 export type Messages = z.infer<typeof Messages>;
 
-interface ChatMessageListProps extends React.HTMLAttributes<HTMLDivElement> {
-  messagesRef?: React.RefObject<HTMLDivElement | null>;
+interface ChatMessageListProps extends JSX.HTMLAttributes<HTMLDivElement> {
+  messagesRef?: any;
   messages?: Messages;
   chatUI?: ChatUIResponse | null | undefined;
   sendingError?: ApErrorParams | null;
@@ -40,9 +40,8 @@ interface ChatMessageListProps extends React.HTMLAttributes<HTMLDivElement> {
   setSelectedImage?: (image: string | null) => void;
 }
 
-const ChatMessageList = React.forwardRef<HTMLDivElement, ChatMessageListProps>(
-  (
-    {
+function ChatMessageList(props: ChatMessageListProps) {
+    const {
       className,
       children,
       messagesRef,
@@ -53,17 +52,16 @@ const ChatMessageList = React.forwardRef<HTMLDivElement, ChatMessageListProps>(
       flowId,
       sendMessage,
       setSelectedImage,
-      ...props
-    },
-    ref,
-  ) => {
+      ref,
+      ...rest
+    } = props;
     if (messages && messages.length > 0) {
       return (
         <div className="h-full w-full max-w-3xl flex items-center justify-center overflow-y-auto">
           <div
             className={cn('flex flex-col w-full h-full p-4 gap-2', className)}
             ref={messagesRef || ref}
-            {...props}
+            {...rest}
           >
             {messages.map((message, index) => {
               const isLastMessage = index === messages.length - 1;
@@ -72,19 +70,16 @@ const ChatMessageList = React.forwardRef<HTMLDivElement, ChatMessageListProps>(
                   id={isLastMessage ? 'last-message' : undefined}
                   key={index}
                   variant={message.role === 'user' ? 'sent' : 'received'}
-                  className={cn(
-                    'flex items-start',
-                    isLastMessage ? 'pb-8' : '',
-                  )}
+                  class={cn('flex items-start', isLastMessage ? 'pb-8' : '')}
                 >
                   {message.role === 'bot' && (
                     <ChatBubbleAvatar
                       src={chatUI?.platformLogoUrl}
-                      fallback={<BotIcon className="size-5" />}
+                      fallback={<BotIcon class="size-5" />}
                     />
                   )}
                   <ChatBubbleMessage
-                    className={cn(
+                    class={cn(
                       'flex flex-col gap-2',
                       message.role === 'bot' ? 'w-full' : '',
                     )}
@@ -115,10 +110,10 @@ const ChatMessageList = React.forwardRef<HTMLDivElement, ChatMessageListProps>(
               />
             )}
             {isSending && (
-              <ChatBubble variant="received" className="pb-8">
+              <ChatBubble variant="received" class="pb-8">
                 <ChatBubbleAvatar
                   src={chatUI?.platformLogoUrl}
-                  fallback={<BotIcon className="size-5" />}
+                  fallback={<BotIcon class="size-5" />}
                 />
                 <ChatBubbleMessage isLoading />
               </ChatBubble>
@@ -133,14 +128,13 @@ const ChatMessageList = React.forwardRef<HTMLDivElement, ChatMessageListProps>(
         <div
           className={cn('flex flex-col w-full h-full p-4 gap-2', className)}
           ref={ref}
-          {...props}
+          {...rest}
         >
           {children}
         </div>
       </div>
     );
-  },
-);
+}
 
 ChatMessageList.displayName = 'ChatMessageList';
 

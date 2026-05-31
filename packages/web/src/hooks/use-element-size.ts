@@ -1,10 +1,10 @@
-import { RefObject, useEffect, useState } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
+import { useDebouncedCallback } from '@/lib/debounce';
+import { createSignal, createEffect } from 'solid-js';
 
 export const useElementSize = (ref: RefObject<HTMLElement | null>) => {
-  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [size, setSize] = createSignal({ width: 0, height: 0 });
   const debouncedSetSize = useDebouncedCallback(setSize, 150);
-  useEffect(() => {
+  createEffect(() => {
     const handleResize = (entries: ResizeObserverEntry[]) => {
       if (entries[0]) {
         const { width, height } = entries[0].contentRect;

@@ -1,5 +1,5 @@
 import { PlatformRole, UserStatus } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   Tag,
@@ -10,7 +10,8 @@ import {
   Info,
   Mail,
   Hash,
-} from 'lucide-react';
+} from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { RowDataWithActions } from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
@@ -48,42 +49,42 @@ export const createUsersTableColumns = (): ColumnDefWithAccessorKey[] => [
 
       return (
         <div className="flex items-center gap-2">
-          {isInvitation && (
+          <Show when={isInvitation}>
             <Tooltip>
               <TooltipTrigger>
-                <Info className="h-4 w-4 text-orange-700" />
+                <Info class="h-4 w-4 text-orange-700" />
               </TooltipTrigger>
               <TooltipContent>
                 <p>{t('Pending Invitation')}</p>
               </TooltipContent>
             </Tooltip>
-          )}
+          </Show>
           <div
             className={`flex flex-col gap-0.5 ${
               isInvitation ? 'text-orange-700' : ''
             }`}
           >
-            {showEmail && (
+            <Show when={showEmail}>
               <div className="flex items-center gap-1.5">
-                <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <Mail class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <TruncatedColumnTextValue
                   value={email}
-                  className="max-w-[200px] 2xl:max-w-[280px]"
+                  class="max-w-[200px] 2xl:max-w-[280px]"
                 />
               </div>
-            )}
-            {externalId && (
+            </Show>
+            <Show when={externalId}>
               <div className="flex items-center gap-1.5">
-                <Hash className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <Hash class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <TruncatedColumnTextValue
                   value={externalId}
-                  className="max-w-[200px] 2xl:max-w-[280px]"
+                  class="max-w-[200px] 2xl:max-w-[280px]"
                 />
               </div>
-            )}
-            {!showEmail && !externalId && (
+            </Show>
+            <Show when={!showEmail && !externalId}>
               <span className="text-muted-foreground">-</span>
-            )}
+            </Show>
           </div>
         </div>
       );
@@ -102,7 +103,7 @@ export const createUsersTableColumns = (): ColumnDefWithAccessorKey[] => [
       return (
         <TruncatedColumnTextValue
           value={row.original.data.firstName + ' ' + row.original.data.lastName}
-          className="max-w-[160px] 2xl:max-w-[200px]"
+          class="max-w-[160px] 2xl:max-w-[200px]"
         />
       );
     },
@@ -183,9 +184,12 @@ export const createUsersTableColumns = (): ColumnDefWithAccessorKey[] => [
       }
       return (
         <div className="text-left">
-          {row.original.data.status === UserStatus.ACTIVE
-            ? t('Activated')
-            : t('Deactivated')}
+          <Show
+            when={row.original.data.status === UserStatus.ACTIVE}
+            fallback={t('Deactivated')}
+          >
+            t('Activated'
+          </Show>
         </div>
       );
     },

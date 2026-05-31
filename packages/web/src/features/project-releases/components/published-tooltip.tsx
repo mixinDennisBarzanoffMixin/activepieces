@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import React from 'react';
+import { JSX } from 'solid-js';
 
 import {
   Tooltip,
@@ -7,10 +7,14 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-export const PublishedNeededTooltip = React.forwardRef<
-  HTMLButtonElement,
-  { children: React.ReactNode; allowPush: boolean }
->(({ children, allowPush }, ref) => {
+type PublishedNeededTooltipProps = {
+  children: JSX.Element;
+  allowPush: boolean;
+  ref?: HTMLButtonElement | ((el: HTMLButtonElement) => void);
+};
+
+export function PublishedNeededTooltip(props: PublishedNeededTooltipProps) {
+  const { children, allowPush, ref } = props;
   return (
     <Tooltip delayDuration={100}>
       <TooltipTrigger ref={ref} asChild disabled={!allowPush}>
@@ -23,6 +27,6 @@ export const PublishedNeededTooltip = React.forwardRef<
       )}
     </Tooltip>
   );
-});
+}
 
 PublishedNeededTooltip.displayName = 'PublishedNeededWrapper';

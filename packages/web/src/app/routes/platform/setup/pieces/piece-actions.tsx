@@ -1,5 +1,6 @@
 import { t } from 'i18next';
-import { Eye, EyeOff, Pin, PinOff } from 'lucide-react';
+import { Eye, EyeOff, Pin, PinOff } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -51,17 +52,18 @@ const PieceActions = ({ pieceName, isEnabled }: PieceActionsProps) => {
               togglePiece(pieceName);
             }}
           >
-            {filtered ? (
-              <EyeOff className="size-4" />
-            ) : (
-              <Eye className="size-4" />
-            )}
+            <Show when={filtered} fallback={<Eye class="size-4" />}>
+              <EyeOff class="size-4" />
+            </Show>
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          {filtered
-            ? t('Hide this piece from all projects')
-            : t('Show this piece for all projects')}
+          <Show
+            when={filtered}
+            fallback={t('Show this piece for all projects')}
+          >
+            t('Hide this piece from all projects'
+          </Show>
         </TooltipContent>
       </Tooltip>
 
@@ -80,15 +82,15 @@ const PieceActions = ({ pieceName, isEnabled }: PieceActionsProps) => {
               togglePin(pieceName);
             }}
           >
-            {pinned ? (
-              <PinOff className="size-4" />
-            ) : (
-              <Pin className="size-4" />
-            )}
+            <Show when={pinned} fallback={<Pin class="size-4" />}>
+              <PinOff class="size-4" />
+            </Show>
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          {pinned ? t('Unpin this piece') : t('Pin this piece')}
+          <Show when={pinned} fallback={t('Pin this piece')}>
+            t('Unpin this piece'
+          </Show>
         </TooltipContent>
       </Tooltip>
     </div>

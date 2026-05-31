@@ -1,4 +1,4 @@
-import { LineChart, Clock } from 'lucide-react';
+import { LineChart, Clock } from 'lucide-solid';
 
 import { Badge } from '@/components/ui/badge';
 
@@ -32,7 +32,7 @@ export const TagWithBright = ({
       `}</style>
       <Badge
         variant="outline"
-        className={`border-0 h-fit relative overflow-hidden ${
+        class={`border-0 h-fit relative overflow-hidden ${
           size === 'sm' ? 'text-xs px-2 py-1' : 'text-sm'
         }`}
         style={{
@@ -49,13 +49,15 @@ export const TagWithBright = ({
             transform: 'translateX(-100%)',
           }}
         />
-        {index === 0 && (
-          <LineChart className="relative font-medium mr-1.5 w-3.5 h-3.5" />
-        )}
-        {index === 1 && (
-          <Clock className="relative font-medium mr-1.5 w-3.5 h-3.5" />
-        )}
-        {prefix && <span className="relative font-medium mr-1">{prefix}</span>}
+        <Show when={index === 0}>
+          <LineChart class="relative font-medium mr-1.5 w-3.5 h-3.5" />
+        </Show>
+        <Show when={index === 1}>
+          <Clock class="relative font-medium mr-1.5 w-3.5 h-3.5" />
+        </Show>
+        <Show when={prefix}>
+          <span className="relative font-medium mr-1">{prefix}</span>
+        </Show>
         <span className="relative font-bold">{title}</span>
       </Badge>
     </>

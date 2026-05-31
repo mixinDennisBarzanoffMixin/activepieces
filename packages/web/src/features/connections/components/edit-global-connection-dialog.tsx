@@ -1,8 +1,6 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from 'i18next';
-import { Pencil } from 'lucide-react';
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Pencil } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 import { z } from 'zod';
 
 import { GlobalConnectionWarning } from '@/components/custom/global-connection-utils';
@@ -16,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -45,24 +42,25 @@ type EditGlobalConnectionDialogProps = {
   userHasPermissionToEdit: boolean;
 };
 
-const EditGlobalConnectionDialog: React.FC<EditGlobalConnectionDialogProps> = ({
+const EditGlobalConnectionDialog = ({
   connectionId,
   currentName,
   projectIds,
   preSelectForNewProjects,
   onEdit,
   userHasPermissionToEdit,
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const editConnectionForm = useForm<EditGlobalConnectionSchema>({
-    resolver: zodResolver(EditGlobalConnectionSchema),
-    defaultValues: {
-      displayName: currentName,
-      projectIds: projectIds,
-      preSelectForNewProjects: preSelectForNewProjects,
-    },
+}: EditGlobalConnectionDialogProps) => {
+  const [isOpen, setIsOpen] = createSignal(false);
+  const [values, setValues] = createSignal<EditGlobalConnectionSchema>({
+    displayName: currentName,
+    projectIds,
+    preSelectForNewProjects,
   });
+  const [errors, setErrors] = createSignal<Record<string, string>>({});
+  const editConnectionForm = {
+    setError: (name: 'displayName' | 'projectIds', error: { message: string }) =>
+      setErrors((prev) => ({ ...prev, [name]: error.message })),
+  };
 
   const {
     mutate: updateGlobalConnection,
@@ -89,7 +87,7 @@ const EditGlobalConnectionDialog: React.FC<EditGlobalConnectionDialogProps> = ({
                   setIsOpen(true);
                 }}
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil class="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -101,69 +99,80 @@ const EditGlobalConnectionDialog: React.FC<EditGlobalConnectionDialogProps> = ({
           <DialogHeader>
             <DialogTitle>{t('Edit Global Connection')}</DialogTitle>
           </DialogHeader>
-          <Form {...editConnectionForm}>
             <form
-              onSubmit={editConnectionForm.handleSubmit((data) =>
+              onSubmit={(e) => {
+                e.preventDefault();
+                const result = EditGlobalConnectionSchema.safeParse(values());
+                if (!result.success) {
+                  setErrors(
+                    Object.fromEntries(
+                      result.error.issues.map((issue) => [
+                        issue.path.join('.'),
+                        issue.message,
+                      ]),
+                    ),
+                  );
+                  return;
+                }
                 updateGlobalConnection({
                   connectionId,
-                  displayName: data.displayName,
-                  projectIds: data.projectIds,
-                  preSelectForNewProjects: data.preSelectForNewProjects,
+                  displayName: result.data.displayName,
+                  projectIds: result.data.projectIds,
+                  preSelectForNewProjects: result.data.preSelectForNewProjects,
                   currentName: currentName,
-                }),
-              )}
+                });
+              }}
             >
               <div className="grid space-y-4">
                 <GlobalConnectionWarning />
-                <FormField
-                  control={editConnectionForm.control}
-                  name="displayName"
-                  render={({ field }) => (
-                    <FormItem className="grid space-y-2">
-                      <Label htmlFor="displayName">{t('Name')}</Label>
-                      <Input
-                        {...field}
-                        id="displayName"
-                        placeholder={t('Connection Name')}
-                        className="rounded-sm"
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <ProjectSelector
-                  control={editConnectionForm.control}
-                  name="projectIds"
-                />
-                <FormField
-                  control={editConnectionForm.control}
-                  name="preSelectForNewProjects"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-3">
-                      <Checkbox
-                        id="preSelectForNewProjects"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                      <Label
-                        htmlFor="preSelectForNewProjects"
-                        className="cursor-pointer"
-                      >
-                        {t('Include by default in new projects')}
-                      </Label>
-                    </FormItem>
-                  )}
-                />
-                {editConnectionForm?.formState?.errors?.root?.serverError && (
-                  <FormMessage>
-                    {
-                      editConnectionForm.formState.errors.root.serverError
-                        .message
+                <div class="grid space-y-2">
+                  <Label for="displayName">{t('Name')}</Label>
+                  <Input
+                    value={values().displayName}
+                    onInput={(e) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        displayName: e.currentTarget.value,
+                      }))
                     }
-                  </FormMessage>
+                    id="displayName"
+                    placeholder={t('Connection Name')}
+                    class="rounded-sm"
+                  />
+                  {errors().displayName && (
+                    <p class="text-sm font-medium text-destructive wrap-break-word">
+                      {t(errors().displayName)}
+                    </p>
+                  )}
+                </div>
+                <ProjectSelector
+                  value={values().projectIds}
+                  onChange={(ids) =>
+                    setValues((prev) => ({ ...prev, projectIds: ids }))
+                  }
+                />
+                {errors().projectIds && (
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {t(errors().projectIds)}
+                  </p>
                 )}
+                <div class="flex flex-row items-center gap-3">
+                  <Checkbox
+                    id="preSelectForNewProjects"
+                    checked={values().preSelectForNewProjects}
+                    onCheckedChange={(checked) =>
+                      setValues((prev) => ({
+                        ...prev,
+                        preSelectForNewProjects: checked,
+                      }))
+                    }
+                  />
+                  <Label for="preSelectForNewProjects" class="cursor-pointer">
+                    {t('Include by default in new projects')}
+                  </Label>
+                </div>
               </div>
-              <DialogFooter className="mt-8">
+              <DialogFooter class="mt-8">
                 <Button
                   type="button"
                   variant="outline"
@@ -181,7 +190,6 @@ const EditGlobalConnectionDialog: React.FC<EditGlobalConnectionDialogProps> = ({
                 </Button>
               </DialogFooter>
             </form>
-          </Form>
         </DialogContent>
       </Dialog>
     </Tooltip>

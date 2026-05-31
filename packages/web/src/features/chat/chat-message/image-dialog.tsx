@@ -1,5 +1,5 @@
-import { Download, X } from 'lucide-react';
-import React, { useEffect } from 'react';
+import { Download, X } from 'lucide-solid';
+import React, { createEffect } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 
@@ -9,12 +9,8 @@ interface ImageDialogProps {
   imageUrl: string | null;
 }
 
-export const ImageDialog: React.FC<ImageDialogProps> = ({
-  open,
-  onOpenChange,
-  imageUrl,
-}) => {
-  useEffect(() => {
+export const ImageDialog = ({ open, onOpenChange, imageUrl }) => {
+  createEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onOpenChange(false);
     };
@@ -23,7 +19,7 @@ export const ImageDialog: React.FC<ImageDialogProps> = ({
     return () => {
       document.removeEventListener('keydown', handler);
     };
-  }, [onOpenChange]);
+  });
   return open ? (
     <div
       className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center transition-colors duration-300"
@@ -52,14 +48,14 @@ export const ImageDialog: React.FC<ImageDialogProps> = ({
               document.body.removeChild(link);
             }}
           >
-            <Download className="h-4 w-4" />
+            <Download class="h-4 w-4" />
           </Button>
           <Button
             size="icon"
             variant="accent"
             onClick={() => onOpenChange(false)}
           >
-            <X className="h-4 w-4" />
+            <X class="h-4 w-4" />
           </Button>
         </div>
       </div>

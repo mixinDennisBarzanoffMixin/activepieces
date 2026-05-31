@@ -1,14 +1,10 @@
 import { ApEdition, ApFlagId, TeamProjectsLimit } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ComponentType, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Component, Show, For } from 'solid-js';
 
 import { McpSvg } from '@/assets/img/custom/mcp';
 import { BotIcon } from '@/components/icons/bot';
-import {
-  ChevronLeftIcon,
-  ChevronLeftIconHandle,
-} from '@/components/icons/chevron-left';
+import { ChevronLeftIcon } from '@/components/icons/chevron-left';
 import { FileHeartIcon } from '@/components/icons/file-heart';
 import { FileJson2Icon } from '@/components/icons/file-json2';
 import { FrameIcon } from '@/components/icons/frame';
@@ -51,7 +47,7 @@ export function PlatformSidebar() {
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
   const { checkAccess } = useAuthorization();
   const defaultRoute = determineDefaultRoute(checkAccess);
-  const chevronRef = useRef<ChevronLeftIconHandle>(null);
+  let chevronRef = undefined;
 
   const setupItems = [
     {
@@ -107,7 +103,7 @@ export function PlatformSidebar() {
     items: {
       to: string;
       label: string;
-      icon?: ComponentType<{ className?: string }>;
+      icon?: Component<any>;
       locked?: boolean;
     }[];
   }[] = [
@@ -205,43 +201,58 @@ export function PlatformSidebar() {
   ];
 
   return (
-    <Sidebar className="border-r-0!">
-      <SidebarHeader className="pb-0">
-        <Link
-          to={defaultRoute}
-          className={cn(
+    <Sidebar class="border-r-0!">
+      <SidebarHeader class="pb-0">
+        <a
+          href={defaultRoute}
+          class={cn(
             buttonVariants({ variant: 'ghost' }),
             'w-full justify-start gap-2 px-2',
           )}
-          onMouseEnter={() => chevronRef.current?.startAnimation()}
-          onMouseLeave={() => chevronRef.current?.stopAnimation()}
+          onMouseEnter={() => chevronRef?.startAnimation()}
+          onMouseLeave={() => chevronRef?.stopAnimation()}
         >
-          <ChevronLeftIcon ref={chevronRef} className="size-4" size={16} />
+          <ChevronLeftIcon
+            ref={(el) => (chevronRef = el)}
+            class="size-4"
+            size={16}
+          />
           <span className="truncate text-sm">{t('Back to app')}</span>
-        </Link>
+        </a>
       </SidebarHeader>
       <div className="flex-1 overflow-y-auto">
-        <SidebarContent className="gap-0">
-          {groups.map((group, idx) => (
-            <SidebarGroup key={group.label} className="cursor-default shrink-0">
-              {idx > 0 && <SidebarSeparator className="mb-3" />}
-              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {group.items.map((item) => (
-                    <ApSidebarItem
-                      type="link"
-                      key={item.label}
-                      to={item.to}
-                      label={item.label}
-                      icon={item.icon}
-                      locked={item.locked}
-                    />
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          ))}
+        <SidebarContent class="gap-0">
+          {
+            <For each={groups}>
+              {(group, idx) => (
+                <SidebarGroup class="cursor-default shrink-0">
+                  {
+                    <Show when={idx > 0}>
+                      <SidebarSeparator class="mb-3" />
+                    </Show>
+                  }
+                  <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {
+                        <For each={group.items}>
+                          {(item) => (
+                            <ApSidebarItem
+                              type="link"
+                              to={item.to}
+                              label={item.label}
+                              icon={item.icon}
+                              locked={item.locked}
+                            />
+                          )}
+                        </For>
+                      }
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              )}
+            </For>
+          }
         </SidebarContent>
       </div>
 

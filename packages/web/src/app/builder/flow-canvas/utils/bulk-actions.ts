@@ -8,7 +8,7 @@ import {
   PasteLocation,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { BuilderState } from '../../builder-hooks';
 

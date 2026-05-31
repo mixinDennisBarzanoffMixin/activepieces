@@ -4,10 +4,14 @@ import {
   CreateAICreditCheckoutSessionParamsSchema,
   UpdateAICreditsAutoTopUpParamsSchema,
 } from '@activepieces/shared';
-import { QueryClient, useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@solidjs/router';
+import {
+  QueryClient,
+  createMutation,
+  createQuery,
+} from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { internalErrorToast } from '@/components/ui/sonner';
 
@@ -20,7 +24,7 @@ export const billingKeys = {
 
 export const billingMutations = {
   usePortalLink: () => {
-    return useMutation({
+    return createMutation({
       mutationFn: async () => {
         const portalLink = await platformBillingApi.getPortalLink();
         window.open(portalLink, '_blank');
@@ -29,7 +33,7 @@ export const billingMutations = {
   },
   useUpdateActiveFlowsLimit: (setIsOpen?: (isOpen: boolean) => void) => {
     const navigate = useNavigate();
-    return useMutation({
+    return createMutation({
       mutationFn: (params: UpdateActiveFlowsAddonParams) =>
         platformBillingApi.updateActiveFlowsLimits(params),
       onSuccess: (url) => {
@@ -45,7 +49,7 @@ export const billingMutations = {
     });
   },
   useCreateSubscription: (setIsOpen?: (isOpen: boolean) => void) => {
-    return useMutation({
+    return createMutation({
       mutationFn: async (params: CreateSubscriptionParams) => {
         const checkoutSessionURl = await platformBillingApi.createSubscription(
           params,
@@ -64,7 +68,7 @@ export const billingMutations = {
     });
   },
   useCreateAICreditCheckoutSession: (setIsOpen?: (isOpen: boolean) => void) => {
-    return useMutation({
+    return createMutation({
       mutationFn: async (params: CreateAICreditCheckoutSessionParamsSchema) => {
         const { stripeCheckoutUrl } =
           await platformBillingApi.createAICreditCheckoutSession(params);
@@ -82,7 +86,7 @@ export const billingMutations = {
     });
   },
   useUpdateAutoTopUp: (queryClient: QueryClient) => {
-    return useMutation({
+    return createMutation({
       mutationFn: async (params: UpdateAICreditsAutoTopUpParamsSchema) => {
         const { stripeCheckoutUrl } = await platformBillingApi.updateAutoTopUp(
           params,
@@ -107,7 +111,7 @@ export const billingMutations = {
 
 export const billingQueries = {
   usePlatformSubscription: (platformId: string) => {
-    return useQuery({
+    return createQuery({
       queryKey: billingKeys.platformSubscription(platformId),
       queryFn: platformBillingApi.getSubscriptionInfo,
     });

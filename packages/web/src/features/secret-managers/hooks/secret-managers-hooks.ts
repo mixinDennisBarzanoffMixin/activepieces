@@ -2,9 +2,13 @@ import {
   ConnectSecretManagerRequest,
   SecretManagerConnectionWithStatus,
 } from '@activepieces/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { platformHooks } from '@/hooks/platform-hooks';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -25,7 +29,7 @@ export const secretManagersHooks = {
     const projectId = listForPlatform
       ? undefined
       : authenticationSession.getProjectId()!;
-    return useQuery<SecretManagerConnectionWithStatus[]>({
+    return createQuery<SecretManagerConnectionWithStatus[]>({
       queryKey: ['secret-managers', projectId],
       queryFn: async () => {
         const result = await secretManagersApi.list({ projectId });
@@ -50,7 +54,7 @@ export const secretManagersHooks = {
     onError: (error: Error) => void;
   }) => {
     const queryClient = useQueryClient();
-    return useMutation<
+    return createMutation<
       SecretManagerConnectionWithStatus,
       Error,
       ConnectSecretManagerRequest
@@ -72,7 +76,7 @@ export const secretManagersHooks = {
     onError: (error: Error) => void;
   }) => {
     const queryClient = useQueryClient();
-    return useMutation<
+    return createMutation<
       SecretManagerConnectionWithStatus,
       Error,
       { id: string; config: ConnectSecretManagerRequest }
@@ -88,7 +92,7 @@ export const secretManagersHooks = {
   },
   useDeleteSecretManagerConnection: () => {
     const queryClient = useQueryClient();
-    return useMutation<void, Error, string>({
+    return createMutation<void, Error, string>({
       mutationFn: (id) => secretManagersApi.delete(id),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['secret-managers'] });
@@ -98,7 +102,7 @@ export const secretManagersHooks = {
   },
   useClearCache: () => {
     const queryClient = useQueryClient();
-    return useMutation<void, Error, string | undefined>({
+    return createMutation<void, Error, string | undefined>({
       mutationFn: (connectionId) => secretManagersApi.clearCache(connectionId),
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ['secret-managers'] });

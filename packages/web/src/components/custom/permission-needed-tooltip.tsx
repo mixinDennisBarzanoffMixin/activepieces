@@ -1,5 +1,4 @@
 import { t } from 'i18next';
-import React from 'react';
 
 import {
   Tooltip,
@@ -7,20 +6,26 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-export const PermissionNeededTooltip = React.forwardRef<
-  HTMLButtonElement,
-  { children: React.ReactNode; hasPermission: boolean }
->(({ children, hasPermission }, ref) => {
+export const PermissionNeededTooltip = (props: {
+  children: any;
+  hasPermission: boolean;
+  ref?: HTMLButtonElement;
+}) => {
+  let ref: HTMLButtonElement | undefined;
   return (
     <Tooltip delayDuration={100}>
-      <TooltipTrigger ref={ref} asChild disabled={!hasPermission}>
-        <div>{children}</div>
+      <TooltipTrigger
+        ref={(el) => (ref = el)}
+        asChild
+        disabled={!props.hasPermission}
+      >
+        <div>{props.children}</div>
       </TooltipTrigger>
-      {!hasPermission && (
+      <Show when={!props.hasPermission}>
         <TooltipContent side="top">{t('Permission needed')}</TooltipContent>
-      )}
+      </Show>
     </Tooltip>
   );
-});
+};
 
 PermissionNeededTooltip.displayName = 'PermissionNeededWrapper';

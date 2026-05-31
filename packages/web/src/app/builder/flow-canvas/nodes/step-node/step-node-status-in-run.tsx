@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { useMemo } from 'react';
+import { createMemo } from 'solid-js';
 
 import { StepStatusIcon, flowRunUtils } from '@/features/flow-runs';
 
@@ -11,9 +11,9 @@ const ApStepNodeStatusInRun = ({ stepName }: { stepName: string }) => {
     state.run,
     state.loopsIndexes,
   ]);
-  const stepStatusInRun = useMemo(() => {
+  const stepStatusInRun = createMemo(() => {
     return flowCanvasUtils.getStepStatus(stepName, run, loopIndexes);
-  }, [stepName, run, loopIndexes]);
+  });
   if (!stepStatusInRun) {
     return null;
   }

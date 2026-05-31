@@ -6,12 +6,12 @@ import {
   RunEnvironment,
   isFlowRunStateTerminal,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { useReactFlow } from '@xyflow/react';
+import { useDebouncedCallback } from '@/lib/debounce';
+import { useLocation } from '@solidjs/router';
+import { createMutation, createQuery } from '@tanstack/solid-query';
+import { useReactFlow } from './solid-flow-adapter';
 import { t } from 'i18next';
-import { useEffect, useRef } from 'react';
-import { useLocation, usePrevious } from 'react-use';
-import { useDebouncedCallback } from 'use-debounce';
+import { createEffect, createSignal } from 'solid-js';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { useSocket } from '@/components/providers/socket-provider';
@@ -27,14 +27,14 @@ import { flowCanvasUtils } from './utils/flow-canvas-utils';
 const useSetSocketListener = (refetchPiece: () => void) => {
   const socket = useSocket();
   const [run] = useBuilderStateContext((state) => [state.run]);
-  useEffect(() => {
+  createEffect(() => {
     socket.on(WebsocketClientEvent.REFRESH_PIECE, () => {
       refetchPiece();
     });
     return () => {
       socket.removeAllListeners(WebsocketClientEvent.REFRESH_PIECE);
     };
-  }, [socket.id, run?.id]);
+  });
 };
 
 const useListenToExistingRun = () => {
@@ -45,7 +45,7 @@ const useListenToExistingRun = () => {
   ]);
   const location = useLocation();
   const inRunsPage = location.pathname?.includes('/runs');
-  useQuery({
+  createQuery(() => ({
     queryKey: ['refetched-run', run?.id],
     queryFn: async () => {
       if (isNil(run)) {
@@ -63,7 +63,7 @@ const useListenToExistingRun = () => {
       }) &&
       inRunsPage,
     refetchInterval: 5000,
-  });
+  }));
 };
 
 const useShowBuilderIsSavingWarningBeforeLeaving = () => {
@@ -71,7 +71,7 @@ const useShowBuilderIsSavingWarningBeforeLeaving = () => {
     embedState: { isEmbedded },
   } = useEmbedding();
   const isSaving = useBuilderStateContext((state) => state.saving);
-  useEffect(() => {
+  createEffect(() => {
     if (isEmbedded) {
       return;
     }
@@ -93,7 +93,7 @@ const useShowBuilderIsSavingWarningBeforeLeaving = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isSaving, isEmbedded]);
+  });
 };
 
 export const useSwitchToDraft = () => {
@@ -110,7 +110,7 @@ export const useSwitchToDraft = () => {
   const userHasPermissionToEditFlow = checkAccess(Permission.WRITE_FLOW);
 
   const { mutate: switchToDraft, isPending: isSwitchingToDraftPending } =
-    useMutation({
+    createMutation(() => ({
       mutationFn: async () => {
         const flow = await flowsApi.get(flowVersion.flowId);
         return flow;
@@ -121,7 +121,7 @@ export const useSwitchToDraft = () => {
         clearRun(userHasPermissionToEditFlow);
         socket.removeAllListeners(WebsocketClientEvent.UPDATE_RUN_PROGRESS);
       },
-    });
+    }));
   return {
     switchToDraft,
     isSwitchingToDraftPending,
@@ -133,13 +133,13 @@ const useIsFocusInsideListMapperModeInput = ({
   setIsFocusInsideListMapperModeInput,
   isFocusInsideListMapperModeInput,
 }: {
-  containerRef: React.RefObject<HTMLDivElement | null>;
+  containerRef: HTMLDivElement | null | undefined;
   setIsFocusInsideListMapperModeInput: (
     isFocusInsideListMapperModeInput: boolean,
   ) => void;
   isFocusInsideListMapperModeInput: boolean;
 }) => {
-  useEffect(() => {
+  createEffect(() => {
     const focusInListener = () => {
       const focusedElement = document.activeElement;
       const isFocusedInside = !!containerRef.current?.contains(focusedElement);
@@ -158,7 +158,7 @@ const useIsFocusInsideListMapperModeInput = ({
     return () => {
       document.removeEventListener('focusin', focusInListener);
     };
-  }, [setIsFocusInsideListMapperModeInput, isFocusInsideListMapperModeInput]);
+  });
 };
 export const useFocusOnStep = () => {
   const [currentRun, selectStep, userManuallySelectedStepDuringRun] =
@@ -168,9 +168,10 @@ export const useFocusOnStep = () => {
       state.userManuallySelectedStepDuringRun,
     ]);
 
-  const previousStatus = usePrevious(currentRun?.status);
+  const [previousStatus, setPreviousStatus] = createSignal(currentRun?.status);
+  createEffect(() => setPreviousStatus(currentRun?.status));
   const currentStep = flowRunUtils.findLastStepWithStatus(
-    previousStatus ?? FlowRunStatus.RUNNING,
+    previousStatus() ?? FlowRunStatus.RUNNING,
     currentRun?.steps ?? {},
   );
 
@@ -185,32 +186,29 @@ export const useFocusOnStep = () => {
     }
   }, 500);
 
-  useEffect(() => {
+  createEffect(() => {
     focusCurrentStep();
-  }, [currentStep, selectStep, fitView, userManuallySelectedStepDuringRun]);
+  });
 };
 
 export const useResizeCanvas = (
-  containerRef: React.RefObject<HTMLDivElement | null>,
+  containerRef: HTMLDivElement | null | undefined,
   setHasCanvasBeenInitialised: (hasCanvasBeenInitialised: boolean) => void,
 ) => {
-  const containerSizeRef = useRef({
-    width: 0,
-    height: 0,
-  });
+  let containerSizeRef: any | undefined;
   const { getViewport, setViewport } = useReactFlow();
 
-  useEffect(() => {
+  createEffect(() => {
     if (!containerRef.current) return;
     const resizeObserver = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
       setHasCanvasBeenInitialised(true);
       const { x, y, zoom } = getViewport();
-      if (containerRef.current && width !== containerSizeRef.current.width) {
-        const newX = x + (width - containerSizeRef.current.width) / 2;
+      if (containerRef.current && width !== containerSizeRef.width) {
+        const newX = x + (width - containerSizeRef.width) / 2;
         setViewport({ x: newX, y, zoom });
       }
-      containerSizeRef.current = {
+      containerSizeRef = {
         width,
         height,
       };
@@ -219,7 +217,7 @@ export const useResizeCanvas = (
     return () => {
       resizeObserver.disconnect();
     };
-  }, [setViewport, getViewport]);
+  });
 };
 
 export const flowCanvasHooks = {

@@ -1,6 +1,5 @@
 import { t } from 'i18next';
-import { Download } from 'lucide-react';
-import React from 'react';
+import { Download } from 'lucide-solid';
 
 import { Button, ButtonProps } from '@/components/ui/button';
 
@@ -9,7 +8,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 interface DownloadButtonProps extends ButtonProps {
   fileName: string;
   textToDownload: string;
-  tooltipSide?: React.ComponentProps<typeof TooltipContent>['side'];
+  tooltipSide?: any;
 }
 
 export const DownloadButton = ({
@@ -39,11 +38,11 @@ export const DownloadButton = ({
         <Button
           variant="outline"
           size="icon"
-          className={className}
+          class={className}
           onClick={() => downloadFile()}
           {...props}
         >
-          <Download className="h-4 w-4"></Download>
+          <Download class="h-4 w-4"></Download>
         </Button>
       </TooltipTrigger>
       <TooltipContent side={tooltipSide}>{t('Download')}</TooltipContent>

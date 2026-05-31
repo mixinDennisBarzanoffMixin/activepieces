@@ -1,6 +1,6 @@
 import { t } from 'i18next';
-import { Pencil, Trash } from 'lucide-react';
-import { useContext } from 'react';
+import { Pencil, Trash } from 'lucide-solid';
+import { useContext } from 'solid-js';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
@@ -49,9 +49,9 @@ const ApFieldActionMenuItemRenderer = ({
               setPopoverContent(null);
               setIsPopoverOpen(false);
             }}
-            className="flex items-center gap-2 text-destructive cursor-pointer"
+            class="flex items-center gap-2 text-destructive cursor-pointer"
           >
-            <Trash className="h-4 w-4 text-destructive" />
+            <Trash class="h-4 w-4 text-destructive" />
             <span className="text-destructive">{t('Delete')}</span>
           </DropdownMenuItem>
         </ConfirmationDeleteDialog>
@@ -67,9 +67,9 @@ const ApFieldActionMenuItemRenderer = ({
               setIsPopoverOpen(true);
             });
           }}
-          className="flex items-center gap-2 cursor-pointer"
+          class="flex items-center gap-2 cursor-pointer"
         >
-          <Pencil className="h-4 w-4 " />
+          <Pencil class="h-4 w-4 " />
           <span>{t('Rename')}</span>
         </DropdownMenuItem>
       );

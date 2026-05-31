@@ -1,7 +1,7 @@
 import { Template } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-solid';
+import { For } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,13 +20,12 @@ type CategorySectionProps = {
   onTemplateSelect: (template: Template) => void;
 };
 
-export const CategorySection = React.memo(
-  ({
-    category,
-    templates,
-    onCategorySelect,
-    onTemplateSelect,
-  }: CategorySectionProps) => {
+export const CategorySection = ({
+  category,
+  templates,
+  onCategorySelect,
+  onTemplateSelect,
+}: CategorySectionProps) => {
     if (!templates || templates.length === 0) return null;
 
     return (
@@ -37,7 +36,7 @@ export const CategorySection = React.memo(
             loop: false,
             slidesToScroll: 'auto',
           }}
-          className="w-full"
+          class="w-full"
         >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-medium">{category}</h2>
@@ -45,44 +44,45 @@ export const CategorySection = React.memo(
               <Button
                 variant="ghost"
                 onClick={() => onCategorySelect(category)}
-                className="flex items-center"
+                class="flex items-center"
               >
                 {t('View all')}
               </Button>
               <div className="flex items-center">
                 <CarouselPrevious
                   variant="ghost"
-                  className="static translate-y-0 h-8 w-8"
+                  class="static translate-y-0 h-8 w-8"
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft class="h-4 w-4" />
                 </CarouselPrevious>
                 <CarouselNext
                   variant="ghost"
-                  className="static translate-y-0 h-8 w-8"
+                  class="static translate-y-0 h-8 w-8"
                 >
-                  <ChevronRight className="h-4 w-4" />
+                  <ChevronRight class="h-4 w-4" />
                 </CarouselNext>
               </div>
             </div>
           </div>
 
-          <CarouselContent className="pb-3">
-            {templates.map((template) => (
-              <CarouselItem
-                key={template.id}
-                className="basis-full sm:basis-1/3 lg:basis-1/4 xl:basis-1/5 min-w-[320px]"
-              >
-                <ExploreTemplateCard
-                  template={template}
-                  onTemplateSelect={onTemplateSelect}
-                />
-              </CarouselItem>
-            ))}
+          <CarouselContent class="pb-3">
+            <For each={templates}>
+              {(template) => (
+                <CarouselItem
+                  key={template.id}
+                  class="basis-full sm:basis-1/3 lg:basis-1/4 xl:basis-1/5 min-w-[320px]"
+                >
+                  <ExploreTemplateCard
+                    template={template}
+                    onTemplateSelect={onTemplateSelect}
+                  />
+                </CarouselItem>
+              )}
+            </For>
           </CarouselContent>
         </Carousel>
       </div>
     );
-  },
-);
+};
 
 CategorySection.displayName = 'CategorySection';

@@ -1,7 +1,8 @@
 import { SsoDomainVerificationStatus } from '@activepieces/shared';
 import { t } from 'i18next';
-import { CheckCircle, LockIcon, MailIcon, Earth } from 'lucide-react';
-import { toast } from 'sonner';
+import { CheckCircle, LockIcon, MailIcon, Earth } from 'lucide-solid';
+import { For, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { CenteredPage } from '@/app/components/centered-page';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -72,15 +73,17 @@ const SSOPage = () => {
               <ItemDescription>
                 {t('Restrict authentication to specific email domains.')}
               </ItemDescription>
-              {(platform?.allowedAuthDomains ?? []).length > 0 && (
+              <Show when={(platform?.allowedAuthDomains ?? []).length > 0}>
                 <div className="mt-1 gap-2 flex">
-                  {(platform?.allowedAuthDomains ?? []).map((text, index) => (
-                    <Badge key={index} variant={'outline'}>
-                      {text}
-                    </Badge>
-                  ))}
+                  <For each={platform?.allowedAuthDomains ?? []}>
+                    {(text, index) => (
+                      <Badge key={index} variant={'outline'}>
+                        {text}
+                      </Badge>
+                    )}
+                  </For>
                 </div>
-              )}
+              </Show>
             </ItemContent>
             <ItemActions>
               <AllowedDomainDialog platform={platform} refetch={refetch} />
@@ -123,21 +126,24 @@ const SSOPage = () => {
                   "Allow logins through saml 2.0's single sign-on functionality.",
                 )}
               </ItemDescription>
-              {platform.ssoDomain && (
+              <Show when={platform.ssoDomain}>
                 <div className="mt-1 gap-2 flex items-center">
                   <Badge variant="outline">{platform.ssoDomain}</Badge>
-                  {ssoDomainVerified ? (
+                  <Show
+                    when={ssoDomainVerified}
+                    fallback={
+                      <span className="text-xs text-warning">
+                        {t('Pending verification')}
+                      </span>
+                    }
+                  >
                     <span className="flex items-center gap-1 text-xs text-success-600">
-                      <CheckCircle className="size-3" />
+                      <CheckCircle class="size-3" />
                       {t('Verified')}
                     </span>
-                  ) : (
-                    <span className="text-xs text-warning">
-                      {t('Pending verification')}
-                    </span>
-                  )}
+                  </Show>
                 </div>
-              )}
+              </Show>
             </ItemContent>
             <ItemActions>
               <ConfigureSamlDialog

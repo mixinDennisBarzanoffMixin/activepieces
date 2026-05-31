@@ -1,9 +1,6 @@
-'use client';
-
 import type { Transition, Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { createSignal } from 'solid-js';
+import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -12,7 +9,7 @@ export interface PanelLeftOpenIconHandle {
   stopAnimation: () => void;
 }
 
-interface PanelLeftOpenIconProps extends HTMLAttributes<HTMLDivElement> {
+interface PanelLeftOpenIconProps extends JSX.HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
@@ -26,49 +23,55 @@ const PATH_VARIANTS: Variants = {
   animate: { x: [0, 1.5, 0] },
 };
 
-const PanelLeftOpenIcon = forwardRef<
-  PanelLeftOpenIconHandle,
-  PanelLeftOpenIconProps
->(({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-  const controls = useAnimation();
-  const isControlledRef = useRef(false);
+function PanelLeftOpenIcon(
+  props: PanelLeftOpenIconProps & { ref?: PanelLeftOpenIconHandle },
+) {
+  const ref = props.ref;
+  const {
+    onMouseEnter,
+    onMouseLeave,
+    class: className,
+    size = 28,
+    ...divProps
+  } = props;
+  const [controls, setControls] = createSignal('normal');
+  let isControlledRef = false;
 
-  useImperativeHandle(ref, () => {
-    isControlledRef.current = true;
-    return {
-      startAnimation: () => controls.start('animate'),
-      stopAnimation: () => controls.start('normal'),
+  if (ref) {
+    isControlledRef = true;
+    const handle = {
+      startAnimation: () => setControls('animate'),
+      stopAnimation: () => setControls('normal'),
     };
-  });
+    if (typeof ref === 'function') {
+      ref(handle);
+    } else {
+      Object.assign(ref, handle);
+    }
+  }
 
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseEnter?.(e);
-      } else {
-        controls.start('animate');
-      }
-    },
-    [controls, onMouseEnter],
-  );
+  const handleMouseEnter = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseEnter?.(e);
+    } else {
+      setControls('animate');
+    }
+  };
 
-  const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseLeave?.(e);
-      } else {
-        controls.start('normal');
-      }
-    },
-    [controls, onMouseLeave],
-  );
+  const handleMouseLeave = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseLeave?.(e);
+    } else {
+      setControls('normal');
+    }
+  };
 
   return (
     <div
       className={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      {...props}
+      {...divProps}
     >
       <svg
         fill="none"
@@ -84,7 +87,7 @@ const PanelLeftOpenIcon = forwardRef<
         <rect height="18" rx="2" width="18" x="3" y="3" />
         <path d="M9 3v18" />
         <motion.path
-          animate={controls}
+          animate={controls()}
           d="m14 9 3 3-3 3"
           transition={DEFAULT_TRANSITION}
           variants={PATH_VARIANTS}
@@ -92,8 +95,7 @@ const PanelLeftOpenIcon = forwardRef<
       </svg>
     </div>
   );
-});
-
+}
 PanelLeftOpenIcon.displayName = 'PanelLeftOpenIcon';
 
 export { PanelLeftOpenIcon };

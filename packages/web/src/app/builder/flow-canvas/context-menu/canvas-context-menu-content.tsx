@@ -15,7 +15,8 @@ import {
   Route,
   RouteOff,
   Trash,
-} from 'lucide-react';
+} from 'lucide-solid';
+import { For, Show } from 'solid-js';
 
 import { Shortcut, ShortcutProps } from '@/components/custom/shortcut';
 import {
@@ -43,13 +44,13 @@ const ShortcutWrapper = ({
   children,
   shortcut,
 }: {
-  children: React.ReactNode;
+  children: any;
   shortcut: ShortcutProps;
 }) => {
   return (
     <div className="flex items-center justify-between gap-4 grow">
       <div className="flex gap-2 items-center">{children}</div>
-      <Shortcut {...shortcut} className="text-end" />
+      <Shortcut {...shortcut} class="text-end" />
     </div>
   );
 };
@@ -150,18 +151,18 @@ export const CanvasContextMenuContent = ({
 
   return (
     <ContextMenuContent>
-      {showReplace && (
+      <Show when={showReplace()}>
         <ContextMenuItem
           disabled={disabled}
           onClick={() => {
             setOpenedPieceSelectorStepNameOrAddButtonId(selectedNodes[0]);
           }}
-          className="flex items-center gap-2"
+          class="flex items-center gap-2"
         >
-          <ArrowLeftRight className="w-4 h-4"></ArrowLeftRight> {t('Replace')}
+          <ArrowLeftRight class="w-4 h-4"></ArrowLeftRight> {t('Replace')}
         </ContextMenuItem>
-      )}
-      {showCopy && (
+      </Show>
+      <Show when={showCopy()}>
         <ContextMenuItem
           disabled={disabled}
           onClick={() => {
@@ -169,23 +170,23 @@ export const CanvasContextMenuContent = ({
           }}
         >
           <ShortcutWrapper shortcut={CanvasShortcuts['Copy']}>
-            <Copy className="w-4 h-4"></Copy> {t('Copy')}
+            <Copy class="w-4 h-4"></Copy> {t('Copy')}
           </ShortcutWrapper>
         </ContextMenuItem>
-      )}
+      </Show>
 
       <>
-        {showDuplicate && (
+        <Show when={showDuplicate()}>
           <ContextMenuItem
             disabled={disabled}
             onClick={duplicateStep}
-            className="flex items-center gap-2"
+            class="flex items-center gap-2"
           >
-            <CopyPlus className="w-4 h-4"></CopyPlus> {t('Duplicate')}
+            <CopyPlus class="w-4 h-4"></CopyPlus> {t('Duplicate')}
           </ContextMenuItem>
-        )}
+        </Show>
 
-        {showSkip && (
+        <Show when={showSkip()}>
           <ContextMenuItem
             disabled={disabled}
             onClick={() => {
@@ -197,22 +198,29 @@ export const CanvasContextMenuContent = ({
             }}
           >
             <ShortcutWrapper shortcut={CanvasShortcuts['Skip']}>
-              {areAllStepsSkipped ? (
-                <Route className="h-4 w-4"></Route>
-              ) : (
-                <RouteOff className="h-4 w-4"></RouteOff>
-              )}
-              {areAllStepsSkipped ? t('Unskip') : t('Skip')}
+              <Show
+                when={areAllStepsSkipped()}
+                fallback={<RouteOff class="h-4 w-4"></RouteOff>}
+              >
+                <Route class="h-4 w-4"></Route>
+              </Show>
+              <Show when={areAllStepsSkipped()} fallback={t('Skip')}>
+                {t('Unskip')}
+              </Show>
             </ShortcutWrapper>
           </ContextMenuItem>
-        )}
-        {(showPasteAsFirstLoopAction ||
-          showPasteAsBranchChild ||
-          showPasteAfterCurrentStep) && (
+        </Show>
+        <Show
+          when={(
+            showPasteAsFirstLoopAction ||
+            showPasteAsBranchChild ||
+            showPasteAfterCurrentStep
+          )()}
+        >
           <ContextMenuSeparator></ContextMenuSeparator>
-        )}
+        </Show>
 
-        {showPasteAfterLastStep && (
+        <Show when={showPasteAfterLastStep()}>
           <ContextMenuItem
             onClick={() => {
               const pasteLocation = getLastLocationAsPasteLocation(flowVersion);
@@ -220,14 +228,14 @@ export const CanvasContextMenuContent = ({
                 pasteNodes(flowVersion, pasteLocation, applyOperation);
               }
             }}
-            className="flex items-center gap-2"
+            class="flex items-center gap-2"
           >
-            <ClipboardPlus className="w-4 h-4"></ClipboardPlus>{' '}
+            <ClipboardPlus class="w-4 h-4"></ClipboardPlus>{' '}
             {t('Paste After Last Step')}
           </ContextMenuItem>
-        )}
+        </Show>
 
-        {showPasteAsFirstLoopAction && (
+        <Show when={showPasteAsFirstLoopAction()}>
           <ContextMenuItem
             onClick={() => {
               pasteNodes(
@@ -240,14 +248,14 @@ export const CanvasContextMenuContent = ({
                 applyOperation,
               );
             }}
-            className="flex items-center gap-2"
+            class="flex items-center gap-2"
           >
-            <ClipboardPaste className="w-4 h-4"></ClipboardPaste>{' '}
+            <ClipboardPaste class="w-4 h-4"></ClipboardPaste>{' '}
             {t('Paste Inside Loop')}
           </ContextMenuItem>
-        )}
+        </Show>
 
-        {showPasteAfterCurrentStep && (
+        <Show when={showPasteAfterCurrentStep()}>
           <ContextMenuItem
             onClick={() => {
               pasteNodes(
@@ -260,23 +268,22 @@ export const CanvasContextMenuContent = ({
                 applyOperation,
               );
             }}
-            className="flex items-center gap-2"
+            class="flex items-center gap-2"
           >
-            <ClipboardPlus className="w-4 h-4"></ClipboardPlus>{' '}
-            {t('Paste After')}
+            <ClipboardPlus class="w-4 h-4"></ClipboardPlus> {t('Paste After')}
           </ContextMenuItem>
-        )}
+        </Show>
 
-        {showPasteAsBranchChild && (
+        <Show when={showPasteAsBranchChild()}>
           <ContextMenuSub>
-            <ContextMenuSubTrigger className="flex items-center gap-2">
-              <ClipboardPaste className="w-4 h-4"></ClipboardPaste>{' '}
+            <ContextMenuSubTrigger class="flex items-center gap-2">
+              <ClipboardPaste class="w-4 h-4"></ClipboardPaste>{' '}
               {t('Paste Inside...')}
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
-              {firstSelectedStep &&
-                firstSelectedStep.settings.branches.map(
-                  (branch, branchIndex) => (
+              <Show when={firstSelectedStep()}>
+                <For each={firstSelectedStep.settings.branches}>
+                  {(branch, branchIndex) => (
                     <ContextMenuItem
                       key={branch.branchName}
                       onClick={() => {
@@ -294,8 +301,9 @@ export const CanvasContextMenuContent = ({
                     >
                       {branch.branchName}
                     </ContextMenuItem>
-                  ),
-                )}
+                  )}
+                </For>
+              </Show>
               <ContextMenuItem
                 onClick={() => {
                   applyOperation({
@@ -324,9 +332,9 @@ export const CanvasContextMenuContent = ({
               </ContextMenuItem>
             </ContextMenuSubContent>
           </ContextMenuSub>
-        )}
+        </Show>
 
-        {showDelete && (
+        <Show when={showDelete()}>
           <>
             <ContextMenuSeparator />
             <ContextMenuItem
@@ -341,12 +349,12 @@ export const CanvasContextMenuContent = ({
               }}
             >
               <ShortcutWrapper shortcut={CanvasShortcuts['Delete']}>
-                <Trash className="w-4 stroke-destructive h-4"></Trash>{' '}
+                <Trash class="w-4 stroke-destructive h-4"></Trash>{' '}
                 <div className="text-destructive">{t('Delete')}</div>
               </ShortcutWrapper>
             </ContextMenuItem>
           </>
-        )}
+        </Show>
       </>
     </ContextMenuContent>
   );

@@ -1,6 +1,6 @@
 import { isNil } from '@activepieces/shared';
 import { t } from 'i18next';
-import { X } from 'lucide-react';
+import { X } from 'lucide-solid';
 
 import { Input, InputProps } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -19,9 +19,9 @@ function ClearableInput({
     <div className="relative">
       <Input
         {...inputProps}
-        className={cn(inputProps.className, shouldShowClear && 'pr-9')}
+        class={cn(inputProps.className, shouldShowClear && 'pr-9')}
       />
-      {shouldShowClear && !inputProps.disabled && (
+      <Show when={shouldShowClear && !inputProps.disabled}>
         <div className="absolute right-2 top-1/2 -translate-y-1/2">
           <SelectUtilButton
             tooltipText={t('Clear')}
@@ -29,7 +29,7 @@ function ClearableInput({
             Icon={X}
           />
         </div>
-      )}
+      </Show>
     </div>
   );
 }

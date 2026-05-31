@@ -5,8 +5,9 @@ import {
 } from '@activepieces/pieces-framework';
 import { FlowTrigger, McpPropertyType } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useForm, useFormContext } from 'react-hook-form';
+import { For, Show } from 'solid-js';
 
+import { createForm, useFormContext } from '@/app/builder/builder-form';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -69,7 +70,7 @@ function McpToolTestingDialog({
       },
     });
 
-  const testingForm = useForm<Record<string, any>>({
+  const testingForm = createForm<Record<string, any>>({
     shouldFocusError: true,
     defaultValues: formProps
       .filter((field: McpFormField) => field.name.trim() !== '')
@@ -122,10 +123,10 @@ function McpToolTestingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-xl flex flex-col max-h-[90vh]">
+      <DialogContent class="w-full max-w-xl flex flex-col max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle className="px-0.5">{t('Set Sample Data')}</DialogTitle>
-          <DialogDescription className="px-0.5">
+          <DialogTitle class="px-0.5">{t('Set Sample Data')}</DialogTitle>
+          <DialogDescription class="px-0.5">
             {t('Provide sample values for testing this tool trigger.')}
           </DialogDescription>
         </DialogHeader>
@@ -142,12 +143,21 @@ function McpToolTestingDialog({
               saveMockAsSampleData(cleanedData);
             })}
           >
-            <ScrollArea className="flex-1 max-h-[50vh]">
+            <ScrollArea class="flex-1 max-h-[50vh]">
               <div className="py-4">
-                {Object.keys(pieceProps).length > 0 ? (
+                <Show
+                  when={Object.keys(pieceProps).length > 0()}
+                  fallback={
+                    <div className="p-4 rounded-lg text-center">
+                      <p className="text-sm text-muted-foreground">
+                        {t('No input fields defined in the schema')}
+                      </p>
+                    </div>
+                  }
+                >
                   <div className="space-y-4">
-                    {Object.entries(pieceProps).map(
-                      ([fieldName, fieldProps]) => {
+                    <For each={Object.entries(pieceProps)}>
+                      {([fieldName, fieldProps]) => {
                         const fieldError =
                           testingForm.formState.errors[fieldName];
 
@@ -165,23 +175,17 @@ function McpToolTestingDialog({
                               disabled={false}
                             />
 
-                            {fieldError && (
+                            <Show when={fieldError()}>
                               <p className="text-xs text-destructive font-medium">
                                 {fieldError.message?.toString()}
                               </p>
-                            )}
+                            </Show>
                           </div>
                         );
-                      },
-                    )}
+                      }}
+                    </For>
                   </div>
-                ) : (
-                  <div className="p-4 rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">
-                      {t('No input fields defined in the schema')}
-                    </p>
-                  </div>
-                )}
+                </Show>
               </div>
             </ScrollArea>
             <DialogFooter>

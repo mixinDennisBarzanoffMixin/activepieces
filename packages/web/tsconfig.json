@@ -11,7 +11,8 @@
     "module": "esnext",
     "moduleResolution": "Node",
     "resolveJsonModule": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
     "strict": true,
     "noEmit": true,
     "types": ["vite/client"]

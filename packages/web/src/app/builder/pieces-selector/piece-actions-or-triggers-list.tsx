@@ -5,8 +5,8 @@ import {
   TelemetryEventName,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { MoveLeft } from 'lucide-react';
-import React from 'react';
+import { MoveLeft } from 'lucide-solid';
+import { For, Show } from 'solid-js';
 
 import { CardList } from '@/components/custom/card-list';
 import { useTelemetry } from '@/components/providers/telemetry-provider';
@@ -65,9 +65,7 @@ export const convertStepMetadataToPieceSelectorItems = (
   }
 };
 
-export const PieceActionsOrTriggersList: React.FC<
-  PieceActionsOrTriggersListProps
-> = ({
+export const PieceActionsOrTriggersList: any = ({
   stepMetadataWithSuggestions,
   hidePieceIconAndDescription,
   operation,
@@ -80,7 +78,7 @@ export const PieceActionsOrTriggersList: React.FC<
   if (isNil(stepMetadataWithSuggestions)) {
     return (
       <div className="flex flex-col gap-2 items-center justify-center h-full w-full">
-        <MoveLeft className="w-10 h-10 rtl:rotate-180" />
+        <MoveLeft class="w-10 h-10 rtl:rotate-180" />
         <div className="text-sm">{t('Please select a piece first')}</div>
       </div>
     );
@@ -90,40 +88,44 @@ export const PieceActionsOrTriggersList: React.FC<
     stepMetadataWithSuggestions,
   );
   return (
-    <ScrollArea className="h-full" viewPortClassName="h-full">
-      <CardList className="min-w-[350px] h-full gap-0" listClassName="gap-0">
-        {actionsOrTriggers &&
-          actionsOrTriggers.map((item, index) => {
-            return (
-              <GenericActionOrTriggerItem
-                key={index}
-                item={item}
-                hidePieceIconAndDescription={hidePieceIconAndDescription}
-                stepMetadataWithSuggestions={stepMetadataWithSuggestions}
-                onClick={() => {
-                  if (
-                    item.type === FlowActionType.PIECE ||
-                    item.type === FlowTriggerType.PIECE
-                  ) {
-                    capture({
-                      name: TelemetryEventName.PIECE_SELECTOR_SEARCH,
-                      payload: {
-                        search: searchQuery,
-                        isTrigger: item.type === FlowTriggerType.PIECE,
-                        selectedActionOrTriggerName: item.actionOrTrigger.name,
-                      },
-                    });
-                  }
+    <ScrollArea class="h-full" viewPortClassName="h-full">
+      <CardList class="min-w-[350px] h-full gap-0" listClassName="gap-0">
+        <Show when={actionsOrTriggers()}>
+          <For each={actionsOrTriggers}>
+            {(item, index) => {
+              return (
+                <GenericActionOrTriggerItem
+                  key={index}
+                  item={item}
+                  hidePieceIconAndDescription={hidePieceIconAndDescription}
+                  stepMetadataWithSuggestions={stepMetadataWithSuggestions}
+                  onClick={() => {
+                    if (
+                      item.type === FlowActionType.PIECE ||
+                      item.type === FlowTriggerType.PIECE
+                    ) {
+                      capture({
+                        name: TelemetryEventName.PIECE_SELECTOR_SEARCH,
+                        payload: {
+                          search: searchQuery,
+                          isTrigger: item.type === FlowTriggerType.PIECE,
+                          selectedActionOrTriggerName:
+                            item.actionOrTrigger.name,
+                        },
+                      });
+                    }
 
-                  handleAddingOrUpdatingStep({
-                    pieceSelectorItem: item,
-                    operation,
-                    selectStepAfter: true,
-                  });
-                }}
-              />
-            );
-          })}
+                    handleAddingOrUpdatingStep({
+                      pieceSelectorItem: item,
+                      operation,
+                      selectStepAfter: true,
+                    });
+                  }}
+                />
+              );
+            }}
+          </For>
+        </Show>
       </CardList>
     </ScrollArea>
   );

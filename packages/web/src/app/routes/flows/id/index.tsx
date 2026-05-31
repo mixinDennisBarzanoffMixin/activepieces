@@ -1,9 +1,9 @@
 import { isNil, PopulatedFlow } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
-import { ReactFlowProvider } from '@xyflow/react';
+import { A as Link, useParams } from '@solidjs/router';
+import { createQuery } from '@tanstack/solid-query';
+import { ReactFlowProvider } from '../../../builder/flow-canvas/solid-flow-adapter';
 import { t } from 'i18next';
-import { FileX } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { FileX } from 'lucide-solid';
 
 import { BuilderPage } from '@/app/builder';
 import { BuilderStateProvider } from '@/app/builder/state/builder-state-provider';
@@ -20,7 +20,7 @@ const FlowBuilderPage = () => {
     data: flow,
     isLoading,
     isError,
-  } = useQuery<PopulatedFlow, Error>({
+  } = createQuery<PopulatedFlow, Error>({
     queryKey: ['flow', flowId, authenticationSession.getProjectId()],
     queryFn: () => flowsApi.get(flowId!),
     gcTime: 0,
@@ -45,7 +45,7 @@ const FlowBuilderPage = () => {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
         <div className="rounded-full bg-muted p-4">
-          <FileX className="size-9 text-muted-foreground" />
+          <FileX class="size-9 text-muted-foreground" />
         </div>
 
         <div>
@@ -56,8 +56,8 @@ const FlowBuilderPage = () => {
         </div>
 
         <Link
-          className={cn(buttonVariants({ variant: 'outline' }))}
-          to="/dashboard"
+          class={cn(buttonVariants({ variant: 'outline' }))}
+          href="/dashboard"
         >
           {t('Go to Dashboard')}
         </Link>

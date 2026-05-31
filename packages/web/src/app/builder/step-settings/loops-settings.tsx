@@ -1,7 +1,6 @@
 import { LoopOnItemsAction } from '@activepieces/shared';
 import { t } from 'i18next';
-import React from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext } from '@/app/builder/builder-form';
 
 import { ApMarkdown } from '@/components/custom/markdown';
 import { FormField, FormItem, FormLabel } from '@/components/ui/form';
@@ -16,7 +15,7 @@ type LoopsSettingsProps = {
   readonly: boolean;
 };
 
-const LoopsSettings = React.memo(({ readonly }: LoopsSettingsProps) => {
+const LoopsSettings = ({ readonly }: LoopsSettingsProps) => {
   const form = useFormContext<LoopOnItemsAction>();
 
   return (
@@ -24,7 +23,7 @@ const LoopsSettings = React.memo(({ readonly }: LoopsSettingsProps) => {
       control={form.control}
       name="settings.items"
       render={({ field }) => (
-        <FormItem className="flex flex-col gap-2">
+        <FormItem class="flex flex-col gap-2">
           <ApMarkdown markdown={markdown} />
           <FormLabel showRequiredIndicator>{t('Items')}</FormLabel>
           <TextInputWithMentions
@@ -37,7 +36,7 @@ const LoopsSettings = React.memo(({ readonly }: LoopsSettingsProps) => {
       )}
     />
   );
-});
+};
 
 LoopsSettings.displayName = 'LoopsSettings';
 export { LoopsSettings };

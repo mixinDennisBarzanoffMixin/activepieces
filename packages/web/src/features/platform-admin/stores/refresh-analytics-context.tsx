@@ -1,4 +1,5 @@
-import { createContext, useState, useCallback } from 'react';
+import { createSignal, createContext, JSX } from 'solid-js';
+import { createStore } from 'solid-js/store';
 
 type TimeSavedOverride = {
   value: number | null;
@@ -24,31 +25,27 @@ export const RefreshAnalyticsContext =
 export const RefreshAnalyticsProvider = ({
   children,
 }: {
-  children: React.ReactNode;
+  children: JSX.Element;
 }) => {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [timeSavedPerRunOverrides, setTimeSavedPerRunOverrides] = useState<
+  const [isRefreshing, setIsRefreshing] = createSignal(false);
+  const [timeSavedPerRunOverrides, setTimeSavedPerRunOverrides] = createStore<
     Record<string, TimeSavedOverride>
   >({});
 
-  const setTimeSavedPerRunOverride = useCallback(
-    (flowId: string, value: number | null) => {
-      setTimeSavedPerRunOverrides((prev) => ({
-        ...prev,
-        [flowId]: { value },
-      }));
-    },
-    [],
-  );
+  const setTimeSavedPerRunOverride = (flowId: string, value: number | null) => {
+    setTimeSavedPerRunOverrides(flowId, { value });
+  };
 
-  const clearTimeSavedPerRunOverrides = useCallback(() => {
-    setTimeSavedPerRunOverrides({});
-  }, []);
+  const clearTimeSavedPerRunOverrides = () => {
+    Object.keys(timeSavedPerRunOverrides).forEach((flowId) => {
+      setTimeSavedPerRunOverrides(flowId, undefined!);
+    });
+  };
 
   return (
     <RefreshAnalyticsContext.Provider
       value={{
-        isRefreshing,
+        isRefreshing: isRefreshing(),
         setIsRefreshing,
         timeSavedPerRunOverrides,
         setTimeSavedPerRunOverride,

@@ -1,12 +1,12 @@
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { platformApi } from '@/api/platforms-api';
 
 export const brandingMutations = {
   useUpdateAppearance: ({ platformId }: { platformId: string }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async (formData: FormData) => {
         await platformApi.updateWithFormData(formData, platformId);
         window.location.reload();
@@ -14,6 +14,6 @@ export const brandingMutations = {
       onSuccess: () => {
         toast.success(t('Your changes have been saved.'), { duration: 3000 });
       },
-    });
+    }));
   },
 };

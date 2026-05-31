@@ -3,8 +3,7 @@ import {
   RunEnvironment,
   WebsocketClientEvent,
 } from '@activepieces/shared';
-import { ArrowRight } from 'lucide-react';
-import { useRef } from 'react';
+import { ArrowRight } from 'lucide-solid';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { ChatDrawerSource } from '@/app/builder/types';
@@ -40,18 +39,18 @@ export const ChatDrawer = () => {
     state.setChatDrawerOpenSource,
   ]);
   const socket = useSocket();
-  const isListening = useRef(false);
+  let isListening = false;
   //shouldn't use testFlow hook here because it would run the flow with sample data not the real user message
   const listenToTestRun = () => {
-    isListening.current = true;
+    isListening = true;
     const onTestFlowRunStarted = (run: FlowRun) => {
       if (
         run.flowVersionId === flowVersion.id &&
         run.environment === RunEnvironment.TESTING &&
-        isListening.current
+        isListening
       ) {
         setRun(run, flowVersion);
-        isListening.current = false;
+        isListening = false;
         socket.off(
           WebsocketClientEvent.TEST_FLOW_RUN_STARTED,
           onTestFlowRunStarted,
@@ -68,17 +67,17 @@ export const ChatDrawer = () => {
       dismissible={false}
       modal={false}
     >
-      <DrawerContent className="w-[500px] overflow-x-hidden">
+      <DrawerContent class="w-[500px] overflow-x-hidden">
         <DrawerHeader>
           <div className="p-4">
             <div className="flex items-center gap-1">
               <Button
                 variant="basic"
                 size={'icon'}
-                className="text-foreground"
+                class="text-foreground"
                 onClick={() => setChatDrawerOpenSource(null)}
               >
-                <ArrowRight className="h-5 w-5" />
+                <ArrowRight class="h-5 w-5" />
               </Button>
               <DrawerTitle>Chat</DrawerTitle>
             </div>
@@ -87,7 +86,7 @@ export const ChatDrawer = () => {
         <div className="flex-1 overflow-hidden">
           <FlowChat
             flowId={flowVersion.flowId}
-            className="h-full"
+            class="h-full"
             mode={chatDrawerOpenSource}
             showWelcomeMessage={true}
             onError={() => {}}

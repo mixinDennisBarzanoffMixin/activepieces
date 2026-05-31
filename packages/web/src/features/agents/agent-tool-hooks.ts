@@ -1,5 +1,5 @@
 import { ToolCallType, type ToolCallContentBlock } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 
 import { piecesApi } from '../pieces/api/pieces-api';
 
@@ -11,7 +11,7 @@ type ToolMetadata = {
 
 export const agentToolHooks = {
   useToolMetadata(contentBlock: ToolCallContentBlock) {
-    return useQuery<ToolMetadata, Error>({
+    return createQuery<ToolMetadata, Error>({
       queryKey: [
         'mcp-tool-metadata',
         contentBlock.toolName,

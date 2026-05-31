@@ -3,7 +3,7 @@ import {
   PlatformWithoutSensitiveData,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Check, Lock } from 'lucide-react';
+import { Check, Lock } from 'lucide-solid';
 
 const LICENSE_PROPS_MAP = {
   environmentsEnabled: {
@@ -84,9 +84,9 @@ export const FeatureStatus = ({
           return (
             <div key={key} className="flex items-center gap-2">
               {featureEnabled ? (
-                <Check className="size-4 text-success shrink-0" />
+                <Check class="size-4 text-success shrink-0" />
               ) : (
-                <Lock className="size-4 text-muted-foreground shrink-0" />
+                <Lock class="size-4 text-muted-foreground shrink-0" />
               )}
               <span
                 className={`text-sm ${

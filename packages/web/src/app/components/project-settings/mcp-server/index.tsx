@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,56 +28,56 @@ export const McpServerSettings = () => {
 
   return (
     <div className="w-full mt-4">
-      {mcpServer && (
-        <Tabs defaultValue="connection">
-          <TabsList>
-            <TabsTrigger value="connection">{t('Connection')}</TabsTrigger>
-            <TabsTrigger value="tools">{t('Tools')}</TabsTrigger>
-          </TabsList>
+      {
+        <Show when={mcpServer}>
+          <Tabs defaultValue="connection">
+            <TabsList>
+              <TabsTrigger value="connection">{t('Connection')}</TabsTrigger>
+              <TabsTrigger value="tools">{t('Tools')}</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="connection" className="mt-4 pb-6" tabIndex={-1}>
-            <McpCredentials />
-          </TabsContent>
+            <TabsContent value="connection" class="mt-4 pb-6" tabIndex={-1}>
+              <McpCredentials />
+            </TabsContent>
 
-          <TabsContent
-            value="tools"
-            className="mt-4 space-y-6 pb-6"
-            tabIndex={-1}
-          >
-            <div>
-              <h3 className="font-semibold text-base mb-1">
-                {t('Internal Tools')}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                {t(
-                  'Control which built-in Activepieces tools are available to agents via this MCP server.',
-                )}
-              </p>
-              <McpTools
-                disabledTools={mcpServer.disabledTools}
-                isPending={isUpdating}
-                onUpdateDisabledTools={(tools) =>
-                  updateMcpServer({ disabledTools: tools })
-                }
-              />
-            </div>
+            <TabsContent
+              value="tools"
+              class="mt-4 space-y-6 pb-6"
+              tabIndex={-1}
+            >
+              <div>
+                <h3 className="font-semibold text-base mb-1">
+                  {t('Internal Tools')}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {t(
+                    'Control which built-in Activepieces tools are available to agents via this MCP server.',
+                  )}
+                </p>
+                <McpTools
+                  disabledTools={mcpServer.disabledTools}
+                  isPending={isUpdating}
+                  onUpdateDisabledTools={(tools) =>
+                    updateMcpServer({ disabledTools: tools })
+                  }
+                />
+              </div>
 
-            <div>
-              <h3 className="font-semibold text-base mb-1">
-                {t('Your Flows')}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                {t(
-                  'Flows with the MCP Trigger are exposed as tools on this server.',
-                )}
-              </p>
-              <McpFlows mcpServer={mcpServer} />
-            </div>
-          </TabsContent>
-        </Tabs>
-      )}
+              <div>
+                <h3 className="font-semibold text-base mb-1">
+                  {t('Your Flows')}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  {t(
+                    'Flows with the MCP Trigger are exposed as tools on this server.',
+                  )}
+                </p>
+                <McpFlows mcpServer={mcpServer} />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </Show>
+      }
     </div>
   );
 };
-
-McpServerSettings.displayName = 'McpServerSettings';

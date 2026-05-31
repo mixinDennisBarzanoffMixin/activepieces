@@ -1,7 +1,7 @@
 import { isNil, PlatformBillingInformation } from '@activepieces/shared';
 import dayjs from 'dayjs';
 import { t } from 'i18next';
-import { CalendarDays } from 'lucide-react';
+import { CalendarDays } from 'lucide-solid';
 
 import { Badge } from '@/components/ui/badge';
 
@@ -12,7 +12,7 @@ type SubscriptionInfoProps = {
 export const SubscriptionInfo = ({ info }: SubscriptionInfoProps) => {
   return (
     <div className="space-y-4">
-      <Badge variant="accent" className="rounded-sm text-sm">
+      <Badge variant="accent" class="rounded-sm text-sm">
         {isNil(info.plan.plan)
           ? t('Free')
           : info?.plan.plan.charAt(0).toUpperCase() + info?.plan.plan.slice(1)}
@@ -26,7 +26,7 @@ export const SubscriptionInfo = ({ info }: SubscriptionInfoProps) => {
 
       {info?.nextBillingDate && isNil(info.cancelAt) && (
         <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <CalendarDays className="w-4 h-4" />
+          <CalendarDays class="w-4 h-4" />
           <span>
             {t('Next billing date ')}
             <span className="font-semibold">
@@ -40,7 +40,7 @@ export const SubscriptionInfo = ({ info }: SubscriptionInfoProps) => {
 
       {info?.cancelAt && (
         <div className="text-sm text-muted-foreground flex items-center gap-2">
-          <CalendarDays className="w-4 h-4" />
+          <CalendarDays class="w-4 h-4" />
           <span>
             {t('Subscription will end')}{' '}
             <span className="font-semibold">

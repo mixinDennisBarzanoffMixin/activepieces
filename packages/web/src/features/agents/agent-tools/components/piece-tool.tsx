@@ -1,7 +1,7 @@
 import { AgentPieceTool, mcpToolNameUtils } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Plus, Puzzle, X } from 'lucide-react';
-import { useMemo } from 'react';
+import { Plus, Puzzle, X } from 'lucide-solid';
+import { createMemo } from 'solid-js';
 
 import {
   AccordionContent,
@@ -38,12 +38,12 @@ export const AgentPieceToolComponent = ({
     type: 'action',
   });
 
-  const piecesMetadata = useMemo(() => {
+  const piecesMetadata = createMemo(() => {
     return metadata?.filter(
       (m): m is PieceStepMetadataWithSuggestions =>
         'suggestedActions' in m && 'suggestedTriggers' in m,
     );
-  }, [metadata]);
+  });
 
   const pieceMetadata = piecesMetadata?.find(
     (p) => p.pieceName === tools[0].pieceMetadata.pieceName,
@@ -53,11 +53,11 @@ export const AgentPieceToolComponent = ({
     return (
       <div className="flex  w-full items-center justify-between px-3 h-12  border-b last:border-0 py-2">
         <div className="flex items-center gap-3">
-          <Skeleton className="h-6 w-6 rounded-md" />
-          <Skeleton className="h-4 w-32" />
+          <Skeleton class="h-6 w-6 rounded-md" />
+          <Skeleton class="h-4 w-32" />
         </div>
 
-        <Skeleton className="h-4 w-4 rounded-sm" />
+        <Skeleton class="h-4 w-4 rounded-sm" />
       </div>
     );
   }
@@ -69,9 +69,9 @@ export const AgentPieceToolComponent = ({
   return (
     <AccordionItem
       value={pieceMetadata.pieceName}
-      className="border-b last:border-0"
+      class="border-b last:border-0"
     >
-      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent transition-all">
+      <AccordionTrigger class="px-4 py-3 hover:no-underline hover:bg-accent transition-all">
         <div className="flex w-full items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
@@ -82,7 +82,7 @@ export const AgentPieceToolComponent = ({
                   className="h-5 w-5 object-contain"
                 />
               ) : (
-                <Puzzle className="h-5 w-5 text-muted-foreground" />
+                <Puzzle class="h-5 w-5 text-muted-foreground" />
               )}
             </div>
 
@@ -92,7 +92,7 @@ export const AgentPieceToolComponent = ({
           </div>
         </div>
       </AccordionTrigger>
-      <AccordionContent className="px-4 py-2">
+      <AccordionContent class="px-4 py-2">
         <div className="flex flex-wrap gap-2">
           {tools.map((tool) => {
             const toolName = pieceMetadata.suggestedActions?.find(
@@ -127,7 +127,7 @@ export const AgentPieceToolComponent = ({
                         }}
                         variant="ghost"
                         size="icon"
-                        className="
+                        class="
                           size-5 p-0.5
                           text-muted-foreground
                           hover:text-destructive
@@ -135,7 +135,7 @@ export const AgentPieceToolComponent = ({
                           transition
                         "
                       >
-                        <X className="h-3 w-3" />
+                        <X class="h-3 w-3" />
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>{t('Remove tool')}</TooltipContent>
@@ -147,7 +147,7 @@ export const AgentPieceToolComponent = ({
         </div>
         <Button
           variant="link"
-          className="mt-4"
+          class="mt-4"
           size="xs"
           onClick={() =>
             openAddPieceToolDialog({
@@ -156,7 +156,7 @@ export const AgentPieceToolComponent = ({
             })
           }
         >
-          <Plus className="size-3 mr-1" />
+          <Plus class="size-3 mr-1" />
           {t('Add Action')}
         </Button>
       </AccordionContent>

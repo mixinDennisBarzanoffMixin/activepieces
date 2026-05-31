@@ -1,9 +1,9 @@
 import { ProjectMemberWithUser } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Pencil } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { Pencil } from 'lucide-solid';
+import { createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -32,16 +32,16 @@ export function EditRoleDialog({
   onSave,
   disabled,
 }: EditRoleDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState(member.projectRole.name);
-  const { data: rolesData, isPending: rolesLoading } = useQuery({
+  const [isOpen, setIsOpen] = createSignal(false);
+  const [selectedRole, setSelectedRole] = createSignal(member.projectRole.name);
+  const { data: rolesData, isPending: rolesLoading } = createQuery({
     queryKey: ['project-roles'],
     queryFn: () => projectRoleApi.list(),
   });
 
   const roles = rolesData?.data ?? [];
 
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending } = createMutation({
     mutationFn: (newRole: string) => {
       return projectMembersApi.update(member.id, {
         role: newRole,
@@ -77,11 +77,11 @@ export function EditRoleDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="size-8 p-0" disabled={disabled}>
-          <Pencil className="size-4" />
+        <Button variant="ghost" class="size-8 p-0" disabled={disabled}>
+          <Pencil class="size-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-full max-w-md">
+      <DialogContent class="w-full max-w-md">
         <DialogHeader>
           <DialogTitle>
             {t('Edit Role for')} {member.user.firstName} {member.user.lastName}

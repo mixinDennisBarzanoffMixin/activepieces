@@ -1,11 +1,10 @@
 import { AppConnectionScope, PopulatedFlow } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@solidjs/router';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { GlobeIcon, WorkflowIcon } from 'lucide-react';
-import React, { useState, useMemo } from 'react';
-import { FieldErrors, useForm, useWatch } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { GlobeIcon, WorkflowIcon } from 'lucide-solid';
+import { createSignal, createMemo, JSX } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -32,7 +30,7 @@ import { cn } from '@/lib/utils';
 
 type ReplaceConnectionsDialogProps = {
   onConnectionMerged: () => void;
-  children: React.ReactNode;
+  children: JSX.Element;
   projectId: string;
 };
 
@@ -52,9 +50,11 @@ const ReplaceConnectionsDialog = ({
   children,
   projectId,
 }: ReplaceConnectionsDialogProps) => {
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [step, setStep] = useState<STEP>(STEP.SELECT);
-  const [affectedFlows, setAffectedFlows] = useState<Array<PopulatedFlow>>([]);
+  const [dialogOpen, setDialogOpen] = createSignal(false);
+  const [step, setStep] = createSignal<STEP>(STEP.SELECT);
+  const [affectedFlows, setAffectedFlows] = createSignal<Array<PopulatedFlow>>(
+    [],
+  );
   const { pieces, isLoading: piecesLoading } = piecesHooks.usePieces({});
 
   const { data: connections, isLoading: connectionsLoading } =
@@ -74,7 +74,7 @@ const ReplaceConnectionsDialog = ({
     });
 
   const { mutate: fetchAffectedFlows, isPending: isFetchingAffectedFlows } =
-    useMutation({
+    createMutation({
       mutationFn: async (externalId: string) => {
         const response = await flowsApi.list({
           projectId: projectId,
@@ -95,45 +95,15 @@ const ReplaceConnectionsDialog = ({
       },
     });
 
-  const form = useForm<FormData>({
-    defaultValues: {
-      pieceName: '',
-      sourceConnections: { id: '', externalId: '' },
-      replacedWithConnection: { id: '', externalId: '' },
-    },
-    mode: 'onSubmit',
-    resolver: (values) => {
-      const errors: FieldErrors<FormData> = {};
+  const empty = {
+    pieceName: '',
+    sourceConnections: { id: '', externalId: '' },
+    replacedWithConnection: { id: '', externalId: '' },
+  };
+  const [form, setForm] = createSignal<FormData>(empty);
+  const [errors, setErrors] = createSignal<Record<string, string>>({});
 
-      if (!values.pieceName) {
-        errors.pieceName = {
-          type: 'required',
-          message: t('Please select a piece'),
-        };
-      }
-
-      if (!values.sourceConnections?.id) {
-        errors.sourceConnections = {
-          type: 'required',
-          message: t('Please select a connection to replace'),
-        };
-      }
-
-      if (!values.replacedWithConnection?.id) {
-        errors.replacedWithConnection = {
-          type: 'required',
-          message: t('Please select a connection to replace with'),
-        };
-      }
-
-      return {
-        values: Object.keys(errors).length === 0 ? values : {},
-        errors,
-      };
-    },
-  });
-
-  const selectedPiece = form.watch('pieceName');
+  const selectedPiece = () => form().pieceName;
 
   const connectionPieceNames = new Set(
     connections?.data.map((conn) => conn.pieceName),
@@ -153,48 +123,53 @@ const ReplaceConnectionsDialog = ({
       })) ?? [];
 
   const filteredConnections =
-    connections?.data.filter((conn) => conn.pieceName === selectedPiece) ?? [];
+    connections?.data.filter((conn) => conn.pieceName === selectedPiece()) ?? [];
 
-  const sourceConnectionId = useWatch({
-    control: form.control,
-    name: 'sourceConnections.id',
-  });
+  const sourceConnectionId = () => form().sourceConnections.id;
 
-  const replacedWithOptions = useMemo(() => {
+  const replacedWithOptions = createMemo(() => {
     return filteredConnections
-      .filter((conn) => conn.id !== sourceConnectionId)
+      .filter((conn) => conn.id !== sourceConnectionId())
       .map((conn) => ({
         label: conn.displayName,
         value: conn.id,
       }));
-  }, [filteredConnections, sourceConnectionId]);
+  });
 
   const handleBack = () => {
     setStep(STEP.SELECT);
     setAffectedFlows([]);
   };
 
-  const handleConfirmedSubmit = async (values: FormData) => {
-    const isValid = await form.trigger();
-    if (!isValid) {
-      form.trigger([
-        'pieceName',
-        'sourceConnections',
-        'replacedWithConnection',
-      ]);
+  const validate = () => {
+    const next: Record<string, string> = {};
+    if (!form().pieceName) next.pieceName = t('Please select a piece');
+    if (!form().sourceConnections.id) {
+      next.sourceConnections = t('Please select a connection to replace');
+    }
+    if (!form().replacedWithConnection.id) {
+      next.replacedWithConnection = t('Please select a connection to replace with');
+    }
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  };
+
+  const handleConfirmedSubmit = () => {
+    if (!validate()) {
       return;
     }
 
     replaceConnections({
-      sourceAppConnectionId: values.sourceConnections.id,
-      targetAppConnectionId: values.replacedWithConnection.id,
+      sourceAppConnectionId: form().sourceConnections.id,
+      targetAppConnectionId: form().replacedWithConnection.id,
       projectId: projectId,
     });
   };
 
   const handleDialogOpenChange = (open: boolean) => {
     setDialogOpen(open);
-    form.reset();
+    setForm(empty);
+    setErrors({});
     setStep(STEP.SELECT);
     setAffectedFlows([]);
   };
@@ -203,7 +178,7 @@ const ReplaceConnectionsDialog = ({
   return (
     <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="flex flex-col">
+      <DialogContent class="flex flex-col">
         <DialogHeader>
           <DialogTitle>
             {step === STEP.SELECT
@@ -226,31 +201,32 @@ const ReplaceConnectionsDialog = ({
         </DialogHeader>
 
         {step === STEP.SELECT ? (
-          <Form {...form}>
             <form
-              onSubmit={form.handleSubmit((data) =>
-                fetchAffectedFlows(data.sourceConnections.externalId),
-              )}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (validate()) {
+                  fetchAffectedFlows(form().sourceConnections.externalId);
+                }
+              }}
               className="flex flex-col gap-4"
             >
-              <FormField
-                control={form.control}
-                name="pieceName"
-                render={({ field }) => (
                   <div className="flex flex-col gap-2">
                     <Label>{t('Piece')}</Label>
                     <SearchableSelect
-                      value={field.value}
+                      value={form().pieceName}
                       onChange={(value) => {
-                        field.onChange(value);
-                        form.setValue('sourceConnections', {
-                          id: '',
-                          externalId: '',
-                        });
-                        form.setValue('replacedWithConnection', {
-                          id: '',
-                          externalId: '',
-                        });
+                        setForm((prev) => ({
+                          ...prev,
+                          pieceName: value,
+                          sourceConnections: {
+                           id: '',
+                           externalId: '',
+                          },
+                          replacedWithConnection: {
+                           id: '',
+                           externalId: '',
+                          },
+                        }));
                       }}
                       options={piecesOptions}
                       placeholder={t('Select a piece')}
@@ -269,34 +245,35 @@ const ReplaceConnectionsDialog = ({
                         );
                       }}
                     />
-                    <FormMessage />
+                    {errors().pieceName && (
+                      <p class="text-sm font-medium text-destructive wrap-break-word">
+                        {errors().pieceName}
+                      </p>
+                    )}
                   </div>
-                )}
-              />
 
-              {selectedPiece && (
+              {selectedPiece() && (
                 <>
-                  <FormField
-                    control={form.control}
-                    name="sourceConnections"
-                    render={({ field }) => (
                       <div className="flex flex-col gap-2">
                         <Label>{t('Connection to replace')}</Label>
                         <SearchableSelect
-                          value={field.value?.id}
+                          value={form().sourceConnections.id}
                           loading={connectionsLoading}
                           onChange={(value) => {
                             const selectedConnection = filteredConnections.find(
                               (c) => c.id === value,
                             );
-                            field.onChange({
-                              id: selectedConnection?.id || '',
-                              externalId: selectedConnection?.externalId || '',
-                            });
-                            form.setValue('replacedWithConnection', {
+                            setForm((prev) => ({
+                              ...prev,
+                              sourceConnections: {
+                                id: selectedConnection?.id || '',
+                                externalId: selectedConnection?.externalId || '',
+                              },
+                              replacedWithConnection: {
                               id: '',
                               externalId: '',
-                            });
+                              },
+                            }));
                           }}
                           options={filteredConnections
                             .filter(
@@ -324,29 +301,29 @@ const ReplaceConnectionsDialog = ({
                             );
                           }}
                         />
-                        <FormMessage />
+                        {errors().sourceConnections && (
+                          <p class="text-sm font-medium text-destructive wrap-break-word">
+                            {errors().sourceConnections}
+                          </p>
+                        )}
                       </div>
-                    )}
-                  />
 
-                  {selectedPiece && (
-                    <FormField
-                      control={form.control}
-                      name="replacedWithConnection"
-                      render={({ field }) => (
+                  {selectedPiece() && (
                         <div className="flex flex-col gap-2">
                           <Label>{t('Replaced With')}</Label>
                           <SearchableSelect
-                            value={field.value?.id}
+                            value={form().replacedWithConnection.id}
                             loading={connectionsLoading}
                             onChange={(value) => {
                               const selectedConnection =
                                 filteredConnections.find((c) => c.id === value);
-                              field.onChange({
-                                id: selectedConnection?.id || '',
-                                externalId:
-                                  selectedConnection?.externalId || '',
-                              });
+                              setForm((prev) => ({
+                                ...prev,
+                                replacedWithConnection: {
+                                  id: selectedConnection?.id || '',
+                                  externalId: selectedConnection?.externalId || '',
+                                },
+                              }));
                             }}
                             options={replacedWithOptions}
                             placeholder={t('Choose connection to replace with')}
@@ -363,17 +340,19 @@ const ReplaceConnectionsDialog = ({
                                   />
                                   {conn?.scope ===
                                     AppConnectionScope.PLATFORM && (
-                                    <GlobeIcon className="w-4 h-4" />
+                                    <GlobeIcon class="w-4 h-4" />
                                   )}
                                   <span>{conn!.displayName}</span>
                                 </div>
                               );
                             }}
                           />
-                          <FormMessage />
+                          {errors().replacedWithConnection && (
+                            <p class="text-sm font-medium text-destructive wrap-break-word">
+                              {errors().replacedWithConnection}
+                            </p>
+                          )}
                         </div>
-                      )}
-                    />
                   )}
                 </>
               )}
@@ -389,14 +368,10 @@ const ReplaceConnectionsDialog = ({
                 </Button>
               </DialogFooter>
             </form>
-          </Form>
         ) : (
           <div className="flex flex-col gap-4">
             <ScrollArea
-              className={cn(
-                'h-[275px]',
-                affectedFlows.length === 0 && 'h-[80px]',
-              )}
+              class={cn('h-[275px]', affectedFlows.length === 0 && 'h-[80px]')}
             >
               <div className="flex flex-col gap-2">
                 {affectedFlows.length === 0 ? (
@@ -410,10 +385,10 @@ const ReplaceConnectionsDialog = ({
                       key={flow.id}
                     >
                       <div className="flex items-center gap-2">
-                        <WorkflowIcon className="w-5 h-5" />
+                        <WorkflowIcon class="w-5 h-5" />
                         <Button
                           variant="link"
-                          className="p-0 h-auto font-medium text-foreground truncate text-base"
+                          class="p-0 h-auto font-medium text-foreground truncate text-base"
                           onClick={() => {
                             navigate(
                               `/projects/${flow.projectId}/flows/${flow.id}`,
@@ -435,7 +410,7 @@ const ReplaceConnectionsDialog = ({
               </Button>
               <Button
                 type="button"
-                onClick={() => handleConfirmedSubmit(form.getValues())}
+                onClick={handleConfirmedSubmit}
                 loading={isReplacing}
               >
                 {t('Replace')}

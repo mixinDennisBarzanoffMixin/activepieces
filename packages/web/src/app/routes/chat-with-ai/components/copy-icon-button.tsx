@@ -1,16 +1,16 @@
-import { Check, Copy } from 'lucide-react';
-import { forwardRef, useState, type ButtonHTMLAttributes } from 'react';
+import { Check, Copy } from 'lucide-solid';
+import { createSignal, JSX, Show } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
-export const CopyIconButton = forwardRef<
-  HTMLButtonElement,
-  {
-    textToCopy: string;
-    className?: string;
-  } & ButtonHTMLAttributes<HTMLButtonElement>
->(function CopyIconButton({ textToCopy, className, ...rest }, ref) {
-  const [copied, setCopied] = useState(false);
+type CopyIconButtonProps = {
+  textToCopy: string;
+  className?: string;
+} & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
+
+export function CopyIconButton(props: CopyIconButtonProps) {
+  const { textToCopy, className, ref, ...rest } = props;
+  const [copied, setCopied] = createSignal(false);
 
   const handleCopy = async () => {
     try {
@@ -36,11 +36,9 @@ export const CopyIconButton = forwardRef<
         className,
       )}
     >
-      {copied ? (
-        <Check className="h-3.5 w-3.5" />
-      ) : (
-        <Copy className="h-3.5 w-3.5" />
-      )}
+      <Show when={copied} fallback={<Copy class="h-3.5 w-3.5" />}>
+        <Check class="h-3.5 w-3.5" />
+      </Show>
     </button>
   );
-});
+}

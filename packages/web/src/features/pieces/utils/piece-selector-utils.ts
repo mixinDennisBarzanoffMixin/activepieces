@@ -26,7 +26,6 @@ import {
   isManualPieceTrigger,
   AUTHENTICATION_PROPERTY_NAME,
 } from '@activepieces/shared';
-import { useRef } from 'react';
 
 import {
   PieceSelectorItem,
@@ -290,10 +289,10 @@ const getDefaultStepValues = ({
 
 // Adjusts piece list height to prevent overflow on short screens
 const useAdjustPieceListHeightToAvailableSpace = () => {
-  const listHeightRef = useRef<number>(MAX_PIECE_SELECTOR_LIST_HEIGHT);
-  const popoverTriggerRef = useRef<HTMLButtonElement | null>(null);
+  let listHeightRef = MAX_PIECE_SELECTOR_LIST_HEIGHT;
+  let popoverTriggerRef: HTMLButtonElement | null = null;
 
-  if (!popoverTriggerRef.current) {
+  if (!popoverTriggerRef) {
     return {
       listHeightRef,
       popoverTriggerRef,
@@ -301,7 +300,7 @@ const useAdjustPieceListHeightToAvailableSpace = () => {
     };
   }
 
-  const popOverTriggerRect = popoverTriggerRef.current.getBoundingClientRect();
+  const popOverTriggerRect = popoverTriggerRef.getBoundingClientRect();
   const viewportHeight =
     window.innerHeight || document.documentElement.clientHeight;
   const shouldRenderBelowPopoverTrigger =
@@ -310,14 +309,14 @@ const useAdjustPieceListHeightToAvailableSpace = () => {
   if (shouldRenderBelowPopoverTrigger) {
     const availableSpaceBelow =
       viewportHeight - popOverTriggerRect.bottom - SEARCH_INPUT_DIV_HEIGHT;
-    listHeightRef.current = Math.max(
+    listHeightRef = Math.max(
       MIN_PIECE_SELECTOR_LIST_HEIGHT,
       availableSpaceBelow,
     );
   } else {
     const availableSpaceAbove =
       popOverTriggerRect.top - SEARCH_INPUT_DIV_HEIGHT;
-    listHeightRef.current = Math.max(
+    listHeightRef = Math.max(
       MIN_PIECE_SELECTOR_LIST_HEIGHT,
       availableSpaceAbove,
     );

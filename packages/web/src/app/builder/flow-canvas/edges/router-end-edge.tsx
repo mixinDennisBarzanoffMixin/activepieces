@@ -1,5 +1,7 @@
 import { StepLocationRelativeToParent } from '@activepieces/shared';
-import { BaseEdge, EdgeProps } from '@xyflow/react';
+import { BaseEdge } from '../solid-flow-adapter';
+import type { EdgeProps } from '../solid-flow-adapter';
+import { Show } from 'solid-js';
 
 import { flowCanvasConsts } from '../utils/consts';
 import { ApRouterEndEdge } from '../utils/types';
@@ -76,7 +78,7 @@ export const ApRouterEndCanvasEdge = ({
         style={{ strokeWidth: `${flowCanvasConsts.LINE_WIDTH}px` }}
       />
 
-      {data.drawEndingVerticalLine && (
+      <Show when={data.drawEndingVerticalLine()}>
         <foreignObject
           x={
             targetX -
@@ -94,7 +96,7 @@ export const ApRouterEndCanvasEdge = ({
             parentStepName={data.routerOrBranchStepName}
           />
         </foreignObject>
-      )}
+      </Show>
     </>
   );
 };

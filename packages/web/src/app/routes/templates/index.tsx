@@ -4,10 +4,10 @@ import {
   TemplateType,
   UncategorizedFolderId,
 } from '@activepieces/shared';
+import { useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
-import { Plus } from 'lucide-react';
-import { useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-solid';
+import { createMemo, Show } from 'solid-js';
 
 import { PageHeader } from '@/components/custom/page-header';
 import { SearchInput } from '@/components/custom/search-input';
@@ -41,20 +41,17 @@ const TemplatesPage = () => {
     setSearch(value);
   };
 
-  const handleTemplateSelect = useCallback(
-    (template: Template) => {
-      navigate(`/templates/${template.id}`);
-      if (template.type === TemplateType.OFFICIAL) {
-        templatesTelemetryApi.sendEvent({
-          eventType: TemplateTelemetryEventType.VIEW,
-          templateId: template.id,
-        });
-      }
-    },
-    [navigate],
-  );
+  const handleTemplateSelect = (template: Template) => {
+    navigate(`/templates/${template.id}`);
+    if (template.type === TemplateType.OFFICIAL) {
+      templatesTelemetryApi.sendEvent({
+        eventType: TemplateTelemetryEventType.VIEW,
+        templateId: template.id,
+      });
+    }
+  };
 
-  const templatesByCategory = useMemo(() => {
+  const templatesByCategory = createMemo(() => {
     const grouped: Record<string, Template[]> = {} as Record<
       string,
       Template[]
@@ -74,18 +71,18 @@ const TemplatesPage = () => {
     }
 
     return grouped;
-  }, [allOfficialTemplates, isShowingOfficialTemplates]);
+  });
 
-  const categories = useMemo(() => {
+  const categories = createMemo(() => {
     return ['All', ...(templateCategories || [])];
-  }, [templateCategories]);
+  });
 
-  const selectedCategoryTemplates = useMemo(() => {
+  const selectedCategoryTemplates = createMemo(() => {
     if (selectedCategory === 'All') {
       return templates || [];
     }
     return templatesByCategory[selectedCategory] || [];
-  }, [selectedCategory, templates, templatesByCategory]);
+  });
 
   const showLoading =
     isLoading || (isShowingOfficialTemplates && isAllTemplatesLoading);
@@ -101,7 +98,7 @@ const TemplatesPage = () => {
         <div className="sticky top-0 z-10 bg-background">
           <PageHeader
             showSidebarToggle={true}
-            className="static"
+            class="static"
             title={
               <>
                 <div className="flex flex-row w-full justify-between gap-1">
@@ -113,11 +110,11 @@ const TemplatesPage = () => {
                   <div className="flex flex-row justify-end w-[50%]">
                     <Button
                       variant="outline"
-                      className="gap-2 h-full"
+                      class="gap-2 h-full"
                       onClick={() => createFlow()}
                       disabled={isCreateFlowPending}
                     >
-                      <Plus className="w-4 h-4" />
+                      <Plus class="w-4 h-4" />
                       {t('Start from scratch')}
                     </Button>
                   </div>
@@ -126,35 +123,43 @@ const TemplatesPage = () => {
             }
           ></PageHeader>
 
-          {isShowingOfficialTemplates && categories && (
+          <Show when={isShowingOfficialTemplates && categories}>
             <CategoryFilterCarousel
               categories={categories}
               selectedCategory={selectedCategory}
               onCategorySelect={setCategory}
             />
-          )}
+          </Show>
         </div>
         <div className={DASHBOARD_CONTENT_PADDING_X}>
-          {!hasTemplates && !showLoading ? (
+          <Show
+            when={!hasTemplates && !showLoading}
+            fallback={
+              <Show
+                when={showAllCategories}
+                fallback={
+                  <SelectedCategoryView
+                    category={selectedCategory}
+                    templates={selectedCategoryTemplates}
+                    onTemplateSelect={handleTemplateSelect}
+                    isLoading={showLoading}
+                    showCategoryTitle={showCategoryTitleForOfficialTemplates}
+                  />
+                }
+              >
+                <AllCategoriesView
+                  templatesByCategory={templatesByCategory}
+                  categories={categories}
+                  onCategorySelect={setCategory}
+                  onTemplateSelect={handleTemplateSelect}
+                  isLoading={showLoading}
+                  hideHeader={!isShowingOfficialTemplates}
+                />
+              </Show>
+            }
+          >
             <EmptyTemplatesView />
-          ) : showAllCategories ? (
-            <AllCategoriesView
-              templatesByCategory={templatesByCategory}
-              categories={categories}
-              onCategorySelect={setCategory}
-              onTemplateSelect={handleTemplateSelect}
-              isLoading={showLoading}
-              hideHeader={!isShowingOfficialTemplates}
-            />
-          ) : (
-            <SelectedCategoryView
-              category={selectedCategory}
-              templates={selectedCategoryTemplates}
-              onTemplateSelect={handleTemplateSelect}
-              isLoading={showLoading}
-              showCategoryTitle={showCategoryTitleForOfficialTemplates}
-            />
-          )}
+          </Show>
         </div>
       </div>
     </div>

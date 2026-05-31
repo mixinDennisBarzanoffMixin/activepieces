@@ -2,7 +2,7 @@ import {
   AddSigningKeyRequestBody,
   AddSigningKeyResponse,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 
 import { signingKeyApi } from '../api/signing-key-api';
 
@@ -12,12 +12,12 @@ export const signingKeyKeys = {
 
 export const signingKeyQueries = {
   useSigningKeys: () =>
-    useQuery({
+    createQuery(() => ({
       queryKey: signingKeyKeys.all,
       gcTime: 0,
       staleTime: 0,
       queryFn: () => signingKeyApi.list(),
-    }),
+    })),
 };
 
 export const signingKeyMutations = {
@@ -26,10 +26,10 @@ export const signingKeyMutations = {
   }: {
     onSuccess: (key: AddSigningKeyResponse) => void;
   }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (request: AddSigningKeyRequestBody) =>
         signingKeyApi.create(request),
       onSuccess,
-    });
+    }));
   },
 };

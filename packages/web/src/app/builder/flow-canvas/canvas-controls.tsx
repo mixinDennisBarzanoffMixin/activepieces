@@ -1,4 +1,4 @@
-import { Node, useKeyPress, useReactFlow } from '@xyflow/react';
+import { Node, useKeyPress, useReactFlow } from './solid-flow-adapter';
 import { t } from 'i18next';
 import {
   Fullscreen,
@@ -8,8 +8,8 @@ import {
   MousePointer,
   Plus,
   StickyNote,
-} from 'lucide-react';
-import { useCallback, useEffect } from 'react';
+} from 'lucide-solid';
+import { Show, createEffect } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -85,51 +85,45 @@ const CanvasControls = ({
 }) => {
   const { zoomIn, zoomOut, setViewport, getNodes, getNode, getViewport } =
     useReactFlow();
-  const handleZoomIn = useCallback(() => {
+  const handleZoomIn = () => {
     zoomIn({
       duration: 0,
     });
-  }, [zoomIn]);
+  };
 
-  const handleZoomOut = useCallback(() => {
+  const handleZoomOut = () => {
     zoomOut({
       duration: 0,
     });
-  }, [zoomOut]);
+  };
 
-  const handleFitToView = useCallback(
-    (isInitialRenderCall: boolean) => {
-      const nodes = getNodes();
-      if (nodes.length === 0) return;
-      const graphHeight = flowCanvasUtils.calculateGraphBoundingBox({
-        nodes: nodes as ApNode[],
-        edges: [],
-      }).height;
-      const zoomRatio = Math.min(
-        Math.max(canvasHeight / graphHeight, 0.9),
-        1.25,
-      );
+  const handleFitToView = (isInitialRenderCall: boolean) => {
+    const nodes = getNodes();
+    if (nodes.length === 0) return;
+    const graphHeight = flowCanvasUtils.calculateGraphBoundingBox({
+      nodes: nodes as ApNode[],
+      edges: [],
+    }).height;
+    const zoomRatio = Math.min(Math.max(canvasHeight / graphHeight, 0.9), 1.25);
 
-      setViewport(
-        {
-          x:
-            canvasWidth / 2 -
-            (flowCanvasConsts.AP_NODE_SIZE.STEP.width * zoomRatio) / 2,
-          y:
-            nodes[0].position.y +
-            verticalPaddingOnFitView * zoomRatio +
-            flowCanvasConsts.AP_NODE_SIZE.STEP.height,
-          zoom: zoomRatio,
-        },
-        {
-          duration: isInitialRenderCall ? 0 : 500,
-        },
-      );
-    },
-    [getNodes, canvasHeight, setViewport, canvasWidth],
-  );
+    setViewport(
+      {
+        x:
+          canvasWidth / 2 -
+          (flowCanvasConsts.AP_NODE_SIZE.STEP.width * zoomRatio) / 2,
+        y:
+          nodes[0].position.y +
+          verticalPaddingOnFitView * zoomRatio +
+          flowCanvasConsts.AP_NODE_SIZE.STEP.height,
+        zoom: zoomRatio,
+      },
+      {
+        duration: isInitialRenderCall ? 0 : 500,
+      },
+    );
+  };
 
-  useEffect(() => {
+  createEffect(() => {
     if (!hasCanvasBeenInitialised) return;
 
     handleFitToView(true);
@@ -137,7 +131,7 @@ const CanvasControls = ({
     if (selectedStep) {
       adjustViewportForSelectedStep(selectedStep);
     }
-  }, [hasCanvasBeenInitialised]);
+  });
 
   // Helper function to adjust the viewport for the selected step
   const adjustViewportForSelectedStep = (stepId: string) => {
@@ -186,7 +180,7 @@ const CanvasControls = ({
   const spacePressed = useKeyPress('Space');
   const shiftPressed = useKeyPress('Shift');
   const isInGrabMode =
-    (spacePressed || panningMode === 'grab') && !shiftPressed;
+    (spacePressed() || panningMode === 'grab') && !shiftPressed();
   return (
     <div
       id="canvas-controls"
@@ -203,7 +197,7 @@ const CanvasControls = ({
               setShowMinimap(!showMinimap);
             }}
           >
-            <Map className="size-4" />
+            <Map class="size-4" />
           </Button>
         </CanvasButtonWrapper>
       </div>
@@ -212,12 +206,12 @@ const CanvasControls = ({
       <div className="bg-background gap-2 flex items-center shadow-2xl justify-center border border-sidebar-border p-1.5 rounded-lg pointer-events-auto">
         <CanvasButtonWrapper tooltip={t('Zoom in')}>
           <Button variant="ghost" size="icon" onClick={handleZoomIn}>
-            <Plus className="size-4" />
+            <Plus class="size-4" />
           </Button>
         </CanvasButtonWrapper>
         <CanvasButtonWrapper tooltip={t('Zoom out')}>
           <Button variant="ghost" size="icon" onClick={handleZoomOut}>
-            <Minus className="size-4" />
+            <Minus class="size-4" />
           </Button>
         </CanvasButtonWrapper>
         <CanvasButtonWrapper tooltip={t('Fit to view')}>
@@ -226,11 +220,11 @@ const CanvasControls = ({
             size="icon"
             onClick={() => handleFitToView(false)}
           >
-            <Fullscreen className="size-4" />
+            <Fullscreen class="size-4" />
           </Button>
         </CanvasButtonWrapper>
         <div>
-          <Separator orientation="vertical" className="h-5"></Separator>
+          <Separator orientation="vertical" class="h-5"></Separator>
         </div>
         <CanvasButtonWrapper tooltip={t('Grab mode')}>
           <Button
@@ -238,7 +232,7 @@ const CanvasControls = ({
             size="icon"
             onClick={() => setPanningMode('grab')}
           >
-            <Hand className="size-4" />
+            <Hand class="size-4" />
           </Button>
         </CanvasButtonWrapper>
         <CanvasButtonWrapper tooltip={t('Select mode')}>
@@ -247,10 +241,10 @@ const CanvasControls = ({
             size="icon"
             onClick={() => setPanningMode('pan')}
           >
-            <MousePointer className="size-4" />
+            <MousePointer class="size-4" />
           </Button>
         </CanvasButtonWrapper>
-        {!readonly && (
+        <Show when={!readonly()}>
           <CanvasButtonWrapper tooltip={t('Add note')}>
             <Button
               variant={
@@ -277,10 +271,10 @@ const CanvasControls = ({
                 );
               }}
             >
-              <StickyNote className="size-4" />
+              <StickyNote class="size-4" />
             </Button>
           </CanvasButtonWrapper>
-        )}
+        </Show>
       </div>
       <div className="grow"></div>
     </div>
@@ -293,7 +287,7 @@ const CanvasButtonWrapper = ({
   children,
   tooltip,
 }: {
-  children: React.ReactNode;
+  children: any;
   tooltip: string;
 }) => {
   return (

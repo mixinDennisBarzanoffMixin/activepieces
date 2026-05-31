@@ -3,8 +3,8 @@ import {
   AppConnectionWithoutSensitiveData,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { RefreshCw } from 'lucide-react';
-import { useState } from 'react';
+import { RefreshCw } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { CreateOrEditConnectionDialog } from '@/app/connections/create-edit-connection-dialog';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ const ReconnectButtonDialog = ({
   onConnectionCreated,
   hasPermission,
 }: ReconnectButtonDialogProps) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
   const { pieceModel, isLoading } = piecesHooks.usePiece({
     name: connection.pieceName,
     version: connection.pieceVersion,
@@ -42,7 +42,7 @@ const ReconnectButtonDialog = ({
             disabled={!hasPermission}
             variant={'ghost'}
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw class="h-4 w-4" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>

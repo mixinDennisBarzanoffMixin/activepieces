@@ -1,7 +1,7 @@
 import { KnowledgeBaseSourceType } from '@activepieces/shared';
 import { t } from 'i18next';
-import { FileText, Plus, Table2 } from 'lucide-react';
-import { useState } from 'react';
+import { FileText, Plus, Table2 } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,14 +20,14 @@ type AddKnowledgeBaseDropdownProps = {
 export const AddKnowledgeBaseDropdown = ({
   disabled,
 }: AddKnowledgeBaseDropdownProps) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
   const { setShowAddKbDialog } = useKnowledgeBaseToolDialogStore();
 
   return (
     <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger disabled={disabled} asChild>
         <Button variant="outline" size="sm">
-          <Plus className="size-4 mr-2" />
+          <Plus class="size-4 mr-2" />
           {t('Add')}
         </Button>
       </DropdownMenuTrigger>
@@ -38,7 +38,7 @@ export const AddKnowledgeBaseDropdown = ({
             setShowAddKbDialog(true, undefined, KnowledgeBaseSourceType.FILE)
           }
         >
-          <FileText className="size-3.5 me-2" />
+          <FileText class="size-3.5 me-2" />
           <span>{t('Upload File')}</span>
         </DropdownMenuItem>
 
@@ -47,7 +47,7 @@ export const AddKnowledgeBaseDropdown = ({
             setShowAddKbDialog(true, undefined, KnowledgeBaseSourceType.TABLE)
           }
         >
-          <Table2 className="size-3.5 me-2" />
+          <Table2 class="size-3.5 me-2" />
           <span>{t('Connect Table')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

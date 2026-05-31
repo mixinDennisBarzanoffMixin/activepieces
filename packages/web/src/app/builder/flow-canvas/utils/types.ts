@@ -4,7 +4,7 @@ import {
   FlowTrigger,
   Note,
 } from '@activepieces/shared';
-import { Edge } from '@xyflow/react';
+import type { Edge } from '../solid-flow-adapter';
 
 export enum ApNodeType {
   STEP = 'STEP',
@@ -34,7 +34,7 @@ export type ApStepNode = {
     step: FlowAction | FlowTrigger;
   };
   selectable?: boolean;
-  style?: React.CSSProperties;
+  style?: any;
   draggable?: boolean;
 };
 
@@ -84,7 +84,7 @@ export type ApBigAddButtonNode = {
   };
   data: ApButtonData;
   selectable?: boolean;
-  style?: React.CSSProperties;
+  style?: any;
 };
 
 export type ApGraphEndNode = {

@@ -1,7 +1,7 @@
 import { FlowTrigger } from '@activepieces/shared';
 import { t } from 'i18next';
-import React, { useState } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext } from '@/app/builder/builder-form';
+import { createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 
@@ -16,7 +16,7 @@ export const ManualWebhookTestButton = ({
   isWebhookTestingDialogOpen,
   setIsWebhookTestingDialogOpen,
 }: ManualWebhookTestButtonProps) => {
-  const [id, setId] = useState<number>(0);
+  const [id, setId] = createSignal<number>(0);
   const formValues = useFormContext<FlowTrigger>().getValues();
 
   return (
@@ -24,7 +24,7 @@ export const ManualWebhookTestButton = ({
       <Button
         variant="default"
         size="sm"
-        className="flex items-center gap-2"
+        class="flex items-center gap-2"
         onClick={() => {
           setIsWebhookTestingDialogOpen(true);
         }}

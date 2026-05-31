@@ -1,11 +1,11 @@
 import { t } from 'i18next';
-import { Copy, Check } from 'lucide-react';
-import React, { useState } from 'react';
-import ReactJson from 'react-json-view';
-import { toast } from 'sonner';
+import { Copy, Check } from 'lucide-solid';
+import { createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { useTheme } from '@/components/providers/theme-provider';
 import { Button } from '@/components/ui/button';
+import { SolidJsonViewer } from './solid-json-viewer';
 
 interface SimpleJsonViewerProps {
   data: any;
@@ -15,14 +15,14 @@ interface SimpleJsonViewerProps {
   fontSize?: string;
 }
 
-export const SimpleJsonViewer: React.FC<SimpleJsonViewerProps> = ({
+export const SimpleJsonViewer = ({
   data,
   readOnly = true,
   hideCopyButton = false,
   maxHeight = 400,
   fontSize = '14px',
-}) => {
-  const [copied, setCopied] = useState(false);
+}: SimpleJsonViewerProps) => {
+  const [copied, setCopied] = createSignal(false);
   const { theme } = useTheme();
 
   const formattedJson =
@@ -40,8 +40,6 @@ export const SimpleJsonViewer: React.FC<SimpleJsonViewerProps> = ({
     }, 3000);
   };
 
-  const viewerTheme = theme === 'dark' ? 'bright' : 'rjv-default';
-
   return (
     <div
       className="w-full relative text-foreground overflow-hidden"
@@ -49,26 +47,26 @@ export const SimpleJsonViewer: React.FC<SimpleJsonViewerProps> = ({
         maxWidth: '100%',
       }}
     >
-      {!hideCopyButton && (
+      <Show when={!hideCopyButton}>
         <div className="absolute top-2 right-5 z-10">
           <Button
             variant="transparent"
             size="sm"
             onClick={handleCopy}
-            className="p-0 "
+            class="p-0 "
           >
-            {copied ? (
-              <Check className="w-4 h-4 text-success" />
+            {copied() ? (
+              <Check class="w-4 h-4 text-success" />
             ) : (
               <Copy
-                className={`w-4 h-4 ${
+                class={`w-4 h-4 ${
                   theme === 'dark' ? 'text-white' : 'text-black'
                 }`}
               />
             )}
           </Button>
         </div>
-      )}
+      </Show>
       <div
         className="p-2"
         style={{
@@ -79,43 +77,21 @@ export const SimpleJsonViewer: React.FC<SimpleJsonViewerProps> = ({
           boxSizing: 'border-box',
         }}
       >
-        {typeof data === 'string' ? (
+        <Show
+          when={typeof data === 'string'}
+          fallback={
+            <div style={{ minWidth: 0, width: '100%', height: '100%' }}>
+              <SolidJsonViewer data={data} fontSize={fontSize} />
+            </div>
+          }
+        >
           <pre
             className="whitespace-pre-wrap break-all overflow-x-auto p-2"
             style={{ fontSize }}
           >
             {data}
           </pre>
-        ) : (
-          <div style={{ minWidth: 0, width: '100%', height: '100%' }}>
-            <ReactJson
-              style={{
-                overflowX: 'auto',
-                padding: '0.5rem',
-                fontSize,
-                width: '100%',
-                minWidth: 0,
-                boxSizing: 'border-box',
-                wordBreak: 'break-word',
-                whiteSpace: 'pre-wrap',
-              }}
-              theme={viewerTheme}
-              enableClipboard={false}
-              groupArraysAfterLength={20}
-              displayDataTypes={false}
-              name={false}
-              quotesOnKeys={false}
-              src={data}
-              collapsed={false}
-              displayObjectSize={false}
-              iconStyle="triangle"
-              shouldCollapse={false}
-              onEdit={readOnly ? false : undefined}
-              onAdd={readOnly ? false : undefined}
-              onDelete={readOnly ? false : undefined}
-            />
-          </div>
-        )}
+        </Show>
       </div>
     </div>
   );

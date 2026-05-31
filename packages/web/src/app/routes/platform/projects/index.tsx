@@ -3,12 +3,12 @@ import {
   ProjectWithLimits,
   TeamProjectsLimit,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { useNavigate, useSearchParams } from '@solidjs/router';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
-import { CheckIcon, Package, Pencil, Trash } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { CheckIcon, Package, Pencil, Trash } from 'lucide-solid';
+import { createEffect, createMemo, createSignal, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -46,7 +46,7 @@ export default function ProjectsPage() {
   const { project: currentProject } =
     projectCollectionUtils.useCurrentProject();
 
-  useEffect(() => {
+  createEffect(() => {
     if (!searchParams.has('type')) {
       setSearchParams(
         (prev) => {
@@ -57,36 +57,34 @@ export default function ProjectsPage() {
         { replace: true },
       );
     }
-  }, []);
+  });
 
   const displayNameFilter = searchParams.get('displayName') || undefined;
   const typeFilter = searchParams.getAll('type');
 
-  const filters = useMemo(
-    () => ({
-      displayName: displayNameFilter,
-      type:
-        typeFilter.length > 0
-          ? typeFilter.map((t) => t as ProjectType)
-          : undefined,
-    }),
-    [displayNameFilter, typeFilter.join(',')],
-  );
+  const filters = createMemo(() => ({
+    displayName: displayNameFilter,
+    type:
+      typeFilter.length > 0
+        ? typeFilter.map((t) => t as ProjectType)
+        : undefined,
+  }));
 
   const { data: allProjects } =
     projectCollectionUtils.useAllPlatformProjects(filters);
 
-  const [selectedRows, setSelectedRows] = useState<ProjectWithLimits[]>([]);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedRows, setSelectedRows] = createSignal<ProjectWithLimits[]>([]);
+  const [editDialogOpen, setEditDialogOpen] = createSignal(false);
   const [editDialogInitialValues, setEditDialogInitialValues] =
-    useState<any>(null);
-  const [editDialogProjectId, setEditDialogProjectId] = useState<string>('');
+    createSignal<any>(null);
+  const [editDialogProjectId, setEditDialogProjectId] =
+    createSignal<string>('');
   const { data: allGlobalConnectionsPage } =
     globalConnectionsQueries.useGlobalConnections({
       request: { limit: 9999 },
       extraKeys: [],
     });
-  const allProjectsWithGlobalConnectionsCount = useMemo(() => {
+  const allProjectsWithGlobalConnectionsCount = createMemo(() => {
     return allProjects.map((project) => ({
       ...project,
       globalConnectionsCount:
@@ -94,13 +92,11 @@ export default function ProjectsPage() {
           connection.projectIds.includes(project.id),
         ).length ?? 0,
     }));
-  }, [allProjects, allGlobalConnectionsPage?.data]);
-  const columns = useMemo(
-    () =>
-      projectsTableColumns({
-        platform,
-      }),
-    [platform],
+  });
+  const columns = createMemo(() =>
+    projectsTableColumns({
+      platform,
+    }),
   );
 
   const columnsWithCheckbox: ColumnDef<
@@ -197,17 +193,19 @@ export default function ProjectsPage() {
                 />
               </div>
             </TooltipTrigger>
-            {isDisabled && (
+            <Show when={isDisabled}>
               <TooltipContent side="right">
-                {isCurrentProject
-                  ? t(
-                      'Cannot delete active project, switch to another project first',
-                    )
-                  : t(
-                      "Personal projects cannot be deleted, and you can't subscribe to their alerts",
-                    )}
+                <Show
+                  when={isCurrentProject}
+                  fallback={t(
+                    "Personal projects cannot be deleted, and you can't subscribe to their alerts",
+                  )}
+                >
+                  t( 'Cannot delete active project, switch to another project
+                  first',
+                </Show>
               </TooltipContent>
-            )}
+            </Show>
           </Tooltip>
         );
       },
@@ -215,90 +213,83 @@ export default function ProjectsPage() {
     ...columns,
   ];
 
-  const bulkActions: BulkAction<ProjectWithLimits>[] = useMemo(
-    () => [
-      {
-        render: (
-          _: RowDataWithActions<ProjectWithLimits>[],
-          resetSelection: () => void,
-        ) => (
-          <PlatformAdminProjectAlertSubscriptionBulkActions
-            selectedProjects={selectedRows}
-            resetSelection={() => {
-              resetSelection();
-              setSelectedRows([]);
-            }}
-          />
-        ),
+  const bulkActions: BulkAction<ProjectWithLimits>[] = createMemo(() => [
+    {
+      render: (
+        _: RowDataWithActions<ProjectWithLimits>[],
+        resetSelection: () => void,
+      ) => (
+        <PlatformAdminProjectAlertSubscriptionBulkActions
+          selectedProjects={selectedRows}
+          resetSelection={() => {
+            resetSelection();
+            setSelectedRows([]);
+          }}
+        />
+      ),
+    },
+    {
+      render: (
+        _: RowDataWithActions<ProjectWithLimits>[],
+        resetSelection: () => void,
+      ) => {
+        const canDeleteAny = selectedRows.some(
+          (row) =>
+            row.id !== currentProject?.id && row.type !== ProjectType.PERSONAL,
+        );
+        return (
+          <div onClick={(e) => e.stopPropagation()}>
+            <ConfirmationDeleteDialog
+              title={t('Delete Projects')}
+              message={t(
+                'The selected projects and all their data will be permanently deleted.',
+              )}
+              entityName={t('Projects')}
+              buttonText={t('Delete')}
+              mutationFn={async () => {
+                const deletableProjects = selectedRows.filter(
+                  (row) =>
+                    row.id !== currentProject?.id &&
+                    row.type !== ProjectType.PERSONAL,
+                );
+                projectCollectionUtils.delete(
+                  deletableProjects.map((row) => row.id),
+                );
+                resetSelection();
+                setSelectedRows([]);
+              }}
+              onError={(error) => {
+                toast.error(t('Error'), {
+                  description: errorToastMessage(error),
+                  duration: 3000,
+                });
+              }}
+            >
+              <Show when={selectedRows.length > 0}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="text-destructive hover:text-destructive"
+                  disabled={!canDeleteAny}
+                >
+                  <Trash class="mr-1 w-4" />
+                  {`${t('Delete')} (${selectedRows.length})`}
+                </Button>
+              </Show>
+            </ConfirmationDeleteDialog>
+          </div>
+        );
       },
-      {
-        render: (
-          _: RowDataWithActions<ProjectWithLimits>[],
-          resetSelection: () => void,
-        ) => {
-          const canDeleteAny = selectedRows.some(
-            (row) =>
-              row.id !== currentProject?.id &&
-              row.type !== ProjectType.PERSONAL,
-          );
-          return (
-            <div onClick={(e) => e.stopPropagation()}>
-              <ConfirmationDeleteDialog
-                title={t('Delete Projects')}
-                message={t(
-                  'The selected projects and all their data will be permanently deleted.',
-                )}
-                entityName={t('Projects')}
-                buttonText={t('Delete')}
-                mutationFn={async () => {
-                  const deletableProjects = selectedRows.filter(
-                    (row) =>
-                      row.id !== currentProject?.id &&
-                      row.type !== ProjectType.PERSONAL,
-                  );
-                  projectCollectionUtils.delete(
-                    deletableProjects.map((row) => row.id),
-                  );
-                  resetSelection();
-                  setSelectedRows([]);
-                }}
-                onError={(error) => {
-                  toast.error(t('Error'), {
-                    description: errorToastMessage(error),
-                    duration: 3000,
-                  });
-                }}
-              >
-                {selectedRows.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-destructive hover:text-destructive"
-                    disabled={!canDeleteAny}
-                  >
-                    <Trash className="mr-1 w-4" />
-                    {`${t('Delete')} (${selectedRows.length})`}
-                  </Button>
-                )}
-              </ConfirmationDeleteDialog>
-            </div>
-          );
-        },
-      },
-    ],
-    [selectedRows, currentProject],
-  );
+    },
+  ]);
 
-  const toolbarButtons = useMemo(
-    () => [
-      <CreateProjectButton
-        key="new-project"
-        variant="full"
-        projects={allProjects}
-      />,
-    ],
-    [allProjects],
-  );
+  const toolbarButtons = createMemo(() => [
+    <CreateProjectButton
+      key="new-project"
+      variant="full"
+      projects={allProjects}
+    />,
+  ]);
 
   const errorToastMessage = (error: unknown): string | undefined => {
     if (validationUtils.isValidationError(error)) {
@@ -323,7 +314,7 @@ export default function ProjectsPage() {
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
-                className="size-8 p-0"
+                class="size-8 p-0"
                 onClick={async (e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -334,7 +325,7 @@ export default function ProjectsPage() {
                   setEditDialogOpen(true);
                 }}
               >
-                <Pencil className="size-4" />
+                <Pencil class="size-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">{t('Edit project')}</TooltipContent>
@@ -364,7 +355,7 @@ export default function ProjectsPage() {
           emptyStateTextDescription={t(
             'Start by creating projects to manage your automation teams',
           )}
-          emptyStateIcon={<Package className="size-14" />}
+          emptyStateIcon={<Package class="size-14" />}
           onRowClick={async (project) => {
             await projectCollectionUtils.setCurrentProject(project.id);
             navigate('/');

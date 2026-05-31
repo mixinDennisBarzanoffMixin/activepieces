@@ -4,7 +4,7 @@ import {
   ProjectType,
   ProjectWithLimits,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   AlertCircle,
@@ -18,8 +18,8 @@ import {
   Search,
   Workflow,
   X,
-} from 'lucide-react';
-import { useMemo } from 'react';
+} from 'lucide-solid';
+import { createMemo, For, Show } from 'solid-js';
 
 import { ApAvatar } from '@/components/custom/ap-avatar';
 import { DataTable, RowDataWithActions } from '@/components/custom/data-table';
@@ -72,7 +72,7 @@ export function FlowsDetails({
 
   const filters = useDetailsFilters(flowDetails, uniqueOwners);
 
-  const columns = useMemo(
+  const columns = createMemo(
     (): ColumnDef<RowDataWithActions<FlowDetailRow>>[] => [
       {
         accessorKey: 'flowName',
@@ -86,7 +86,7 @@ export function FlowsDetails({
               DASHBOARD_CONTENT_PADDING_X,
             )}
           >
-            <Workflow className="size-4 mr-2 text-primary shrink-0" />
+            <Workflow class="size-4 mr-2 text-primary shrink-0" />
             <span className="truncate">{row.original.flowName}</span>
           </div>
         ),
@@ -136,7 +136,7 @@ export function FlowsDetails({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-1.5 text-muted-foreground cursor-not-allowed">
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus class="h-3.5 w-3.5" />
                     <span>{t('Add Estimated Time')}</span>
                   </div>
                 </TooltipTrigger>
@@ -157,7 +157,7 @@ export function FlowsDetails({
                     currentValue={timeSavedPerRun}
                   >
                     <Button variant="link" size="xs">
-                      <Pencil className="size-3! mr-1" />
+                      <Pencil class="size-3! mr-1" />
                       <span>{t('Edit')}</span>
                     </Button>
                   </EditTimeSavedPopover>
@@ -172,7 +172,7 @@ export function FlowsDetails({
               currentValue={timeSavedPerRun}
             >
               <div className="flex items-center gap-1.5 cursor-pointer text-primary hover:underline">
-                <Plus className="h-3.5 w-3.5" />
+                <Plus class="h-3.5 w-3.5" />
                 <span>{t('Add Estimated Time')}</span>
               </div>
             </EditTimeSavedPopover>
@@ -190,7 +190,7 @@ export function FlowsDetails({
         ),
         cell: ({ row }) => (
           <div className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" />
+            <Clock class="h-3.5 w-3.5" />
             <span>
               {formatUtils.formatToHoursAndMinutes(row.original.minutesSaved)}
             </span>
@@ -212,7 +212,7 @@ export function FlowsDetails({
           const projectAvatar =
             project?.type === ProjectType.TEAM ? (
               <Avatar
-                className="size-5 shrink-0 flex items-center justify-center rounded-[4px] text-xs font-bold"
+                class="size-5 shrink-0 flex items-center justify-center rounded-[4px] text-xs font-bold"
                 style={{
                   backgroundColor:
                     PROJECT_COLOR_PALETTE[project.icon.color].color,
@@ -224,7 +224,7 @@ export function FlowsDetails({
                 </span>
               </Avatar>
             ) : (
-              <LayoutGrid className="h-4 w-4 shrink-0" />
+              <LayoutGrid class="h-4 w-4 shrink-0" />
             );
 
           if (userHasAccess) {
@@ -245,7 +245,6 @@ export function FlowsDetails({
         },
       },
     ],
-    [projects, timeSavedPerRunOverrides],
   );
 
   if (!flowDetails && !isLoading) {
@@ -256,21 +255,21 @@ export function FlowsDetails({
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative w-[200px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             placeholder={t('Search flows')}
             value={filters.searchQuery}
             onChange={(e) => filters.setSearchQuery(e.target.value)}
-            className="pl-9 pr-8"
+            class="pl-9 pr-8"
           />
-          {filters.searchQuery && (
+          <Show when={filters.searchQuery}>
             <button
               onClick={() => filters.setSearchQuery('')}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             >
-              <X className="h-3.5 w-3.5" />
+              <X class="h-3.5 w-3.5" />
             </button>
-          )}
+          </Show>
         </div>
 
         <TimeSavedFilter filters={filters} />
@@ -286,7 +285,7 @@ export function FlowsDetails({
               onClick={() => exportFlowDetailsCsv([...filters.filteredData])}
               disabled={filters.filteredData.length === 0}
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Download class="h-4 w-4 mr-2" />
               {t('Download')}
             </Button>
           </TooltipTrigger>
@@ -294,10 +293,10 @@ export function FlowsDetails({
         </Tooltip>
       </div>
 
-      {flowsMissingTimeSaved > 0 && (
+      <Show when={flowsMissingTimeSaved > 0}>
         <div className="flex mx-3 items-start justify-between gap-3 p-4 rounded-lg border border-warning/50 bg-warning/10">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            <AlertCircle class="h-5 w-5 text-warning shrink-0 mt-0.5" />
             <div className="flex flex-col gap-1">
               <p className="text-sm font-medium">
                 {t(
@@ -311,7 +310,7 @@ export function FlowsDetails({
             </div>
           </div>
         </div>
-      )}
+      </Show>
 
       <DataTable
         columns={columns}
@@ -329,9 +328,7 @@ export function FlowsDetails({
             ? t('Try adjusting your search')
             : t('Start running your flows to see time saved')
         }
-        emptyStateIcon={
-          <Workflow className="h-10 w-10 text-muted-foreground" />
-        }
+        emptyStateIcon={<Workflow class="h-10 w-10 text-muted-foreground" />}
       />
     </div>
   );
@@ -346,18 +343,18 @@ function TimeSavedFilter({ filters }: { filters: FiltersReturn }) {
       onOpenChange={filters.handleTimeSavedPopoverOpen}
     >
       <PopoverTrigger asChild>
-        <Button variant="outline" className="gap-2 font-normal border-dashed">
-          <Clock className="h-4 w-4" />
+        <Button variant="outline" class="gap-2 font-normal border-dashed">
+          <Clock class="h-4 w-4" />
           <span>{t('Total Time Saved')}</span>
-          {filters.timeSavedLabel && (
+          <Show when={filters.timeSavedLabel}>
             <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-medium">
               {filters.timeSavedLabel}
             </span>
-          )}
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          </Show>
+          <ChevronDown class="h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-4" align="start">
+      <PopoverContent class="w-[200px] p-4" align="start">
         <TimeSavedFilterContent
           draftMin={filters.draftTimeSaved.min}
           onMinChange={(v) => filters.updateDraftTimeSaved({ min: v })}
@@ -381,66 +378,70 @@ function OwnerFilter({ filters }: { filters: FiltersReturn }) {
       onOpenChange={(open) => filters.updateOwnerFilter({ popoverOpen: open })}
     >
       <PopoverTrigger asChild>
-        <Button variant="outline" className="gap-2 font-normal border-dashed">
-          <Filter className="h-4 w-4" />
+        <Button variant="outline" class="gap-2 font-normal border-dashed">
+          <Filter class="h-4 w-4" />
           <span>{t('Owner')}</span>
-          {filters.selectedOwners.length > 0 && (
+          <Show when={filters.selectedOwners.length > 0}>
             <span className="flex items-center gap-1">
-              {filters.selectedOwners.slice(0, 2).map((owner) => (
-                <span
-                  key={owner.id}
-                  className="flex items-center gap-1 rounded bg-accent px-1.5 py-0.5 text-xs font-medium"
-                >
-                  <ApAvatar id={owner.id} size="xsmall" hideHover={true} />
-                  <OwnerFullName id={owner.id} maxWidth="max-w-[80px]" />
-                </span>
-              ))}
-              {filters.selectedOwners.length > 2 && (
+              <For each={filters.selectedOwners.slice(0, 2)}>
+                {(owner) => (
+                  <span
+                    key={owner.id}
+                    className="flex items-center gap-1 rounded bg-accent px-1.5 py-0.5 text-xs font-medium"
+                  >
+                    <ApAvatar id={owner.id} size="xsmall" hideHover={true} />
+                    <OwnerFullName id={owner.id} maxWidth="max-w-[80px]" />
+                  </span>
+                )}
+              </For>
+              <Show when={filters.selectedOwners.length > 2}>
                 <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-medium">
                   +{filters.selectedOwners.length - 2}
                 </span>
-              )}
+              </Show>
             </span>
-          )}
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          </Show>
+          <ChevronDown class="h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[240px] p-0" align="start">
+      <PopoverContent class="w-[240px] p-0" align="start">
         <div className="p-2 border-b">
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search class="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('Search owners...')}
               value={filters.ownerFilter.searchQuery}
               onChange={(e) =>
                 filters.updateOwnerFilter({ searchQuery: e.target.value })
               }
-              className="pl-8 h-8"
+              class="pl-8 h-8"
             />
           </div>
         </div>
         <div className="max-h-[220px] overflow-auto">
-          {filters.filteredOwners.map((owner) => (
-            <div
-              key={owner.id}
-              onClick={() => filters.toggleOwner(owner.id)}
-              className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-accent"
-            >
-              <Checkbox
-                checked={filters.ownerFilter.selectedIds.includes(owner.id)}
-                className="pointer-events-none"
-              />
-              <ApAvatar id={owner.id} size="small" hideHover={true} />
-              <OwnerFullName id={owner.id} />
-            </div>
-          ))}
-          {filters.filteredOwners.length === 0 && (
+          <For each={filters.filteredOwners}>
+            {(owner) => (
+              <div
+                key={owner.id}
+                onClick={() => filters.toggleOwner(owner.id)}
+                className="flex items-center gap-2.5 px-3 py-2 text-sm cursor-pointer hover:bg-accent"
+              >
+                <Checkbox
+                  checked={filters.ownerFilter.selectedIds.includes(owner.id)}
+                  class="pointer-events-none"
+                />
+                <ApAvatar id={owner.id} size="small" hideHover={true} />
+                <OwnerFullName id={owner.id} />
+              </div>
+            )}
+          </For>
+          <Show when={filters.filteredOwners.length === 0}>
             <div className="py-6 text-center text-sm text-muted-foreground">
               {t('No owners found')}
             </div>
-          )}
+          </Show>
         </div>
-        {filters.ownerFilter.selectedIds.length > 0 && (
+        <Show when={filters.ownerFilter.selectedIds.length > 0}>
           <div className="p-2 border-t">
             <button
               onClick={() => filters.updateOwnerFilter({ selectedIds: [] })}
@@ -449,7 +450,7 @@ function OwnerFilter({ filters }: { filters: FiltersReturn }) {
               {t('Clear all')}
             </button>
           </div>
-        )}
+        </Show>
       </PopoverContent>
     </Popover>
   );
@@ -465,7 +466,9 @@ function OwnerFullName({
   const { data: user } = userHooks.useUserById(id);
   return (
     <span className={`truncate ${maxWidth}`}>
-      {user ? `${user.firstName} ${user.lastName}`.trim() : id}
+      <Show when={user} fallback={id}>
+        `${user.firstName} ${user.lastName}`.trim(
+      </Show>
     </span>
   );
 }

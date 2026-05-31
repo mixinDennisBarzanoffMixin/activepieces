@@ -1,4 +1,4 @@
-import { FileIcon, X } from 'lucide-react';
+import { FileIcon, X } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 
@@ -33,7 +33,7 @@ export const FileInputPreview = ({
       )}
       {!isImage && !isVideo && (
         <div className="w-20 h-20 bg-foreground text-background rounded-lg flex items-center justify-center">
-          <FileIcon className="w-8 h-8" />
+          <FileIcon class="w-8 h-8" />
         </div>
       )}
       <Button
@@ -44,9 +44,9 @@ export const FileInputPreview = ({
           e.stopPropagation();
           onRemove(index);
         }}
-        className="absolute -top-2 -right-2 rounded-full p-1 size-6"
+        class="absolute -top-2 -right-2 rounded-full p-1 size-6"
       >
-        <X className="w-3 h-3" />
+        <X class="w-3 h-3" />
       </Button>
       <p className="text-xs mt-1 truncate w-20">{file.name}</p>
     </div>

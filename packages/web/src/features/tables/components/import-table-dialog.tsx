@@ -1,11 +1,10 @@
 import { ApFlagId, SharedTemplate, TableTemplate } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@solidjs/router';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Import } from 'lucide-react';
+import { Import } from 'lucide-solid';
 import { parse } from 'papaparse';
-import { useState } from 'react';
-import { FieldErrors, useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { createSignal, Show } from 'solid-js';
 
 import { CopyButton } from '@/components/custom/clipboard/copy-button';
 import { ApMarkdown } from '@/components/custom/markdown';
@@ -19,15 +18,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { api } from '@/lib/api';
@@ -61,10 +53,14 @@ const ImportTableDialog = ({
 }: ImportTableDialogProps) => {
   const navigate = useNavigate();
   const projectId = authenticationSession.getProjectId() ?? '';
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [csvColumns, setCsvColumns] = useState<string[]>([]);
-  const [csvRecords, setCsvRecords] = useState<string[][]>([]);
-  const [fileType, setFileType] = useState<SupportedFileType | null>(null);
+  const [serverError, setServerError] = createSignal<string | null>(null);
+  const [csvColumns, setCsvColumns] = createSignal<string[]>([]);
+  const [csvRecords, setCsvRecords] = createSignal<string[][]>([]);
+  const [fileType, setFileType] = createSignal<SupportedFileType | null>(null);
+  const [file, setFile] = createSignal<File | null>(null);
+  const [mapping, setMapping] = createSignal<FieldsMapping>([]);
+  const [fileError, setFileError] = createSignal('');
+  const [fileKey, setFileKey] = createSignal(0);
   const { data: maxFileSize } = flagsHooks.useFlag<number>(
     ApFlagId.MAX_FILE_SIZE_MB,
   );
@@ -86,52 +82,32 @@ const ImportTableDialog = ({
   };
 
   const resetState = () => {
-    form.reset();
     setCsvColumns([]);
     setCsvRecords([]);
     setFileType(null);
+    setFile(null);
+    setMapping([]);
+    setFileError('');
+    setFileKey((key) => key + 1);
     setServerError(null);
   };
 
-  const form = useForm<{
-    file: File;
-    fieldsMapping: FieldsMapping;
-  }>({
-    defaultValues: {
-      fieldsMapping: [],
-    },
-    resolver: (values) => {
-      const errors: FieldErrors<{
-        file: File | null;
-        fieldsMapping: FieldsMapping;
-      }> = {};
+  const validate = () => {
+    const selected = file();
+    if (!selected) {
+      setFileError(t('Please select a JSON or CSV file'));
+      return false;
+    }
 
-      if (!values.file) {
-        errors.file = {
-          message: t('Please select a JSON or CSV file'),
-          type: 'required',
-        };
-        return { values: {}, errors };
-      }
+    const validation = fileUtils.validateFile(selected, maxFileSize ?? undefined);
+    if (!validation.valid) {
+      setFileError(t(validation.error!));
+      return false;
+    }
 
-      const validation = fileUtils.validateFile(
-        values.file,
-        maxFileSize ?? undefined,
-      );
-      if (!validation.valid) {
-        errors.file = {
-          message: t(validation.error!),
-          type: 'invalid',
-        };
-        return { values: {}, errors };
-      }
-
-      return {
-        values: Object.keys(errors).length === 0 ? values : {},
-        errors,
-      };
-    },
-  });
+    setFileError('');
+    return true;
+  };
 
   const handleCsvImport = async (data: { fieldsMapping: FieldsMapping }) => {
     const tableState = getTableState();
@@ -140,7 +116,7 @@ const ImportTableDialog = ({
     }
 
     const records = await recordsApi.importCsv({
-      csvRecords,
+      csvRecords: csvRecords(),
       tableId,
       fieldsMapping: data.fieldsMapping,
       maxRecordsLimit: (maxRecords ?? 1000) - tableState.recordsCount,
@@ -196,15 +172,14 @@ const ImportTableDialog = ({
     }
   };
 
-  const { mutate: importFile, isPending: isLoading } = useMutation({
+  const { mutate: importFile, isPending: isLoading } = createMutation({
     mutationFn: async (data: { file: File; fieldsMapping: FieldsMapping }) => {
       setServerError(null);
 
-      if (fileType === 'csv') {
+      if (fileType() === 'csv') {
         return await handleCsvImport(data);
-      } else {
-        return await handleJsonImport(data);
       }
+      return await handleJsonImport(data);
     },
     onSuccess: async (table) => {
       setIsOpen?.(false);
@@ -222,6 +197,17 @@ const ImportTableDialog = ({
     },
   });
 
+  const submit = (event: SubmitEvent) => {
+    event.preventDefault();
+    const selected = file();
+    if (!validate() || !selected) return;
+
+    importFile({
+      file: selected,
+      fieldsMapping: mapping(),
+    });
+  };
+
   return (
     <Dialog
       open={open}
@@ -232,12 +218,8 @@ const ImportTableDialog = ({
     >
       {showTrigger && (
         <DialogTrigger asChild>
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex gap-2 items-center"
-          >
-            <Import className="w-4 h-4 shrink-0" />
+          <Button variant="outline" size="sm" class="flex gap-2 items-center">
+            <Import class="w-4 h-4 shrink-0" />
             {t('Import')}
           </Button>
         </DialogTrigger>
@@ -247,15 +229,11 @@ const ImportTableDialog = ({
           <DialogTitle>{t('Import Table')}</DialogTitle>
         </DialogHeader>
 
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit((data) => importFile(data))}
-            className="space-y-4"
-          >
-            <ApMarkdown
-              className="text-left"
+        <form onSubmit={submit} className="space-y-4">
+          <ApMarkdown
+              class="text-left"
               markdown={(() => {
-                if (fileType === 'csv') {
+                if (fileType() === 'csv') {
                   return [
                     t('Import records from a CSV file'),
                     t('Records will be added to the bottom of the table'),
@@ -268,7 +246,7 @@ const ImportTableDialog = ({
                   ].join('\n\n');
                 }
 
-                if (fileType === 'json' && tableId) {
+                if (fileType() === 'json' && tableId) {
                   return [
                     t(
                       '⚠️ **Warning:** This will completely replace the current table',
@@ -314,127 +292,115 @@ const ImportTableDialog = ({
                   ),
                 ].join('\n\n');
               })()}
-            />
-            <FormField
-              control={form.control}
-              name="file"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>
-                    {t(
-                      allowedFileTypes
-                        .map((t) => t.toUpperCase())
-                        .join(' or ') + ' file',
-                    )}
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      type="file"
-                      accept={allowedFileTypes.map((t) => `.${t}`).join(',')}
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
+          />
+          <div class="space-y-1">
+              <Label>
+                {t(
+                  allowedFileTypes.map((item) => item.toUpperCase()).join(' or ') +
+                    ' file',
+                )}
+              </Label>
+              <Input
+                key={fileKey()}
+                type="file"
+                accept={allowedFileTypes.map((item) => `.${item}`).join(',')}
+                onChange={async (event) => {
+                  const selected = event.currentTarget.files?.[0];
+                  if (!selected) return;
 
-                        field.onChange(file);
-                        setServerError(null);
+                  setFile(selected);
+                  setFileError('');
+                  setServerError(null);
 
-                        const validation = fileUtils.validateFile(
-                          file,
-                          maxFileSize ?? undefined,
-                        );
-                        if (!validation.valid) {
-                          setServerError(t(validation.error!));
-                          return;
-                        }
+                  const validation = fileUtils.validateFile(
+                    selected,
+                    maxFileSize ?? undefined,
+                  );
+                  if (!validation.valid) {
+                    setServerError(t(validation.error!));
+                    return;
+                  }
 
-                        const extension = fileUtils.getExtension(file.name);
-                        if (!fileUtils.isValidType(extension)) {
-                          setServerError(t('Invalid file type'));
-                          return;
-                        }
+                  const extension = fileUtils.getExtension(selected.name);
+                  if (!fileUtils.isValidType(extension)) {
+                    setServerError(t('Invalid file type'));
+                    return;
+                  }
 
-                        if (!allowedFileTypes.includes(extension)) {
-                          setServerError(
-                            t('Only {types} files are allowed', {
-                              types: allowedFileTypes
-                                .map((t) => t.toUpperCase())
-                                .join(', '),
-                            }),
-                          );
-                          return;
-                        }
+                  if (!allowedFileTypes.includes(extension)) {
+                    setServerError(
+                      t('Only {types} files are allowed', {
+                        types: allowedFileTypes
+                          .map((item) => item.toUpperCase())
+                          .join(', '),
+                      }),
+                    );
+                    return;
+                  }
 
-                        setFileType(extension);
+                  setFileType(extension);
 
-                        if (extension === 'csv') {
-                          if (!tableId) {
-                            setServerError(
-                              t(
-                                'CSV import is only available for existing tables',
-                              ),
-                            );
-                            return;
-                          }
+                  if (extension === 'csv') {
+                    if (!tableId) {
+                      setServerError(
+                        t('CSV import is only available for existing tables'),
+                      );
+                      return;
+                    }
 
-                          if (!tableStore) {
-                            setServerError(
-                              t(
-                                'CSV import is only available from the table editor.',
-                              ),
-                            );
-                            return;
-                          }
+                    if (!tableStore) {
+                      setServerError(
+                        t(
+                          'CSV import is only available from the table editor.',
+                        ),
+                      );
+                      return;
+                    }
 
-                          try {
-                            const parsedCsvRecords = await new Promise<
-                              string[][]
-                            >((resolve, reject) => {
-                              parse(file, {
-                                header: false,
-                                skipEmptyLines: 'greedy',
-                                worker: true,
-                                complete: (results) =>
-                                  resolve(results.data as string[][]),
-                                error: (error) => reject(error),
-                              });
-                            });
-                            setCsvColumns(parsedCsvRecords[0] ?? []);
-                            setCsvRecords(parsedCsvRecords.slice(1));
-                          } catch (error) {
-                            setServerError(t('Failed to parse CSV file'));
-                          }
-                        } else {
-                          setCsvColumns([]);
-                          setCsvRecords([]);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    try {
+                      const rows = await new Promise<string[][]>(
+                        (resolve, reject) => {
+                          parse<string[]>(selected, {
+                            header: false,
+                            skipEmptyLines: 'greedy',
+                            worker: true,
+                            complete: (results) => resolve(results.data),
+                            error: (error) => reject(error),
+                          });
+                        },
+                      );
+                      setCsvColumns(rows[0] ?? []);
+                      setCsvRecords(rows.slice(1));
+                      setMapping([]);
+                    } catch (error) {
+                      setServerError(t('Failed to parse CSV file'));
+                    }
+                    return;
+                  }
 
-            {fileType === 'csv' && csvColumns.length > 0 && tableStore && (
-              <ScrollArea className="max-h-[calc(100vh-500px)] overflow-y-auto flex-1">
-                <FormField
-                  control={form.control}
-                  name="fieldsMapping"
-                  key={form.watch('file')?.name}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FieldsMappingControl
-                        fields={tableStore.getState().serverFields}
-                        csvColumns={csvColumns}
-                        onChange={field.onChange}
-                      />
-                    </FormItem>
-                  )}
-                />
-              </ScrollArea>
-            )}
+                  setCsvColumns([]);
+                  setCsvRecords([]);
+                  setMapping([]);
+                }}
+              />
+              <Show when={fileError()}>
+                <p class="text-sm font-medium text-destructive wrap-break-word">
+                  {fileError()}
+                </p>
+              </Show>
+          </div>
 
-            {serverError && (
+          {fileType() === 'csv' && csvColumns().length > 0 && tableStore && (
+            <ScrollArea class="max-h-[calc(100vh-500px)] overflow-y-auto flex-1">
+              <FieldsMappingControl
+                fields={tableStore.getState().serverFields}
+                csvColumns={csvColumns()}
+                onChange={setMapping}
+              />
+            </ScrollArea>
+          )}
+
+          <Show when={serverError()}>
               <div className=" flex items-center justify-between">
                 <div className="text-destructive">
                   {t(
@@ -445,12 +411,12 @@ const ImportTableDialog = ({
                   <CopyButton
                     variant="ghost"
                     withoutTooltip={true}
-                    textToCopy={serverError}
+                    textToCopy={serverError() ?? ''}
                   />
                 </div>
               </div>
-            )}
-            <DialogFooter>
+          </Show>
+          <DialogFooter>
               <DialogClose asChild>
                 <Button variant="outline" size="sm" disabled={isLoading}>
                   {t('Cancel')}
@@ -459,9 +425,8 @@ const ImportTableDialog = ({
               <Button type="submit" size="sm" loading={isLoading}>
                 {t('Import')}
               </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

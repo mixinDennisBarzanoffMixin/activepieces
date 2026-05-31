@@ -1,5 +1,5 @@
-import { Globe } from 'lucide-react';
-import { useState } from 'react';
+import { Globe } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import {
   HoverCard,
@@ -28,14 +28,12 @@ function getFaviconUrl(url: string): string {
 
 function FaviconOrGlobe({ url, size }: { url: string; size: 'sm' | 'md' }) {
   const favicon = getFaviconUrl(url);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = createSignal(false);
   const globeSize = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
   const imgSize = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
 
   if (!favicon || failed) {
-    return (
-      <Globe className={cn(globeSize, 'shrink-0 text-muted-foreground')} />
-    );
+    return <Globe class={cn(globeSize, 'shrink-0 text-muted-foreground')} />;
   }
 
   return (
@@ -69,7 +67,7 @@ function Source({ href, title, className }: SourceProps) {
           </span>
         </a>
       </HoverCardTrigger>
-      <HoverCardContent align="start" className="w-72 p-3">
+      <HoverCardContent align="start" class="w-72 p-3">
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <FaviconOrGlobe url={href} size="md" />

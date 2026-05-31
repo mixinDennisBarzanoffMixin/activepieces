@@ -1,7 +1,7 @@
 import { isNil } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Pencil } from 'lucide-react';
-import React, { useCallback, useRef } from 'react';
+import { Pencil } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import EditableText from '@/components/custom/editable-text';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,7 @@ interface EditableStepNameProps {
   stepIndex?: number;
 }
 
-const EditableStepName: React.FC<EditableStepNameProps> = ({
+const EditableStepName: any = ({
   selectedBranchIndex,
   displayName,
   branchName,
@@ -57,7 +57,84 @@ const EditableStepName: React.FC<EditableStepNameProps> = ({
 
   return (
     <>
-      {inBranchView ? (
+      <Show
+        when={inBranchView()}
+        fallback={
+          isEditingStepOrBranchName ? (
+            <StepNameEditor
+              value={displayName}
+              onValueChange={setDisplayName}
+              onCommit={() => setIsEditingStepOrBranchName(false)}
+            />
+          ) : (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    role={readonly ? undefined : 'button'}
+                    tabIndex={readonly ? undefined : 0}
+                    onClick={readonly ? undefined : handleStartEditing}
+                    onKeyDown={
+                      readonly
+                        ? undefined
+                        : (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleStartEditing();
+                            }
+                          }
+                    }
+                    aria-label={readonly ? undefined : t('Edit Step Name')}
+                    className={cn(
+                      'flex items-center gap-1.5 min-w-0',
+                      !readonly &&
+                        'cursor-text rounded-sm hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                    )}
+                  >
+                    <span className="truncate text-foreground">
+                      <Show
+                        when={typeof stepIndex === 'number'()}
+                      >{`${stepIndex}. `}</Show>
+                      {displayName}
+                    </span>
+                    <Show when={!readonly()}>
+                      <Pencil class="size-3.5 shrink-0 text-muted-foreground" />
+                    </Show>
+                  </div>
+                </TooltipTrigger>
+                <Show when={showActionTooltip()}>
+                  <TooltipContent side="bottom" class="max-w-xs">
+                    <div className="flex flex-col gap-1">
+                      <Show when={tooltipTitle()}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">
+                            {tooltipTitle}
+                          </span>
+                          <Show when={pieceVersion()}>
+                            <span className="text-[11px] font-mono text-background/90">
+                              (v{pieceVersion})
+                            </span>
+                          </Show>
+                        </div>
+                      </Show>
+                      <Show when={!tooltipTitle && pieceVersion()}>
+                        <span className="text-[11px] font-mono text-background/90">
+                          (v{pieceVersion})
+                        </span>
+                      </Show>
+                      <Show when={tooltipDescription()}>
+                        <div className="text-xs text-background/90">
+                          {tooltipDescription}
+                        </div>
+                      </Show>
+                    </div>
+                  </TooltipContent>
+                </Show>
+              </Tooltip>
+            </TooltipProvider>
+          )
+        }
+      >
         <>
           <div
             className="truncate cursor-pointer hover:underline"
@@ -83,89 +160,19 @@ const EditableStepName: React.FC<EditableStepNameProps> = ({
             setIsEditing={setIsEditingStepOrBranchName}
           />
         </>
-      ) : isEditingStepOrBranchName ? (
-        <StepNameEditor
-          value={displayName}
-          onValueChange={setDisplayName}
-          onCommit={() => setIsEditingStepOrBranchName(false)}
-        />
-      ) : (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div
-                role={readonly ? undefined : 'button'}
-                tabIndex={readonly ? undefined : 0}
-                onClick={readonly ? undefined : handleStartEditing}
-                onKeyDown={
-                  readonly
-                    ? undefined
-                    : (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleStartEditing();
-                        }
-                      }
-                }
-                aria-label={readonly ? undefined : t('Edit Step Name')}
-                className={cn(
-                  'flex items-center gap-1.5 min-w-0',
-                  !readonly &&
-                    'cursor-text rounded-sm hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
-                )}
-              >
-                <span className="truncate text-foreground">
-                  {typeof stepIndex === 'number' && `${stepIndex}. `}
-                  {displayName}
-                </span>
-                {!readonly && (
-                  <Pencil className="size-3.5 shrink-0 text-muted-foreground" />
-                )}
-              </div>
-            </TooltipTrigger>
-            {showActionTooltip && (
-              <TooltipContent side="bottom" className="max-w-xs">
-                <div className="flex flex-col gap-1">
-                  {tooltipTitle && (
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">
-                        {tooltipTitle}
-                      </span>
-                      {pieceVersion && (
-                        <span className="text-[11px] font-mono text-background/90">
-                          (v{pieceVersion})
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {!tooltipTitle && pieceVersion && (
-                    <span className="text-[11px] font-mono text-background/90">
-                      (v{pieceVersion})
-                    </span>
-                  )}
-                  {tooltipDescription && (
-                    <div className="text-xs text-background/90">
-                      {tooltipDescription}
-                    </div>
-                  )}
-                </div>
-              </TooltipContent>
-            )}
-          </Tooltip>
-        </TooltipProvider>
-      )}
-      {inBranchView && !isEditingStepOrBranchName && !readonly && (
+      </Show>
+      <Show when={inBranchView && !isEditingStepOrBranchName && !readonly()}>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="size-6 shrink-0 text-muted-foreground hover:text-foreground"
+                class="size-6 shrink-0 text-muted-foreground hover:text-foreground"
                 onClick={handleStartEditing}
                 aria-label={t('Edit Branch Name')}
               >
-                <Pencil className="size-3.5" />
+                <Pencil class="size-3.5" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
@@ -173,7 +180,7 @@ const EditableStepName: React.FC<EditableStepNameProps> = ({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-      )}
+      </Show>
     </>
   );
 };
@@ -189,10 +196,10 @@ const StepNameEditor = ({
   onValueChange,
   onCommit,
 }: StepNameEditorProps) => {
-  const ref = useRef<HTMLDivElement>(null);
+  let ref: HTMLDivElement | undefined;
 
-  const focusAndSelect = useCallback((el: HTMLDivElement | null) => {
-    ref.current = el;
+  const focusAndSelect = (el: HTMLDivElement | null) => {
+    ref = el;
     if (!el) return;
     requestAnimationFrame(() => {
       el.focus();
@@ -202,10 +209,10 @@ const StepNameEditor = ({
       sel?.removeAllRanges();
       sel?.addRange(range);
     });
-  }, []);
+  };
 
   const commit = () => {
-    const next = (ref.current?.textContent ?? '').trim();
+    const next = (ref?.textContent ?? '').trim();
     if (next.length > 0 && next !== value) {
       onValueChange(next);
     }
@@ -222,8 +229,8 @@ const StepNameEditor = ({
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           event.preventDefault();
-          if (ref.current) {
-            ref.current.textContent = value;
+          if (ref) {
+            ref.textContent = value;
           }
           onCommit();
         } else if (event.key === 'Enter') {

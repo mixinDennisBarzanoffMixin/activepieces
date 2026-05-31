@@ -1,30 +1,33 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import { PackageOpen } from 'lucide-react';
-import React, { forwardRef } from 'react';
+import { PackageOpen } from 'lucide-solid';
+import { For, Show, type JSX } from 'solid-js';
 
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 import { Skeleton } from '../ui/skeleton';
 
-const CardList = forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & { listClassName?: string }
->(({ children, className, listClassName, ...props }, ref) => (
-  <ScrollArea
-    className={`h-full overflow-auto ${className}`}
-    viewPortClassName="[&>div]:h-full"
-  >
-    <div
-      ref={ref}
-      className={cn('flex flex-col h-full w-full', listClassName)}
-      {...props}
+const CardList = ({
+  children,
+  className,
+  listClassName,
+  ...props
+}: JSX.IntrinsicElements['div'] & { listClassName?: string }) => {
+  return (
+    <ScrollArea
+      class={`h-full overflow-auto ${className}`}
+      viewPortClassName="[&>div]:h-full"
     >
-      {children}
-    </div>
-    <ScrollBar orientation="horizontal" />
-  </ScrollArea>
-));
+      <div
+        className={cn('flex flex-col h-full w-full', listClassName)}
+        {...props}
+      >
+        {children}
+      </div>
+      <ScrollBar orientation="horizontal" />
+    </ScrollArea>
+  );
+};
 CardList.displayName = 'CardList';
 export { CardList };
 
@@ -45,28 +48,29 @@ const cardItemListVariants = cva('flex items-center gap-3 w-full py-3 px-2 ', {
   },
 });
 
-type CardListItemProps = React.HTMLAttributes<HTMLDivElement> &
+type CardListItemProps = JSX.IntrinsicElements['div'] &
   VariantProps<typeof cardItemListVariants> & {
-    children: React.ReactNode;
+    children: any;
   };
 
-const CardListItem = React.forwardRef<HTMLDivElement, CardListItemProps>(
-  ({ children, onClick, className, interactive, selected, ...props }, ref) => {
-    return (
-      <div
-        onClick={onClick}
-        ref={ref}
-        className={cn(
-          cardItemListVariants({ interactive, selected }),
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-  },
-);
+const CardListItem = ({
+  children,
+  onClick,
+  className,
+  interactive,
+  selected,
+  ...props
+}: CardListItemProps) => {
+  return (
+    <div
+      onClick={onClick}
+      className={cn(cardItemListVariants({ interactive, selected }), className)}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+};
 
 CardListItem.displayName = 'CardListItem';
 export { CardListItem };
@@ -76,38 +80,43 @@ type CardListItemSkeletonProps = {
   withCircle?: boolean;
 };
 
-const CardListItemSkeleton: React.FC<CardListItemSkeletonProps> = React.memo(
-  ({ numberOfCards = 3, withCircle = true }) => {
-    return (
-      <>
-        {[...Array(numberOfCards)].map((_, index) => (
-          <div key={index} className="flex items-center gap-3 w-full py-3 px-5">
-            {withCircle && <Skeleton className="h-8 w-8 rounded-full" />}
+const CardListItemSkeleton = ({
+  numberOfCards = 3,
+  withCircle = true,
+}: CardListItemSkeletonProps) => {
+  return (
+    <>
+      <For each={[...Array(numberOfCards)].map((_, i) => i)}>
+        {(index) => (
+          <div className="flex items-center gap-3 w-full py-3 px-5">
+            <Show when={withCircle}>
+              <Skeleton class="h-8 w-8 rounded-full" />
+            </Show>
             <div className="space-y-2">
-              <Skeleton className="h-4 w-[250px]" />
-              <Skeleton className="h-4 w-[200px]" />
+              <Skeleton class="h-4 w-[250px]" />
+              <Skeleton class="h-4 w-[200px]" />
             </div>
           </div>
-        ))}
-      </>
-    );
-  },
-);
+        )}
+      </For>
+    </>
+  );
+};
 
 CardListItemSkeleton.displayName = 'CardListItemSkeleton';
 export { CardListItemSkeleton };
 
-type CardListEmptyProps = React.HTMLAttributes<HTMLDivElement> & {
+type CardListEmptyProps = {
   message: string;
 };
-const CardListEmpty = React.memo(({ message }: CardListEmptyProps) => {
+const CardListEmpty = ({ message }: CardListEmptyProps) => {
   return (
     <div className="flex h-full w-full items-center justify-center gap-3 flex-col text-muted-foreground">
-      <PackageOpen className="w-10 h-10" />
+      <PackageOpen class="w-10 h-10" />
       <div className="text-center tracking-tight">{message}</div>
     </div>
   );
-});
+};
 
 CardListEmpty.displayName = 'CardListEmpty';
 export { CardListEmpty };

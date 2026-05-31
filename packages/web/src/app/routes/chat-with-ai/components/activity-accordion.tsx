@@ -10,9 +10,9 @@ import {
   Wrench,
   XCircle,
   Zap,
-} from 'lucide-react';
+} from 'lucide-solid';
 import { AnimatePresence, motion } from 'motion/react';
-import React, { useMemo, useState } from 'react';
+import { createMemo, createSignal, For, Show } from 'solid-js';
 
 import { SimpleJsonViewer } from '@/components/custom/simple-json-viewer';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
@@ -38,7 +38,7 @@ export function ThinkingBlock({
   isStreaming: boolean;
   thinkingDurationMs?: number;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = createSignal(false);
 
   const hasReasoning = reasoningText.length > 0;
   const hasSteps = thinkingSteps.length > 0;
@@ -74,24 +74,22 @@ export function ThinkingBlock({
               'hover:text-foreground transition-colors cursor-pointer',
           )}
         >
-          {isStreaming ? (
-            <TextShimmer className="text-sm" duration={3}>
+          <Show when={isStreaming} fallback={<span>{doneLabel}</span>}>
+            <TextShimmer class="text-sm" duration={3}>
               {t('Thinking...')}
             </TextShimmer>
-          ) : (
-            <span>{doneLabel}</span>
-          )}
-          {isExpandable && (
+          </Show>
+          <Show when={isExpandable}>
             <ChevronDown
-              className={cn(
+              class={cn(
                 'size-4 shrink-0 text-muted-foreground/50 transition-transform',
                 isOpen && 'rotate-180',
               )}
             />
-          )}
+          </Show>
         </button>
 
-        {!isOpen && isStreaming && lastStep && (
+        <Show when={!isOpen && isStreaming && lastStep}>
           <div className="mt-3 ml-1">
             <AnimatePresence mode="wait">
               <motion.div
@@ -110,34 +108,36 @@ export function ThinkingBlock({
               </motion.div>
             </AnimatePresence>
           </div>
-        )}
+        </Show>
 
-        <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
+        <CollapsibleContent class="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
           <div className="mt-3 ml-1">
-            {thinkingSteps.map((step, idx) => (
-              <StepRenderer
-                key={
-                  step.kind === 'tool'
-                    ? step.part.toolCallId
-                    : `${step.kind}-${idx}`
-                }
-                step={step}
-                showConnector={true}
-                isStreaming={isStreaming}
-                showIcon={true}
-              />
-            ))}
+            <For each={thinkingSteps}>
+              {(step, idx) => (
+                <StepRenderer
+                  key={
+                    step.kind === 'tool'
+                      ? step.part.toolCallId
+                      : `${step.kind}-${idx}`
+                  }
+                  step={step}
+                  showConnector={true}
+                  isStreaming={isStreaming}
+                  showIcon={true}
+                />
+              )}
+            </For>
 
-            {!isStreaming && hasSteps && (
+            <Show when={!isStreaming && hasSteps}>
               <div className="flex gap-3 items-center">
                 <div className="flex items-center justify-center size-5 rounded-full bg-muted">
-                  <Check className="size-3 text-muted-foreground" />
+                  <Check class="size-3 text-muted-foreground" />
                 </div>
                 <span className="text-xs text-muted-foreground">
                   {t('Done')}
                 </span>
               </div>
-            )}
+            </Show>
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -193,13 +193,16 @@ function StepRenderer({
           showConnector={showConnector}
           icon={Clock}
         >
-          {isStreaming ? (
-            <TextShimmer className="text-sm" duration={3}>
+          <Show
+            when={isStreaming}
+            fallback={
+              <p className="text-xs text-muted-foreground">{step.text}</p>
+            }
+          >
+            <TextShimmer class="text-sm" duration={3}>
               {step.text}
             </TextShimmer>
-          ) : (
-            <p className="text-xs text-muted-foreground">{step.text}</p>
-          )}
+          </Show>
         </StepLayout>
       );
     case 'tool':
@@ -221,19 +224,21 @@ function StepLayout({
 }: {
   showIcon: boolean;
   showConnector: boolean;
-  icon: React.FC<{ className?: string }>;
-  children: React.ReactNode;
+  icon: any;
+  children: JSX.Element;
 }) {
   return (
     <div className="flex gap-3">
-      {showIcon && (
+      <Show when={showIcon}>
         <div className="flex flex-col items-center shrink-0">
           <div className="flex items-center justify-center size-5 rounded-full bg-muted">
-            <Icon className="size-3 text-muted-foreground" />
+            <Icon class="size-3 text-muted-foreground" />
           </div>
-          {showConnector && <div className="w-px flex-1 bg-border min-h-3" />}
+          <Show when={showConnector}>
+            <div className="w-px flex-1 bg-border min-h-3" />
+          </Show>
         </div>
-      )}
+      </Show>
       <div className="flex-1 min-w-0 pb-4 pt-0.5">{children}</div>
     </div>
   );
@@ -262,20 +267,16 @@ function ToolStep({
 }
 
 function ToolCard({ part, label }: { part: AnyToolPart; label?: string }) {
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = createSignal(false);
   const input = isObject(part.input) ? part.input : undefined;
   const output = chatPartUtils.extractToolOutputText(part);
   const hasInput = input && Object.keys(input).length > 0;
   const hasOutput = Boolean(output);
   const hasDetails = hasInput || hasOutput;
-  const parsedOutput = useMemo(
-    () => (detailsOpen && output ? tryParseJson(output) : undefined),
-    [detailsOpen, output],
+  const parsedOutput = createMemo(() =>
+    detailsOpen && output ? tryParseJson(output) : undefined,
   );
-  const pieceNames = useMemo(
-    () => chatPartUtils.extractPieceNames(input),
-    [input],
-  );
+  const pieceNames = createMemo(() => chatPartUtils.extractPieceNames(input));
   const { summaries: pieceSummaries } = piecesHooks.usePieceSummariesByNames({
     names: pieceNames,
   });
@@ -292,7 +293,12 @@ function ToolCard({ part, label }: { part: AnyToolPart; label?: string }) {
         )}
         onClick={() => hasDetails && setDetailsOpen(!detailsOpen)}
       >
-        {primaryPiece ? (
+        <Show
+          when={primaryPiece}
+          fallback={
+            <summary.icon class="size-3 text-muted-foreground shrink-0" />
+          }
+        >
           <PieceIcon
             displayName={primaryPiece.displayName}
             logoUrl={primaryPiece.logoUrl!}
@@ -300,25 +306,23 @@ function ToolCard({ part, label }: { part: AnyToolPart; label?: string }) {
             border={false}
             showTooltip={false}
           />
-        ) : (
-          <summary.icon className="size-3 text-muted-foreground shrink-0" />
-        )}
+        </Show>
         <span className="text-xs text-muted-foreground whitespace-nowrap">
           {displayLabel}
         </span>
-        {hasDetails && (
+        <Show when={hasDetails}>
           <ChevronDown
-            className={cn(
+            class={cn(
               'size-3 shrink-0 text-muted-foreground/50 transition-transform',
               detailsOpen && 'rotate-180',
             )}
           />
-        )}
+        </Show>
       </div>
-      {hasDetails && (
-        <CollapsibleContent className="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
+      <Show when={hasDetails}>
+        <CollapsibleContent class="data-[state=closed]:animate-collapsible-up data-[state=open]:animate-collapsible-down overflow-hidden">
           <div className="mt-1.5 space-y-1.5 text-[11px]">
-            {hasInput && input && (
+            <Show when={hasInput && input}>
               <div>
                 <p className="text-muted-foreground font-medium mb-0.5">
                   {t('Input')}
@@ -330,8 +334,8 @@ function ToolCard({ part, label }: { part: AnyToolPart; label?: string }) {
                   fontSize="11px"
                 />
               </div>
-            )}
-            {hasOutput && parsedOutput !== undefined && (
+            </Show>
+            <Show when={hasOutput && parsedOutput !== undefined}>
               <div>
                 <p className="text-muted-foreground font-medium mb-0.5">
                   {t('Output')}
@@ -343,16 +347,16 @@ function ToolCard({ part, label }: { part: AnyToolPart; label?: string }) {
                   fontSize="11px"
                 />
               </div>
-            )}
+            </Show>
           </div>
         </CollapsibleContent>
-      )}
+      </Show>
     </Collapsible>
   );
 }
 
 function buildToolSummary({ part }: { part: AnyToolPart }): {
-  icon: React.FC<{ className?: string }>;
+  icon: any;
   label: string;
 } {
   const toolName = chatPartUtils.getToolPartName(part);

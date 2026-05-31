@@ -8,9 +8,9 @@ import {
   PropertyExecutionType,
   PropertySettings,
 } from '@activepieces/shared';
-import React from 'react';
-import { useFormContext } from 'react-hook-form';
+import { For } from 'solid-js';
 
+import { useFormContext } from '@/app/builder/builder-form';
 import { FormField } from '@/components/ui/form';
 import { cn, GAP_SIZE_FOR_STEP_SETTINGS } from '@/lib/utils';
 
@@ -19,22 +19,22 @@ import {
   SelectGenericFormComponentForPropertyParams,
 } from './properties-utils';
 
-export const GenericPropertiesForm = React.memo(
-  ({
-    markdownVariables,
-    props,
-    propertySettings,
-    prefixValue,
-    disabled,
-    useMentionTextInput,
-    onValueChange,
-    dynamicPropsInfo,
-  }: GenericPropertiesFormProps) => {
-    const form = useFormContext();
-    return (
-      Object.keys(props).length > 0 && (
-        <div className={cn('flex flex-col', GAP_SIZE_FOR_STEP_SETTINGS)}>
-          {Object.entries(props).map(([propertyName]) => {
+export const GenericPropertiesForm = ({
+  markdownVariables,
+  props,
+  propertySettings,
+  prefixValue,
+  disabled,
+  useMentionTextInput,
+  onValueChange,
+  dynamicPropsInfo,
+}: GenericPropertiesFormProps) => {
+  const form = useFormContext();
+  return (
+    Object.keys(props).length > 0 && (
+      <div className={cn('flex flex-col', GAP_SIZE_FOR_STEP_SETTINGS)}>
+        <For each={Object.entries(props)}>
+          {([propertyName]) => {
             const dynamicInputModeToggled =
               propertySettings?.[propertyName]?.type ===
               PropertyExecutionType.DYNAMIC;
@@ -77,12 +77,12 @@ export const GenericPropertiesForm = React.memo(
                 }
               />
             );
-          })}
-        </div>
-      )
-    );
-  },
-);
+          }}
+        </For>
+      </div>
+    )
+  );
+};
 
 GenericPropertiesForm.displayName = 'GenericFormComponent';
 

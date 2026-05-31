@@ -6,8 +6,8 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { TriangleAlert } from 'lucide-react';
-import React, { useMemo } from 'react';
+import { TriangleAlert } from 'lucide-solid';
+import { Show, createMemo } from 'solid-js';
 
 import { InvalidStepIcon } from '@/components/custom/alert-icon';
 import {
@@ -67,13 +67,13 @@ const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
     {
       variant: 'default' | 'success' | 'error' | 'warning';
       text: string;
-      icon: React.ReactNode;
+      icon: any;
     }
   > = {
     invalid: {
       variant: 'warning',
       text: t('Incomplete'),
-      icon: <InvalidStepIcon className="size-3" />,
+      icon: <InvalidStepIcon class="size-3" />,
     },
     testing: {
       variant: 'default',
@@ -100,12 +100,12 @@ const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
     'needs-test': {
       variant: 'default',
       text: t('Test me'),
-      icon: <TriangleAlert className="size-3" />,
+      icon: <TriangleAlert class="size-3" />,
     },
     untested: {
       variant: 'default',
       text: t('Test me'),
-      icon: <TriangleAlert className="size-3" />,
+      icon: <TriangleAlert class="size-3" />,
     },
     tested: {
       variant: 'success',
@@ -119,7 +119,7 @@ const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
       ),
     },
   };
-  const status: DraftStepStatus = useMemo(() => {
+  const status: DraftStepStatus = createMemo(() => {
     if (!isStepValid) return 'invalid';
     if (isBeingTested) return 'testing';
 
@@ -132,7 +132,7 @@ const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
     if (hasError) return 'failed';
 
     return 'tested';
-  }, [isStepValid, isBeingTested, hasError, lastTestDate, lastUpdatedDate]);
+  });
 
   const hasRun = !isNil(run);
   const shouldShowDraftStatusBadge =
@@ -161,16 +161,16 @@ const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
             <div>{config.text}</div>
           </div>
         </TooltipTrigger>
-        {status === 'untested' && (
+        <Show when={status === 'untested'()}>
           <TooltipContent>
             {t('This step has not been tested yet')}
           </TooltipContent>
-        )}
-        {status === 'needs-test' && (
+        </Show>
+        <Show when={status === 'needs-test'()}>
           <TooltipContent>
             {t('This step has been updated since the last test')}
           </TooltipContent>
-        )}
+        </Show>
       </Tooltip>
     </div>
   );

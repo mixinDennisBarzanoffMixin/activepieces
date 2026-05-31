@@ -1,8 +1,5 @@
-'use client';
-
+import * as TogglePrimitive from '@kobalte/core/toggle-button';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Toggle as TogglePrimitive } from 'radix-ui';
-import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -33,12 +30,12 @@ function Toggle({
   variant,
   size,
   ...props
-}: React.ComponentProps<typeof TogglePrimitive.Root> &
+}: ComponentProps<typeof TogglePrimitive.Root> &
   VariantProps<typeof toggleVariants>) {
   return (
     <TogglePrimitive.Root
       data-slot="toggle"
-      className={cn(toggleVariants({ variant, size, className }))}
+      class={cn(toggleVariants({ variant, size, className }))}
       {...props}
     />
   );

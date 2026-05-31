@@ -1,7 +1,7 @@
 import { FlowActionType, flowStructureUtil, isNil } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-solid';
+import { Show, createEffect, createMemo, createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,26 +24,26 @@ const LoopIterationInput = ({ stepName }: { stepName: string }) => {
       state.loopsIndexes,
       flowStructureUtil.getStep(stepName, state.flowVersion.trigger)?.type,
     ]);
-  const stepOutput = useMemo(() => {
+  const stepOutput = createMemo(() => {
     return run && run.steps
       ? flowRunUtils.extractStepOutput(stepName, loopsIndexes, run.steps)
       : null;
-  }, [run, stepName, loopsIndexes, flowVersion.trigger]);
+  });
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const prevIndexRef = useRef(currentIndex);
+  let inputRef: HTMLInputElement | undefined;
+  const [isAnimating, setIsAnimating] = createSignal(false);
+  let prevIndexRef: any | undefined;
 
-  useEffect(() => {
-    if (prevIndexRef.current !== currentIndex) {
+  createEffect(() => {
+    if (prevIndexRef !== currentIndex) {
       setIsAnimating(true);
       const timer = setTimeout(() => {
         setIsAnimating(false);
       }, 600); // Animation duration
-      prevIndexRef.current = currentIndex;
+      prevIndexRef = currentIndex;
       return () => clearTimeout(timer);
     }
-  }, [currentIndex]);
+  });
 
   const totalIterations =
     stepOutput &&
@@ -75,8 +75,8 @@ const LoopIterationInput = ({ stepName }: { stepName: string }) => {
         <Tooltip>
           <TooltipTrigger>
             <Input
-              ref={inputRef}
-              className={`py-2 w-[35px] px-0 h-[35px] animate-in fade-in bg-background border-solid rounded-md text-center !text-xs transition-all duration-300 ease-in-out ${
+              ref={(el) => (inputRef = el)}
+              class={`py-2 w-[35px] px-0 h-[35px] animate-in fade-in bg-background border-solid rounded-md text-center !text-xs transition-all duration-300 ease-in-out ${
                 isAnimating ? 'border-2 border-primary' : 'border border-border'
               }`}
               type="number"
@@ -137,14 +137,15 @@ const LoopIterationInputButton = ({
         e.stopPropagation();
         onChange((currentIndex + (isIncreasing ? 2 : 0)).toString());
       }}
-      className="hover:bg-builder-background size-6"
+      class="hover:bg-builder-background size-6"
       size="icon"
     >
-      {isIncreasing ? (
-        <ChevronUp className="w-2 h-2"></ChevronUp>
-      ) : (
-        <ChevronDown className="w-2 h-2"></ChevronDown>
-      )}
+      <Show
+        when={isIncreasing()}
+        fallback={<ChevronDown class="w-2 h-2"></ChevronDown>}
+      >
+        <ChevronUp class="w-2 h-2"></ChevronUp>
+      </Show>
     </Button>
   );
 };

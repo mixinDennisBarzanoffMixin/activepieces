@@ -1,5 +1,6 @@
 import { ApFlagId } from '@activepieces/shared';
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { CenteredPage } from '@/app/components/centered-page';
 import { McpTools } from '@/app/components/project-settings/mcp-server/mcp-tools';
@@ -51,14 +52,14 @@ export default function PlatformMcpPage() {
       )}
     >
       <div className="space-y-6">
-        {mcpServer && (
+        <Show when={mcpServer}>
           <Tabs defaultValue="connection">
             <TabsList>
               <TabsTrigger value="connection">{t('Connection')}</TabsTrigger>
               <TabsTrigger value="tools">{t('Tools')}</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="connection" className="mt-4 pb-6" tabIndex={-1}>
+            <TabsContent value="connection" class="mt-4 pb-6" tabIndex={-1}>
               <div className="space-y-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-sm font-medium">
@@ -88,7 +89,7 @@ export default function PlatformMcpPage() {
 
             <TabsContent
               value="tools"
-              className="mt-4 space-y-6 pb-6"
+              class="mt-4 space-y-6 pb-6"
               tabIndex={-1}
             >
               <div>
@@ -110,7 +111,7 @@ export default function PlatformMcpPage() {
               </div>
             </TabsContent>
           </Tabs>
-        )}
+        </Show>
       </div>
     </CenteredPage>
   );

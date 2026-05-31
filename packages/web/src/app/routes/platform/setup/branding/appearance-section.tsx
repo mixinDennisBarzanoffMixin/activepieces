@@ -1,22 +1,14 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useRef } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { createMemo, createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 import { z } from 'zod';
 
 import { platformApi } from '@/api/platforms-api';
 import { ColorPicker } from '@/components/custom/color-picker';
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { platformHooks } from '@/hooks/platform-hooks';
 
 const FromSchema = z.object({
@@ -27,34 +19,30 @@ const FromSchema = z.object({
   color: z.string(),
 });
 
-type FromSchema = z.infer<typeof FromSchema>;
-
 export const AppearanceSection = () => {
   const { platform } = platformHooks.useCurrentPlatform();
-
-  const form = useForm({
-    defaultValues: {
-      name: platform?.name,
-      logoUrl: platform?.fullLogoUrl,
-      iconUrl: platform?.logoIconUrl,
-      faviconUrl: platform?.favIconUrl,
-      color: platform?.primaryColor,
-    },
-    resolver: zodResolver(FromSchema),
+  const [values, setValues] = createSignal<FromSchema>({
+    name: platform.name,
+    logoUrl: platform.fullLogoUrl,
+    iconUrl: platform.logoIconUrl,
+    faviconUrl: platform.favIconUrl,
+    color: platform.primaryColor,
   });
-  const logoRef = useRef<HTMLInputElement>(null);
-  const iconRef = useRef<HTMLInputElement>(null);
-  const faviconRef = useRef<HTMLInputElement>(null);
+  const valid = createMemo(() => FromSchema.safeParse(values()).success);
+  let logoRef: HTMLInputElement | undefined;
+  let iconRef: HTMLInputElement | undefined;
+  let faviconRef: HTMLInputElement | undefined;
 
-  const { mutate: updatePlatform, isPending } = useMutation({
+  const { mutate: updatePlatform, isPending } = createMutation(() => ({
     mutationFn: async () => {
-      const logo = logoRef.current?.files?.[0];
-      const icon = iconRef.current?.files?.[0];
-      const favicon = faviconRef.current?.files?.[0];
+      const logo = logoRef?.files?.[0];
+      const icon = iconRef?.files?.[0];
+      const favicon = faviconRef?.files?.[0];
+      const data = FromSchema.parse(values());
 
       const formdata = new FormData();
-      formdata.append('name', form.getValues().name);
-      formdata.append('primaryColor', form.getValues().color);
+      formdata.append('name', data.name);
+      formdata.append('primaryColor', data.color);
       if (logo) formdata.append('fullLogo', logo);
       if (icon) formdata.append('logoIcon', icon);
       if (favicon) formdata.append('favIcon', favicon);
@@ -66,131 +54,98 @@ export const AppearanceSection = () => {
       toast.success(t('Your changes have been saved.'), {
         duration: 3000,
       });
-      form.reset(form.getValues());
     },
-  });
+  }));
 
   return (
-    <>
-      <div className="grid gap-4">
-        <Form {...form}>
-          <form
-            className="grid space-y-4 mt-4"
-            onSubmit={form.handleSubmit(() => updatePlatform())}
-          >
-            <div className="max-w-[600px] grid space-y-4">
-              <FormField
-                name="name"
-                render={({ field }) => (
-                  <FormItem className="grid space-y-2">
-                    <FormLabel htmlFor="name">{t('Platform Name')}</FormLabel>
-                    <Input
-                      {...field}
-                      required
-                      id="name"
-                      placeholder={t('Platform Name')}
-                      className="rounded-sm"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+    <div className="grid gap-4">
+      <form
+        className="grid space-y-4 mt-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          updatePlatform();
+        }}
+      >
+        <div className="max-w-[600px] grid space-y-4">
+          <div class="grid space-y-2">
+            <Label for="name">{t('Platform Name')}</Label>
+            <Input
+              required
+              id="name"
+              value={values().name}
+              onInput={(e) =>
+                setValues((values) => ({
+                  ...values,
+                  name: e.currentTarget.value,
+                }))
+              }
+              placeholder={t('Platform Name')}
+              class="rounded-sm"
+            />
+          </div>
 
-              <FormField
-                name="logoUrl"
-                render={() => (
-                  <FormItem className="grid space-y-2">
-                    <FormLabel htmlFor="logoFile">{t('Logo')}</FormLabel>
-                    <div className="flex flex-row gap-2 items-center">
-                      <Input
-                        type="file"
-                        ref={logoRef}
-                        defaultFileName={platform?.fullLogoUrl}
-                        accept="image/*"
-                        id="logoFile"
-                        className="rounded-sm"
-                      />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                name="iconUrl"
-                render={() => (
-                  <FormItem className="grid space-y-2">
-                    <FormLabel htmlFor="iconFile">{t('Icon')}</FormLabel>
-                    <div className="flex flex-row gap-2 items-center">
-                      <Input
-                        type="file"
-                        ref={iconRef}
-                        defaultFileName={platform?.logoIconUrl}
-                        accept="image/*"
-                        id="iconFile"
-                        className="rounded-sm"
-                      />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                name="faviconUrl"
-                render={() => (
-                  <FormItem className="grid space-y-2">
-                    <FormLabel htmlFor="faviconUrl">
-                      {t('Favicon URL')}
-                    </FormLabel>
-                    <div className="flex flex-row gap-2 items-center">
-                      <Input
-                        type="file"
-                        ref={faviconRef}
-                        defaultFileName={platform?.favIconUrl}
-                        accept="image/*"
-                        id="faviconFile"
-                        className="rounded-sm"
-                      />
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                name="color"
-                render={({ field }) => (
-                  <FormItem className="grid space-y-2">
-                    <FormLabel htmlFor="color">{t('Primary Color')}</FormLabel>
-                    <div className="flex flex-row gap-2 items-center">
-                      <ColorPicker
-                        value={field.value as string}
-                        onChange={(color: string) => field.onChange(color)}
-                        className="flex flex-row gap-2 items-center"
-                      ></ColorPicker>
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
+          <div class="grid space-y-2">
+            <Label for="logoFile">{t('Logo')}</Label>
+            <div className="flex flex-row gap-2 items-center">
+              <Input
+                type="file"
+                ref={(el) => (logoRef = el)}
+                defaultFileName={platform.fullLogoUrl}
+                accept="image/*"
+                id="logoFile"
+                class="rounded-sm"
               />
             </div>
-
-            {form?.formState?.errors?.root?.serverError && (
-              <FormMessage>
-                {form.formState.errors.root.serverError.message}
-              </FormMessage>
-            )}
-            <div className="flex gap-2 justify-end mt-4">
-              <Button
-                type="submit"
-                loading={isPending}
-                disabled={!form.formState.isValid}
-              >
-                {t('Save')}
-              </Button>
+          </div>
+          <div class="grid space-y-2">
+            <Label for="iconFile">{t('Icon')}</Label>
+            <div className="flex flex-row gap-2 items-center">
+              <Input
+                type="file"
+                ref={(el) => (iconRef = el)}
+                defaultFileName={platform.logoIconUrl}
+                accept="image/*"
+                id="iconFile"
+                class="rounded-sm"
+              />
             </div>
-          </form>
-        </Form>
-      </div>
-    </>
+          </div>
+          <div class="grid space-y-2">
+            <Label for="faviconFile">{t('Favicon URL')}</Label>
+            <div className="flex flex-row gap-2 items-center">
+              <Input
+                type="file"
+                ref={(el) => (faviconRef = el)}
+                defaultFileName={platform.favIconUrl}
+                accept="image/*"
+                id="faviconFile"
+                class="rounded-sm"
+              />
+            </div>
+          </div>
+
+          <div class="grid space-y-2">
+            <Label for="color">{t('Primary Color')}</Label>
+            <div className="flex flex-row gap-2 items-center">
+              <ColorPicker
+                value={values().color}
+                onChange={(color: string) =>
+                  setValues((values) => ({ ...values, color }))
+                }
+                class="flex flex-row gap-2 items-center"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2 justify-end mt-4">
+          <Button type="submit" loading={isPending} disabled={!valid()}>
+            {t('Save')}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 };
+
+type FromSchema = z.infer<typeof FromSchema>;

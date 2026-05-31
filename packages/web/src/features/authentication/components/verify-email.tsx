@@ -1,8 +1,7 @@
 import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
-import { MailCheck, MailX } from 'lucide-react';
-import { useEffect, useState, useRef } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { MailCheck, MailX } from 'lucide-solid';
+import { createEffect, createSignal } from 'solid-js';
 
 import { FullLogo } from '@/components/custom/full-logo';
 import { LoadingSpinner } from '@/components/custom/spinner';
@@ -14,18 +13,17 @@ import { api } from '@/lib/api';
 import { authMutations } from '../hooks/auth-hooks';
 
 const VerifyEmail = () => {
-  const [isExpired, setIsExpired] = useState(false);
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [isExpired, setIsExpired] = createSignal(false);
+  const searchParams = new URLSearchParams(window.location.search);
   const otp = searchParams.get('otpcode');
   const identityId = searchParams.get('identityId');
-  const hasMutated = useRef(false);
+  let hasMutated = false;
   const { reportSignup } = usePartnerStack();
 
   const { mutate, isPending } = authMutations.useVerifyEmail({
     onSuccess: ({ email, firstName }) => {
       reportSignup(email, firstName);
-      setTimeout(() => navigate('/sign-in'), 5000);
+      setTimeout(() => window.location.assign('/sign-in'), 5000);
     },
     onError: (error) => {
       if (
@@ -33,35 +31,36 @@ const VerifyEmail = () => {
         error.response?.status === HttpStatusCode.Gone
       ) {
         setIsExpired(true);
-        setTimeout(() => navigate('/sign-in'), 5000);
+        setTimeout(() => window.location.assign('/sign-in'), 5000);
       } else {
         console.error(error);
         internalErrorToast();
-        setTimeout(() => navigate('/sign-in'), 5000);
+        setTimeout(() => window.location.assign('/sign-in'), 5000);
       }
     },
   });
 
-  useEffect(() => {
-    if (otp && identityId && !hasMutated.current) {
+  createEffect(() => {
+    if (otp && identityId && !hasMutated) {
       mutate({ otp, identityId });
-      hasMutated.current = true;
+      hasMutated = true;
     }
   }, [otp, identityId, mutate]);
 
   if (!otp || !identityId) {
-    return <Navigate to="/sign-in" replace />;
+    window.location.replace('/sign-in');
+    return null;
   }
   return (
     <div className="mx-auto h-screen w-screen flex flex-col items-center justify-center gap-2">
       <FullLogo />
 
-      <Card className="w-md rounded-sm drop-shadow-xl p-4">
+      <Card class="w-md rounded-sm drop-shadow-xl p-4">
         <div className="gap-2 w-full flex flex-col">
           <div className="gap-4 w-full flex flex-row items-center justify-center">
             {!isPending && !isExpired && (
               <>
-                <MailCheck className="w-16 h-16" />
+                <MailCheck class="w-16 h-16" />
                 <span className="text-left w-fit">
                   {t(
                     'Email has been verified. You will be redirected to sign in...',
@@ -71,7 +70,7 @@ const VerifyEmail = () => {
             )}
             {isPending && !isExpired && (
               <>
-                <LoadingSpinner className="size-6" />
+                <LoadingSpinner class="size-6" />
                 <span className="text-left w-fit">
                   {t('Verifying email...')}
                 </span>
@@ -80,7 +79,7 @@ const VerifyEmail = () => {
 
             {isExpired && (
               <>
-                <MailX className="w-16 h-16" />
+                <MailX class="w-16 h-16" />
                 <div className="text-left w-fit">
                   <div>
                     {t(
@@ -97,6 +96,5 @@ const VerifyEmail = () => {
     </div>
   );
 };
-VerifyEmail.displayName = 'VerifyEmail';
 
 export { VerifyEmail };

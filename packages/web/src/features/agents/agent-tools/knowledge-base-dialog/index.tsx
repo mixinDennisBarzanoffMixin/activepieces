@@ -4,11 +4,11 @@ import {
   AgentToolType,
   KnowledgeBaseSourceType,
 } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Upload } from 'lucide-react';
-import { useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { Upload } from 'lucide-solid';
+import { createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Button } from '@/components/ui/button';
@@ -71,21 +71,21 @@ function KnowledgeBaseDialogContent({
     initialSourceType ??
     KnowledgeBaseSourceType.FILE;
 
-  const [toolName, setToolName] = useState(editingKbTool?.toolName ?? '');
-  const [sourceId, setSourceId] = useState(editingKbTool?.sourceId ?? '');
-  const [sourceName, setSourceName] = useState(editingKbTool?.sourceName ?? '');
+  const [toolName, setToolName] = createSignal(editingKbTool?.toolName ?? '');
+  const [sourceId, setSourceId] = createSignal(editingKbTool?.sourceId ?? '');
+  const [sourceName, setSourceName] = createSignal(editingKbTool?.sourceName ?? '');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  let fileInputRef = null;
   const uploadMutation = useUploadKnowledgeBaseFile();
   const deleteMutation = useDeleteKnowledgeBaseFile();
   const { data: kbFiles, isLoading: kbFilesLoading } = useKnowledgeBaseFiles();
 
   const projectId = authenticationSession.getProjectId()!;
-  const { data: tablesData, isLoading: tablesLoading } = useQuery({
+  const { data: tablesData, isLoading: tablesLoading } = createQuery(() => ({
     queryKey: ['tables-for-kb', projectId],
     queryFn: () => tablesApi.list({ projectId, limit: 1000 }),
     enabled: sourceType === KnowledgeBaseSourceType.TABLE,
-  });
+  }));
 
   const fileOptions = (kbFiles ?? []).map((f) => ({
     value: f.id,
@@ -106,7 +106,7 @@ function KnowledgeBaseDialogContent({
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: Event) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -177,20 +177,20 @@ function KnowledgeBaseDialogContent({
     : t('Add Table Source');
 
   return (
-    <DialogContent className="sm:max-w-md gap-3">
+    <DialogContent class="sm:max-w-md gap-3">
       <DialogHeader>
         <DialogTitle>{dialogTitle}</DialogTitle>
       </DialogHeader>
 
-      <div className="space-y-4">
-        <div className="space-y-1.5">
+      <div class="space-y-4">
+        <div class="space-y-1.5">
           <Label>
             {sourceType === KnowledgeBaseSourceType.FILE
               ? t('Knowledge Base File')
               : t('Table')}
           </Label>
           {sourceType === KnowledgeBaseSourceType.FILE ? (
-            <div className="flex flex-col gap-2">
+            <div class="flex flex-col gap-2">
               <SearchableSelect
                 options={fileOptions}
                 value={sourceId || undefined}
@@ -223,18 +223,18 @@ function KnowledgeBaseDialogContent({
                 ref={fileInputRef}
                 type="file"
                 accept=".pdf,.txt,.csv,.docx"
-                className="hidden"
+                class="hidden"
                 onChange={handleFileUpload}
               />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                className="self-start"
+                class="self-start"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadMutation.isPending}
               >
-                <Upload className="mr-2 h-4 w-4" />
+                <Upload class="mr-2 h-4 w-4" />
                 {uploadMutation.isPending
                   ? t('Uploading...')
                   : t('Upload new file')}
@@ -256,7 +256,7 @@ function KnowledgeBaseDialogContent({
           )}
         </div>
 
-        <div className="space-y-1.5">
+        <div class="space-y-1.5">
           <Label>
             {sourceType === KnowledgeBaseSourceType.FILE
               ? t('File Name')
@@ -271,7 +271,7 @@ function KnowledgeBaseDialogContent({
                 : t('e.g., products_catalog')
             }
           />
-          <p className="text-xs text-muted-foreground">
+          <p class="text-xs text-muted-foreground">
             {t(
               'A unique name for the agent to reference this knowledge source',
             )}

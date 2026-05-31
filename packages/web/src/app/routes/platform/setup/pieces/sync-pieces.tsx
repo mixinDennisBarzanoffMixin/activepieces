@@ -1,5 +1,6 @@
 import { ApFlagId, PieceSyncMode } from '@activepieces/shared';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCcw } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { platformPiecesMutations } from '@/features/platform-admin';
@@ -14,16 +15,16 @@ const SyncPiecesButton = () => {
 
   return (
     <>
-      {piecesSyncMode === PieceSyncMode.OFFICIAL_AUTO && (
+      <Show when={piecesSyncMode === PieceSyncMode.OFFICIAL_AUTO}>
         <Button
           variant={'outline'}
           onClick={() => syncPieces()}
           loading={isPending}
           size={'sm'}
         >
-          <RefreshCcw className="w-4 h-4 mr-2" /> Sync from Cloud
+          <RefreshCcw class="w-4 h-4 mr-2" /> Sync from Cloud
         </Button>
-      )}
+      </Show>
     </>
   );
 };

@@ -1,6 +1,6 @@
 import { t } from 'i18next';
-import { Hammer, Workflow } from 'lucide-react';
-import { useState } from 'react';
+import { Hammer, Workflow } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { McpSvg } from '@/assets/img/custom/mcp';
 import {
@@ -16,7 +16,7 @@ import { usePieceToolsDialogStore } from './stores/pieces-tools';
 
 type AddAgentToolDropdownProps = {
   disabled?: boolean;
-  children: React.ReactNode;
+  children: any;
   align?: 'start' | 'end' | 'center';
 };
 
@@ -25,7 +25,7 @@ export const AddToolDropdown = ({
   children,
   align,
 }: AddAgentToolDropdownProps) => {
-  const [openDropdown, setOpenDropdown] = useState(false);
+  const [openDropdown, setOpenDropdown] = createSignal(false);
 
   const { setShowAddFlowDialog } = useFlowToolDialogStore();
   const { openAddPieceToolDialog } = usePieceToolsDialogStore();
@@ -45,17 +45,17 @@ export const AddToolDropdown = ({
         <DropdownMenuItem
           onSelect={() => openAddPieceToolDialog({ page: 'pieces-list' })}
         >
-          <Hammer className="size-3.5 me-2" />
+          <Hammer class="size-3.5 me-2" />
           <span>{t('Piece tool')}</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem onSelect={() => setShowAddFlowDialog(true)}>
-          <Workflow className="size-3.5 me-2" />
+          <Workflow class="size-3.5 me-2" />
           <span>{t('Flow tool')}</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem onSelect={() => setShowAddMcpDialog(true)}>
-          <McpSvg className="size-3.5 me-2" />
+          <McpSvg class="size-3.5 me-2" />
           <span>{t('Mcp server')}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -1,8 +1,8 @@
 import { isNil } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { ChevronsUpDown, LogOut, UserCogIcon } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronsUpDown, LogOut, UserCogIcon } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { UserAvatar } from '@/components/custom/user-avatar';
 import { useEmbedding } from '@/components/providers/embed-provider';
@@ -30,7 +30,7 @@ import AccountSettingsDialog from '../account-settings';
 import { HelpAndFeedback } from '../help-and-feedback';
 
 export function SidebarUser() {
-  const [accountSettingsOpen, setAccountSettingsOpen] = useState(false);
+  const [accountSettingsOpen, setAccountSettingsOpen] = createSignal(false);
   const { embedState } = useEmbedding();
   const { data: user } = userHooks.useCurrentUser();
   const queryClient = useQueryClient();
@@ -51,11 +51,11 @@ export function SidebarUser() {
     <SidebarMenu>
       <SidebarMenuItem>
         <DropdownMenu modal>
-          <DropdownMenuTrigger asChild className="w-full">
-            <SidebarMenuButton className="h-10! pl-2! group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:pl-2!">
+          <DropdownMenuTrigger asChild class="w-full">
+            <SidebarMenuButton class="h-10! pl-2! group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:pl-2!">
               <div className="size-[18px] shrink-0 overflow-hidden flex items-center justify-center rounded-full">
                 <UserAvatar
-                  className={cn('size-full object-cover', {
+                  class={cn('size-full object-cover', {
                     'scale-150': isNil(user.imageUrl),
                   })}
                   name={user.firstName + ' ' + user.lastName}
@@ -66,27 +66,29 @@ export function SidebarUser() {
                 />
               </div>
 
-              {!isCollapsed && (
-                <>
-                  <span className="truncate">
-                    {user.firstName + ' ' + user.lastName}
-                  </span>
-                  <ChevronsUpDown className="ml-auto size-4" />
-                </>
-              )}
+              {
+                <Show when={!isCollapsed}>
+                  <>
+                    <span className="truncate">
+                      {user.firstName + ' ' + user.lastName}
+                    </span>
+                    <ChevronsUpDown class="ml-auto size-4" />
+                  </>
+                </Show>
+              }
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg z-999"
+            class="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg z-999"
             side="top"
             align="start"
             sideOffset={10}
           >
-            <DropdownMenuLabel className="p-0 font-normal">
+            <DropdownMenuLabel class="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <div className="size-8 shrink-0 overflow-hidden rounded-full">
                   <UserAvatar
-                    className="size-full object-cover"
+                    class="size-full object-cover"
                     name={user.firstName + ' ' + user.lastName}
                     email={user.email}
                     imageUrl={user.imageUrl}
@@ -106,7 +108,7 @@ export function SidebarUser() {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => setAccountSettingsOpen(true)}>
-                <UserCogIcon className="w-4 h-4 mr-2" />
+                <UserCogIcon class="w-4 h-4 mr-2" />
                 {t('Account Settings')}
               </DropdownMenuItem>
 
@@ -114,7 +116,7 @@ export function SidebarUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="w-4 h-4 mr-2" />
+              <LogOut class="w-4 h-4 mr-2" />
               {t('Log out')}
             </DropdownMenuItem>
           </DropdownMenuContent>

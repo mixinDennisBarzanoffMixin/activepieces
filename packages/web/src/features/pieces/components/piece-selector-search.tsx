@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { ArrowLeftIcon } from 'lucide-react';
+import { ArrowLeftIcon } from 'lucide-solid';
 
 import { SearchInput } from '@/components/custom/search-input';
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,7 @@ import {
 } from '@/features/pieces/stores/piece-selector-tabs-provider';
 
 type PiecesSearchInputProps = {
-  searchInputRef: React.RefObject<HTMLInputElement | null>;
+  searchInputRef: RefObject<HTMLInputElement | null>;
   onSearchChange: (query: string) => void;
 };
 
@@ -38,7 +38,7 @@ const PiecesSearchInput = ({
             setSelectedPieceInExplore(null);
           }}
         >
-          <ArrowLeftIcon className="size-4" />
+          <ArrowLeftIcon class="size-4" />
         </Button>
       )}
       <SearchInput
@@ -59,5 +59,4 @@ const PiecesSearchInput = ({
     </div>
   );
 };
-PiecesSearchInput.displayName = 'PiecesSearchInput';
 export { PiecesSearchInput };

@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Check } from 'lucide-react';
+import { Check } from 'lucide-solid';
 
 import {
   Command,
@@ -20,11 +20,11 @@ type Props<T extends string> = {
   selectedValue: T;
   onSelectedValueChange: (value: T) => void;
   items: { value: T; label: string }[];
-  children: React.ReactNode;
+  children: any;
   className?: string;
   open: boolean;
   setOpen: (open: boolean) => void;
-  listRef?: React.RefObject<HTMLDivElement | null>;
+  listRef?: HTMLDivElement;
 };
 
 export function AutoComplete<T extends string>({
@@ -63,12 +63,12 @@ export function AutoComplete<T extends string>({
               e.preventDefault();
             }
           }}
-          className="w-(--radix-popover-trigger-width) p-0"
+          class="w-(--radix-popover-trigger-width) p-0"
         >
-          <Command className={className} ref={listRef}>
-            <CommandList className="bg-background">
+          <Command class={className} ref={listRef}>
+            <CommandList class="bg-background">
               <ScrollArea
-                className={cn('', {
+                class={cn('', {
                   'h-50': items.length >= 5,
                   'h-10': items.length === 1,
                   'h-20': items.length === 2,
@@ -76,30 +76,32 @@ export function AutoComplete<T extends string>({
                   'h-40': items.length === 4,
                 })}
               >
-                {items.length > 0 ? (
+                <Show
+                  when={items.length > 0}
+                  fallback={<CommandEmpty>{t('No items')}</CommandEmpty>}
+                >
                   <CommandGroup>
-                    {items.map((option) => (
-                      <CommandItem
-                        key={option.value}
-                        value={option.value}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onSelect={onSelectItem}
-                      >
-                        <Check
-                          className={cn(
-                            'h-4 w-4',
-                            selectedValue === option.value
-                              ? 'opacity-100'
-                              : 'opacity-0',
-                          )}
-                        />
-                        {option.label}
-                      </CommandItem>
-                    ))}
+                    <For each={items}>
+                      {(option) => (
+                        <CommandItem
+                          value={option.value}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onSelect={onSelectItem}
+                        >
+                          <Check
+                            class={cn(
+                              'h-4 w-4',
+                              selectedValue === option.value
+                                ? 'opacity-100'
+                                : 'opacity-0',
+                            )}
+                          />
+                          {option.label}
+                        </CommandItem>
+                      )}
+                    </For>
                   </CommandGroup>
-                ) : (
-                  <CommandEmpty>{t('No items')}</CommandEmpty>
-                )}
+                </Show>
               </ScrollArea>
             </CommandList>
           </Command>

@@ -2,7 +2,7 @@ import {
   AgentKnowledgeBaseTool,
   KnowledgeBaseSourceType,
 } from '@activepieces/shared';
-import { create } from 'zustand';
+import { createWithStore } from 'solid-zustand';
 
 interface KnowledgeBaseToolDialogState {
   showAddKbDialog: boolean;
@@ -27,7 +27,7 @@ const initialState: Pick<
 };
 
 export const useKnowledgeBaseToolDialogStore =
-  create<KnowledgeBaseToolDialogState>((set) => ({
+  createWithStore<KnowledgeBaseToolDialogState>((set) => ({
     ...initialState,
 
     setShowAddKbDialog: (show, tool, sourceType) =>

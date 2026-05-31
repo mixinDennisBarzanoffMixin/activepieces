@@ -1,8 +1,8 @@
 import { isNil } from '@activepieces/shared';
+import { useParams } from '@solidjs/router';
 import { t } from 'i18next';
-import React from 'react';
-import { Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { JSX } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { projectCollectionUtils } from '@/features/projects';
 import {
@@ -13,15 +13,17 @@ import {
 import { authenticationSession } from '../../lib/authentication-session';
 import { AllowOnlyLoggedInUserOnlyGuard } from '../components/allow-logged-in-user-only-guard';
 
-export const TokenCheckerWrapper: React.FC<{ children: React.ReactNode }> = ({
+export const TokenCheckerWrapper = ({
   children,
+}: {
+  children: JSX.Element;
 }) => {
-  const { projectId: projectIdFromParams } = useParams<{
-    projectId: string;
-  }>();
+  const params = useParams();
+  const projectIdFromParams = params.projectId;
 
   if (isNil(projectIdFromParams)) {
-    return <Navigate to="/sign-in" replace />;
+    window.location.replace('/sign-in');
+    return null;
   }
   const hasAccessToProject =
     projectCollectionUtils.useHasAccessToProject(projectIdFromParams);
@@ -33,7 +35,8 @@ export const TokenCheckerWrapper: React.FC<{ children: React.ReactNode }> = ({
       ),
       duration: 10000,
     });
-    return <Navigate to="/" replace />;
+    window.location.replace('/');
+    return null;
   }
 
   authenticationSession.switchToProject(projectIdFromParams);
@@ -43,23 +46,23 @@ export const TokenCheckerWrapper: React.FC<{ children: React.ReactNode }> = ({
 
 type RedirectToCurrentProjectRouteProps = {
   path: string;
-  children: React.ReactNode;
+  children: JSX.Element;
 };
-const RedirectToCurrentProjectRoute: React.FC<
-  RedirectToCurrentProjectRouteProps
-> = ({ path }) => {
+
+const RedirectToCurrentProjectRoute = ({
+  path,
+}: RedirectToCurrentProjectRouteProps) => {
   const currentProjectId = authenticationSession.getProjectId();
   const params = useParams();
-  const [searchParams] = useSearchParams();
   const defaultRedirectPath = useDefaultRedirectPath();
+  const searchParams = new URLSearchParams(window.location.search);
   const from = searchParams.get(FROM_QUERY_PARAM) ?? defaultRedirectPath;
   if (isNil(currentProjectId)) {
-    return (
-      <Navigate
-        to={`/sign-in?${new URLSearchParams({ from }).toString()}`}
-        replace
-      />
-    );
+    if (window.location.pathname === '/sign-in') {
+      return null;
+    }
+    window.location.replace(`/sign-in?${new URLSearchParams({ from }).toString()}`);
+    return null;
   }
 
   const pathWithParams = `${path.startsWith('/') ? path : `/${path}`}`.replace(
@@ -71,37 +74,35 @@ const RedirectToCurrentProjectRoute: React.FC<
   const pathWithParamsAndSearchParams = `${pathWithParams}${
     searchParamsString ? `?${searchParamsString}` : ''
   }`;
-  return (
-    <Navigate
-      to={`/projects/${currentProjectId}${pathWithParamsAndSearchParams}`}
-      replace
-    />
-  );
+  window.location.replace(`/projects/${currentProjectId}${pathWithParamsAndSearchParams}`);
+  return null;
 };
 
 interface ProjectRouterWrapperProps {
   path: string;
-  element: React.ReactNode;
+  component: () => JSX.Element;
 }
 
 export const ProjectRouterWrapper = ({
-  element,
+  component: Component,
   path,
 }: ProjectRouterWrapperProps) => [
   {
     path: `/projects/:projectId${path.startsWith('/') ? path : `/${path}`}`,
-    element: (
+    component: () => (
       <AllowOnlyLoggedInUserOnlyGuard>
-        <TokenCheckerWrapper>{element}</TokenCheckerWrapper>
+        <TokenCheckerWrapper>
+          <Component />
+        </TokenCheckerWrapper>
       </AllowOnlyLoggedInUserOnlyGuard>
     ),
   },
   {
     path,
-    element: (
+    component: () => (
       <AllowOnlyLoggedInUserOnlyGuard>
         <RedirectToCurrentProjectRoute path={path}>
-          {element}
+          <Component />
         </RedirectToCurrentProjectRoute>
       </AllowOnlyLoggedInUserOnlyGuard>
     ),

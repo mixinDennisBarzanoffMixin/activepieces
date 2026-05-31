@@ -1,11 +1,8 @@
 import { FlowOperationType, PopulatedFlow } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useEffect, useState } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import { z } from 'zod';
+import { createEffect, createSignal, JSX, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { FormField, FormItem, FormMessage } from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -30,14 +26,8 @@ import { projectMembersHooks } from '@/features/members/hooks/project-members-ho
 
 import { flowsApi } from '../api/flows-api';
 
-const ChangeOwnerFormSchema = z.object({
-  ownerId: z.string({ message: t('Please select an owner') }),
-});
-
-type ChangeOwnerFormSchema = z.infer<typeof ChangeOwnerFormSchema>;
-
 type ChangeOwnerDialogProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   flow: PopulatedFlow;
   onOwnerChange: () => void;
 };
@@ -48,23 +38,17 @@ const ChangeOwnerDialog = ({
   onOwnerChange,
 }: ChangeOwnerDialogProps) => {
   const { projectMembers, isLoading } = projectMembersHooks.useProjectMembers();
-  const [isDialogOpened, setIsDialogOpened] = useState(false);
+  const [isDialogOpened, setIsDialogOpened] = createSignal(false);
+  const [ownerId, setOwnerId] = createSignal(flow.ownerId ?? '');
+  const [error, setError] = createSignal('');
 
-  const form = useForm<ChangeOwnerFormSchema>({
-    resolver: zodResolver(ChangeOwnerFormSchema),
-    defaultValues: {
-      ownerId: flow.ownerId ?? '',
-    },
-  });
-
-  useEffect(() => {
-    if (isDialogOpened) {
-      form.reset({
-        ownerId: flow.ownerId ?? '',
-      });
+  createEffect(() => {
+    if (isDialogOpened()) {
+      setOwnerId(flow.ownerId ?? '');
+      setError('');
     }
-  }, [isDialogOpened, flow.ownerId, form]);
-  const { mutate, isPending } = useMutation<
+  });
+  const { mutate, isPending } = createMutation<
     PopulatedFlow,
     Error,
     ChangeOwnerFormSchema
@@ -84,6 +68,16 @@ const ChangeOwnerDialog = ({
     },
   });
 
+  const submit = (e: SubmitEvent) => {
+    e.preventDefault();
+    if (!ownerId()) {
+      setError(t('Please select an owner'));
+      return;
+    }
+    setError('');
+    mutate({ ownerId: ownerId() });
+  };
+
   return (
     <Dialog onOpenChange={setIsDialogOpened} open={isDialogOpened}>
       <DialogTrigger asChild>{children}</DialogTrigger>
@@ -94,60 +88,50 @@ const ChangeOwnerDialog = ({
             {t('Select a team member to take ownership of this flow.')}
           </DialogDescription>
         </DialogHeader>
-        <FormProvider {...form}>
-          <form onSubmit={form.handleSubmit((data) => mutate(data))}>
-            <FormField
-              control={form.control}
-              name="ownerId"
-              render={({ field }) => (
-                <FormItem>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value || undefined}
-                    disabled={
-                      isLoading ||
-                      !projectMembers ||
-                      projectMembers.length === 0
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t('Select Owner')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        {projectMembers &&
-                          projectMembers.length > 0 &&
-                          projectMembers.map((member) => (
-                            <SelectItem
-                              key={member.userId}
-                              value={member.userId}
-                            >
-                              {member.user.firstName} {member.user.lastName} (
-                              {member.user.email})
-                            </SelectItem>
-                          ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            {form?.formState?.errors?.root?.serverError && (
-              <FormMessage>
-                {form.formState.errors.root.serverError.message}
-              </FormMessage>
-            )}
-            <DialogFooter>
-              <Button type="submit" loading={isPending}>
-                {t('Transfer')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </FormProvider>
+        <form onSubmit={submit}>
+          <div class="space-y-1">
+            <Select
+              onValueChange={setOwnerId}
+              value={ownerId() || undefined}
+              disabled={
+                isLoading || !projectMembers || projectMembers.length === 0
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t('Select Owner')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {projectMembers &&
+                    projectMembers.length > 0 &&
+                    projectMembers.map((member) => (
+                      <SelectItem key={member.userId} value={member.userId}>
+                        {member.user.firstName} {member.user.lastName} (
+                        {member.user.email})
+                      </SelectItem>
+                    ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <Show when={error()}>
+              <p class="text-sm font-medium text-destructive wrap-break-word">
+                {error()}
+              </p>
+            </Show>
+          </div>
+          <DialogFooter>
+            <Button type="submit" loading={isPending}>
+              {t('Transfer')}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
+};
+
+type ChangeOwnerFormSchema = {
+  ownerId: string;
 };
 
 export { ChangeOwnerDialog };

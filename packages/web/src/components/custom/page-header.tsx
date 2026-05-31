@@ -1,5 +1,3 @@
-import { ReactNode } from 'react';
-
 import { ApSidebarToggle } from '@/components/custom/ap-sidebar-toggle';
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { cn } from '@/lib/utils';
@@ -26,16 +24,16 @@ export const PageHeader = ({
       )}
     >
       <div className="flex items-center gap-1 grow">
-        {showSidebarToggle && <ApSidebarToggle />}
+        <Show when={showSidebarToggle}>
+          <ApSidebarToggle />
+        </Show>
         <div className="grow">
-          {typeof title === 'string' ? (
+          <Show when={typeof title === 'string'} fallback={title}>
             <h1 className="text-base font-semibold">{title}</h1>
-          ) : (
-            title
-          )}
-          {description && (
+          </Show>
+          <Show when={description}>
             <span className="text-sm text-muted-foreground">{description}</span>
-          )}
+          </Show>
         </div>
         {leftContent}
       </div>
@@ -45,10 +43,10 @@ export const PageHeader = ({
 };
 
 interface PageHeaderProps {
-  title: ReactNode;
-  description?: ReactNode;
-  leftContent?: ReactNode;
-  rightContent?: ReactNode;
+  title: any;
+  description?: any;
+  leftContent?: any;
+  rightContent?: any;
   showSidebarToggle?: boolean;
   className?: string;
 }

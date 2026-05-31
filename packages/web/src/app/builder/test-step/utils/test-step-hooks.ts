@@ -8,10 +8,10 @@ import {
   TriggerEventWithPayload,
   TriggerTestStrategy,
 } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import deepEqual from 'deep-equal';
 import { t } from 'i18next';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext } from '@/app/builder/builder-form';
 
 import { internalErrorToast } from '@/components/ui/sonner';
 import { flowRunsApi } from '@/features/flow-runs';
@@ -37,70 +37,72 @@ export const testStepHooks = {
     const flowVersionId = builderState.flowVersionId;
     const stepName = form.getValues().name;
 
-    return useMutation<TriggerEventWithPayload[], Error, AbortSignal>({
-      mutationFn: async (abortSignal: AbortSignal) => {
-        setErrorMessage?.(undefined);
-        const ids = (
-          await triggerEventsApi.list({
+    return createMutation<TriggerEventWithPayload[], Error, AbortSignal>(
+      () => ({
+        mutationFn: async (abortSignal: AbortSignal) => {
+          setErrorMessage?.(undefined);
+          const ids = (
+            await triggerEventsApi.list({
+              projectId: authenticationSession.getProjectId()!,
+              flowId,
+              cursor: undefined,
+              limit: 5,
+            })
+          ).data.map((triggerEvent) => triggerEvent.id);
+          await triggerEventsApi.test({
             projectId: authenticationSession.getProjectId()!,
             flowId,
-            cursor: undefined,
-            limit: 5,
-          })
-        ).data.map((triggerEvent) => triggerEvent.id);
-        await triggerEventsApi.test({
-          projectId: authenticationSession.getProjectId()!,
-          flowId,
-          flowVersionId,
-          testStrategy: TriggerTestStrategy.SIMULATION,
-        });
-        let attempt = 0;
-        while (attempt < 1000) {
-          if (abortSignal.aborted) {
-            return [];
-          }
-          const newData = await triggerEventsApi.list({
-            projectId: authenticationSession.getProjectId()!,
-            flowId,
-            cursor: undefined,
-            limit: 5,
+            flowVersionId,
+            testStrategy: TriggerTestStrategy.SIMULATION,
           });
-          const newIds = newData.data.map((triggerEvent) => triggerEvent.id);
-          if (!deepEqual(ids, newIds)) {
-            if (newData.data.length > 0) {
-              builderState.updateSampleData({
-                stepName,
-                output: newData.data[0].payload,
-              });
+          let attempt = 0;
+          while (attempt < 1000) {
+            if (abortSignal.aborted) {
+              return [];
             }
-            return newData.data;
+            const newData = await triggerEventsApi.list({
+              projectId: authenticationSession.getProjectId()!,
+              flowId,
+              cursor: undefined,
+              limit: 5,
+            });
+            const newIds = newData.data.map((triggerEvent) => triggerEvent.id);
+            if (!deepEqual(ids, newIds)) {
+              if (newData.data.length > 0) {
+                builderState.updateSampleData({
+                  stepName,
+                  output: newData.data[0].payload,
+                });
+              }
+              return newData.data;
+            }
+            await wait(2000);
+            attempt++;
           }
-          await wait(2000);
-          attempt++;
-        }
-        return [];
-      },
-      onSuccess: async (results) => {
-        if (results.length > 0) {
-          onSuccess();
-        }
-      },
-      onError: async (error) => {
-        console.error(error);
-        setErrorMessage?.(
-          testStepUtils.formatErrorMessage(
-            t('There is no sample data available found for this trigger.'),
-          ),
-        );
-      },
-    });
+          return [];
+        },
+        onSuccess: async (results) => {
+          if (results.length > 0) {
+            onSuccess();
+          }
+        },
+        onError: async (error) => {
+          console.error(error);
+          setErrorMessage?.(
+            testStepUtils.formatErrorMessage(
+              t('There is no sample data available found for this trigger.'),
+            ),
+          );
+        },
+      }),
+    );
   },
   useSaveMockData: ({ onSuccess }: { onSuccess: () => void }) => {
     const { form, builderState } = useRequiredStateToTestSteps();
     const flowId = builderState.flow.id;
     const stepName = form.getValues().name;
 
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async (mockData: unknown) => {
         const data = await triggerEventsApi.saveTriggerMockdata({
           projectId: authenticationSession.getProjectId()!,
@@ -114,7 +116,7 @@ export const testStepHooks = {
         return data;
       },
       onSuccess,
-    });
+    }));
   },
   usePollTrigger: ({
     setErrorMessage,
@@ -128,7 +130,7 @@ export const testStepHooks = {
     const flowVersionId = builderState.flowVersionId;
     const stepName = form.getValues().name;
 
-    return useMutation<TriggerEventWithPayload[], Error, void>({
+    return createMutation<TriggerEventWithPayload[], Error, void>(() => ({
       mutationFn: async () => {
         setErrorMessage(undefined);
         const { data } = await triggerEventsApi.test({
@@ -175,33 +177,35 @@ export const testStepHooks = {
           );
         }
       },
-    });
+    }));
   },
   /**To reset the loading state of the mutation use a new mutation key, but to make sure sucess never gets called, use the abortSignal */
   useTestAction: ({ currentStep }: { currentStep: FlowAction }) => {
     const { flowVersionId, addActionTestListener } =
       useRequiredStateToTestSteps().builderState;
-    return useMutation<{ runId: string }, Error, TestActionMutationParams>({
-      mutationFn: async () => {
-        const response = await flowRunsApi.testStep({
-          request: {
-            projectId: authenticationSession.getProjectId()!,
-            flowVersionId,
+    return createMutation<{ runId: string }, Error, TestActionMutationParams>(
+      () => ({
+        mutationFn: async () => {
+          const response = await flowRunsApi.testStep({
+            request: {
+              projectId: authenticationSession.getProjectId()!,
+              flowVersionId,
+              stepName: currentStep.name,
+            },
+          });
+          return response;
+        },
+        onSuccess: (testStepResponse: { runId: string }) => {
+          addActionTestListener({
+            runId: testStepResponse.runId,
             stepName: currentStep.name,
-          },
-        });
-        return response;
-      },
-      onSuccess: (testStepResponse: { runId: string }) => {
-        addActionTestListener({
-          runId: testStepResponse.runId,
-          stepName: currentStep.name,
-        });
-      },
-      onError: () => {
-        internalErrorToast();
-      },
-    });
+          });
+        },
+        onError: () => {
+          internalErrorToast();
+        },
+      }),
+    );
   },
 };
 

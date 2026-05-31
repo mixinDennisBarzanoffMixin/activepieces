@@ -12,7 +12,7 @@ import {
   SeekPage,
   CountFlowsRequest,
 } from '@activepieces/shared';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { UNSAVED_CHANGES_TOAST } from '@/components/ui/sonner';
 import { api } from '@/lib/api';

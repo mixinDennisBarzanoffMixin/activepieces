@@ -3,23 +3,15 @@ import {
   EmbedSubdomain,
   GenerateEmbedSubdomainRequest,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from 'i18next';
-import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { Loader2 } from 'lucide-solid';
+import { createSignal, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { embedSubdomainMutations } from '@/features/platform-admin';
 import { api } from '@/lib/api';
 
@@ -37,92 +29,84 @@ export const HostnameStep = ({
         "Pick the domain you'll embed in your website. It will be visible inside workflows.",
       )}
     >
-      {subdomain ? (
+      <Show when={subdomain} fallback={<EmbedHostnameForm />}>
         <EmbedHostnameSummary subdomain={subdomain} />
-      ) : (
-        <EmbedHostnameForm />
-      )}
+      </Show>
     </StepShell>
   );
 };
 
 const EmbedHostnameForm = () => {
   const { mutate, isPending } = embedSubdomainMutations.useUpsert();
-
-  const form = useForm<GenerateEmbedSubdomainRequest>({
-    resolver: zodResolver(GenerateEmbedSubdomainRequest),
-    defaultValues: { hostname: '' },
-    mode: 'onChange',
-  });
+  const [hostname, setHostname] = createSignal('');
+  const [error, setError] = createSignal('');
 
   const handleSubmit = (values: GenerateEmbedSubdomainRequest) => {
-    form.clearErrors('root.serverError');
     mutate(values, {
       onSuccess: () => {
         toast.success(t('Domain saved'));
       },
       onError: (error) => {
-        form.setError('root.serverError', {
-          type: 'manual',
-          message: extractServerErrorMessage(error, t("Couldn't save domain")),
-        });
+        setError(extractServerErrorMessage(error, t("Couldn't save domain")));
       },
     });
   };
 
+  const submit = (event: SubmitEvent) => {
+    event.preventDefault();
+    setError('');
+    const parsed = GenerateEmbedSubdomainRequest.safeParse({
+      hostname: hostname(),
+    });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message || t("Couldn't save domain"));
+      return;
+    }
+    handleSubmit(parsed.data);
+  };
+
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="flex flex-col gap-3"
-      >
-        <FormField
-          name="hostname"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('Domain')}</FormLabel>
-              <Input {...field} placeholder="flows.acme.com" />
-              <p className="text-xs text-muted-foreground">
-                {t('Use a subdomain you control, like flows.acme.com')}
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {form.formState.errors.root?.serverError && (
-          <p className="text-sm text-destructive">
-            {form.formState.errors.root.serverError.message}
+    <form onSubmit={submit} className="flex flex-col gap-3">
+        <div className="space-y-1">
+          <Label for="hostname">{t('Domain')}</Label>
+          <Input
+            id="hostname"
+            value={hostname()}
+            onInput={(event) => setHostname(event.currentTarget.value)}
+            placeholder="flows.acme.com"
+          />
+          <p className="text-xs text-muted-foreground">
+            {t('Use a subdomain you control, like flows.acme.com')}
           </p>
-        )}
+        </div>
+        <Show when={error()}>
+          <p className="text-sm text-destructive">
+            {error()}
+          </p>
+        </Show>
         <div className="flex justify-end mt-6">
           <Button type="submit" size="sm" disabled={isPending}>
-            {isPending && <Loader2 className="size-4 animate-spin mr-2" />}
+            <Show when={isPending}>
+              <Loader2 class="size-4 animate-spin mr-2" />
+            </Show>
             {t('Save domain')}
           </Button>
         </div>
       </form>
-    </Form>
   );
 };
 
 const EmbedHostnameSummary = ({ subdomain }: { subdomain: EmbedSubdomain }) => {
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = createSignal(false);
+  const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
   const { mutateAsync, isPending } = embedSubdomainMutations.useUpsert();
-
-  const form = useForm<GenerateEmbedSubdomainRequest>({
-    resolver: zodResolver(GenerateEmbedSubdomainRequest),
-    defaultValues: { hostname: subdomain.hostname },
-    mode: 'onChange',
-  });
-
-  const hostnameValue = form.watch('hostname');
-  const isDirty = hostnameValue.trim() !== subdomain.hostname;
+  const [hostname, setHostname] = createSignal(subdomain.hostname);
+  const isDirty = () => hostname().trim() !== subdomain.hostname;
 
   const handleConfirm = async () => {
     setErrorMessage(null);
     try {
-      await mutateAsync({ hostname: hostnameValue.trim() });
+      await mutateAsync({ hostname: hostname().trim() });
       toast.success(t('Domain updated'));
     } catch (error) {
       setErrorMessage(
@@ -132,31 +116,42 @@ const EmbedHostnameSummary = ({ subdomain }: { subdomain: EmbedSubdomain }) => {
     }
   };
 
+  const submit = (event: SubmitEvent) => {
+    event.preventDefault();
+    setErrorMessage(null);
+    const parsed = GenerateEmbedSubdomainRequest.safeParse({
+      hostname: hostname(),
+    });
+    if (!parsed.success) {
+      setErrorMessage(parsed.error.issues[0]?.message || t("Couldn't update domain"));
+      return;
+    }
+    setHostname(parsed.data.hostname);
+    setConfirmOpen(true);
+  };
+
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(() => setConfirmOpen(true))}
-        className="flex flex-col gap-3"
-      >
-        <FormField
-          name="hostname"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('Domain')}</FormLabel>
-              <Input {...field} placeholder="flows.acme.com" />
-              <p className="text-xs text-muted-foreground">
-                {t('Use a subdomain you control, like flows.acme.com')}
-              </p>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        {errorMessage && (
-          <p className="text-sm text-destructive">{errorMessage}</p>
-        )}
+    <form onSubmit={submit} className="flex flex-col gap-3">
+        <div className="space-y-1">
+          <Label for="hostname">{t('Domain')}</Label>
+          <Input
+            id="hostname"
+            value={hostname()}
+            onInput={(event) => setHostname(event.currentTarget.value)}
+            placeholder="flows.acme.com"
+          />
+          <p className="text-xs text-muted-foreground">
+            {t('Use a subdomain you control, like flows.acme.com')}
+          </p>
+        </div>
+        <Show when={errorMessage()}>
+          <p className="text-sm text-destructive">{errorMessage()}</p>
+        </Show>
         <div className="flex justify-end mt-6">
-          <Button type="submit" size="sm" disabled={!isDirty || isPending}>
-            {isPending && <Loader2 className="size-4 animate-spin mr-2" />}
+          <Button type="submit" size="sm" disabled={!isDirty() || isPending}>
+            <Show when={isPending}>
+              <Loader2 class="size-4 animate-spin mr-2" />
+            </Show>
             {t('Update')}
           </Button>
         </div>
@@ -173,7 +168,6 @@ const EmbedHostnameSummary = ({ subdomain }: { subdomain: EmbedSubdomain }) => {
           mutationFn={handleConfirm}
         />
       </form>
-    </Form>
   );
 };
 

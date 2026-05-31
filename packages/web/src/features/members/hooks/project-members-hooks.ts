@@ -3,7 +3,7 @@ import {
   ApFlagId,
   assertNotNullOrUndefined,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { platformHooks } from '@/hooks/platform-hooks';
@@ -15,7 +15,7 @@ export const projectMembersHooks = {
   useProjectMembers: () => {
     const { data } = flagsHooks.useFlag<boolean>(ApFlagId.SHOW_PROJECT_MEMBERS);
     const { platform } = platformHooks.useCurrentPlatform();
-    const query = useQuery<ProjectMemberWithUser[]>({
+    const query = createQuery<ProjectMemberWithUser[]>({
       queryKey: ['project-members', authenticationSession.getProjectId()],
       queryFn: async () => {
         const projectId = authenticationSession.getProjectId();
@@ -46,7 +46,7 @@ export const projectMembersMutations = {
     onSuccess: (variables: { memberId: string; role: string }) => void;
     onError: () => void;
   }) => {
-    return useMutation({
+    return createMutation({
       mutationFn: ({ memberId, role }: { memberId: string; role: string }) =>
         projectMembersApi.update(memberId, { role }),
       onSuccess: (_data, variables) => {

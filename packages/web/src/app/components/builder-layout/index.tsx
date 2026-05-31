@@ -1,4 +1,5 @@
 import { ApEdition, ApFlagId } from '@activepieces/shared';
+import { Show } from 'solid-js';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar-shadcn';
@@ -12,7 +13,7 @@ import {
 } from '../global-search/global-search-context';
 import { ProjectDashboardSidebar } from '../sidebar/dashboard';
 
-export function BuilderLayout({ children }: { children: React.ReactNode }) {
+export function BuilderLayout({ children }: { children: JSX.Element }) {
   return (
     <GlobalSearchProvider>
       <BuilderLayoutInner>{children}</BuilderLayoutInner>
@@ -20,15 +21,19 @@ export function BuilderLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-function BuilderLayoutInner({ children }: { children: React.ReactNode }) {
+function BuilderLayoutInner({ children }: { children: JSX.Element }) {
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
   const { embedState } = useEmbedding();
   const { open: searchOpen } = useGlobalSearch();
 
   return (
     <SidebarProvider hoverMode={!searchOpen} defaultOpen={false}>
-      {!embedState.isEmbedded && <ProjectDashboardSidebar />}
-      <SidebarInset className="flex flex-col h-full overflow-hidden bg-sidebar">
+      {
+        <Show when={!embedState.isEmbedded}>
+          <ProjectDashboardSidebar />
+        </Show>
+      }
+      <SidebarInset class="flex flex-col h-full overflow-hidden bg-sidebar">
         <div
           className={cn(
             'flex-1 flex flex-col overflow-hidden',
@@ -46,7 +51,11 @@ function BuilderLayoutInner({ children }: { children: React.ReactNode }) {
             {children}
           </div>
         </div>
-        {edition === ApEdition.CLOUD && <PurchaseExtraFlowsDialog />}
+        {
+          <Show when={edition === ApEdition.CLOUD}>
+            <PurchaseExtraFlowsDialog />
+          </Show>
+        }
       </SidebarInset>
     </SidebarProvider>
   );

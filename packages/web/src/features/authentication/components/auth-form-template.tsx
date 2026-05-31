@@ -1,11 +1,10 @@
+import { createEffect, createSignal, lazy, onCleanup, Show } from 'solid-js';
 import {
   ApEdition,
   ApFlagId,
   ThirdPartyAuthnProvidersToShowMap,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import React, { useCallback, useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
 
 import { useTheme } from '@/components/providers/theme-provider';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -18,32 +17,30 @@ import { flagsHooks } from '../../../hooks/flags-hooks';
 
 import { AuthAnimation } from './auth-animation';
 import { SignInForm } from './sign-in-form';
-import { SignUpForm } from './sign-up-form';
 import { ThirdPartyLogin } from './third-party-logins';
 
+const SignUpForm = lazy(() => import('./sign-up-form').then((m) => ({ default: m.SignUpForm })));
+
 const BottomNote = ({ isSignup }: { isSignup: boolean }) => {
-  const [searchParams] = useSearchParams();
-  const searchQuery = searchParams.toString();
+  const searchQuery = new URLSearchParams(window.location.search).toString();
 
   return isSignup ? (
-    <div className="mt-6 text-center text-[14px] text-muted-foreground">
+    <div class="mt-6 text-center text-[14px] text-muted-foreground">
       {t('Already have an account?')}
-      <Link
-        to={`/sign-in?${searchQuery}`}
-        className="pl-1 font-medium text-foreground hover:underline transition-all duration-200"
+      <a href={`/sign-in?${searchQuery}`}
+        class="pl-1 font-medium text-foreground hover:underline transition-all duration-200"
       >
         {t('Sign in')}
-      </Link>
+      </a>
     </div>
   ) : (
-    <div className="mt-6 text-center text-[14px] text-muted-foreground">
+    <div class="mt-6 text-center text-[14px] text-muted-foreground">
       {t("Don't have an account?")}
-      <Link
-        to={`/sign-up?${searchQuery}`}
-        className="pl-1 font-medium text-foreground hover:underline transition-all duration-200"
+      <a href={`/sign-up?${searchQuery}`}
+        class="pl-1 font-medium text-foreground hover:underline transition-all duration-200"
       >
         {t('Sign up')}
-      </Link>
+      </a>
     </div>
   );
 };
@@ -65,26 +62,24 @@ const TermsFooter = () => {
   }
 
   return (
-    <div className="text-center text-xs text-muted-foreground">
+    <div class="text-center text-xs text-muted-foreground">
       {t('By continuing, you agree to our')}
       {termsOfServiceUrl && (
-        <Link
-          to={termsOfServiceUrl}
+        <a href={termsOfServiceUrl}
           target="_blank"
-          className="px-1 text-muted-foreground underline hover:text-primary text-xs transition-all duration-200"
+          class="px-1 text-muted-foreground underline hover:text-primary text-xs transition-all duration-200"
         >
           {t('Terms of Service')}
-        </Link>
+        </a>
       )}
       {termsOfServiceUrl && privacyPolicyUrl && t('and')}
       {privacyPolicyUrl && (
-        <Link
-          to={privacyPolicyUrl}
+        <a href={privacyPolicyUrl}
           target="_blank"
-          className="pl-1 text-muted-foreground underline hover:text-primary text-xs transition-all duration-200"
+          class="pl-1 text-muted-foreground underline hover:text-primary text-xs transition-all duration-200"
         >
           {t('Privacy Policy')}
-        </Link>
+        </a>
       )}
       .
     </div>
@@ -106,24 +101,24 @@ const AuthSeparator = ({
     thirdPartyAuthProviders?.google || thirdPartyAuthProviders?.saml || isCloud;
 
   return hasThirdPartyLogin && isEmailAuthEnabled ? (
-    <HorizontalSeparatorWithText className="my-5 text-muted-foreground">
+    <HorizontalSeparatorWithText class="my-5 text-muted-foreground">
       {t('or')}
     </HorizontalSeparatorWithText>
   ) : null;
 };
 
 const AuthImage = () => {
-  const [loaded, setLoaded] = useState(false);
-  const onLoad = useCallback(() => setLoaded(true), []);
+  const [loaded, setLoaded] = createSignal(false);
+  const onLoad = () => setLoaded(true);
 
   return (
     <img
       src="https://cdn.activepieces.com/assets/auth-bg.webp"
       alt=""
       onLoad={onLoad}
-      className={cn(
+      class={cn(
         'absolute inset-0 w-full h-full object-cover transition-opacity duration-300',
-        loaded ? 'opacity-100' : 'opacity-0',
+        loaded() ? 'opacity-100' : 'opacity-0',
       )}
     />
   );
@@ -133,34 +128,34 @@ const AuthLayout = ({
   children,
   isSignUp,
 }: {
-  children: React.ReactNode;
+  children;
   isSignUp?: boolean;
 }) => {
   const { setForceLightMode } = useTheme();
-  useEffect(() => {
+  createEffect(() => {
     setForceLightMode(true);
-    return () => setForceLightMode(false);
-  }, [setForceLightMode]);
+    onCleanup(() => setForceLightMode(false));
+  });
   return (
-    <div className="h-screen w-full overflow-hidden flex bg-white relative">
+    <div class="h-screen w-full overflow-hidden flex bg-white relative">
       {/* Form — left side */}
-      <div className="flex flex-col w-full lg:w-1/2 p-5 lg:px-[100px]">
-        <div className="pt-3 flex justify-center">
+      <div class="flex flex-col w-full lg:w-1/2 p-5 lg:px-[100px]">
+        <div class="pt-3 flex justify-center">
           <FullLogo />
         </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="w-full max-w-xs overflow-y-auto px-1">{children}</div>
+        <div class="flex-1 flex items-center justify-center">
+          <div class="w-full max-w-xs overflow-y-auto px-1">{children}</div>
         </div>
         {isSignUp && (
-          <div className="pb-4">
+          <div class="pb-4">
             <TermsFooter />
           </div>
         )}
       </div>
 
       {/* Right side — animation for sign-up, image for sign-in */}
-      <div className="hidden lg:flex w-1/2 py-5 pr-5">
-        <div className="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
+      <div class="hidden lg:flex w-1/2 py-5 pr-5">
+        <div class="relative w-full h-full rounded-2xl overflow-hidden bg-muted">
           {isSignUp ? <AuthAnimation /> : <AuthImage />}
         </div>
       </div>
@@ -168,14 +163,12 @@ const AuthLayout = ({
   );
 };
 
-AuthLayout.displayName = 'AuthLayout';
-
-const AuthFormTemplate = React.memo(
+const AuthFormTemplate =
   ({ form }: { form: 'signin' | 'signup' }) => {
     const isSignUp = form === 'signup';
     const token = authenticationSession.getToken();
     const redirectAfterLogin = useRedirectAfterLogin();
-    const [showCheckYourEmailNote, setShowCheckYourEmailNote] = useState(false);
+    const [showCheckYourEmailNote, setShowCheckYourEmailNote] = createSignal(false);
     const { data: isEmailAuthEnabled } = flagsHooks.useFlag<boolean>(
       ApFlagId.EMAIL_AUTH_ENABLED,
     );
@@ -190,11 +183,11 @@ const AuthFormTemplate = React.memo(
       },
     }[form];
 
-    useEffect(() => {
+    createEffect(() => {
       if (token) {
         redirectAfterLogin();
       }
-    }, [token, redirectAfterLogin]);
+    });
 
     if (token) {
       return null;
@@ -202,10 +195,10 @@ const AuthFormTemplate = React.memo(
 
     return (
       <AuthLayout isSignUp={isSignUp}>
-        {!showCheckYourEmailNote && (
-          <div className="mb-6 text-center">
+        {!showCheckYourEmailNote() && (
+          <div class="mb-6 text-center">
             <h1
-              className="text-2xl font-bold tracking-tight"
+              class="text-2xl font-bold tracking-tight"
               style={{ fontFamily: "'Sentient', serif" }}
             >
               {data.title}
@@ -213,10 +206,10 @@ const AuthFormTemplate = React.memo(
           </div>
         )}
 
-        {!showCheckYourEmailNote && <ThirdPartyLogin isSignUp={isSignUp} />}
+        {!showCheckYourEmailNote() && <ThirdPartyLogin isSignUp={isSignUp} />}
         <AuthSeparator
           isEmailAuthEnabled={
-            (isEmailAuthEnabled ?? true) && !showCheckYourEmailNote
+            (isEmailAuthEnabled || isEmailAuthEnabled === undefined) && !showCheckYourEmailNote()
           }
         />
 
@@ -224,7 +217,7 @@ const AuthFormTemplate = React.memo(
           isSignUp ? (
             <SignUpForm
               setShowCheckYourEmailNote={setShowCheckYourEmailNote}
-              showCheckYourEmailNote={showCheckYourEmailNote}
+              showCheckYourEmailNote={showCheckYourEmailNote()}
             />
           ) : (
             <SignInForm />
@@ -234,9 +227,6 @@ const AuthFormTemplate = React.memo(
         <BottomNote isSignup={isSignUp} />
       </AuthLayout>
     );
-  },
-);
-
-AuthFormTemplate.displayName = 'AuthFormTemplate';
+  };
 
 export { AuthFormTemplate, AuthLayout };

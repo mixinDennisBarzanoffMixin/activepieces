@@ -1,4 +1,5 @@
 import { FlowOperationType } from '@activepieces/shared';
+import { For } from 'solid-js';
 
 import {
   CardListItem,
@@ -55,35 +56,42 @@ const ExploreTabContent = ({
   }
 
   return (
-    <ScrollArea className="h-full w-full">
+    <ScrollArea class="h-full w-full">
       <div className="flex  p-2  ">
-        {categories.map((category) => (
-          <div key={category.title} className="flex w-[50%] flex-col gap-0.5 ">
-            <div className="text-sm text-muted-foreground mb-1.5">
-              {category.title}
-            </div>
+        <For each={categories}>
+          {(category) => (
+            <div
+              key={category.title}
+              className="flex w-[50%] flex-col gap-0.5 "
+            >
+              <div className="text-sm text-muted-foreground mb-1.5">
+                {category.title}
+              </div>
 
-            {category.metadata.map((pieceMetadata) => (
-              <CardListItem
-                className="rounded-sm py-3"
-                key={pieceMetadata.displayName}
-                onClick={() => setSelectedPieceInExplore(pieceMetadata)}
-              >
-                <div className="flex gap-2 items-center h-full">
-                  <PieceIcon
-                    logoUrl={pieceMetadata.logoUrl}
-                    displayName={pieceMetadata.displayName}
-                    showTooltip={false}
-                    size={'sm'}
-                  />
-                  <div className="grow h-full flex items-center justify-left text-sm">
-                    {pieceMetadata.displayName}
-                  </div>
-                </div>{' '}
-              </CardListItem>
-            ))}
-          </div>
-        ))}
+              <For each={category.metadata}>
+                {(pieceMetadata) => (
+                  <CardListItem
+                    class="rounded-sm py-3"
+                    key={pieceMetadata.displayName}
+                    onClick={() => setSelectedPieceInExplore(pieceMetadata)}
+                  >
+                    <div className="flex gap-2 items-center h-full">
+                      <PieceIcon
+                        logoUrl={pieceMetadata.logoUrl}
+                        displayName={pieceMetadata.displayName}
+                        showTooltip={false}
+                        size={'sm'}
+                      />
+                      <div className="grow h-full flex items-center justify-left text-sm">
+                        {pieceMetadata.displayName}
+                      </div>
+                    </div>{' '}
+                  </CardListItem>
+                )}
+              </For>
+            </div>
+          )}
+        </For>
       </div>
     </ScrollArea>
   );

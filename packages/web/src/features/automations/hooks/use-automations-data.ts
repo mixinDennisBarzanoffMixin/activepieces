@@ -1,3 +1,4 @@
+import { createMemo, createSignal } from 'solid-js';
 import {
   FlowStatus,
   FolderDto,
@@ -6,9 +7,8 @@ import {
   Table,
   UncategorizedFolderId,
 } from '@activepieces/shared';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { createQuery, useQueryClient } from "@tanstack/solid-query";
+import { useParams } from "@solidjs/router";
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { flowsApi } from '@/features/flows/api/flows-api';
@@ -36,27 +36,27 @@ export function useAutomationsData(
   const hideTables = embedState.hideTables;
   const isFiltered = hasNonFolderFilters(filters);
 
-  const [rootPage, setRootPage] = useState(0);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+  const [rootPage, setRootPage] = createSignal(0);
+  const [pageSize, setPageSize] = createSignal(DEFAULT_PAGE_SIZE);
+  const [expandedFolders, setExpandedFolders] = createSignal<Set<string>>(
     new Set(),
   );
-  const [folderVisibleCounts, setFolderVisibleCounts] = useState<
+  const [folderVisibleCounts, setFolderVisibleCounts] = createSignal<
     Map<string, number>
   >(new Map());
-  const [loadingFolders, setLoadingFolders] = useState<Set<string>>(new Set());
+  const [loadingFolders, setLoadingFolders] = createSignal<Set<string>>(new Set());
 
-  const foldersQuery = useQuery({
+  const foldersQuery = createQuery(() => ({
     queryKey: ['folders', projectId],
     queryFn: () => foldersApi.list(),
     staleTime: STALE_TIME,
     refetchOnMount: 'always',
     meta: { showErrorDialog: true, loadSubsetOptions: {} },
-  });
+  }));
 
   const folderIds = foldersQuery.data?.map((f) => f.id).join(',') ?? '';
 
-  const folderCountsQuery = useQuery<Map<string, number>>({
+  const folderCountsQuery = createQuery<Map<string, number>>({
     queryKey: ['folder-counts', projectId, folderIds, hideTables],
     queryFn: async () => {
       const folders = foldersQuery.data!;
@@ -84,7 +84,7 @@ export function useAutomationsData(
     refetchOnMount: 'always',
   });
 
-  const folderContentsQuery = useQuery<FolderContentsMap>({
+  const folderContentsQuery = createQuery<FolderContentsMap>({
     queryKey: ['all-folder-contents', projectId, folderIds, hideTables],
     queryFn: async () => {
       const folders = foldersQuery.data!;
@@ -127,7 +127,7 @@ export function useAutomationsData(
   const skipTables =
     filters.typeFilter.length > 0 && !filters.typeFilter.includes('table');
 
-  const rootFlowsQuery = useQuery({
+  const rootFlowsQuery = createQuery(() => ({
     queryKey: ['root-flows', projectId, filters],
     queryFn: () =>
       flowsApi.list({
@@ -149,9 +149,9 @@ export function useAutomationsData(
     staleTime: STALE_TIME,
     refetchOnMount: 'always',
     meta: { showErrorDialog: true, loadSubsetOptions: {} },
-  });
+  }));
 
-  const rootTablesQuery = useQuery({
+  const rootTablesQuery = createQuery(() => ({
     queryKey: ['root-tables', projectId, filters],
     queryFn: () =>
       tablesApi.list({
@@ -165,9 +165,9 @@ export function useAutomationsData(
     staleTime: STALE_TIME,
     refetchOnMount: 'always',
     meta: { showErrorDialog: true, loadSubsetOptions: {} },
-  });
+  }));
 
-  const toggleFolder = useCallback((folderId: string) => {
+  const toggleFolder = (folderId: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
       if (next.has(folderId)) {
@@ -177,10 +177,9 @@ export function useAutomationsData(
       }
       return next;
     });
-  }, []);
+  };
 
-  const loadMoreInFolder = useCallback(
-    async (folderId: string) => {
+  const loadMoreInFolder = async (folderId: string) => {
       const contents = folderContentsQuery.data?.get(folderId);
 
       if (!contents) {
@@ -262,29 +261,27 @@ export function useAutomationsData(
         next.delete(folderId);
         return next;
       });
-    },
-    [folderContentsQuery.data, projectId, folderIds, queryClient, hideTables],
-  );
+  };
 
-  const nextRootPage = useCallback(() => {
+  const nextRootPage = () => {
     setRootPage((prev) => prev + 1);
-  }, []);
+  };
 
-  const prevRootPage = useCallback(() => {
+  const prevRootPage = () => {
     setRootPage((prev) => Math.max(0, prev - 1));
-  }, []);
+  };
 
-  const resetPagination = useCallback(() => {
+  const resetPagination = () => {
     setRootPage(0);
     setFolderVisibleCounts(new Map());
-  }, []);
+  };
 
-  const changePageSize = useCallback((size: number) => {
+  const changePageSize = (size: number) => {
     setPageSize(size);
     setRootPage(0);
-  }, []);
+  };
 
-  const { treeItems, totalPageItems } = useMemo(() => {
+  const { treeItems, totalPageItems } = createMemo(() => {
     let folders = foldersQuery.data ?? [];
     let rootFlows = rootFlowsQuery.data?.data ?? [];
     let rootTables = rootTablesQuery.data?.data ?? [];
@@ -355,7 +352,7 @@ export function useAutomationsData(
   ]);
 
   const hasFolderFilter = filters.folderFilter.length > 0;
-  const effectiveExpandedFolders = useMemo(() => {
+  const effectiveExpandedFolders = createMemo(() => {
     if (!isFiltered && !hasFolderFilter) return expandedFolders;
     const all = new Set(expandedFolders);
     for (const item of treeItems) {
@@ -373,27 +370,24 @@ export function useAutomationsData(
     (rootTablesQuery.isLoading && !skipTables && !hideTables) ||
     folderContentsQuery.isLoading;
 
-  const invalidateAll = useCallback(() => {
+  const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['folders'] });
     queryClient.invalidateQueries({ queryKey: ['root-flows'] });
     queryClient.invalidateQueries({ queryKey: ['root-tables'] });
     queryClient.invalidateQueries({ queryKey: ['all-folder-contents'] });
     queryClient.invalidateQueries({ queryKey: ['folder-counts'] });
-  }, [queryClient]);
+  };
 
-  const invalidateRoot = useCallback(() => {
+  const invalidateRoot = () => {
     queryClient.invalidateQueries({ queryKey: ['root-flows'] });
     queryClient.invalidateQueries({ queryKey: ['root-tables'] });
-  }, [queryClient]);
+  };
 
-  const invalidateFolder = useCallback(
-    (_folderId: string) => {
-      queryClient.invalidateQueries({ queryKey: ['all-folder-contents'] });
-      queryClient.invalidateQueries({ queryKey: ['folders'] });
-      queryClient.invalidateQueries({ queryKey: ['folder-counts'] });
-    },
-    [queryClient],
-  );
+  const invalidateFolder = (_folderId: string) => {
+    queryClient.invalidateQueries({ queryKey: ['all-folder-contents'] });
+    queryClient.invalidateQueries({ queryKey: ['folders'] });
+    queryClient.invalidateQueries({ queryKey: ['folder-counts'] });
+  };
 
   return {
     treeItems,

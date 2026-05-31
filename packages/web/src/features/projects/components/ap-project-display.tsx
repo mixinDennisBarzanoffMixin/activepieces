@@ -4,8 +4,8 @@ import {
   ProjectIcon,
   ProjectType,
 } from '@activepieces/shared';
-import { User } from 'lucide-react';
-import { useContext } from 'react';
+import { User } from 'lucide-solid';
+import { useContext } from 'solid-js';
 
 import { Avatar } from '@/components/ui/avatar';
 import { SidebarContext } from '@/components/ui/sidebar-shadcn';
@@ -47,7 +47,7 @@ export const ApProjectDisplay = ({
   const projectAvatar = isNil(icon) ? null : projectType ===
     ProjectType.TEAM ? (
     <Avatar
-      className={cn(
+      class={cn(
         'size-6 flex items-center justify-center rounded-sm',
         iconClassName,
       )}
@@ -60,7 +60,7 @@ export const ApProjectDisplay = ({
     </Avatar>
   ) : (
     <User
-      className={cn('size-5 flex items-center justify-center', iconClassName)}
+      class={cn('size-5 flex items-center justify-center', iconClassName)}
     />
   );
 

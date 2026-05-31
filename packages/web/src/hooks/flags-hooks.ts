@@ -1,5 +1,8 @@
 import { ApFlagId } from '@activepieces/shared';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
+import { createMemo } from 'solid-js';
+
+import { queryClient } from '@/app/query-client';
 
 import { flagsApi, FlagsMap } from '../api/flags-api';
 
@@ -22,22 +25,28 @@ const queryKey = ['flags'];
 export const flagsHooks = {
   queryKey,
   useFlags: () => {
-    return useSuspenseQuery<FlagsMap, Error>({
-      queryKey,
-      queryFn: flagsApi.getAll,
-      staleTime: Infinity,
-    });
+    return createQuery(
+      () => ({
+        queryKey,
+        queryFn: flagsApi.getAll,
+        staleTime: Infinity,
+      }),
+      () => queryClient,
+    );
   },
   useWebsiteBranding: () => {
-    const { data: theme } = flagsHooks.useFlag<WebsiteBrand>(ApFlagId.THEME);
-    return theme!;
+    const query = flagsHooks.useFlags();
+    return createMemo(() => query.data?.[ApFlagId.THEME] as WebsiteBrand | undefined);
   },
   useFlag: <T>(flagId: ApFlagId) => {
-    const data = useSuspenseQuery<FlagsMap, Error>({
-      queryKey: ['flags'],
-      queryFn: flagsApi.getAll,
-      staleTime: Infinity,
-    }).data?.[flagId] as T | null;
+    const data = createQuery(
+      () => ({
+        queryKey: ['flags'],
+        queryFn: flagsApi.getAll,
+        staleTime: Infinity,
+      }),
+      () => queryClient,
+    ).data?.[flagId] as T | null;
     return {
       data,
     };

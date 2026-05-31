@@ -1,7 +1,7 @@
 import { PieceAction, PieceTrigger } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import React, { useState } from 'react';
+import { Show, createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
@@ -13,9 +13,7 @@ import {
   LatestVersionAvailableAlert,
 } from './update-piece-version-utils';
 
-export const UpgradePieceVersionContent: React.FC<
-  UpgradePieceVersionContentProps
-> = ({
+export const UpgradePieceVersionContent: any = ({
   step,
   currentVersion,
   latestVersion,
@@ -23,28 +21,32 @@ export const UpgradePieceVersionContent: React.FC<
   onClose,
   onOpenAdvanced,
 }) => {
-  const [serverError, setServerError] = useState<string | undefined>(undefined);
+  const [serverError, setServerError] = createSignal<string | undefined>(
+    undefined,
+  );
 
   const applyOperation = useBuilderStateContext(
     (state) => state.applyOperation,
   );
 
-  const { mutate: applyUpgrade, isPending: isUpgradePending } = useMutation({
-    mutationFn: async () => {
-      await changeVersionUtils.applyPieceVersionChange({
-        step,
-        targetVersion: latestVersion,
-        currentVersion,
-        applyOperation,
-      });
-    },
-    onSuccess: () => {
-      onClose();
-    },
-    onError: (error) => {
-      setServerError(error.message);
-    },
-  });
+  const { mutate: applyUpgrade, isPending: isUpgradePending } = createMutation(
+    () => ({
+      mutationFn: async () => {
+        await changeVersionUtils.applyPieceVersionChange({
+          step,
+          targetVersion: latestVersion,
+          currentVersion,
+          applyOperation,
+        });
+      },
+      onSuccess: () => {
+        onClose();
+      },
+      onError: (error) => {
+        setServerError(error.message);
+      },
+    }),
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -52,15 +54,15 @@ export const UpgradePieceVersionContent: React.FC<
         isLatestMinorOrMajor={isLatestMinorOrMajor}
       />
 
-      {serverError && (
+      <Show when={serverError()}>
         <p className="text-sm font-medium text-destructive">{serverError}</p>
-      )}
+      </Show>
 
       <DialogFooter>
         <Button
           type="button"
           variant="outline"
-          className="mr-auto"
+          class="mr-auto"
           onClick={onOpenAdvanced}
         >
           {t('Advanced')}
@@ -73,9 +75,12 @@ export const UpgradePieceVersionContent: React.FC<
           loading={isUpgradePending}
           onClick={() => applyUpgrade()}
         >
-          {isLatestMinorOrMajor
-            ? t('Upgrade to v{version}', { version: latestVersion })
-            : t('Update to v{version}', { version: latestVersion })}
+          <Show
+            when={isLatestMinorOrMajor()}
+            fallback={t('Update to v{version}', { version: latestVersion })}
+          >
+            {t('Upgrade to v{version}', { version: latestVersion })}
+          </Show>
         </Button>
       </DialogFooter>
     </div>

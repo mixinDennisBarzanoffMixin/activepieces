@@ -11,8 +11,8 @@ import {
   StepOutputType,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Download, Info } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Download, Info } from 'lucide-solid';
+import { Show, createMemo, createSignal } from 'solid-js';
 
 import { StepOutputSkeleton } from '@/app/components/step-output-skeleton';
 import { Button } from '@/components/ui/button';
@@ -46,12 +46,12 @@ export const FlowStepInputOutput = () => {
     ],
   );
   const isAgent = isRunAgent(selectedStep);
-  const [requestedTab, setActiveTab] = useState<RunActiveTab>(
+  const [requestedTab, setActiveTab] = createSignal<RunActiveTab>(
     isAgent ? 'timeline' : 'output',
   );
   const activeTab: RunActiveTab =
     requestedTab === 'timeline' && !isAgent ? 'output' : requestedTab;
-  const selectedStepOutput = useMemo(() => {
+  const selectedStepOutput = createMemo(() => {
     return run && selectedStep && run.steps
       ? flowRunUtils.extractStepOutput(
           selectedStep.name,
@@ -59,7 +59,7 @@ export const FlowStepInputOutput = () => {
           run.steps,
         )
       : null;
-  }, [run, selectedStep?.name, loopsIndexes, flowVersion.trigger]);
+  });
   const isStepRunning = selectedStepOutput?.status === StepOutputStatus.RUNNING;
   const isSlicedOutput =
     selectedStepOutput?.outputType === StepOutputType.SLICE;
@@ -88,14 +88,14 @@ export const FlowStepInputOutput = () => {
     run.status !== FlowRunStatus.PAUSED &&
     isNil(selectedStepOutput)
   ) {
-    return <StepOutputSkeleton className="p-4" />;
+    return <StepOutputSkeleton class="p-4" />;
   }
 
   const message = handleRunFailureOrEmptyLog(run, rententionDays);
   if (message) {
     return (
       <div className="flex flex-col justify-center items-center gap-4 w-full pt-8  px-5">
-        <Info size={36} className="text-muted-foreground" />
+        <Info size={36} class="text-muted-foreground" />
         <h4 className="px-6 text-sm text-center text-muted-foreground ">
           {message}
         </h4>
@@ -111,7 +111,7 @@ export const FlowStepInputOutput = () => {
         </div>
         <div className="grow flex flex-col items-center justify-center w-full px-6 py-10 gap-4 text-center">
           <div className="flex items-center justify-center size-12 rounded-full bg-muted text-muted-foreground">
-            <Info className="size-6" />
+            <Info class="size-6" />
           </div>
           <div className="flex flex-col gap-1.5 max-w-[280px]">
             <span className="text-sm font-medium text-foreground">
@@ -141,18 +141,18 @@ export const FlowStepInputOutput = () => {
         lastTestDate={run.created}
         viewMode="run"
       />
-      <ScrollArea className="flex-1 p-3">
+      <ScrollArea class="flex-1 p-3">
         <Tabs
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as RunActiveTab)}
-          className="w-full"
+          class="w-full"
         >
           <div className="flex items-center justify-between gap-2 shrink-0 mb-2">
-            <TabsList className="h-9">
+            <TabsList class="h-9">
               <TabsTrigger value="input">{t('Input')}</TabsTrigger>
-              {isAgent && (
+              <Show when={isAgent()}>
                 <TabsTrigger value="timeline">{t('Timeline')}</TabsTrigger>
-              )}
+              </Show>
               <TabsTrigger value="output">{t('Output')}</TabsTrigger>
             </TabsList>
             <TestPanelViewToggle />
@@ -167,26 +167,31 @@ export const FlowStepInputOutput = () => {
             />
           </TabsContent>
 
-          {isAgent && (
+          <Show when={isAgent()}>
             <TabsContent value="timeline">
               <AgentTimeline
                 agentResult={selectedStepOutput.output as AgentResult}
               />
             </TabsContent>
-          )}
+          </Show>
           <TabsContent value="output">
-            {isStepRunning ? (
-              <StepOutputSkeleton className="p-4" />
-            ) : slicedOutputRef ? (
-              <SlicedOutputDownload slicedOutputRef={slicedOutputRef} />
-            ) : (
-              <DataDisplayTabs
-                data={parsedOutput}
-                title={t('Output')}
-                copyableData={parsedOutput}
-                downloadFileName={`${selectedStep.name}-output`}
-              />
-            )}
+            <Show
+              when={isStepRunning()}
+              fallback={
+                slicedOutputRef ? (
+                  <SlicedOutputDownload slicedOutputRef={slicedOutputRef} />
+                ) : (
+                  <DataDisplayTabs
+                    data={parsedOutput}
+                    title={t('Output')}
+                    copyableData={parsedOutput}
+                    downloadFileName={`${selectedStep.name}-output`}
+                  />
+                )
+              }
+            >
+              <StepOutputSkeleton class="p-4" />
+            </Show>
           </TabsContent>
         </Tabs>
       </ScrollArea>
@@ -201,7 +206,7 @@ const SlicedOutputDownload = ({
 }) => (
   <div className="flex flex-col gap-3 p-4 bg-muted rounded-md">
     <div className="flex items-start gap-2 text-sm">
-      <Info className="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
+      <Info class="w-4 h-4 mt-0.5 text-muted-foreground shrink-0" />
       <span>
         {t(
           'Output is too large to display inline ({size}). Download to inspect.',
@@ -209,14 +214,14 @@ const SlicedOutputDownload = ({
         )}
       </span>
     </div>
-    <Button asChild variant="outline" size="sm" className="w-fit gap-2">
+    <Button asChild variant="outline" size="sm" class="w-fit gap-2">
       <a
         href={slicedOutputRef.url}
         target="_blank"
         rel="noopener noreferrer"
         download
       >
-        <Download className="w-4 h-4" />
+        <Download class="w-4 h-4" />
         {t('Download output')}
       </a>
     </Button>

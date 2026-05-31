@@ -1,9 +1,9 @@
 import { PieceMetadataModelSummary } from '@activepieces/pieces-framework';
 import { PieceType } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
-import { Package, Trash, Puzzle, Tag, Hash, GitBranch } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Package, Trash, Puzzle, Tag, Hash, GitBranch } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { RequestTrial } from '@/app/components/request-trial';
 import { DataTable, RowDataWithActions } from '@/components/custom/data-table';
@@ -96,8 +96,8 @@ const columns: ColumnDef<RowDataWithActions<PieceMetadataModelSummary>>[] = [
           }}
         >
           <div className="flex items-end justify-end">
-            <Button variant="ghost" className="size-8 p-0">
-              <Trash className="size-4 text-destructive" />
+            <Button variant="ghost" class="size-8 p-0">
+              <Trash class="size-4 text-destructive" />
             </Button>
           </div>
         </ConfirmationDeleteDialog>
@@ -108,51 +108,49 @@ const columns: ColumnDef<RowDataWithActions<PieceMetadataModelSummary>>[] = [
 
 const PiecesSettings = () => {
   const { platform } = platformHooks.useCurrentPlatform();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = createSignal('');
   const { pieces, isLoading, refetch } = piecesHooks.usePieces({
     searchQuery,
     isTableQuery: true,
   });
 
-  const toolbarButtons = useMemo(
-    () => [<ManagePiecesDialog key="manage" onSuccess={() => refetch()} />],
-    [refetch],
-  );
+  const toolbarButtons = createMemo(() => [
+    <ManagePiecesDialog key="manage" onSuccess={() => refetch()} />,
+  ]);
 
-  const customFilters = useMemo(
-    () => [
-      <DataTableInputPopover
-        key="search"
-        title={t('Piece Name')}
-        filterValue={searchQuery}
-        handleFilterChange={setSearchQuery}
-      />,
-    ],
-    [searchQuery],
-  );
+  const customFilters = createMemo(() => [
+    <DataTableInputPopover
+      key="search"
+      title={t('Piece Name')}
+      filterValue={searchQuery}
+      handleFilterChange={setSearchQuery}
+    />,
+  ]);
 
   return (
     <div className="space-y-6">
-      {!platform.plan.managePiecesEnabled && (
-        <LockedAlert
-          title={t('Control Pieces')}
-          description={t(
-            "Show the pieces that matter most to your users and hide the ones you don't like.",
-          )}
-          button={
-            <RequestTrial
-              featureKey="ENTERPRISE_PIECES"
-              buttonVariant="basic"
-            />
-          }
-        />
-      )}
+      {
+        <Show when={!platform.plan.managePiecesEnabled}>
+          <LockedAlert
+            title={t('Control Pieces')}
+            description={t(
+              "Show the pieces that matter most to your users and hide the ones you don't like.",
+            )}
+            button={
+              <RequestTrial
+                featureKey="ENTERPRISE_PIECES"
+                buttonVariant="basic"
+              />
+            }
+          />
+        </Show>
+      }
       <DataTable
         emptyStateTextTitle={t('No pieces found')}
         emptyStateTextDescription={t(
           'Add a piece to your project that you want to use in your automations',
         )}
-        emptyStateIcon={<Package className="size-14" />}
+        emptyStateIcon={<Package class="size-14" />}
         columns={columns}
         customFilters={customFilters}
         page={{
@@ -167,6 +165,4 @@ const PiecesSettings = () => {
     </div>
   );
 };
-
-PiecesSettings.displayName = 'PiecesSettings';
 export { PiecesSettings };

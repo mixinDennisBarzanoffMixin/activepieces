@@ -5,9 +5,10 @@ import {
   RouterAction,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Trash } from 'lucide-react';
-import { useFormContext } from 'react-hook-form';
+import { Trash } from 'lucide-solid';
+import { Show } from 'solid-js';
 
+import { useFormContext } from '@/app/builder/builder-form';
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Button } from '@/components/ui/button';
 import { FormField, FormItem, FormMessage } from '@/components/ui/form';
@@ -90,18 +91,18 @@ const BranchSingleCondition = ({
   return (
     <>
       <div className="flex items-center gap-2">
-        {isInvalid && (
+        <Show when={isInvalid()}>
           <Tooltip>
             <TooltipTrigger asChild>
               <div>
-                <InvalidStepIcon className="h-4 w-4 shrink-0"></InvalidStepIcon>
+                <InvalidStepIcon class="h-4 w-4 shrink-0"></InvalidStepIcon>
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom">
               {t('Incomplete condition')}
             </TooltipContent>
           </Tooltip>
-        )}
+        </Show>
         <div
           className={cn('grid gap-2 grow', {
             'grid-cols-2': isSingleValueCondition,
@@ -157,7 +158,7 @@ const BranchSingleCondition = ({
               </FormItem>
             )}
           />
-          {!isSingleValueCondition && (
+          <Show when={!isSingleValueCondition()}>
             <FormField
               name={`settings.branches.${branchIndex}.conditions.${groupIndex}.${conditionIndex}.secondValue`}
               control={form.control}
@@ -175,12 +176,12 @@ const BranchSingleCondition = ({
                 </FormItem>
               )}
             />
-          )}
+          </Show>
         </div>
       </div>
 
       <div className="flex justify-start items-center gap-2 mt-2">
-        {isTextCondition && (
+        <Show when={isTextCondition()}>
           <FormField
             name={`settings.branches.${branchIndex}.conditions.${groupIndex}.${conditionIndex}.caseSensitive`}
             control={form.control}
@@ -193,25 +194,25 @@ const BranchSingleCondition = ({
                     checked={field.value}
                     onCheckedChange={(e) => field.onChange(e)}
                   />
-                  <Label htmlFor="case-sensitive">{t('Case sensitive')}</Label>
+                  <Label for="case-sensitive">{t('Case sensitive')}</Label>
                 </div>
                 <FormMessage />
               </FormItem>
             )}
           />
-        )}
+        </Show>
         <div className="grow"></div>
         <div>
-          {showDelete && (
+          <Show when={showDelete()}>
             <Button
               variant={'basic'}
-              className="text-destructive gap-2 items-center"
+              class="text-destructive gap-2 items-center"
               size={'sm'}
               onClick={deleteClick}
             >
-              <Trash className="w-4 h-4"></Trash> {t('Remove')}
+              <Trash class="w-4 h-4"></Trash> {t('Remove')}
             </Button>
-          )}
+          </Show>
         </div>
       </div>
     </>

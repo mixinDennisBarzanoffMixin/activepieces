@@ -1,7 +1,7 @@
 import { cn, DASHBOARD_CONTENT_PADDING_X } from '@/lib/utils';
 
 type DataTableToolbarProps = {
-  children?: React.ReactNode;
+  children?: any;
 };
 
 const DataTableToolbar = (params: DataTableToolbarProps) => {

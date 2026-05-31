@@ -1,11 +1,11 @@
-import React, { useMemo } from 'react';
-
+import { createMemo } from 'solid-js';
+import { createComponent } from 'solid-js/web';
 import { UserAvatar } from '@/components/custom/user-avatar';
 import { projectMembersHooks } from '@/features/members/hooks/project-members-hooks';
 import { userHooks } from '@/hooks/user-hooks';
 
 function avatarIcon(name: string, email: string, imageUrl?: string | null) {
-  return React.createElement(UserAvatar, {
+  return createComponent(UserAvatar, {
     name,
     email,
     imageUrl,
@@ -18,11 +18,11 @@ export function useOwnerOptions() {
   const { projectMembers } = projectMembersHooks.useProjectMembers();
   const { data: currentUser } = userHooks.useCurrentUser();
 
-  return useMemo(() => {
+  return createMemo(() => {
     const options: {
       value: string;
       label: string;
-      icon?: React.ReactNode;
+      icon?;
     }[] = [];
     const seenIds = new Set<string>();
 

@@ -1,5 +1,5 @@
 import { AgentMcpTool } from '@activepieces/shared';
-import { create } from 'zustand';
+import { createWithStore } from 'solid-zustand';
 
 interface McpToolDialogState {
   showAddMcpDialog: boolean;
@@ -15,7 +15,7 @@ const initialState = {
   editingMcpTool: null,
 };
 
-export const useMcpToolDialogStore = create<McpToolDialogState>((set, get) => ({
+export const useMcpToolDialogStore = createWithStore<McpToolDialogState>((set, get) => ({
   ...initialState,
 
   setShowAddMcpDialog: (show, tool) =>

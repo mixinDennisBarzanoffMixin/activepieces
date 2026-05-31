@@ -1,5 +1,4 @@
-import { ScrollArea as ScrollAreaPrimitive } from 'radix-ui';
-import * as React from 'react';
+import { createEffect, createSignal } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -12,16 +11,15 @@ function ScrollArea({
   showGradient = false,
   gradientClassName,
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> &
-  ScrollAreaCustomProps) {
-  const [showBottomGradient, setShowBottomGradient] = React.useState(false);
-  const internalViewPortRef = React.useRef<HTMLDivElement>(null);
-  const viewportRef = viewPortRef || internalViewPortRef;
+}: JSX.IntrinsicElements['div'] & ScrollAreaCustomProps) {
+  const [showBottomGradient, setShowBottomGradient] = createSignal(false);
+  let internalViewPortRef: HTMLDivElement | undefined;
+  let viewportRef = viewPortRef || internalViewPortRef;
 
-  React.useEffect(() => {
-    if (!showGradient || !viewportRef.current) return;
+  createEffect(() => {
+    if (!showGradient || !viewportRef) return;
 
-    const viewport = viewportRef.current;
+    const viewport = viewportRef;
     const checkScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = viewport;
       const hasScrollableContent = scrollHeight > clientHeight;
@@ -42,26 +40,27 @@ function ScrollArea({
       viewport.removeEventListener('scroll', checkScroll);
       resizeObserver.disconnect();
     };
-  }, [showGradient, viewportRef]);
+  });
 
   return (
-    <ScrollAreaPrimitive.Root
+    <div
       data-slot="scroll-area"
-      className={cn('relative overflow-hidden', className)}
+      class={cn('relative overflow-hidden', className)}
       {...props}
     >
-      <ScrollAreaPrimitive.Viewport
+      <div
         data-slot="scroll-area-viewport"
-        className={cn(
-          'size-full rounded-[inherit] [&>div]:block!',
+        class={cn(
+          'size-full overflow-auto rounded-[inherit] [&>div]:block!',
           viewPortClassName,
         )}
-        ref={viewportRef}
+        ref={(el) => {
+          viewportRef = el;
+        }}
       >
         {children}
-      </ScrollAreaPrimitive.Viewport>
+      </div>
       <ScrollBar orientation={orientation} />
-      <ScrollAreaPrimitive.Corner />
 
       {showGradient && showBottomGradient && (
         <div
@@ -71,7 +70,7 @@ function ScrollArea({
           )}
         />
       )}
-    </ScrollAreaPrimitive.Root>
+    </div>
   );
 }
 
@@ -79,24 +78,23 @@ function ScrollBar({
   className,
   orientation = 'vertical',
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
+}: JSX.IntrinsicElements['div'] & { orientation?: 'vertical' | 'horizontal' }) {
   return (
-    <ScrollAreaPrimitive.ScrollAreaScrollbar
+    <div
       data-slot="scroll-area-scrollbar"
-      orientation={orientation}
-      className={cn(
-        'flex touch-none transition-colors select-none',
-        orientation === 'vertical' && 'h-full w-1.5',
-        orientation === 'horizontal' && 'h-1.5 flex-col',
+      class={cn(
+        'pointer-events-none absolute flex touch-none transition-colors select-none',
+        orientation === 'vertical' && 'right-0 top-0 h-full w-1.5',
+        orientation === 'horizontal' && 'bottom-0 left-0 h-1.5 w-full flex-col',
         className,
       )}
       {...props}
     >
-      <ScrollAreaPrimitive.ScrollAreaThumb
+      <div
         data-slot="scroll-area-thumb"
-        className="relative flex-1 rounded-full bg-border hover:bg-ring transition-colors"
+        class="relative flex-1 rounded-full bg-border hover:bg-ring transition-colors"
       />
-    </ScrollAreaPrimitive.ScrollAreaScrollbar>
+    </div>
   );
 }
 
@@ -105,7 +103,7 @@ export { ScrollArea, ScrollBar };
 type ScrollAreaCustomProps = {
   viewPortClassName?: string;
   orientation?: 'vertical' | 'horizontal';
-  viewPortRef?: React.RefObject<HTMLDivElement | null>;
+  viewPortRef?: HTMLDivElement | null | undefined;
   showGradient?: boolean;
   gradientClassName?: string;
 };

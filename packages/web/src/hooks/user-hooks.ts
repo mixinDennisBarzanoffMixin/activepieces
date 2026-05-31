@@ -1,11 +1,11 @@
 import { isNil, UserWithBadges } from '@activepieces/shared';
 import {
   QueryClient,
-  useMutation,
-  useQuery,
-  useSuspenseQuery,
-} from '@tanstack/react-query';
+  createMutation,
+  createQuery,
+} from '@tanstack/solid-query';
 
+import { queryClient } from '@/app/query-client';
 import { userApi } from '@/api/user-api';
 import { authenticationSession } from '@/lib/authentication-session';
 
@@ -14,41 +14,47 @@ export const userHooks = {
     const userId = authenticationSession.getCurrentUserId();
     const token = authenticationSession.getToken();
     const expired = authenticationSession.isJwtExpired(token!);
-    return useSuspenseQuery<UserWithBadges | null, Error>({
-      queryKey: ['currentUser', userId],
-      queryFn: async () => {
-        // Skip user data fetch if JWT is expired to prevent redirect to sign-in page
-        // This is especially important for embedding scenarios where we need to accept
-        // a new JWT token rather than triggering the global error handler
+    return createQuery(
+      () => ({
+        queryKey: ['currentUser', userId],
+        queryFn: async () => {
+          // Skip user data fetch if JWT is expired to prevent redirect to sign-in page
+          // This is especially important for embedding scenarios where we need to accept
+          // a new JWT token rather than triggering the global error handler
 
-        if (!userId || expired) {
-          return null;
-        }
-        try {
-          const result = await userApi.getUserById(userId);
-          return result;
-        } catch (error) {
-          console.error(error);
-          return null;
-        }
-      },
-      staleTime: Infinity,
-    });
+          if (!userId || expired) {
+            return null;
+          }
+          try {
+            const result = await userApi.getUserById(userId);
+            return result;
+          } catch (error) {
+            console.error(error);
+            return null;
+          }
+        },
+        staleTime: Infinity,
+      }),
+      () => queryClient,
+    );
   },
   useUserById: (id: string | null) => {
-    return useQuery({
-      queryKey: ['user', id],
-      queryFn: async () => {
-        try {
-          return await userApi.getUserById(id!);
-        } catch (error) {
-          console.error(error);
-          return null;
-        }
-      },
-      enabled: !isNil(id),
-      staleTime: Infinity,
-    });
+    return createQuery(
+      () => ({
+        queryKey: ['user', id],
+        queryFn: async () => {
+          try {
+            return await userApi.getUserById(id!);
+          } catch (error) {
+            console.error(error);
+            return null;
+          }
+        },
+        enabled: !isNil(id),
+        staleTime: Infinity,
+      }),
+      () => queryClient,
+    );
   },
   invalidateCurrentUser: (queryClient: QueryClient) => {
     const userId = authenticationSession.getCurrentUserId();
@@ -68,10 +74,13 @@ export const userMutations = {
     onSuccess: () => void;
     onError: (error: Error) => void;
   }) => {
-    return useMutation({
-      mutationFn: (file: File) => userApi.updateMe(file),
-      onSuccess,
-      onError,
-    });
+    return createMutation(
+      () => ({
+        mutationFn: (file: File) => userApi.updateMe(file),
+        onSuccess,
+        onError,
+      }),
+      () => queryClient,
+    );
   },
 };

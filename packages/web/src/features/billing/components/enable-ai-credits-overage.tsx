@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Info } from 'lucide-react';
+import { Info } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -22,10 +22,10 @@ export function EnableAIOverageDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[420px] p-8 text-center">
+      <DialogContent class="sm:max-w-[420px] p-8 text-center">
         <div className="flex flex-col items-center">
           <div className="rounded-full bg-purple-50 p-4 mb-6">
-            <Info className="w-10 h-10 text-primary" />
+            <Info class="w-10 h-10 text-primary" />
           </div>
 
           <h2 className="text-2xl font-semibold">
@@ -42,7 +42,7 @@ export function EnableAIOverageDialog({
               onClick={() => createSubscription({ newActiveFlowsLimit: 0 })}
               disabled={isCreatingSubscriptionPending}
               loading={isCreatingSubscriptionPending}
-              className="w-full"
+              class="w-full"
             >
               {t('Start Subscription (Free)')}
             </Button>

@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
 import {
   bundledLanguages,
   codeToTokens,
   type BundledLanguage,
   type ThemedToken,
 } from 'shiki';
+import { createSignal, createEffect, JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -30,9 +30,9 @@ function CodeBlockCode({
   className,
   ...props
 }: CodeBlockCodeProps) {
-  const [tokenResult, setTokenResult] = useState<TokenResult | null>(null);
+  const [tokenResult, setTokenResult] = createSignal<TokenResult | null>(null);
 
-  useEffect(() => {
+  createEffect(() => {
     if (!code) {
       setTokenResult(null);
       return;
@@ -139,20 +139,20 @@ function CodeBlockGroup({
   );
 }
 
-const EMPTY_STYLE: React.CSSProperties = {};
+const EMPTY_STYLE: JSX.CSSProperties = {};
 const FONT_STYLE_ITALIC = 1;
 const FONT_STYLE_BOLD = 2;
 const FONT_STYLE_UNDERLINE = 4;
 
-function getTokenStyle(token: ThemedToken): React.CSSProperties {
+function getTokenStyle(token: ThemedToken): JSX.CSSProperties {
   if (token.htmlStyle) {
-    const style: React.CSSProperties = {};
+    const style: JSX.CSSProperties = {};
     for (const [key, value] of Object.entries(token.htmlStyle)) {
       Object.assign(style, { [toCssPropertyKey(key)]: value });
     }
     return style;
   }
-  const style: React.CSSProperties = {};
+  const style: JSX.CSSProperties = {};
   if (token.color) {
     style.color = token.color;
   }
@@ -166,8 +166,8 @@ function getTokenStyle(token: ThemedToken): React.CSSProperties {
   return style;
 }
 
-function parseCssProperties(cssString: string): React.CSSProperties {
-  const style: React.CSSProperties = {};
+function parseCssProperties(cssString: string): JSX.CSSProperties {
+  const style: JSX.CSSProperties = {};
   for (const part of cssString.split(';')) {
     const colonIndex = part.indexOf(':');
     if (colonIndex === -1) continue;
@@ -191,26 +191,26 @@ function isBundledLanguage(lang: string): lang is BundledLanguage {
 
 type PrecomputedToken = {
   content: string;
-  style: React.CSSProperties;
+  style: JSX.CSSProperties;
 };
 
 type TokenResult = {
   lines: PrecomputedToken[][];
-  preStyle: React.CSSProperties;
+  preStyle: JSX.CSSProperties;
 };
 
 export type CodeBlockProps = {
-  children?: React.ReactNode;
+  children?: JSX.Element;
   className?: string;
-} & React.HTMLProps<HTMLDivElement>;
+} & JSX.HTMLAttributes<HTMLDivElement>;
 
 export type CodeBlockCodeProps = {
   code: string;
   language?: string;
   theme?: string;
   className?: string;
-} & React.HTMLProps<HTMLDivElement>;
+} & JSX.HTMLAttributes<HTMLDivElement>;
 
-export type CodeBlockGroupProps = React.HTMLAttributes<HTMLDivElement>;
+export type CodeBlockGroupProps = JSX.HTMLAttributes<HTMLDivElement>;
 
 export { CodeBlockGroup, CodeBlockCode, CodeBlock };

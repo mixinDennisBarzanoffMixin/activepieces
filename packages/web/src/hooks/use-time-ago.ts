@@ -1,14 +1,14 @@
 import dayjs from 'dayjs';
-import { useEffect, useState } from 'react';
+import { createSignal, createEffect } from 'solid-js';
 
 import { formatUtils } from '@/lib/format-utils';
 
 export const useTimeAgo = (date: Date) => {
-  const [timeAgo, setTimeAgo] = useState(() =>
+  const [timeAgo, setTimeAgo] = createSignal(() =>
     formatUtils.formatDateToAgo(date),
   );
 
-  useEffect(() => {
+  createEffect(() => {
     const updateInterval = () => {
       const now = dayjs();
       const inputDate = dayjs(date);

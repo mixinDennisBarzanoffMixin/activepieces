@@ -1,9 +1,8 @@
 import { ApiKeyResponseWithValue } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createForm, reset, zodForm } from '@modular-forms/solid';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { createSignal, Show } from 'solid-js';
 import { z } from 'zod';
 
 import { CopyToClipboardInput } from '@/components/custom/clipboard/copy-to-clipboard';
@@ -17,18 +16,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { apiKeyApi } from '@/features/platform-admin';
 
 type NewApiKeyDialogProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   onCreate: () => void;
 };
 const FormSchema = z.object({
@@ -41,16 +34,19 @@ export const NewApiKeyDialog = ({
   children,
   onCreate,
 }: NewApiKeyDialogProps) => {
-  const [open, setOpen] = useState(false);
-  const [apiKey, setApiKey] = useState<ApiKeyResponseWithValue | undefined>(
+  const [open, setOpen] = createSignal(false);
+  const [apiKey, setApiKey] = createSignal<ApiKeyResponseWithValue | undefined>(
     undefined,
   );
-  const form = useForm<FormSchema>({
-    resolver: zodResolver(FormSchema),
+  const [form, { Form, Field }] = createForm<FormSchema>({
+    initialValues: {
+      displayName: '',
+    },
+    validate: zodForm(FormSchema),
   });
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: () => apiKeyApi.create(form.getValues()),
+  const { mutate, isPending } = createMutation({
+    mutationFn: apiKeyApi.create,
     onSuccess: (apiKey) => {
       setApiKey(apiKey);
       onCreate();
@@ -59,27 +55,29 @@ export const NewApiKeyDialog = ({
 
   return (
     <Dialog
-      open={open}
-      onOpenChange={(open) => {
-        setOpen(open);
-        form.reset();
-      }}
+        open={open}
+        onOpenChange={(open) => {
+          setOpen(open);
+        reset(form);
+        }}
     >
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {apiKey ? t('API Key Created') : t('Create API Key')}
+            <Show when={apiKey} fallback={t('Create API Key')}>
+              t('API Key Created'
+            </Show>
           </DialogTitle>
-          {!apiKey && (
+          <Show when={!apiKey}>
             <DialogDescription>
               {t(
                 'Create a new API key for programmatic access to the platform.',
               )}
             </DialogDescription>
-          )}
+          </Show>
         </DialogHeader>
-        {apiKey && (
+        <Show when={apiKey}>
           <>
             <div className="p-4">
               <div className="flex flex-col items-start gap-2">
@@ -95,8 +93,8 @@ export const NewApiKeyDialog = ({
                 </span>
                 <CopyToClipboardInput
                   useInput={true}
-                  textToCopy={apiKey.value}
-                  fileName={`${apiKey.displayName}`}
+                  textToCopy={apiKey()?.value ?? ''}
+                  fileName={`${apiKey()?.displayName ?? ''}`}
                 />
               </div>
             </div>
@@ -113,29 +111,33 @@ export const NewApiKeyDialog = ({
               </Button>
             </DialogFooter>
           </>
-        )}
-        {!apiKey && (
-          <Form {...form}>
-            <form
-              className="grid space-y-4"
-              onSubmit={form.handleSubmit(() => mutate())}
+        </Show>
+        <Show when={!apiKey}>
+            <Form
+              class="grid space-y-4"
+              onSubmit={(data) => mutate(data)}
             >
-              <FormField
-                control={form.control}
+              <Field
                 name="displayName"
-                render={({ field }) => (
-                  <FormItem className="grid space-y-4">
-                    <FormLabel>{t('Name')}</FormLabel>
+              >
+                {(field, props) => (
+                  <div class="grid space-y-4">
+                    <Label>{t('Name')}</Label>
                     <Input
-                      {...field}
+                      {...props}
+                      value={field.value ?? ''}
                       required
                       placeholder={t('API Key Name')}
-                      className="rounded-sm"
+                      class="rounded-sm"
                     />
-                    <FormMessage />
-                  </FormItem>
+                    <Show when={field.error}>
+                      <p class="text-sm font-medium text-destructive wrap-break-word">
+                        {t(field.error)}
+                      </p>
+                    </Show>
+                  </div>
                 )}
-              />
+              </Field>
               <DialogFooter>
                 <Button
                   variant="outline"
@@ -148,9 +150,8 @@ export const NewApiKeyDialog = ({
                   {t('Create')}
                 </Button>
               </DialogFooter>
-            </form>
-          </Form>
-        )}
+            </Form>
+        </Show>
       </DialogContent>
     </Dialog>
   );

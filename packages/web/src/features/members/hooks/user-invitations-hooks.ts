@@ -1,5 +1,7 @@
 import { InvitationType, UserInvitation } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
+
+import { queryClient } from '@/app/query-client';
 
 import { userInvitationApi } from '../api/user-invitation';
 
@@ -7,19 +9,22 @@ const userInvitationsQueryKey = 'user-invitations';
 
 export const userInvitationsHooks = {
   useInvitations: () => {
-    const query = useQuery<UserInvitation[]>({
-      queryFn: () => {
-        return userInvitationApi
-          .list({
-            type: InvitationType.PROJECT,
-            cursor: undefined,
-            limit: 100,
-          })
-          .then((res) => res.data);
-      },
-      queryKey: [userInvitationsQueryKey],
-      staleTime: 0,
-    });
+    const query = createQuery<UserInvitation[]>(
+      () => ({
+        queryFn: () => {
+          return userInvitationApi
+            .list({
+              type: InvitationType.PROJECT,
+              cursor: undefined,
+              limit: 100,
+            })
+            .then((res) => res.data);
+        },
+        queryKey: [userInvitationsQueryKey],
+        staleTime: 0,
+      }),
+      () => queryClient,
+    );
     return {
       invitations: query.data,
       isLoading: query.isLoading,
@@ -36,13 +41,16 @@ export const userInvitationMutations = {
     onSuccess: (registered: boolean) => void;
     onError: (error: unknown) => void;
   }) => {
-    return useMutation({
-      mutationFn: async (token: string) => {
-        const { registered } = await userInvitationApi.accept(token);
-        return registered;
-      },
-      onSuccess,
-      onError,
-    });
+    return createMutation(
+      () => ({
+        mutationFn: async (token: string) => {
+          const { registered } = await userInvitationApi.accept(token);
+          return registered;
+        },
+        onSuccess,
+        onError,
+      }),
+      () => queryClient,
+    );
   },
 };

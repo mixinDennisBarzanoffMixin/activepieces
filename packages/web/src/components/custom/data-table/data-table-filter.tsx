@@ -1,9 +1,8 @@
-import { Column } from '@tanstack/react-table';
-import * as React from 'react';
-import { DateRange } from 'react-day-picker';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from '@solidjs/router';
+import { Column } from '@tanstack/solid-table';
 
 import {
+  DateRange,
   DateTimePickerWithRange,
   PresetKey,
 } from '@/components/custom/date-time-picker-range';
@@ -19,7 +18,7 @@ type DropdownFilterProps = {
   options: {
     label: string;
     value: string;
-    icon?: React.ComponentType<{ className?: string }> | string;
+    icon?: any | string;
   }[];
 };
 
@@ -36,7 +35,7 @@ type CheckboxjhFilterProps = {
 
 export type DataTableFilterProps = {
   title?: string;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: any;
 } & (
   | DropdownFilterProps
   | InputFilterProps
@@ -57,63 +56,54 @@ export function DataTableFilter<TData, TValue>({
   const [searchParams, setSearchParams] = useSearchParams();
   const paramKey = accessorKey ?? column?.id;
 
-  const handleFilterChange = React.useCallback(
-    (filterValue: string | string[] | DateRange | undefined) => {
-      setSearchParams(
-        (prev) => {
-          const newParams = new URLSearchParams(prev);
-          newParams.delete(paramKey as string);
-          newParams.delete(`${paramKey}After`);
-          newParams.delete(`${paramKey}Before`);
-          newParams.delete(CURSOR_QUERY_PARAM);
-          if (!filterValue) {
-            return newParams;
-          }
-
-          if (Array.isArray(filterValue)) {
-            filterValue.forEach((value) => {
-              if (paramKey) {
-                newParams.append(paramKey, value);
+  const handleFilterChange = (
+    filterValue: string | string[] | DateRange | undefined,
+  ) => {
+    setSearchParams(
+      {
+        ...searchParams,
+        [paramKey as string]: undefined,
+        [`${paramKey}After`]: undefined,
+        [`${paramKey}Before`]: undefined,
+        [CURSOR_QUERY_PARAM]: undefined,
+        ...(filterValue
+          ? Array.isArray(filterValue)
+            ? filterValue.reduce(
+                (acc, v) => ({
+                  ...acc,
+                  [paramKey as string]: [...(acc[paramKey as string] || []), v],
+                }),
+                {},
+              )
+            : typeof filterValue === 'object' && filterValue !== null
+            ? {
+                ...(filterValue.from
+                  ? { [`${paramKey}After`]: filterValue.from.toISOString() }
+                  : {}),
+                ...(filterValue.to
+                  ? { [`${paramKey}Before`]: filterValue.to.toISOString() }
+                  : {}),
               }
-            });
-          } else if (typeof filterValue === 'object' && filterValue !== null) {
-            if (filterValue.from) {
-              newParams.append(
-                `${paramKey}After`,
-                filterValue.from.toISOString(),
-              );
-            }
-            if (filterValue.to) {
-              newParams.append(
-                `${paramKey}Before`,
-                filterValue.to.toISOString(),
-              );
-            }
-          } else {
-            newParams.append(paramKey as string, filterValue);
-          }
+            : { [paramKey as string]: filterValue }
+          : {}),
+      },
+      { replace: true },
+    );
 
-          return newParams;
-        },
-        { replace: true },
+    if (Array.isArray(filterValue)) {
+      column?.setFilterValue(filterValue.length ? filterValue : undefined);
+    } else if (typeof filterValue === 'object' && filterValue !== null) {
+      column?.setFilterValue(
+        filterValue.from || filterValue.to ? filterValue : undefined,
       );
-
-      if (Array.isArray(filterValue)) {
-        column?.setFilterValue(filterValue.length ? filterValue : undefined);
-      } else if (typeof filterValue === 'object' && filterValue !== null) {
-        column?.setFilterValue(
-          filterValue.from || filterValue.to ? filterValue : undefined,
-        );
-      } else {
-        column?.setFilterValue(filterValue ? filterValue : undefined);
-      }
-    },
-    [paramKey, column, setSearchParams],
-  );
+    } else {
+      column?.setFilterValue(filterValue ? filterValue : undefined);
+    }
+  };
 
   switch (props.type) {
     case 'input': {
-      const filterValue = searchParams.get(paramKey as string) || '';
+      const filterValue = searchParams[paramKey as string] || '';
       return (
         <DataTableInputPopover
           title={title}
@@ -123,7 +113,7 @@ export function DataTableFilter<TData, TValue>({
       );
     }
     case 'select': {
-      const filterValue = searchParams.getAll(paramKey as string) as string[];
+      const filterValue = (searchParams[paramKey as string] as string[]) || [];
       const selectedValues = new Set(filterValue);
       return (
         <DataTableSelectPopover
@@ -136,8 +126,8 @@ export function DataTableFilter<TData, TValue>({
       );
     }
     case 'date': {
-      const from = searchParams.get(`${paramKey}After`);
-      const to = searchParams.get(`${paramKey}Before`);
+      const from = searchParams[`${paramKey}After`];
+      const to = searchParams[`${paramKey}Before`];
 
       return (
         <DateTimePickerWithRange
@@ -151,18 +141,14 @@ export function DataTableFilter<TData, TValue>({
     }
     case 'checkbox': {
       const key = paramKey || 'archivedAt';
-      const isArchived = searchParams.get(key) === 'true';
+      const isArchived = searchParams[key] === 'true';
 
       const handleCheckedChange = (checked: boolean) => {
         setSearchParams(
-          (prev) => {
-            const newParams = new URLSearchParams(prev);
-            newParams.delete(key);
-            newParams.delete(CURSOR_QUERY_PARAM);
-            if (checked) {
-              newParams.append(key, 'true');
-            }
-            return newParams;
+          {
+            ...searchParams,
+            [key]: checked ? 'true' : undefined,
+            [CURSOR_QUERY_PARAM]: undefined,
           },
           { replace: true },
         );

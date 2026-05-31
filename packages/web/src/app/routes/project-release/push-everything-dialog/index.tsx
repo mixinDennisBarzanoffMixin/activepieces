@@ -1,16 +1,13 @@
 import {
   GitBranchType,
   GitPushOperationType,
-  PushEverythingGitRepoRequest,
   assertNotNullOrUndefined,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Info } from 'lucide-react';
-import React from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { Info } from 'lucide-solid';
+import { createSignal, JSX } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,13 +18,6 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Tooltip,
@@ -39,40 +29,39 @@ import { platformHooks } from '@/hooks/platform-hooks';
 import { authenticationSession } from '@/lib/authentication-session';
 
 type PushEverythingDialogProps = {
-  children?: React.ReactNode;
+  children?: JSX.Element;
 };
 
 const PushEverythingDialog = (props: PushEverythingDialogProps) => {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = createSignal(false);
+  const [commitMessage, setCommitMessage] = createSignal('');
 
   const { platform } = platformHooks.useCurrentPlatform();
   const { gitSync } = gitSyncHooks.useGitSync(
     authenticationSession.getProjectId()!,
     platform.plan.environmentsEnabled,
   );
-  const form = useForm<PushEverythingGitRepoRequest>({
-    defaultValues: {
-      type: GitPushOperationType.PUSH_EVERYTHING,
-      commitMessage: '',
-    },
-    resolver: zodResolver(PushEverythingGitRepoRequest),
-  });
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (request: PushEverythingGitRepoRequest) => {
+  const { mutate, isPending } = createMutation(() => ({
+    mutationFn: async (message: string) => {
       assertNotNullOrUndefined(gitSync, 'gitSync');
       await gitSyncApi.push(gitSync.id, {
         type: GitPushOperationType.PUSH_EVERYTHING,
-        commitMessage: request.commitMessage,
+        commitMessage: message,
       });
     },
     onSuccess: () => {
       toast.success(t('Everything is pushed successfully'), {
         duration: 3000,
       });
+      setCommitMessage('');
       setOpen(false);
     },
-  });
+  }));
+
+  const submit = (event: SubmitEvent) => {
+    event.preventDefault();
+    mutate(commitMessage());
+  };
 
   if (!gitSync || gitSync.branchType !== GitBranchType.DEVELOPMENT) {
     return null;
@@ -81,61 +70,53 @@ const PushEverythingDialog = (props: PushEverythingDialogProps) => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => mutate(data))}>
-            <DialogHeader>
-              <DialogTitle>{t('Push Everything to Git')}</DialogTitle>
-            </DialogHeader>
-            <FormField
-              control={form.control}
-              name="commitMessage"
-              render={({ field }) => (
-                <FormItem className="gap-2 flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <FormLabel>{t('Commit Message')}</FormLabel>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Info className="w-4 h-4 text-muted-foreground cursor-help" />
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs">
-                        {t(
-                          'Push all published flows, connections, and tables to the Git repository.',
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <div className="text-sm text-gray-500">
-                    {t(
-                      'Enter a commit message to describe the changes you want to push.',
-                    )}
-                  </div>
-                </FormItem>
-              )}
+        <form onSubmit={submit}>
+          <DialogHeader>
+            <DialogTitle>{t('Push Everything to Git')}</DialogTitle>
+          </DialogHeader>
+          <div class="gap-2 flex flex-col">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium" for="commitMessage">
+                {t('Commit Message')}
+              </label>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Info class="w-4 h-4 text-muted-foreground cursor-help" />
+                </TooltipTrigger>
+                <TooltipContent class="max-w-xs">
+                  {t(
+                    'Push all published flows, connections, and tables to the Git repository.',
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <Textarea
+              id="commitMessage"
+              value={commitMessage()}
+              onInput={(event) => setCommitMessage(event.currentTarget.value)}
             />
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setOpen(false);
-                  form.reset();
-                }}
-              >
-                {t('Cancel')}
-              </Button>
-              <Button
-                type="submit"
-                loading={isPending}
-                onClick={form.handleSubmit((data) => mutate(data))}
-              >
-                {t('Push')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            <div className="text-sm text-gray-500">
+              {t(
+                'Enter a commit message to describe the changes you want to push.',
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+                setCommitMessage('');
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button type="submit" loading={isPending}>
+              {t('Push')}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

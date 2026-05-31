@@ -4,9 +4,9 @@ export function TextWithIcon({
   className = '',
   children,
 }: {
-  icon: React.ReactNode;
-  text: React.ReactNode;
-  children?: React.ReactNode;
+  icon: any;
+  text: any;
+  children?: any;
   className?: string;
 }) {
   return (

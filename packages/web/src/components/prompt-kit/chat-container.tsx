@@ -1,21 +1,21 @@
-import { StickToBottom } from 'use-stick-to-bottom';
+import { JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
 export type ChatContainerRootProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   className?: string;
-} & React.HTMLAttributes<HTMLDivElement>;
+} & JSX.HTMLAttributes<HTMLDivElement>;
 
 export type ChatContainerContentProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   className?: string;
-} & React.HTMLAttributes<HTMLDivElement>;
+} & JSX.HTMLAttributes<HTMLDivElement>;
 
 export type ChatContainerScrollAnchorProps = {
   className?: string;
-  ref?: React.RefObject<HTMLDivElement>;
-} & React.HTMLAttributes<HTMLDivElement>;
+  ref?: RefObject<HTMLDivElement>;
+} & JSX.HTMLAttributes<HTMLDivElement>;
 
 function ChatContainerRoot({
   children,
@@ -23,15 +23,13 @@ function ChatContainerRoot({
   ...props
 }: ChatContainerRootProps) {
   return (
-    <StickToBottom
-      className={cn('flex overflow-y-auto', className)}
-      resize="smooth"
-      initial="instant"
+    <div
+      class={cn('flex overflow-y-auto [overflow-anchor:none]', className)}
       role="log"
       {...props}
     >
       {children}
-    </StickToBottom>
+    </div>
   );
 }
 
@@ -41,12 +39,12 @@ function ChatContainerContent({
   ...props
 }: ChatContainerContentProps) {
   return (
-    <StickToBottom.Content
-      className={cn('flex w-full flex-col', className)}
+    <div
+      class={cn('flex w-full flex-col *:[overflow-anchor:none]', className)}
       {...props}
     >
       {children}
-    </StickToBottom.Content>
+    </div>
   );
 }
 
@@ -57,6 +55,7 @@ function ChatContainerScrollAnchor({
   return (
     <div
       className={cn('h-px w-full shrink-0 scroll-mt-4', className)}
+      style={{ 'overflow-anchor': 'auto' }}
       aria-hidden="true"
       {...props}
     />

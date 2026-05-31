@@ -1,6 +1,6 @@
 import { t } from 'i18next';
-import { Paperclip } from 'lucide-react';
-import * as React from 'react';
+import { Paperclip } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -10,6 +10,7 @@ export const inputClass =
   'flex h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-2.5 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm dark:bg-input/30 focus-visible:border-ring focus-visible:ring-[1px] focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40';
 
 function Input({
+  class: classProp,
   className,
   type,
   thin = false,
@@ -17,38 +18,40 @@ function Input({
   ref,
   ...props
 }: InputProps) {
-  const [fileName, setFileName] = React.useState<string | null>(null);
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [fileName, setFileName] = createSignal<string | null>(null);
+  let inputRef: HTMLInputElement | undefined;
 
-  React.useImperativeHandle(ref, () => inputRef.current!);
+  // useImperativeHandle removed - use ref prop pattern in Solid
 
   return type === 'file' ? (
     <>
       <input
         type="file"
         className="hidden"
-        ref={inputRef}
+        ref={(el) => {
+          inputRef = el;
+        }}
         {...props}
         onChange={(event) =>
           handleFileChange(event, setFileName, props.onChange)
         }
       />
       <div
-        onClick={() => inputRef.current?.click()}
-        className={cn(inputClass, 'cursor-pointer items-center', className)}
+        onClick={() => inputRef?.click()}
+        className={cn(inputClass, 'cursor-pointer items-center', className, classProp)}
       >
         <input
           data-slot="input"
           className={cn('grow cursor-pointer outline-hidden bg-transparent', {
             'text-muted-foreground': !fileName,
           })}
-          value={fileName || defaultFileName || t('Select a file')}
+          value={fileName() || defaultFileName || t('Select a file')}
           readOnly
         />
         <div className="basis-1">
           <SelectUtilButton
             onClick={(e) => e.preventDefault()}
-            tooltipText={fileName ? fileName : t('Select a file')}
+            tooltipText={fileName() ? fileName() : t('Select a file')}
             Icon={Paperclip}
           ></SelectUtilButton>
         </div>
@@ -58,10 +61,12 @@ function Input({
     <input
       type={type}
       data-slot="input"
-      className={cn(inputClass, className, {
+      className={cn(inputClass, className, classProp, {
         'h-7 p-2': thin,
       })}
-      ref={inputRef}
+      ref={(el) => {
+        inputRef = el;
+      }}
       {...props}
     />
   );
@@ -70,9 +75,9 @@ function Input({
 // Helper functions
 
 function handleFileChange(
-  event: React.ChangeEvent<HTMLInputElement>,
-  setFileName: React.Dispatch<React.SetStateAction<string | null>>,
-  onChange?: React.ChangeEventHandler<HTMLInputElement>,
+  event: Event & { currentTarget: HTMLInputElement; target: HTMLInputElement },
+  setFileName: (value: string | null) => void,
+  onChange?: JSX.EventHandler<HTMLInputElement>,
 ) {
   const file = event.target.files?.[0];
   setFileName(file ? file.name : null);
@@ -81,7 +86,7 @@ function handleFileChange(
 
 // Type definitions
 
-type InputProps = React.ComponentProps<'input'> & {
+type InputProps = JSX.IntrinsicElements['input'] & {
   thin?: boolean;
   defaultFileName?: string;
 };

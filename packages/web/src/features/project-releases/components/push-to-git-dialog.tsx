@@ -1,18 +1,13 @@
 import {
   GitPushOperationType,
-  PushGitRepoRequest,
-  PushFlowsGitRepoRequest,
-  PushTablesGitRepoRequest,
   assertNotNullOrUndefined,
   PopulatedFlow,
   Table,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import React from 'react';
-import { Resolver, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { createSignal, JSX } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,13 +18,6 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { platformHooks } from '@/hooks/platform-hooks';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -41,16 +29,17 @@ type PushToGitDialogProps =
   | {
       type: 'flow';
       flows: PopulatedFlow[];
-      children?: React.ReactNode;
+      children?: JSX.Element;
     }
   | {
       type: 'table';
       tables: Table[];
-      children?: React.ReactNode;
+      children?: JSX.Element;
     };
 
 const PushToGitDialog = (props: PushToGitDialogProps) => {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = createSignal(false);
+  const [commitMessage, setCommitMessage] = createSignal('');
 
   const showPushToGit = gitSyncHooks.useShowPushToGit();
   const { platform } = platformHooks.useCurrentPlatform();
@@ -58,42 +47,21 @@ const PushToGitDialog = (props: PushToGitDialogProps) => {
     authenticationSession.getProjectId()!,
     platform.plan.environmentsEnabled,
   );
-  const form = useForm<PushGitRepoRequest>({
-    defaultValues: {
-      type:
-        props.type === 'flow'
-          ? GitPushOperationType.PUSH_FLOW
-          : GitPushOperationType.PUSH_TABLE,
-      commitMessage: '',
-      externalFlowIds:
-        props.type === 'flow' ? props.flows.map((item) => item.externalId) : [],
-      externalTableIds:
-        props.type === 'table'
-          ? props.tables.map((item) => item.externalId)
-          : [],
-    },
-    resolver: zodResolver(
-      props.type === 'flow'
-        ? PushFlowsGitRepoRequest
-        : PushTablesGitRepoRequest,
-    ) as Resolver<PushGitRepoRequest>,
-  });
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: async (request: PushGitRepoRequest) => {
+  const { mutate, isPending } = createMutation(() => ({
+    mutationFn: async (message: string) => {
       assertNotNullOrUndefined(gitSync, 'gitSync');
       switch (props.type) {
         case 'flow':
           await gitSyncApi.push(gitSync.id, {
             type: GitPushOperationType.PUSH_FLOW,
-            commitMessage: request.commitMessage,
+            commitMessage: message,
             externalFlowIds: props.flows.map((item) => item.externalId),
           });
           break;
         case 'table':
           await gitSyncApi.push(gitSync.id, {
             type: GitPushOperationType.PUSH_TABLE,
-            commitMessage: request.commitMessage,
+            commitMessage: message,
             externalTableIds: props.tables.map((item) => item.externalId),
           });
           break;
@@ -103,9 +71,15 @@ const PushToGitDialog = (props: PushToGitDialogProps) => {
       toast.success(t('Pushed successfully'), {
         duration: 3000,
       });
+      setCommitMessage('');
       setOpen(false);
     },
-  });
+  }));
+
+  const submit = (event: SubmitEvent) => {
+    event.preventDefault();
+    mutate(commitMessage());
+  };
 
   if (!showPushToGit) {
     return null;
@@ -114,49 +88,41 @@ const PushToGitDialog = (props: PushToGitDialogProps) => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit((data) => mutate(data))}>
-            <DialogHeader>
-              <DialogTitle>{t('Push to Git')}</DialogTitle>
-            </DialogHeader>
-            <FormField
-              control={form.control}
-              name="commitMessage"
-              render={({ field }) => (
-                <FormItem className="gap-2 flex flex-col">
-                  <FormLabel>{t('Commit Message')}</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
+        <form onSubmit={submit}>
+          <DialogHeader>
+            <DialogTitle>{t('Push to Git')}</DialogTitle>
+          </DialogHeader>
+          <div class="gap-2 flex flex-col">
+            <label className="text-sm font-medium" for="commitMessage">
+              {t('Commit Message')}
+            </label>
+            <Textarea
+              id="commitMessage"
+              value={commitMessage()}
+              onInput={(event) => setCommitMessage(event.currentTarget.value)}
             />
-            <div className="text-sm text-gray-500 mt-2">
-              {t(
-                'Enter a commit message to describe the changes you want to push.',
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setOpen(false);
-                  form.reset();
-                }}
-              >
-                {t('Cancel')}
-              </Button>
-              <Button
-                type="submit"
-                loading={isPending}
-                onClick={form.handleSubmit((data) => mutate(data))}
-              >
-                {t('Push')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+          </div>
+          <div className="text-sm text-gray-500 mt-2">
+            {t(
+              'Enter a commit message to describe the changes you want to push.',
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setOpen(false);
+                setCommitMessage('');
+              }}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button type="submit" loading={isPending}>
+              {t('Push')}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

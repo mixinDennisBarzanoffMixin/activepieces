@@ -17,10 +17,14 @@ import {
   UncategorizedFolderId,
   UpdateRunProgressRequest,
 } from '@activepieces/shared';
-import { QueryClient, useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@solidjs/router';
+import {
+  QueryClient,
+  createMutation,
+  createQuery,
+} from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { useApErrorDialogStore } from '@/components/custom/ap-error-dialog/ap-error-dialog-store';
 import { useSocket } from '@/components/providers/socket-provider';
@@ -48,7 +52,7 @@ export const flowHooks = {
     });
   },
   useFlows: (request: Omit<ListFlowsRequest, 'projectId'>) => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: createFlowsQueryKey(authenticationSession.getProjectId()!),
       queryFn: async () => {
         return await flowsApi.list({
@@ -57,7 +61,7 @@ export const flowHooks = {
         });
       },
       staleTime: 5 * 1000,
-    });
+    }));
   },
   useChangeFlowStatus: ({
     flowId,
@@ -72,7 +76,7 @@ export const flowHooks = {
       ApFlagId.TRIGGER_TIMEOUT_SECONDS,
     );
     const { openDialog } = useApErrorDialogStore();
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async () => {
         if (change === 'publish') {
           setIsPublishing?.(true);
@@ -143,10 +147,10 @@ export const flowHooks = {
           internalErrorToast();
         }
       },
-    });
+    }));
   },
   useExportFlows: () => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async (flows: PopulatedFlow[]) => {
         if (flows.length === 0) {
           return flows;
@@ -174,7 +178,7 @@ export const flowHooks = {
           );
         }
       },
-    });
+    }));
   },
 
   useFetchFlowVersion: ({
@@ -182,7 +186,7 @@ export const flowHooks = {
   }: {
     onSuccess: (flowVersion: FlowVersion) => void;
   }) => {
-    return useMutation<FlowVersion, Error, FlowVersionMetadata>({
+    return createMutation<FlowVersion, Error, FlowVersionMetadata>({
       mutationFn: async (flowVersion) => {
         const result = await flowsApi.get(flowVersion.flowId, {
           versionId: flowVersion.id,
@@ -197,7 +201,7 @@ export const flowHooks = {
   }: {
     onSuccess: (flow: PopulatedFlow) => void;
   }) => {
-    return useMutation<
+    return createMutation<
       PopulatedFlow,
       Error,
       { flowId: string; versionId: string }
@@ -216,7 +220,7 @@ export const flowHooks = {
   },
   useCreateMcpFlow: () => {
     const navigate = useNavigate();
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async () => {
         const flow = await flowsApi.create({
           projectId: authenticationSession.getProjectId()!,
@@ -249,7 +253,7 @@ export const flowHooks = {
       onSuccess: (flow) => {
         navigate(`/flows/${flow.id}/`);
       },
-    });
+    }));
   },
   useGetFlow: ({
     flowId,
@@ -260,7 +264,7 @@ export const flowHooks = {
     versionId?: string;
     enabled?: boolean;
   }) => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: flowHooks.createFlowQueryKeys({ flowId, versionId }),
       queryFn: async () => {
         try {
@@ -275,10 +279,10 @@ export const flowHooks = {
       },
       enabled: enabled && !!flowId,
       staleTime: 0,
-    });
+    }));
   },
   useUpdateFlowOwner: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation<
+    return createMutation<
       PopulatedFlow,
       Error,
       { flowId: string; ownerId: string }
@@ -297,7 +301,7 @@ export const flowHooks = {
   }: {
     onSuccess: (template: Template) => void;
   }) => {
-    return useMutation<
+    return createMutation<
       Template,
       Error,
       {
@@ -338,7 +342,7 @@ export const flowHooks = {
     isForManualTrigger: boolean;
   }) => {
     const socket = useSocket();
-    return useMutation<void>({
+    return createMutation<void>({
       mutationFn: () =>
         flowRunsApi.subscribeToTestFlowOrManualRun(
           socket,
@@ -352,7 +356,7 @@ export const flowHooks = {
   },
 
   useListFlowVersions: (flowId: string) => {
-    return useQuery<SeekPage<FlowVersionMetadata>, Error>({
+    return createQuery<SeekPage<FlowVersionMetadata>, Error>({
       queryKey: ['flow-versions', flowId],
       queryFn: () =>
         flowsApi.listVersions(flowId, {
@@ -377,7 +381,7 @@ export const flowHooks = {
   },
   useStartFromScratch: (folderId: string) => {
     const navigate = useNavigate();
-    return useMutation<PopulatedFlow, Error, void>({
+    return createMutation<PopulatedFlow, Error, void>({
       mutationFn: async () => {
         const folder =
           folderId !== UncategorizedFolderId
@@ -514,7 +518,7 @@ export const flowHooks = {
     }) => void;
     onError: () => void;
   }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async (packageName: string) => {
         const response = await api.get<{ 'dist-tags': { latest: string } }>(
           `https://registry.npmjs.org/${packageName}`,
@@ -526,7 +530,7 @@ export const flowHooks = {
       },
       onSuccess,
       onError,
-    });
+    }));
   },
   createFlowQueryKeys: ({
     flowId,

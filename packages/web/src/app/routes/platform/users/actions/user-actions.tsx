@@ -6,8 +6,8 @@ import {
   Pencil,
   RotateCcw,
   Trash,
-} from 'lucide-react';
-import { useState } from 'react';
+} from 'lucide-solid';
+import { createSignal, Show } from 'solid-js';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,7 @@ export const UserActions = ({
   onToggleStatus,
   onUpdate,
 }: UserActionsProps) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
   const isInvitation = row.type === 'invitation';
   const isAdmin = !isInvitation && row.data.platformRole === PlatformRole.ADMIN;
   const isActive = !isInvitation && row.data.status === UserStatus.ACTIVE;
@@ -46,12 +46,12 @@ export const UserActions = ({
     <div className="flex justify-end">
       <DropdownMenu modal={true} open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <MoreVertical className="h-4 w-4" />
+          <Button variant="ghost" class="h-8 w-8 p-0">
+            <MoreVertical class="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          {!isInvitation && (
+          <Show when={!isInvitation}>
             <UpdateUserDialog
               userId={row.data.id}
               role={row.data.platformRole}
@@ -59,12 +59,12 @@ export const UserActions = ({
               onUpdate={onUpdate}
             >
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                <Pencil className="h-4 w-4" />
+                <Pencil class="h-4 w-4" />
                 {t('Edit')}
               </DropdownMenuItem>
             </UpdateUserDialog>
-          )}
-          {!isInvitation && (
+          </Show>
+          <Show when={!isInvitation}>
             <DropdownMenuItem
               disabled={isAdmin || isUpdatingStatus}
               onSelect={() => {
@@ -72,14 +72,12 @@ export const UserActions = ({
                 setOpen(false);
               }}
             >
-              {isActive ? (
-                <CircleMinus className="h-4 w-4" />
-              ) : (
-                <RotateCcw className="h-4 w-4" />
-              )}
+              <Show when={isActive} fallback={<RotateCcw class="h-4 w-4" />}>
+                <CircleMinus class="h-4 w-4" />
+              </Show>
               {isActive ? t('Deactivate') : t('Activate')}
             </DropdownMenuItem>
-          )}
+          </Show>
           <ConfirmationDeleteDialog
             title={isInvitation ? t('Delete Invitation') : t('Delete User')}
             message={
@@ -98,7 +96,7 @@ export const UserActions = ({
               variant="destructive"
               onSelect={(e) => e.preventDefault()}
             >
-              <Trash className="h-4 w-4" />
+              <Trash class="h-4 w-4" />
               {t('Delete')}
             </DropdownMenuItem>
           </ConfirmationDeleteDialog>

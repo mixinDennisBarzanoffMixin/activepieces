@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal } from 'solid-js';
 
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -20,13 +20,13 @@ function getFormattedDate(date: string) {
 }
 function DateEditor() {
   const { value, handleCellChange, setIsEditing, isEditing } = useCellContext();
-  const [date, setDate] = useState<Date | undefined>(
+  const [date, setDate] = createSignal<Date | undefined>(
     isValidDate(value) ? new Date(value) : undefined,
   );
-  const [month, setMonth] = useState<Date | undefined>(
+  const [month, setMonth] = createSignal<Date | undefined>(
     isValidDate(value) ? new Date(value) : undefined,
   );
-  const [inputValue, setInputValue] = useState(getFormattedDate(value));
+  const [inputValue, setInputValue] = createSignal(getFormattedDate(value));
   const handleSelect = (newDate: Date | undefined) => {
     setDate(newDate);
     if (newDate) {
@@ -36,9 +36,9 @@ function DateEditor() {
     }
   };
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  const inputRef = null;
+  const containerRef = null;
+  createEffect(() => {
     if (isEditing) {
       requestAnimationFrame(() => {
         inputRef.current?.focus();
@@ -46,7 +46,7 @@ function DateEditor() {
     } else {
       setInputValue(getFormattedDate(value));
     }
-  }, [isEditing]);
+  });
   return (
     <div className="h-full w-full" ref={containerRef}>
       <Popover
@@ -122,7 +122,7 @@ function DateEditor() {
             )}
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
+        <PopoverContent class="w-auto p-0" align="start">
           <Calendar
             mode="single"
             selected={date}

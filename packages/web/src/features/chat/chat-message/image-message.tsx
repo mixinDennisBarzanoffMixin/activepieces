@@ -1,5 +1,4 @@
-import { Download } from 'lucide-react';
-import React from 'react';
+import { Download } from 'lucide-solid';
 
 import ImageWithFallback from '@/components/custom/image-with-fallback';
 
@@ -8,17 +7,14 @@ interface ImageMessageProps {
   setSelectedImage: (image: string | null) => void;
 }
 
-export const ImageMessage: React.FC<ImageMessageProps> = ({
-  content,
-  setSelectedImage,
-}) => {
+export const ImageMessage = ({ content, setSelectedImage }) => {
   return (
     <div className="w-fit">
       <div className="relative group">
         <ImageWithFallback
           src={content}
           alt="Received image"
-          className="w-80 h-auto rounded-md cursor-pointer"
+          class="w-80 h-auto rounded-md cursor-pointer"
           onClick={() => setSelectedImage(content)}
         />
         <button
@@ -33,7 +29,7 @@ export const ImageMessage: React.FC<ImageMessageProps> = ({
           }}
           className="absolute top-2 right-2 bg-black bg-opacity-50 rounded-full p-1 hover:bg-opacity-75 transition-opacity opacity-0 group-hover:opacity-100"
         >
-          <Download className="h-4 w-4 text-white" />
+          <Download class="h-4 w-4 text-white" />
         </button>
       </div>
     </div>

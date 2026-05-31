@@ -1,9 +1,9 @@
-import React from 'react';
+import { Show } from 'solid-js';
 
 import { FeatureKey, RequestTrial } from './request-trial';
 
 type LockedFeatureGuardProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   locked: boolean;
   lockTitle: string;
   lockDescription: string;
@@ -34,39 +34,45 @@ export const LockedFeatureGuard = ({
         <div className="text-center w-[485px] my-4 flex flex-col gap-2 justify-center items-center">
           <p className="text-md leading-relaxed text-muted-foreground">
             {lockDescription}
-            {lockDocumentationUrl && (
-              <>
-                {' '}
-                <a
-                  href={lockDocumentationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline"
-                >
-                  Learn more
-                </a>
-              </>
-            )}
+            {
+              <Show when={lockDocumentationUrl}>
+                <>
+                  {' '}
+                  <a
+                    href={lockDocumentationUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    Learn more
+                  </a>
+                </>
+              </Show>
+            }
           </p>
 
-          {showContactSales && (
-            <div className="my-4">
-              <RequestTrial featureKey={featureKey} />
-            </div>
-          )}
+          {
+            <Show when={showContactSales}>
+              <div className="my-4">
+                <RequestTrial featureKey={featureKey} />
+              </div>
+            </Show>
+          }
         </div>
 
-        {lockVideoUrl && (
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="max-w-[70vh] rounded-lg"
-            controls={false}
-            src={lockVideoUrl}
-          />
-        )}
+        {
+          <Show when={lockVideoUrl}>
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="max-w-[70vh] rounded-lg"
+              controls={false}
+              src={lockVideoUrl}
+            />
+          </Show>
+        }
       </div>
     </div>
   );

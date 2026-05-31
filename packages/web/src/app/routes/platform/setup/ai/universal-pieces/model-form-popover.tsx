@@ -1,6 +1,6 @@
 import { AIProviderModelType, ProviderModelConfig } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useState } from 'react';
+import { createSignal, For, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,7 @@ import {
 type ModelFormPopoverProps = {
   initialData?: ProviderModelConfig;
   onSubmit: (model: ProviderModelConfig) => void;
-  children: React.ReactNode;
+  children: JSX.Element;
 };
 
 const ModelFormPopover = ({
@@ -29,18 +29,18 @@ const ModelFormPopover = ({
   onSubmit,
   children,
 }: ModelFormPopoverProps) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
   const defaultModel: ProviderModelConfig = {
     modelId: '',
     modelName: '',
     modelType: AIProviderModelType.TEXT,
   };
 
-  const [model, setModel] = useState<ProviderModelConfig>(
+  const [model, setModel] = createSignal<ProviderModelConfig>(
     initialData || defaultModel,
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     // so parent form doesn't submit
     e.stopPropagation();
@@ -54,11 +54,13 @@ const ModelFormPopover = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>{children}</PopoverTrigger>
-      <PopoverContent className="w-80">
+      <PopoverContent class="w-80">
         <div className="grid gap-4">
           <div className="space-y-2">
             <h4 className="font-medium leading-none">
-              {initialData ? t('Edit Model') : t('Add Model')}
+              <Show when={initialData} fallback={t('Add Model')}>
+                t('Edit Model'
+              </Show>
             </h4>
             <p className="text-sm text-muted-foreground">
               {t('Configure the model settings')}
@@ -66,7 +68,7 @@ const ModelFormPopover = ({
           </div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="modelId">{t('Model ID')}</Label>
+              <Label for="modelId">{t('Model ID')}</Label>
               <Input
                 id="modelId"
                 value={model.modelId}
@@ -79,7 +81,7 @@ const ModelFormPopover = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="modelName">{t('Model Name')}</Label>
+              <Label for="modelName">{t('Model Name')}</Label>
               <Input
                 id="modelName"
                 value={model.modelName}
@@ -92,7 +94,7 @@ const ModelFormPopover = ({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="modelType">{t('Model Type')}</Label>
+              <Label for="modelType">{t('Model Type')}</Label>
               <Select
                 value={model.modelType}
                 onValueChange={(value) =>
@@ -106,11 +108,13 @@ const ModelFormPopover = ({
                   <SelectValue placeholder={'Select model type'} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(AIProviderModelType).map((type) => (
-                    <SelectItem key={type} value={type}>
-                      {type}
-                    </SelectItem>
-                  ))}
+                  <For each={Object.values(AIProviderModelType)}>
+                    {(type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    )}
+                  </For>
                 </SelectContent>
               </Select>
             </div>
@@ -124,7 +128,9 @@ const ModelFormPopover = ({
                 {t('Cancel')}
               </Button>
               <Button type="submit">
-                {initialData ? t('Update') : t('Add')}
+                <Show when={initialData} fallback={t('Add')}>
+                  t('Update'
+                </Show>
               </Button>
             </div>
           </form>

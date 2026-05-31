@@ -1,8 +1,8 @@
 import { PieceMetadataModelSummary } from '@activepieces/pieces-framework';
 import { t } from 'i18next';
-import { Trash2 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
-import { toast } from 'sonner';
+import { Trash2 } from 'lucide-solid';
+import { createSignal, createEffect, For, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { CreateTagDialog } from '@/app/routes/platform/setup/pieces/create-tag-dialog';
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
@@ -34,11 +34,11 @@ type ApplyTagsProps = {
 
 const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
   const { data: tags = [] } = piecesTagQueries.useTags();
-  const [open, setOpen] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-  const tagsThatHaveBeenClickedRef = useRef<Set<string>>(new Set());
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  useEffect(() => {
+  const [open, setOpen] = createSignal(false);
+  const [selectedTags, setSelectedTags] = createSignal<Set<string>>(new Set());
+  let tagsThatHaveBeenClickedRef = new Set();
+  const [createDialogOpen, setCreateDialogOpen] = createSignal(false);
+  createEffect(() => {
     setSelectedTags(
       new Set(
         tags
@@ -48,7 +48,7 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
           ),
       ),
     );
-  }, [selectedPieces, tags]);
+  });
 
   const { mutate: applyTags } = piecesTagMutations.useApplyTags({
     onSuccess: () => onApplyTags(),
@@ -58,10 +58,10 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
     onSuccess: () => onApplyTags(),
   });
 
-  const [tagOptions, setTagOptions] = useState<
+  const [tagOptions, setTagOptions] = createSignal<
     { id: string; label: string; value: string }[]
   >([]);
-  useEffect(() => {
+  createEffect(() => {
     setTagOptions(
       tags.map((tag) => ({
         id: tag.id,
@@ -69,14 +69,14 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
         value: tag.name,
       })),
     );
-  }, [tags]);
+  });
 
   return (
     <Popover
       open={open}
       onOpenChange={(open) => {
         setOpen(open);
-        tagsThatHaveBeenClickedRef.current = new Set();
+        tagsThatHaveBeenClickedRef = new Set();
       }}
     >
       <PopoverTrigger asChild>
@@ -88,73 +88,78 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
           {t('Apply Tags')}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0" align="start">
+      <PopoverContent class="w-[200px] p-0" align="start">
         <Command>
           <CommandList>
-            {tagOptions.length === 0 ? (
-              <CommandEmpty>{t('No tags created.')}</CommandEmpty>
-            ) : (
-              <ScrollArea viewPortClassName="max-h-[200px]">
-                <CommandGroup>
-                  {tagOptions.map((option) => {
-                    const isSelected = selectedTags.has(option.value);
-                    const isIndeterminate =
-                      selectedPieces.some((piece) =>
-                        piece.tags?.includes(option.value),
-                      ) &&
-                      !selectedPieces.every((piece) =>
-                        piece.tags?.includes(option.value),
-                      ) &&
-                      !tagsThatHaveBeenClickedRef.current.has(option.value);
-                    return (
-                      <CommandItem
-                        key={option.value}
-                        onSelect={() => {
-                          tagsThatHaveBeenClickedRef.current.add(option.value);
-                          const newSelectedTags = new Set(selectedTags);
-                          if (isSelected && !isIndeterminate) {
-                            newSelectedTags.delete(option.value);
-                          } else {
-                            newSelectedTags.add(option.value);
-                          }
-                          setSelectedTags(newSelectedTags);
-                        }}
-                      >
-                        <Checkbox
-                          checked={
-                            isIndeterminate ? 'indeterminate' : isSelected
-                          }
-                          className="mr-2"
-                        ></Checkbox>
-
-                        <span className="flex-grow">{option.label}</span>
-                        <ConfirmationDeleteDialog
-                          title={t('Delete Tag')}
-                          message={t(
-                            'Are you sure you want to delete the tag "{tagName}"? It will be removed from all pieces.',
-                            { tagName: option.label },
-                          )}
-                          entityName={option.label}
-                          mutationFn={async () => {
-                            deleteTag(option.id);
-                            setTagOptions((prev) =>
-                              prev.filter((o) => o.id !== option.id),
-                            );
-                          }}
-                        >
-                          <button
-                            onClick={(e) => e.stopPropagation()}
-                            className="hover:text-destructive"
+            <Show
+              when={tagOptions.length === 0}
+              fallback={
+                <ScrollArea viewPortClassName="max-h-[200px]">
+                  <CommandGroup>
+                    <For each={tagOptions}>
+                      {(option) => {
+                        const isSelected = selectedTags.has(option.value);
+                        const isIndeterminate =
+                          selectedPieces.some((piece) =>
+                            piece.tags?.includes(option.value),
+                          ) &&
+                          !selectedPieces.every((piece) =>
+                            piece.tags?.includes(option.value),
+                          ) &&
+                          !tagsThatHaveBeenClickedRef.has(option.value);
+                        return (
+                          <CommandItem
+                            key={option.value}
+                            onSelect={() => {
+                              tagsThatHaveBeenClickedRef.add(option.value);
+                              const newSelectedTags = new Set(selectedTags);
+                              if (isSelected && !isIndeterminate) {
+                                newSelectedTags.delete(option.value);
+                              } else {
+                                newSelectedTags.add(option.value);
+                              }
+                              setSelectedTags(newSelectedTags);
+                            }}
                           >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </ConfirmationDeleteDialog>
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </ScrollArea>
-            )}
+                            <Checkbox
+                              checked={
+                                isIndeterminate ? 'indeterminate' : isSelected
+                              }
+                              class="mr-2"
+                            ></Checkbox>
+
+                            <span className="flex-grow">{option.label}</span>
+                            <ConfirmationDeleteDialog
+                              title={t('Delete Tag')}
+                              message={t(
+                                'Are you sure you want to delete the tag "{tagName}"? It will be removed from all pieces.',
+                                { tagName: option.label },
+                              )}
+                              entityName={option.label}
+                              mutationFn={async () => {
+                                deleteTag(option.id);
+                                setTagOptions((prev) =>
+                                  prev.filter((o) => o.id !== option.id),
+                                );
+                              }}
+                            >
+                              <button
+                                onClick={(e) => e.stopPropagation()}
+                                className="hover:text-destructive"
+                              >
+                                <Trash2 class="size-4" />
+                              </button>
+                            </ConfirmationDeleteDialog>
+                          </CommandItem>
+                        );
+                      }}
+                    </For>
+                  </CommandGroup>
+                </ScrollArea>
+              }
+            >
+              <CommandEmpty>{t('No tags created.')}</CommandEmpty>
+            </Show>
 
             <CreateTagDialog
               onTagCreated={(tag) => {
@@ -170,7 +175,7 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
               setIsOpen={setCreateDialogOpen}
             >
               <CommandItem
-                className="justify-center text-center"
+                class="justify-center text-center"
                 onSelect={() => {
                   setCreateDialogOpen(true);
                 }}
@@ -181,7 +186,7 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
             <Separator />
             <CommandGroup>
               <CommandItem
-                className="justify-center text-center text-primary"
+                class="justify-center text-center text-primary"
                 onSelect={() => {
                   toast(t('Applying Tags...'), {});
                   applyTags({

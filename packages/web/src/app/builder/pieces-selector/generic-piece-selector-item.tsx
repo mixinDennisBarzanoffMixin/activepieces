@@ -1,4 +1,5 @@
 import { FlowActionType, FlowTriggerType } from '@activepieces/shared';
+import { Show } from 'solid-js';
 
 import { CardListItem } from '@/components/custom/card-list';
 import {
@@ -49,7 +50,7 @@ const GenericActionOrTriggerItem = ({
   const pieceSelectorItemInfo = getPieceSelectorItemInfo(item);
   return (
     <CardListItem
-      className={cn('p-2 w-full ', {
+      class={cn('p-2 w-full ', {
         truncate: hidePieceIconAndDescription,
       })}
       onClick={onClick}
@@ -70,13 +71,16 @@ const GenericActionOrTriggerItem = ({
         </div>
         <div className="flex flex-col gap-0.5">
           <div className="text-sm">{pieceSelectorItemInfo.displayName}</div>
-          {!hidePieceIconAndDescription && (
+          <Show when={!hidePieceIconAndDescription()}>
             <div className="text-xs text-muted-foreground">
-              {pieceSelectorItemInfo.description.endsWith('.')
-                ? pieceSelectorItemInfo.description.slice(0, -1)
-                : pieceSelectorItemInfo.description}
+              <Show
+                when={pieceSelectorItemInfo.description.endsWith('.')()}
+                fallback={pieceSelectorItemInfo.description}
+              >
+                {pieceSelectorItemInfo.description.slice(0, -1)}
+              </Show>
             </div>
-          )}
+          </Show>
         </div>
       </div>
     </CardListItem>

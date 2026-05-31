@@ -7,11 +7,7 @@ export const CreateMcpFlowButton = () => {
   const { mutate: createMcpFlow, isPending } = flowHooks.useCreateMcpFlow();
 
   return (
-    <Button
-      onClick={() => createMcpFlow()}
-      variant="outline"
-      className="mr-auto"
-    >
+    <Button onClick={() => createMcpFlow()} variant="outline" class="mr-auto">
       {isPending ? t('Creating...') : t('New MCP Flow')}
     </Button>
   );

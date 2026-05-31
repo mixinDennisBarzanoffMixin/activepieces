@@ -1,33 +1,34 @@
-import { type ComponentType } from 'react';
-
-import { BotIcon } from '@/components/icons/bot';
-import { ChartLineIcon } from '@/components/icons/chart-line';
-import { CompassIcon } from '@/components/icons/compass';
-import { FileHeartIcon } from '@/components/icons/file-heart';
-import { FileJson2Icon } from '@/components/icons/file-json2';
-import { FrameIcon } from '@/components/icons/frame';
-import { KeyRoundIcon } from '@/components/icons/key-round';
-import { LayoutGridIcon } from '@/components/icons/layout-grid';
-import { LogInIcon } from '@/components/icons/log-in';
-import { MousePointerClickIcon } from '@/components/icons/mouse-pointer-click';
-import { PaletteIcon } from '@/components/icons/palette';
-import { PuzzleIcon } from '@/components/icons/puzzle';
-import { ReceiptIcon } from '@/components/icons/receipt';
-import { ServerIcon } from '@/components/icons/server';
-import { Settings2Icon } from '@/components/icons/settings2';
-import { ShieldIcon } from '@/components/icons/shield';
-import { SquareDashedBottomCodeIcon } from '@/components/icons/square-dashed-bottom-code';
-import { TrophyIcon } from '@/components/icons/trophy';
-import { UnplugIcon } from '@/components/icons/unplug';
-import { UsersIcon } from '@/components/icons/users';
-import { WebhookIcon } from '@/components/icons/webhook';
-import { WorkflowIcon } from '@/components/icons/workflow';
+import { Component } from 'solid-js';
+import {
+  Bot,
+  ChartLine,
+  Compass,
+  FileHeart,
+  FileJson2,
+  Frame,
+  KeyRound,
+  LayoutGrid,
+  LogIn,
+  MousePointerClick,
+  Palette,
+  Puzzle,
+  Receipt,
+  Server,
+  Settings2,
+  Shield,
+  SquareDashedBottomCode,
+  Trophy,
+  Unplug,
+  Users,
+  Webhook,
+  Workflow,
+} from 'lucide-solid';
 
 export type StaticPage = {
   id: string;
   label: string;
   href: string;
-  icon: ComponentType<{ className?: string; size?: number }>;
+  icon: Component<any>;
   requiresPlatformAdmin?: boolean;
 };
 
@@ -36,158 +37,158 @@ export const STATIC_PAGES: StaticPage[] = [
     id: 'page-automations',
     label: 'Automations',
     href: '/automations',
-    icon: WorkflowIcon,
+    icon: Workflow,
   },
   {
     id: 'page-explore',
     label: 'Explore Templates',
     href: '/templates',
-    icon: CompassIcon,
+    icon: Compass,
   },
   {
     id: 'page-impact',
     label: 'Impact',
     href: '/impact',
-    icon: ChartLineIcon,
+    icon: ChartLine,
   },
   {
     id: 'page-leaderboard',
     label: 'Leaderboard',
     href: '/leaderboard',
-    icon: TrophyIcon,
+    icon: Trophy,
   },
   // Platform Admin pages
   {
     id: 'page-platform-projects',
     label: 'Platform Admin — Projects',
     href: '/platform/projects',
-    icon: LayoutGridIcon,
+    icon: LayoutGrid,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-users',
     label: 'Platform Admin — Users',
     href: '/platform/users',
-    icon: UsersIcon,
+    icon: Users,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-ai',
     label: 'Platform Admin — AI Providers',
     href: '/platform/setup/ai',
-    icon: BotIcon,
+    icon: Bot,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-branding',
     label: 'Platform Admin — Branding',
     href: '/platform/setup/branding',
-    icon: PaletteIcon,
+    icon: Palette,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-connections',
     label: 'Platform Admin — Global Connections',
     href: '/platform/setup/connections',
-    icon: UnplugIcon,
+    icon: Unplug,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-pieces',
     label: 'Platform Admin — Pieces',
     href: '/platform/setup/pieces',
-    icon: PuzzleIcon,
+    icon: Puzzle,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-templates',
     label: 'Platform Admin — Templates',
     href: '/platform/setup/templates',
-    icon: LayoutGridIcon,
+    icon: LayoutGrid,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-billing',
     label: 'Platform Admin — Billing',
     href: '/platform/setup/billing',
-    icon: ReceiptIcon,
+    icon: Receipt,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-embedding',
     label: 'Platform Admin — Embedding',
     href: '/platform/security/embed',
-    icon: FrameIcon,
+    icon: Frame,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-audit-logs',
     label: 'Platform Admin — Audit Logs',
     href: '/platform/security/audit-logs',
-    icon: SquareDashedBottomCodeIcon,
+    icon: SquareDashedBottomCode,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-sso',
     label: 'Platform Admin — Single Sign On',
     href: '/platform/security/sso',
-    icon: LogInIcon,
+    icon: LogIn,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-project-roles',
     label: 'Platform Admin — Project Roles',
     href: '/platform/security/project-roles',
-    icon: Settings2Icon,
+    icon: Settings2,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-api-keys',
     label: 'Platform Admin — API Keys',
     href: '/platform/security/api-keys',
-    icon: FileJson2Icon,
+    icon: FileJson2,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-secret-managers',
     label: 'Platform Admin — Secret Managers',
     href: '/platform/security/secret-managers',
-    icon: KeyRoundIcon,
+    icon: KeyRound,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-workers',
     label: 'Platform Admin — Workers',
     href: '/platform/infrastructure/workers',
-    icon: ServerIcon,
+    icon: Server,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-health',
     label: 'Platform Admin — Health',
     href: '/platform/infrastructure/health',
-    icon: FileHeartIcon,
+    icon: FileHeart,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-triggers',
     label: 'Platform Admin — Triggers',
     href: '/platform/infrastructure/triggers',
-    icon: MousePointerClickIcon,
+    icon: MousePointerClick,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-event-streaming',
     label: 'Platform Admin — Event Streaming',
     href: '/platform/infrastructure/event-destinations',
-    icon: WebhookIcon,
+    icon: Webhook,
     requiresPlatformAdmin: true,
   },
   {
     id: 'page-platform-admin',
     label: 'Platform Admin',
     href: '/platform/projects',
-    icon: ShieldIcon,
+    icon: Shield,
     requiresPlatformAdmin: true,
   },
 ];

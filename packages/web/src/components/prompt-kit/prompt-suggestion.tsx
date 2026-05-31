@@ -1,15 +1,16 @@
 import { VariantProps } from 'class-variance-authority';
+import { JSX } from 'solid-js';
 
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 export type PromptSuggestionProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   variant?: VariantProps<typeof buttonVariants>['variant'];
   size?: VariantProps<typeof buttonVariants>['size'];
   className?: string;
   highlight?: string;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>;
+} & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 function PromptSuggestion({
   children,
@@ -27,7 +28,7 @@ function PromptSuggestion({
       <Button
         variant={variant || 'outline'}
         size={size || 'lg'}
-        className={cn('rounded-full', className)}
+        class={cn('rounded-full', className)}
         {...props}
       >
         {children}
@@ -40,7 +41,7 @@ function PromptSuggestion({
       <Button
         variant={variant || 'ghost'}
         size={size || 'sm'}
-        className={cn(
+        class={cn(
           'w-full cursor-pointer justify-start rounded-xl py-2',
           'hover:bg-accent',
           className,
@@ -61,7 +62,7 @@ function PromptSuggestion({
     <Button
       variant={variant || 'ghost'}
       size={size || 'sm'}
-      className={cn(
+      class={cn(
         'w-full cursor-pointer justify-start gap-0 rounded-xl py-2',
         'hover:bg-accent',
         className,

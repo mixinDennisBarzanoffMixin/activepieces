@@ -11,8 +11,8 @@ import {
   Key,
   ListChecks,
   ShieldCheck,
-} from 'lucide-react';
-import { useState } from 'react';
+} from 'lucide-solid';
+import { createSignal, Show } from 'solid-js';
 
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
 import { Button } from '@/components/ui/button';
@@ -96,7 +96,7 @@ const EmbedPage = () => {
       ? stepCompletion.length - 1
       : firstIncompleteIndex;
 
-  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
+  const [viewingIndex, setViewingIndex] = createSignal<number | null>(null);
   const displayedIndex =
     viewingIndex !== null && viewingIndex < activeStepIndex
       ? viewingIndex
@@ -134,7 +134,7 @@ const EmbedPage = () => {
             <Button
               variant="link"
               size="sm"
-              className="h-auto p-0 mt-0.5 ml-1"
+              class="h-auto p-0 mt-0.5 ml-1"
               asChild
             >
               <a
@@ -143,12 +143,12 @@ const EmbedPage = () => {
                 rel="noopener noreferrer"
               >
                 {t('Read more')}
-                <ExternalLink className="size-3" />
+                <ExternalLink class="size-3" />
               </a>
             </Button>
           </div>
         </div>
-        <Separator className="mt-4 mb-12" />
+        <Separator class="mt-4 mb-12" />
 
         <div className="grid grid-cols-[16rem_1fr] gap-16">
           <Stepper
@@ -160,21 +160,38 @@ const EmbedPage = () => {
           />
 
           <div className="min-w-0">
-            {isLoading ? (
-              <SkeletonList numberOfItems={3} className="w-full h-[72px]" />
-            ) : displayedStep?.kind === 'hostname' ? (
-              <HostnameStep subdomain={subdomain} />
-            ) : displayedStep?.kind === 'dns' ? (
-              <DnsStep subdomain={subdomain} />
-            ) : displayedStep?.kind === 'allowed-domains' ? (
-              <AllowedDomainsStep allowedEmbedOrigins={allowedEmbedOrigins} />
-            ) : displayedStep?.kind === 'signing-keys' ? (
-              <SigningKeysStep
-                signingKeys={signingKeys}
-                isLoading={isKeysLoading}
-                refetch={refetch}
-              />
-            ) : null}
+            <Show
+              when={isLoading}
+              fallback={
+                <Show
+                  when={displayedStep?.kind === 'hostname'}
+                  fallback={
+                    <Show
+                      when={displayedStep?.kind === 'dns'}
+                      fallback={
+                        displayedStep?.kind === 'allowed-domains' ? (
+                          <AllowedDomainsStep
+                            allowedEmbedOrigins={allowedEmbedOrigins}
+                          />
+                        ) : displayedStep?.kind === 'signing-keys' ? (
+                          <SigningKeysStep
+                            signingKeys={signingKeys}
+                            isLoading={isKeysLoading}
+                            refetch={refetch}
+                          />
+                        ) : null
+                      }
+                    >
+                      <DnsStep subdomain={subdomain} />
+                    </Show>
+                  }
+                >
+                  <HostnameStep subdomain={subdomain} />
+                </Show>
+              }
+            >
+              <SkeletonList numberOfItems={3} class="w-full h-[72px]" />
+            </Show>
           </div>
         </div>
       </div>

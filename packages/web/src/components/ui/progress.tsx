@@ -1,7 +1,4 @@
-'use client';
-
-import { Progress as ProgressPrimitive } from 'radix-ui';
-import * as React from 'react';
+import * as ProgressPrimitive from '@kobalte/core/progress';
 
 import { cn } from '@/lib/utils';
 
@@ -14,7 +11,7 @@ function Progress({
   return (
     <ProgressPrimitive.Root
       data-slot="progress"
-      className={cn(
+      class={cn(
         'relative h-2 w-full overflow-hidden rounded-full bg-primary/20',
         className,
       )}
@@ -22,7 +19,7 @@ function Progress({
     >
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
-        className={cn(
+        class={cn(
           'h-full w-full flex-1 bg-primary transition-all',
           indicatorClassName,
         )}
@@ -34,6 +31,6 @@ function Progress({
 
 export { Progress };
 
-type ProgressProps = React.ComponentProps<typeof ProgressPrimitive.Root> & {
+type ProgressProps = ComponentProps<typeof ProgressPrimitive.Root> & {
   indicatorClassName?: string;
 };

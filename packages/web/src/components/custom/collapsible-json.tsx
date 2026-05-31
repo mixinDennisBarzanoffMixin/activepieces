@@ -1,5 +1,5 @@
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import React, { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { CopyButton } from '@/components/custom/clipboard/copy-button';
 
@@ -10,8 +10,8 @@ export function CollapsibleJson({
   defaultOpen = false,
   className = '',
 }: CollapsibleJsonProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  const toggleVisibility = () => setIsOpen(!isOpen);
+  const [isOpen, setIsOpen] = createSignal(defaultOpen);
+  const toggleVisibility = () => setIsOpen(!isOpen());
 
   const jsonString =
     typeof json === 'string' ? json : JSON.stringify(json, null, 2);
@@ -22,15 +22,15 @@ export function CollapsibleJson({
         onClick={toggleVisibility}
         className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
-        {isOpen ? (
-          <ChevronDown className="h-4 w-4" />
+        {isOpen() ? (
+          <ChevronDown class="h-4 w-4" />
         ) : (
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight class="h-4 w-4" />
         )}
         {label}
       </button>
 
-      {isOpen && (
+      <Show when={isOpen()}>
         <div className="flex flex-col gap-2 min-w-0">
           <div className="relative min-w-0">
             <pre className="bg-muted/50 whitespace-pre-wrap break-all rounded-md px-4 py-4 text-xs overflow-x-auto max-w-full">
@@ -40,18 +40,18 @@ export function CollapsibleJson({
               <CopyButton textToCopy={jsonString} />
             </div>
           </div>
-          {description && (
+          <Show when={description}>
             <p className="text-xs text-muted-foreground">{description}</p>
-          )}
+          </Show>
         </div>
-      )}
+      </Show>
     </div>
   );
 }
 
 type CollapsibleJsonProps = {
   json: unknown;
-  label: React.ReactNode;
+  label: any;
   description?: string;
   defaultOpen?: boolean;
   className?: string;

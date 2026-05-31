@@ -4,8 +4,8 @@ import {
   ProjectWithLimits,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Check, ChevronDown, LayoutGrid } from 'lucide-react';
-import { useState } from 'react';
+import { Check, ChevronDown, LayoutGrid } from 'lucide-solid';
+import { createSignal, Show } from 'solid-js';
 
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ export function ProjectSelect({
   selectedProjectId,
   onProjectChange,
 }: ProjectSelectProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
 
   const allProjectsItem = { id: 'all', displayName: t('All Projects') };
   const items = [allProjectsItem, ...projects];
@@ -59,11 +59,14 @@ export function ProjectSelect({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-auto gap-2 font-normal h-8"
+          class="w-auto gap-2 font-normal h-8"
         >
-          {selectedProject?.type === ProjectType.TEAM ? (
+          <Show
+            when={selectedProject?.type === ProjectType.TEAM}
+            fallback={<LayoutGrid class="h-4 w-4" />}
+          >
             <Avatar
-              className="size-4 shrink-0 flex items-center justify-center rounded-[4px] text-xs font-bold"
+              class="size-4 shrink-0 flex items-center justify-center rounded-[4px] text-xs font-bold"
               style={{
                 backgroundColor:
                   PROJECT_COLOR_PALETTE[selectedProject.icon.color].color,
@@ -75,20 +78,18 @@ export function ProjectSelect({
                 {selectedProject.displayName.charAt(0).toUpperCase()}
               </span>
             </Avatar>
-          ) : (
-            <LayoutGrid className="h-4 w-4" />
-          )}
+          </Show>
           <span className="max-w-[150px] truncate">{displayValue}</span>
-          <ChevronDown className="h-4 w-4 opacity-50" />
+          <ChevronDown class="h-4 w-4 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[250px] p-0" align="end">
+      <PopoverContent class="w-[250px] p-0" align="end">
         <div style={{ height: dropdownHeight }}>
           <VirtualizedScrollArea
             items={items}
             estimateSize={() => ITEM_HEIGHT}
             getItemKey={(index) => items[index].id}
-            className="h-full"
+            class="h-full"
             overscan={10}
             renderItem={(item) => {
               const isSelected =
@@ -106,9 +107,14 @@ export function ProjectSelect({
                     isSelected && 'bg-accent',
                   )}
                 >
-                  {isTeam && project ? (
+                  <Show
+                    when={isTeam && project}
+                    fallback={
+                      <LayoutGrid class="size-5 shrink-0 text-muted-foreground" />
+                    }
+                  >
                     <Avatar
-                      className="size-5 shrink-0 flex items-center justify-center rounded-[4px] text-xs font-bold"
+                      class="size-5 shrink-0 flex items-center justify-center rounded-[4px] text-xs font-bold"
                       style={{
                         backgroundColor:
                           PROJECT_COLOR_PALETTE[project.icon.color].color,
@@ -120,12 +126,10 @@ export function ProjectSelect({
                         {item.displayName.charAt(0).toUpperCase()}
                       </span>
                     </Avatar>
-                  ) : (
-                    <LayoutGrid className="size-5 shrink-0 text-muted-foreground" />
-                  )}
+                  </Show>
                   <span className="truncate flex-1">{item.displayName}</span>
                   <Check
-                    className={cn(
+                    class={cn(
                       'h-4 w-4 shrink-0',
                       isSelected ? 'opacity-100' : 'opacity-0',
                     )}

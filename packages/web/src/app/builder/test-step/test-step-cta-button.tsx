@@ -7,9 +7,9 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Play } from 'lucide-react';
-import { useContext, useEffect } from 'react';
-import { toast } from 'sonner';
+import { Play } from 'lucide-solid';
+import { createEffect, useContext } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { Button } from '@/components/ui/button';
@@ -134,7 +134,7 @@ const ActionCTAButton = ({
             variant="outline"
             onClick={onOpenPanel}
             disabled={saving}
-            className={SOFT_PRIMARY_CTA_CLASSES}
+            class={SOFT_PRIMARY_CTA_CLASSES}
             size="sm"
           >
             {t('Show Output')}
@@ -152,7 +152,7 @@ const ActionCTAButton = ({
           variant="outline"
           onClick={onOpenPanel}
           disabled={saving}
-          className="w-full justify-center"
+          class="w-full justify-center"
           size="sm"
         >
           {t('Show Sample Data')}
@@ -164,10 +164,10 @@ const ActionCTAButton = ({
             disabled={retestDisabled}
             keyboardShortcut="G"
             onKeyboardShortcut={fireTest}
-            className={SOFT_PRIMARY_CTA_CLASSES}
+            class={SOFT_PRIMARY_CTA_CLASSES}
             size="sm"
           >
-            <Play className="size-4 fill-current" />
+            <Play class="size-4 fill-current" />
             {t('Retest Step')}
           </Button>
         </TestButtonTooltip>
@@ -185,10 +185,10 @@ const ActionCTAButton = ({
           disabled={testDisabled}
           keyboardShortcut="G"
           onKeyboardShortcut={fireTest}
-          className={SOFT_PRIMARY_CTA_CLASSES}
+          class={SOFT_PRIMARY_CTA_CLASSES}
           size="sm"
         >
-          <Play className="size-4 fill-current" />
+          <Play class="size-4 fill-current" />
           {t('Test Step')}
         </Button>
       </TestButtonTooltip>
@@ -239,7 +239,7 @@ const TriggerCTAButton = ({
           variant="outline"
           onClick={onOpenPanel}
           disabled={saving}
-          className={SOFT_PRIMARY_CTA_CLASSES}
+          class={SOFT_PRIMARY_CTA_CLASSES}
           size="sm"
         >
           {t('Show Output')}
@@ -255,7 +255,7 @@ const TriggerCTAButton = ({
           variant="outline"
           onClick={onOpenPanel}
           disabled={saving}
-          className="w-full justify-center"
+          class="w-full justify-center"
           size="sm"
         >
           {t('Show Sample Data')}
@@ -267,10 +267,10 @@ const TriggerCTAButton = ({
             disabled={testDisabled}
             keyboardShortcut="G"
             onKeyboardShortcut={fireTest}
-            className={SOFT_PRIMARY_CTA_CLASSES}
+            class={SOFT_PRIMARY_CTA_CLASSES}
             size="sm"
           >
-            <Play className="size-4 fill-current" />
+            <Play class="size-4 fill-current" />
             {t('Retest Trigger')}
           </Button>
         </TestButtonTooltip>
@@ -287,11 +287,11 @@ const TriggerCTAButton = ({
           disabled={testDisabled}
           keyboardShortcut="G"
           onKeyboardShortcut={fireTest}
-          className={SOFT_PRIMARY_CTA_CLASSES}
+          class={SOFT_PRIMARY_CTA_CLASSES}
           size="sm"
           data-testid="test-trigger-button"
         >
-          <Play className="size-4 fill-current" />
+          <Play class="size-4 fill-current" />
           {t('Test Trigger')}
         </Button>
       </TestButtonTooltip>
@@ -300,7 +300,7 @@ const TriggerCTAButton = ({
 };
 
 const useConfigureStepShortcutToast = (stepIsValid: boolean) => {
-  useEffect(() => {
+  createEffect(() => {
     if (stepIsValid) return;
     const isMac = /(Mac)/i.test(navigator.userAgent);
     const onKeyDown = (e: KeyboardEvent) => {
@@ -311,10 +311,10 @@ const useConfigureStepShortcutToast = (stepIsValid: boolean) => {
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [stepIsValid]);
+  });
 };
 
-const CTAShell = ({ children }: { children: React.ReactNode }) => (
+const CTAShell = ({ children }: { children: any }) => (
   <div
     data-test-panel-trigger
     className="relative px-3 py-3 bg-background z-10 flex flex-col gap-2 shrink-0"

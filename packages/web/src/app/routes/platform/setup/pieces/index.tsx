@@ -3,11 +3,11 @@ import {
   PropertyType,
 } from '@activepieces/pieces-framework';
 import { isNil, OAuth2GrantType, PieceScope } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { useSearchParams } from '@solidjs/router';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
-import { CheckIcon, Package, Hash, GitBranch, Puzzle } from 'lucide-react';
-import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { CheckIcon, Package, Hash, GitBranch, Puzzle } from 'lucide-solid';
+import { createMemo, For, Show } from 'solid-js';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import { RequestTrial } from '@/app/components/request-trial';
@@ -43,103 +43,102 @@ const PlatformPiecesPage = () => {
     oauthAppsQueries.usePiecesOAuth2AppsMap();
 
   const columns: ColumnDef<RowDataWithActions<PieceMetadataModelSummary>>[] =
-    useMemo(
-      () => [
-        {
-          accessorKey: 'displayName',
-          size: 300,
-          header: ({ column }) => (
-            <DataTableColumnHeader
-              column={column}
-              title={t('Name')}
-              icon={Puzzle}
-            />
-          ),
-          cell: ({ row }) => {
-            return (
-              <div className="flex items-center gap-2">
-                <PieceIcon
-                  size={'sm'}
-                  border={true}
-                  displayName={row.original.displayName}
-                  logoUrl={row.original.logoUrl}
-                  showTooltip={false}
-                />
-                <div className="flex flex-col gap-0.5">
-                  <span>{row.original.displayName}</span>
-                  {row.original.tags && row.original.tags.length > 0 && (
-                    <div className="flex gap-1">
-                      {row.original.tags.map((tag) => (
+    createMemo(() => [
+      {
+        accessorKey: 'displayName',
+        size: 300,
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title={t('Name')}
+            icon={Puzzle}
+          />
+        ),
+        cell: ({ row }) => {
+          return (
+            <div className="flex items-center gap-2">
+              <PieceIcon
+                size={'sm'}
+                border={true}
+                displayName={row.original.displayName}
+                logoUrl={row.original.logoUrl}
+                showTooltip={false}
+              />
+              <div className="flex flex-col gap-0.5">
+                <span>{row.original.displayName}</span>
+                <Show when={row.original.tags && row.original.tags.length > 0}>
+                  <div className="flex gap-1">
+                    <For each={row.original.tags}>
+                      {(tag) => (
                         <Badge
                           key={tag}
                           variant="outline"
-                          className="text-xs py-0 px-1.5"
+                          class="text-xs py-0 px-1.5"
                         >
                           {tag}
                         </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                      )}
+                    </For>
+                  </div>
+                </Show>
               </div>
-            );
-          },
+            </div>
+          );
         },
-        {
-          accessorKey: 'packageName',
-          size: 250,
-          header: ({ column }) => (
-            <DataTableColumnHeader
-              column={column}
-              title={t('Package Name')}
-              icon={Hash}
-            />
-          ),
-          cell: ({ row }) => {
-            return <div className="text-left">{row.original.name}</div>;
-          },
+      },
+      {
+        accessorKey: 'packageName',
+        size: 250,
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title={t('Package Name')}
+            icon={Hash}
+          />
+        ),
+        cell: ({ row }) => {
+          return <div className="text-left">{row.original.name}</div>;
         },
-        {
-          accessorKey: 'version',
-          size: 80,
-          header: ({ column }) => (
-            <DataTableColumnHeader
-              column={column}
-              title={t('Version')}
-              icon={GitBranch}
-            />
-          ),
-          cell: ({ row }) => {
-            return <div className="text-left">{row.original.version}</div>;
-          },
+      },
+      {
+        accessorKey: 'version',
+        size: 80,
+        header: ({ column }) => (
+          <DataTableColumnHeader
+            column={column}
+            title={t('Version')}
+            icon={GitBranch}
+          />
+        ),
+        cell: ({ row }) => {
+          return <div className="text-left">{row.original.version}</div>;
         },
-        {
-          id: 'actions',
-          size: 80,
-          cell: ({ row }) => {
-            return (
-              <div className="flex justify-end">
-                {shouldShowOauth2SettingForPiece(row.original) && (
-                  <ConfigurePieceOAuth2Dialog
-                    pieceName={row.original.name}
-                    onConfigurationDone={() => {
-                      refetchPieces();
-                      refetchPiecesOAuth2AppsMap();
-                    }}
-                    isEnabled={isEnabled}
-                  />
-                )}
-                <PieceActions
+      },
+      {
+        id: 'actions',
+        size: 80,
+        cell: ({ row }) => {
+          return (
+            <div className="flex justify-end">
+              <Show when={shouldShowOauth2SettingForPiece(row.original)}>
+                <ConfigurePieceOAuth2Dialog
                   pieceName={row.original.name}
+                  onConfigurationDone={() => {
+                    refetchPieces();
+                    refetchPiecesOAuth2AppsMap();
+                  }}
                   isEnabled={isEnabled}
                 />
-              </div>
-            );
-          },
+              </Show>
+              <PieceActions
+                pieceName={row.original.name}
+                isEnabled={isEnabled}
+              />
+            </div>
+          );
         },
-      ],
-      [],
-    );
+      },
+    ]);
 
   return (
     <>
@@ -148,7 +147,7 @@ const PlatformPiecesPage = () => {
         title={t('Pieces')}
       />
       <div className="mx-auto w-full flex flex-col flex-1 min-h-0">
-        {!isEnabled && (
+        <Show when={!isEnabled}>
           <LockedAlert
             title={t('Control Pieces')}
             description={t(
@@ -161,13 +160,13 @@ const PlatformPiecesPage = () => {
               />
             }
           />
-        )}
+        </Show>
         <DataTable
           emptyStateTextTitle={t('No pieces found')}
           emptyStateTextDescription={t(
             'Start by installing pieces that you want to use in your automations',
           )}
-          emptyStateIcon={<Package className="size-14" />}
+          emptyStateIcon={<Package class="size-14" />}
           columns={columns}
           filters={[
             {

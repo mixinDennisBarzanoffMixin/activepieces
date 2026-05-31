@@ -1,7 +1,8 @@
 import { ProjectMemberWithUser, ProjectRole } from '@activepieces/shared';
+import { A as Link } from '@solidjs/router';
 import { t } from 'i18next';
-import { Loader2, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Loader2, Users } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import {
   Item,
@@ -34,9 +35,9 @@ export const ProjectRoleUsersSheet = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[600px] sm:max-w-[600px] flex flex-col p-0">
-        <SheetHeader className="px-6 py-4 border-b shrink-0">
-          <SheetTitle className="text-base">
+      <SheetContent class="w-[600px] sm:max-w-[600px] flex flex-col p-0">
+        <SheetHeader class="px-6 py-4 border-b shrink-0">
+          <SheetTitle class="text-base">
             {projectRole?.name} {t('Role')} {t('Users')}
           </SheetTitle>
           <SheetDescription>
@@ -44,26 +45,34 @@ export const ProjectRoleUsersSheet = ({
           </SheetDescription>
         </SheetHeader>
         <div className="flex-1 overflow-hidden">
-          {isLoading ? (
+          <Show
+            when={isLoading}
+            fallback={
+              <Show
+                when={users.length === 0}
+                fallback={
+                  <VirtualizedScrollArea
+                    items={users}
+                    estimateSize={() => 64}
+                    getItemKey={(index) => users[index].id}
+                    renderItem={(member) => renderUserItem(member)}
+                  />
+                }
+              >
+                <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+                  <Users class="size-14" />
+                  <p className="text-sm font-medium">{t('No users found')}</p>
+                  <p className="text-xs">
+                    {t('Start by assigning users to this role')}
+                  </p>
+                </div>
+              </Show>
+            }
+          >
             <div className="flex items-center justify-center h-full">
-              <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              <Loader2 class="size-8 animate-spin text-muted-foreground" />
             </div>
-          ) : users.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
-              <Users className="size-14" />
-              <p className="text-sm font-medium">{t('No users found')}</p>
-              <p className="text-xs">
-                {t('Start by assigning users to this role')}
-              </p>
-            </div>
-          ) : (
-            <VirtualizedScrollArea
-              items={users}
-              estimateSize={() => 64}
-              getItemKey={(index) => users[index].id}
-              renderItem={(member) => renderUserItem(member)}
-            />
-          )}
+          </Show>
         </div>
       </SheetContent>
     </Sheet>
@@ -88,7 +97,7 @@ function renderUserItem(member: ProjectMemberWithUser) {
         <ItemDescription>
           {user.email}
           {' · '}
-          <Link to={`/projects/${project.id}/settings/team`}>
+          <Link href={`/projects/${project.id}/settings/team`}>
             {project.displayName}
           </Link>
         </ItemDescription>

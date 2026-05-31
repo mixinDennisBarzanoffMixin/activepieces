@@ -1,5 +1,4 @@
-import { Avatar as AvatarPrimitive } from 'radix-ui';
-import * as React from 'react';
+import * as AvatarPrimitive from '@kobalte/core/image';
 
 import { cn } from '@/lib/utils';
 
@@ -7,14 +6,14 @@ function Avatar({
   className,
   size = 'default',
   ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Root> & {
+}: ComponentProps<typeof AvatarPrimitive.Root> & {
   size?: 'default' | 'sm' | 'lg';
 }) {
   return (
     <AvatarPrimitive.Root
       data-slot="avatar"
       data-size={size}
-      className={cn(
+      class={cn(
         'group/avatar relative flex size-8 shrink-0 overflow-hidden rounded-full select-none data-[size=lg]:size-10 data-[size=sm]:size-6',
         className,
       )}
@@ -26,11 +25,11 @@ function Avatar({
 function AvatarImage({
   className,
   ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Image>) {
+}: ComponentProps<typeof AvatarPrimitive.Image>) {
   return (
     <AvatarPrimitive.Image
       data-slot="avatar-image"
-      className={cn('aspect-square size-full', className)}
+      class={cn('aspect-square size-full', className)}
       {...props}
     />
   );
@@ -39,11 +38,11 @@ function AvatarImage({
 function AvatarFallback({
   className,
   ...props
-}: React.ComponentProps<typeof AvatarPrimitive.Fallback>) {
+}: ComponentProps<typeof AvatarPrimitive.Fallback>) {
   return (
     <AvatarPrimitive.Fallback
       data-slot="avatar-fallback"
-      className={cn(
+      class={cn(
         'flex size-full items-center justify-center rounded-full border-none bg-muted text-sm text-muted-foreground group-data-[size=sm]/avatar:text-xs',
         className,
       )}
@@ -52,7 +51,7 @@ function AvatarFallback({
   );
 }
 
-function AvatarBadge({ className, ...props }: React.ComponentProps<'span'>) {
+function AvatarBadge({ className, ...props }: JSX.IntrinsicElements['span']) {
   return (
     <span
       data-slot="avatar-badge"
@@ -68,7 +67,7 @@ function AvatarBadge({ className, ...props }: React.ComponentProps<'span'>) {
   );
 }
 
-function AvatarGroup({ className, ...props }: React.ComponentProps<'div'>) {
+function AvatarGroup({ className, ...props }: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="avatar-group"
@@ -84,7 +83,7 @@ function AvatarGroup({ className, ...props }: React.ComponentProps<'div'>) {
 function AvatarGroupCount({
   className,
   ...props
-}: React.ComponentProps<'div'>) {
+}: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="avatar-group-count"

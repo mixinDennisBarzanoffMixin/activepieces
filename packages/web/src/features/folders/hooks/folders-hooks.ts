@@ -1,5 +1,5 @@
 import { FolderDto, UncategorizedFolderId } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 
 import { authenticationSession } from '@/lib/authentication-session';
 
@@ -7,10 +7,10 @@ import { foldersApi } from '../api/folders-api';
 
 export const foldersHooks = {
   useFolders: () => {
-    const folderQuery = useQuery({
+    const folderQuery = createQuery(() => ({
       queryKey: ['folders', authenticationSession.getProjectId()],
       queryFn: () => foldersApi.list(),
-    });
+    }));
     return {
       folders: folderQuery.data,
       isLoading: folderQuery.isLoading,
@@ -18,11 +18,11 @@ export const foldersHooks = {
     };
   },
   useFolder: (folderId: string) => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['folder', folderId],
       queryFn: () => foldersApi.get(folderId),
       enabled: folderId !== UncategorizedFolderId,
-    });
+    }));
   },
 };
 
@@ -34,7 +34,7 @@ export const foldersMutations = {
     onSuccess: () => void;
     onError?: (error: unknown) => void;
   }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async ({
         folderId,
         displayName,
@@ -46,7 +46,7 @@ export const foldersMutations = {
       },
       onSuccess,
       onError,
-    });
+    }));
   },
   useCreateFolder: ({
     onSuccess,
@@ -55,7 +55,7 @@ export const foldersMutations = {
     onSuccess: (folder: FolderDto) => void;
     onError?: (error: unknown) => void;
   }) => {
-    return useMutation<FolderDto, Error, { displayName: string }>({
+    return createMutation<FolderDto, Error, { displayName: string }>({
       mutationFn: async (data) => {
         return await foldersApi.create({
           displayName: data.displayName.trim(),

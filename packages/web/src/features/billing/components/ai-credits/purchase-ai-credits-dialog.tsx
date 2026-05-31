@@ -1,6 +1,6 @@
 import { t } from 'i18next';
-import { Loader2, Zap } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2, Zap } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +24,7 @@ export function PurchaseAICreditsDialog({
   isOpen,
   onOpenChange,
 }: PurchaseAICreditsDialogProps) {
-  const [creditsToAdd, setCreditsToAdd] = useState(1000); // Default to 1k credits
+  const [creditsToAdd, setCreditsToAdd] = createSignal(1000); // Default to 1k credits
   const COST_PER_1000_CREDITS = 1;
 
   const { mutate: createCheckoutSession, isPending: isCreatingSession } =
@@ -40,9 +40,9 @@ export function PurchaseAICreditsDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px]">
+      <DialogContent class="max-w-[480px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
+          <DialogTitle class="flex items-center gap-2 text-lg">
             {t('Purchase AI Credits')}
           </DialogTitle>
           <DialogDescription>
@@ -100,13 +100,13 @@ export function PurchaseAICreditsDialog({
           </Button>
           <Button
             onClick={handlePurchase}
-            className="gap-2"
+            class="gap-2"
             disabled={isCreatingSession || creditsToAdd < 1000}
           >
             {isCreatingSession ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 class="w-4 h-4 animate-spin" />
             ) : (
-              <Zap className="w-4 h-4" />
+              <Zap class="w-4 h-4" />
             )}
             {isCreatingSession ? t('Processing...') : t('Purchase Credits')}
           </Button>

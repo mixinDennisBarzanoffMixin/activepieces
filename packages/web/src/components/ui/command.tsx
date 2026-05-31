@@ -1,6 +1,21 @@
-import { Command as CommandPrimitive } from 'cmdk';
-import { SearchIcon } from 'lucide-react';
-import * as React from 'react';
+import {
+  CommandEmpty as CommandPrimitiveEmpty,
+  CommandGroup as CommandPrimitiveGroup,
+  CommandInput as CommandPrimitiveInput,
+  CommandItem as CommandPrimitiveItem,
+  CommandList as CommandPrimitiveList,
+  CommandRoot as CommandPrimitive,
+  CommandSeparator as CommandPrimitiveSeparator,
+  type CommandEmptyProps,
+  type CommandGroupProps,
+  type CommandInputProps,
+  type CommandItemProps,
+  type CommandListProps,
+  type CommandRootProps,
+  type CommandSeparatorProps,
+} from 'cmdk-solid';
+import { SearchIcon } from 'lucide-solid';
+import { JSX, splitProps } from 'solid-js';
 
 import {
   Dialog,
@@ -11,33 +26,23 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
-function Command({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive>) {
+function Command(props: CommandRootProps & { className?: string }) {
+  const [local, rest] = splitProps(props, ['className', 'children']);
   return (
     <CommandPrimitive
       data-slot="command"
-      className={cn(
+      class={cn(
         'flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground',
-        className,
+        local.className,
       )}
-      {...props}
-    />
+      {...rest}
+    >
+      {local.children}
+    </CommandPrimitive>
   );
 }
 
-function CommandDialog({
-  title = 'Command Palette',
-  description = 'Search for a command to run...',
-  children,
-  className,
-  showCloseButton = true,
-  shouldFilter = true,
-  commandValue,
-  onCommandValueChange,
-  ...props
-}: React.ComponentProps<typeof Dialog> & {
+function CommandDialog(props: Parameters<typeof Dialog>[0] & {
   title?: string;
   description?: string;
   className?: string;
@@ -46,23 +51,35 @@ function CommandDialog({
   commandValue?: string;
   onCommandValueChange?: (value: string) => void;
 }) {
+  const [local, rest] = splitProps(props, [
+    'title',
+    'description',
+    'className',
+    'showCloseButton',
+    'shouldFilter',
+    'commandValue',
+    'onCommandValueChange',
+    'children',
+  ]);
   return (
-    <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
+    <Dialog {...rest}>
       <DialogContent
-        className={cn('overflow-hidden p-0', className)}
-        showCloseButton={showCloseButton}
+        class={cn('overflow-hidden p-0', local.className)}
+        showCloseButton={local.showCloseButton ?? true}
       >
+        <DialogHeader class="sr-only">
+          <DialogTitle>{local.title ?? 'Command Palette'}</DialogTitle>
+          <DialogDescription>
+            {local.description ?? 'Search for a command to run...'}
+          </DialogDescription>
+        </DialogHeader>
         <Command
-          shouldFilter={shouldFilter}
-          value={commandValue}
-          onValueChange={onCommandValueChange}
-          className="**:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5"
+          shouldFilter={local.shouldFilter ?? true}
+          value={local.commandValue}
+          onValueChange={local.onCommandValueChange}
+          class="**:data-[slot=command-input-wrapper]:h-12 [&_[data-slot=command-group]]:px-2 [&_[data-slot=command-input-wrapper]_svg]:h-5 [&_[data-slot=command-input-wrapper]_svg]:w-5 [&_[data-slot=command-input]]:h-12 [&_[data-slot=command-item]]:px-2 [&_[data-slot=command-item]]:py-3 [&_[data-slot=command-item]_svg]:h-5 [&_[data-slot=command-item]_svg]:w-5"
         >
-          {children}
+          {local.children}
         </Command>
       </DialogContent>
     </Dialog>
@@ -73,7 +90,7 @@ function CommandInput({
   className,
   containerClassName,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+}: CommandInputProps & {
   containerClassName?: string;
 }) {
   return (
@@ -84,10 +101,10 @@ function CommandInput({
         containerClassName,
       )}
     >
-      <SearchIcon className="size-4 shrink-0 opacity-50" />
-      <CommandPrimitive.Input
+      <SearchIcon class="size-4 shrink-0 opacity-50" />
+      <CommandPrimitiveInput
         data-slot="command-input"
-        className={cn(
+        class={cn(
           'flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
           { 'cursor-not-allowed opacity-50': props.disabled },
           className,
@@ -101,14 +118,11 @@ function CommandInput({
 function CommandList({
   className,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.List>) {
+}: CommandListProps) {
   return (
-    <CommandPrimitive.List
+    <CommandPrimitiveList
       data-slot="command-list"
-      className={cn(
-        'max-h-[300px] overflow-x-hidden overflow-y-hidden',
-        className,
-      )}
+      class={cn('max-h-[300px] overflow-x-hidden overflow-y-hidden', className)}
       {...props}
     />
   );
@@ -116,40 +130,41 @@ function CommandList({
 
 function CommandEmpty({
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Empty>) {
+}: CommandEmptyProps) {
   return (
-    <CommandPrimitive.Empty
+    <CommandPrimitiveEmpty
       data-slot="command-empty"
-      className="py-6 text-center text-sm"
+      class="py-6 text-center text-sm"
       {...props}
     />
   );
 }
 
-function CommandGroup({
-  className,
-  ...props
-}: React.ComponentProps<typeof CommandPrimitive.Group>) {
+function CommandGroup(props: CommandGroupProps & { className?: string }) {
+  const [local, rest] = splitProps(props, ['className', 'heading', 'children']);
   return (
-    <CommandPrimitive.Group
+    <CommandPrimitiveGroup
       data-slot="command-group"
-      className={cn(
-        'overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground',
-        className,
+      class={cn(
+        'overflow-hidden p-1 text-foreground',
+        local.className,
       )}
-      {...props}
-    />
+      heading={local.heading}
+      {...rest}
+    >
+      {local.children}
+    </CommandPrimitiveGroup>
   );
 }
 
 function CommandSeparator({
   className,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Separator>) {
+}: CommandSeparatorProps) {
   return (
-    <CommandPrimitive.Separator
+    <CommandPrimitiveSeparator
       data-slot="command-separator"
-      className={cn('-mx-1 h-px bg-border', className)}
+      class={cn('-mx-1 h-px bg-border', className)}
       {...props}
     />
   );
@@ -158,17 +173,19 @@ function CommandSeparator({
 function CommandItem({
   className,
   disabled,
+  onSelect,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Item>) {
+}: CommandItemProps & { className?: string }) {
   return (
-    <CommandPrimitive.Item
+    <CommandPrimitiveItem
       data-slot="command-item"
       disabled={disabled}
-      className={cn(
+      class={cn(
         "relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
         { 'pointer-events-none opacity-50': disabled },
         className,
       )}
+      onSelect={onSelect}
       {...props}
     />
   );
@@ -177,7 +194,7 @@ function CommandItem({
 function CommandShortcut({
   className,
   ...props
-}: React.ComponentProps<'span'>) {
+}: JSX.IntrinsicElements['span']) {
   return (
     <span
       data-slot="command-shortcut"

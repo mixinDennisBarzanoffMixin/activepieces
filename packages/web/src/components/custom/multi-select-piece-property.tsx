@@ -1,6 +1,6 @@
 import deepEqual from 'deep-equal';
 import { t } from 'i18next';
-import { useState } from 'react';
+import { createSignal } from 'solid-js';
 
 import {
   MultiSelect,
@@ -32,7 +32,7 @@ type MultiSelectPiecePropertyProps = {
     value: unknown;
     label: string;
   }[];
-  itemExtraContent?: (index: number) => React.ReactNode;
+  itemExtraContent?: (index: number) => any;
 };
 
 const MultiSelectPieceProperty = ({
@@ -49,7 +49,7 @@ const MultiSelectPieceProperty = ({
   cachedOptions = [],
   itemExtraContent,
 }: MultiSelectPiecePropertyProps) => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = createSignal('');
   const filteredOptions = options
     .map((option, index) => ({
       ...option,
@@ -59,7 +59,7 @@ const MultiSelectPieceProperty = ({
       if (refreshOnSearch) {
         return true;
       }
-      return option.label?.toLowerCase()?.includes(searchTerm?.toLowerCase());
+      return option.label?.toLowerCase()?.includes(searchTerm()?.toLowerCase());
     });
 
   const selectedIndicies =
@@ -105,7 +105,7 @@ const MultiSelectPieceProperty = ({
       onOpenChange={(open) => {
         if (!open) {
           setSearchTerm('');
-          if (refreshOnSearch && searchTerm.length > 0) {
+          if (refreshOnSearch && searchTerm().length > 0) {
             refreshOnSearch('');
           }
         }
@@ -118,16 +118,24 @@ const MultiSelectPieceProperty = ({
         onRefresh={onRefresh}
         loading={loading}
       >
-        {selectedIndicies.length < 10 ? (
+        <Show
+          when={selectedIndicies.length < 10}
+          fallback={t('{number} items selected', {
+            number: selectedIndicies.length,
+          })}
+        >
           <MultiSelectValue placeholder={placeholder} />
-        ) : (
-          t('{number} items selected', { number: selectedIndicies.length })
-        )}
+        </Show>
       </MultiSelectTrigger>
       <MultiSelectContent>
         <MultiSelectSearch placeholder={placeholder} />
         <MultiSelectList>
-          {!loading && (
+          <Show
+            when={!loading}
+            fallback={
+              <MultiSelectItem disabled>{t('Loading...')}</MultiSelectItem>
+            }
+          >
             <>
               <div
                 onClick={(e) => {
@@ -136,32 +144,31 @@ const MultiSelectPieceProperty = ({
                   onChange(filteredOptions.map((opt) => opt.value));
                 }}
               >
-                {filteredOptions.length > 1 && (
+                <Show when={filteredOptions.length > 1}>
                   <MultiSelectItem>{t('Select All')}</MultiSelectItem>
-                )}
+                </Show>
               </div>
 
-              {filteredOptions.map((opt) => (
-                <MultiSelectItem
-                  key={opt.originalIndex}
-                  value={String(opt.originalIndex)}
-                >
-                  <div className="flex items-center justify-between  w-full min-w-0">
-                    <span className="truncate min-w-0">{opt.label}</span>
-                    <div className="mr-2">
-                      {itemExtraContent?.(opt.originalIndex)}
+              <For each={filteredOptions}>
+                {(opt) => (
+                  <MultiSelectItem
+                    key={opt.originalIndex}
+                    value={String(opt.originalIndex)}
+                  >
+                    <div className="flex items-center justify-between  w-full min-w-0">
+                      <span className="truncate min-w-0">{opt.label}</span>
+                      <div className="mr-2">
+                        {itemExtraContent?.(opt.originalIndex)}
+                      </div>
                     </div>
-                  </div>
-                </MultiSelectItem>
-              ))}
-              {filteredOptions.length === 0 && (
+                  </MultiSelectItem>
+                )}
+              </For>
+              <Show when={filteredOptions.length === 0}>
                 <CommandEmpty>{t('No results found.')}</CommandEmpty>
-              )}
+              </Show>
             </>
-          )}
-          {loading && (
-            <MultiSelectItem disabled>{t('Loading...')}</MultiSelectItem>
-          )}
+          </Show>
         </MultiSelectList>
       </MultiSelectContent>
     </MultiSelect>

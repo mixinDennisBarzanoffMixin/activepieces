@@ -1,5 +1,9 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import * as RippleHook from 'use-ripple-hook';
+import {
+  createContext,
+  useContext,
+  createSignal,
+  createEffect,
+} from 'solid-js';
 
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { colorsUtils } from '@/lib/color-utils';
@@ -7,7 +11,7 @@ import { colorsUtils } from '@/lib/color-utils';
 type Theme = 'dark' | 'light' | 'system';
 
 type ThemeProviderProps = {
-  children: React.ReactNode;
+  children: any;
   defaultTheme?: Theme;
   storageKey?: string;
 };
@@ -42,51 +46,51 @@ export function ThemeProvider({
   storageKey = 'ap-ui-theme',
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme,
+  const [theme, setTheme] = createSignal<Theme>(
+    (localStorage.getItem(storageKey) as Theme) || defaultTheme,
   );
-  const [forceLightMode, setForceLightMode] = useState(false);
+  const [forceLightMode, setForceLightMode] = createSignal(false);
   const branding = flagsHooks.useWebsiteBranding();
-  useEffect(() => {
-    if (!branding) {
-      console.warn('Website brand is not defined');
+  createEffect(() => {
+    const b = branding();
+    if (!b) {
       return;
     }
     const root = window.document.documentElement;
 
-    const resolvedTheme = forceLightMode
+    const resolvedTheme = forceLightMode()
       ? 'light'
-      : theme === 'system'
+      : theme() === 'system'
       ? 'light'
-      : theme;
+      : theme();
     root.classList.remove('light', 'dark');
-    document.title = branding.websiteName;
+    document.title = b.websiteName;
     document.documentElement.style.setProperty(
       '--primary',
-      colorsUtils.hexToHslString(branding.colors.primary.default),
+      colorsUtils.hexToHslString(b.colors.primary.default),
     );
 
-    setFavicon(branding.logos.favIconUrl);
+    setFavicon(b.logos.favIconUrl);
     switch (resolvedTheme) {
       case 'light': {
         document.documentElement.style.setProperty(
           '--primary-100',
-          colorsUtils.hexToHslString(branding.colors.primary.light),
+          colorsUtils.hexToHslString(b.colors.primary.light),
         );
         document.documentElement.style.setProperty(
           '--primary-300',
-          colorsUtils.hexToHslString(branding.colors.primary.dark),
+          colorsUtils.hexToHslString(b.colors.primary.dark),
         );
         break;
       }
       case 'dark': {
         document.documentElement.style.setProperty(
           '--primary-100',
-          colorsUtils.hexToHslString(branding.colors.primary.dark),
+          colorsUtils.hexToHslString(b.colors.primary.dark),
         );
         document.documentElement.style.setProperty(
           '--primary-300',
-          colorsUtils.hexToHslString(branding.colors.primary.light),
+          colorsUtils.hexToHslString(b.colors.primary.light),
         );
         break;
       }
@@ -95,16 +99,20 @@ export function ThemeProvider({
     }
 
     root.classList.add(resolvedTheme);
-  }, [theme, branding, forceLightMode]);
+  });
 
   const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    get theme() {
+      return theme();
     },
-    forceLightMode,
-    setForceLightMode,
+    setTheme: (t: Theme) => {
+      localStorage.setItem(storageKey, t);
+      setTheme(t);
+    },
+    get forceLightMode() {
+      return forceLightMode();
+    },
+    setForceLightMode: (v: boolean) => setForceLightMode(v),
   };
 
   return (
@@ -124,12 +132,28 @@ export const useTheme = () => {
 };
 
 export const useApRipple = () => {
-  const { theme } = useTheme();
-  return RippleHook.default({
-    color:
-      theme === 'dark'
-        ? 'rgba(233, 233, 233, 0.2)'
-        : 'rgba(155, 155, 155, 0.2)',
-    cancelAutomatically: true,
-  });
+  const ctx = useTheme();
+  let el: HTMLElement | undefined;
+  const ref = (node: HTMLElement) => {
+    el = node;
+    node.classList.add('relative', 'overflow-hidden');
+  };
+  const event = (e: MouseEvent) => {
+    if (!el) return;
+    const circle = document.createElement('span');
+    const diameter = Math.max(el.clientWidth, el.clientHeight);
+    const radius = diameter / 2;
+    const box = el.getBoundingClientRect();
+    circle.style.width = circle.style.height = `${diameter}px`;
+    circle.style.left = `${e.clientX - box.left - radius}px`;
+    circle.style.top = `${e.clientY - box.top - radius}px`;
+    circle.style.background =
+      ctx.theme === 'dark' ? 'rgba(233, 233, 233, 0.2)' : 'rgba(155, 155, 155, 0.2)';
+    circle.className = 'pointer-events-none absolute rounded-full animate-ping';
+    el.querySelector('[data-ripple-effect]')?.remove();
+    circle.dataset.rippleEffect = 'true';
+    el.appendChild(circle);
+    window.setTimeout(() => circle.remove(), 450);
+  };
+  return [ref, event] as const;
 };

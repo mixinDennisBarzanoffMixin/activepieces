@@ -4,6 +4,7 @@ import {
   summarizeApplicationEvent,
   isNil,
 } from '@activepieces/shared';
+import { A as Link } from '@solidjs/router';
 import { t } from 'i18next';
 import {
   CheckIcon,
@@ -19,9 +20,8 @@ import {
   FileText,
   User,
   Clock,
-} from 'lucide-react';
-import { Fragment, useState } from 'react';
-import { Link } from 'react-router-dom';
+} from 'lucide-solid';
+import { createSignal, For, Show } from 'solid-js';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -45,10 +45,9 @@ import { formatUtils } from '@/lib/format-utils';
 
 export default function AuditLogsPage() {
   const { platform } = platformHooks.useCurrentPlatform();
-  const [selectedEvent, setSelectedEvent] = useState<ApplicationEvent | null>(
-    null,
-  );
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] =
+    createSignal<ApplicationEvent | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = createSignal(false);
   const { data: projects } = projectCollectionUtils.useAll();
   const { data: users } = platformUserHooks.useUsers();
 
@@ -121,7 +120,7 @@ export default function AuditLogsPage() {
           emptyStateTextDescription={t(
             'Come back later when you have some activity to audit',
           )}
-          emptyStateIcon={<History className="size-14" />}
+          emptyStateIcon={<History class="size-14" />}
           filters={filters}
           columns={[
             {
@@ -138,11 +137,11 @@ export default function AuditLogsPage() {
                 const icon = convertToIcon(row.original);
                 return (
                   <div className="text-left flex items-center gap-2">
-                    {!isNil(icon?.icon) && (
+                    <Show when={!isNil(icon?.icon)}>
                       <span className="text-muted-foreground shrink-0">
                         {icon.icon}
                       </span>
-                    )}
+                    </Show>
                     {formatUtils.convertEnumToHumanReadable(
                       row.original.action,
                     )}
@@ -197,7 +196,7 @@ export default function AuditLogsPage() {
               cell: ({ row }) => {
                 return row.original.projectId &&
                   'project' in row.original.data ? (
-                  <Link to={`/projects/${row.original.projectId}`}>
+                  <Link href={`/projects/${row.original.projectId}`}>
                     <div className="text-left text-primary hover:underline">
                       {row.original.data.project?.displayName}
                     </div>
@@ -232,13 +231,13 @@ export default function AuditLogsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-8"
+                  class="size-8"
                   onClick={() => {
                     setSelectedEvent(row.original);
                     setIsSheetOpen(true);
                   }}
                 >
-                  <Eye className="size-4 text-muted-foreground" />
+                  <Eye class="size-4 text-muted-foreground" />
                 </Button>
               ),
             },
@@ -247,15 +246,15 @@ export default function AuditLogsPage() {
           isLoading={isLoading}
         />
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetContent className="w-[480px] sm:max-w-[480px] flex flex-col p-0">
-            <SheetHeader className="px-6 py-4 border-b shrink-0">
-              <SheetTitle className="text-base">
+          <SheetContent class="w-[480px] sm:max-w-[480px] flex flex-col p-0">
+            <SheetHeader class="px-6 py-4 border-b shrink-0">
+              <SheetTitle class="text-base">
                 {formatUtils.convertEnumToHumanReadable(
                   selectedEvent?.action ?? '',
                 )}
               </SheetTitle>
               <p className="text-sm text-muted-foreground mt-1">
-                {selectedEvent && convertToDetails(selectedEvent)}
+                <Show when={selectedEvent}>convertToDetails(selectedEvent</Show>
               </p>
             </SheetHeader>
             <div className="flex-1 overflow-y-auto">
@@ -264,7 +263,7 @@ export default function AuditLogsPage() {
                   {t('Who & When')}
                 </p>
                 <div className="grid grid-cols-[150px_1fr] gap-y-3 text-sm">
-                  {selectedEvent?.userEmail && (
+                  <Show when={selectedEvent?.userEmail}>
                     <>
                       <span className="text-muted-foreground">
                         {t('Performed By')}
@@ -273,8 +272,8 @@ export default function AuditLogsPage() {
                         {selectedEvent.userEmail}
                       </span>
                     </>
-                  )}
-                  {selectedEvent?.projectDisplayName && (
+                  </Show>
+                  <Show when={selectedEvent?.projectDisplayName}>
                     <>
                       <span className="text-muted-foreground">
                         {t('Project')}
@@ -283,46 +282,49 @@ export default function AuditLogsPage() {
                         {selectedEvent.projectDisplayName}
                       </span>
                     </>
-                  )}
-                  {selectedEvent?.ip && (
+                  </Show>
+                  <Show when={selectedEvent?.ip}>
                     <>
                       <span className="text-muted-foreground">
                         {t('IP Address')}
                       </span>
                       <span className="font-medium">{selectedEvent.ip}</span>
                     </>
-                  )}
+                  </Show>
                   <span className="text-muted-foreground">{t('Created')}</span>
                   <span className="font-medium">
-                    {selectedEvent && (
+                    <Show when={selectedEvent}>
                       <FormattedDate date={new Date(selectedEvent.created)} />
-                    )}
+                    </Show>
                   </span>
                 </div>
               </div>
-              {selectedEvent &&
-                extractEventDetails(selectedEvent).length > 0 && (
-                  <>
-                    <Separator />
-                    <div className="px-6 py-5 flex flex-col gap-4">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        {t('Event Details')}
-                      </p>
-                      <div className="grid grid-cols-[150px_1fr] gap-y-3 text-sm">
-                        {extractEventDetails(selectedEvent).map(
-                          ({ label, value }) => (
-                            <Fragment key={label}>
-                              <span className="text-muted-foreground">
-                                {label}
-                              </span>
-                              <span className="font-medium">{value}</span>
-                            </Fragment>
-                          ),
+              <Show
+                when={
+                  selectedEvent && extractEventDetails(selectedEvent).length > 0
+                }
+              >
+                <>
+                  <Separator />
+                  <div className="px-6 py-5 flex flex-col gap-4">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      {t('Event Details')}
+                    </p>
+                    <div className="grid grid-cols-[150px_1fr] gap-y-3 text-sm">
+                      <For each={extractEventDetails(selectedEvent)}>
+                        {({ label, value }) => (
+                          <Fragment key={label}>
+                            <span className="text-muted-foreground">
+                              {label}
+                            </span>
+                            <span className="font-medium">{value}</span>
+                          </Fragment>
                         )}
-                      </div>
+                      </For>
                     </div>
-                  </>
-                )}
+                  </div>
+                </>
+              </Show>
               <Separator />
               <div className="px-6 py-5 flex flex-col gap-4">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
@@ -345,7 +347,7 @@ function convertToIcon(event: ApplicationEvent) {
     case ApplicationEventName.FLOW_RUN_RESUMED:
     case ApplicationEventName.FLOW_RUN_RETRIED:
       return {
-        icon: <Logs className="size-4" />,
+        icon: <Logs class="size-4" />,
         tooltip: t('Flow Run'),
       };
     case ApplicationEventName.FLOW_CREATED:
@@ -355,27 +357,27 @@ function convertToIcon(event: ApplicationEvent) {
     case ApplicationEventName.FLOW_ACTIVATED:
     case ApplicationEventName.FLOW_DEACTIVATED:
       return {
-        icon: <Workflow className="size-4" />,
+        icon: <Workflow class="size-4" />,
         tooltip: t('Flow'),
       };
     case ApplicationEventName.FOLDER_CREATED:
     case ApplicationEventName.FOLDER_DELETED:
     case ApplicationEventName.FOLDER_UPDATED:
       return {
-        icon: <Folder className="size-4" />,
+        icon: <Folder class="size-4" />,
         tooltip: t('Folder'),
       };
     case ApplicationEventName.CONNECTION_DELETED:
     case ApplicationEventName.CONNECTION_UPSERTED:
       return {
-        icon: <Link2 className="size-4" />,
+        icon: <Link2 class="size-4" />,
         tooltip: t('Connection'),
       };
     case ApplicationEventName.VARIABLE_UPSERTED:
     case ApplicationEventName.VARIABLE_DELETED:
     case ApplicationEventName.VARIABLE_VALUE_REVEALED:
       return {
-        icon: <Link2 className="size-4" />,
+        icon: <Link2 class="size-4" />,
         tooltip: t('Variable'),
       };
     case ApplicationEventName.USER_SIGNED_UP:
@@ -383,12 +385,12 @@ function convertToIcon(event: ApplicationEvent) {
     case ApplicationEventName.USER_PASSWORD_RESET:
     case ApplicationEventName.USER_EMAIL_VERIFIED:
       return {
-        icon: <Users className="size-4" />,
+        icon: <Users class="size-4" />,
         tooltip: t('User'),
       };
     case ApplicationEventName.SIGNING_KEY_CREATED:
       return {
-        icon: <Key className="size-4" />,
+        icon: <Key class="size-4" />,
         tooltip: t('Signing Key'),
       };
     default:

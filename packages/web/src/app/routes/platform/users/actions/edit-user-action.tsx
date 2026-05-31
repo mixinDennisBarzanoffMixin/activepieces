@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Pencil } from 'lucide-react';
+import { Pencil } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -32,8 +32,8 @@ export const EditUserAction = ({ row, onUpdate }: EditUserActionProps) => {
             externalId={row.data.externalId ?? undefined}
             onUpdate={onUpdate}
           >
-            <Button variant="ghost" className="size-8 p-0">
-              <Pencil className="size-4" />
+            <Button variant="ghost" class="size-8 p-0">
+              <Pencil class="size-4" />
             </Button>
           </UpdateUserDialog>
         </TooltipTrigger>

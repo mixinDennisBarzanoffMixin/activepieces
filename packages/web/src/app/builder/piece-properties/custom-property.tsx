@@ -1,5 +1,5 @@
 import { CustomProperty as CustomPropertyType } from '@activepieces/pieces-framework';
-import { useEffect, useId } from 'react';
+import { createEffect } from 'solid-js';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { projectCollectionUtils } from '@/features/projects';
@@ -32,7 +32,7 @@ const CustomProperty = ({
   const { embedState } = useEmbedding();
   const id = useId();
   const containerId = CUSTOM_PROPERTY_CONTAINER_ID + '-' + id;
-  useEffect(() => {
+  createEffect(() => {
     try {
       const params = {
         containerId,
@@ -53,7 +53,7 @@ const CustomProperty = ({
     } catch (error) {
       console.error('Error executing custom code:', error);
     }
-  }, []);
+  });
   return <div id={containerId}></div>;
 };
 

@@ -1,5 +1,5 @@
 import { isNil } from '@activepieces/shared';
-import { Mail } from 'lucide-react';
+import { Mail } from 'lucide-solid';
 
 import { UserBadges } from '@/components/custom/user-badges';
 import {
@@ -36,7 +36,7 @@ export const ApAvatar = ({
 
   const content = (
     <div className="flex items-center gap-2">
-      {includeAvatar && (
+      <Show when={includeAvatar}>
         <div className="shrink-0">
           <UserAvatar
             name={`${user.firstName} ${user.lastName}`}
@@ -46,8 +46,8 @@ export const ApAvatar = ({
             disableTooltip={true}
           />
         </div>
-      )}
-      {includeName && (
+      </Show>
+      <Show when={includeName}>
         <span
           className={cn('text-xs truncate', {
             'text-xss opacity-75': size === 'xsmall',
@@ -55,7 +55,7 @@ export const ApAvatar = ({
         >
           {`${user.firstName} ${user.lastName}`.trim()}
         </span>
-      )}
+      </Show>
     </div>
   );
 
@@ -69,7 +69,7 @@ export const ApAvatar = ({
         <div className="cursor-pointer">{content}</div>
       </HoverCardTrigger>
       <HoverCardContent
-        className="w-80 rounded-md border bg-background p-4 shadow-md"
+        class="w-80 rounded-md border bg-background p-4 shadow-md"
         align="start"
       >
         <div className="flex items-center gap-3">
@@ -87,7 +87,7 @@ export const ApAvatar = ({
               </h4>
             </div>
             <div className="flex items-center gap-2 mt-1.5">
-              <Mail className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <Mail class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <span className="text-xs text-muted-foreground truncate">
                 {user.email}
               </span>

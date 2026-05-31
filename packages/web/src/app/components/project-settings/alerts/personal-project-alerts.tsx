@@ -51,7 +51,7 @@ export const PersonalProjectAlerts = () => {
   return (
     <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
       <div className="flex flex-col gap-0.5">
-        <Label htmlFor="personal-alerts-switch" className="text-sm">
+        <Label for="personal-alerts-switch" class="text-sm">
           {t('Email me when my flows fail')}
         </Label>
         <span className="text-xs text-muted-foreground">

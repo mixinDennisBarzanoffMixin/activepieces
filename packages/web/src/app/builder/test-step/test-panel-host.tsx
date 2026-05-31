@@ -1,5 +1,5 @@
 import { FlowActionType, FlowTriggerType } from '@activepieces/shared';
-import { useEffect, useRef } from 'react';
+import { Show, createEffect } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { cn } from '@/lib/utils';
@@ -40,24 +40,24 @@ const TestPanelHost = ({
   const [setTestPanelOpen, isTestPanelOpen] = useBuilderStateContext(
     (state) => [state.setTestPanelOpen, state.isTestPanelOpen],
   );
-  const drawerRef = useRef<HTMLDivElement>(null);
+  let drawerRef: HTMLDivElement | undefined;
 
-  useEffect(() => {
+  createEffect(() => {
     if (mode !== 'drawer' || !isTestPanelOpen) return;
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (drawerRef.current?.contains(target)) return;
+      if (drawerRef?.contains(target)) return;
       if (target.closest(DISMISS_IGNORE_SELECTOR)) return;
       setTestPanelOpen(false);
     };
     document.addEventListener('pointerdown', handlePointerDown);
     return () => document.removeEventListener('pointerdown', handlePointerDown);
-  }, [mode, isTestPanelOpen, setTestPanelOpen]);
+  });
 
   return (
     <div
-      ref={drawerRef}
+      ref={(el) => (drawerRef = el)}
       className={cn(
         'h-full w-full bg-background flex flex-col overflow-hidden border border-border',
         mode === 'drawer' && 'rounded-t-xl shadow-lg border-b-0 border-x-0',
@@ -65,7 +65,7 @@ const TestPanelHost = ({
       )}
       role={mode === 'drawer' ? 'dialog' : undefined}
     >
-      {showGenerateSampleData && projectId && (
+      <Show when={showGenerateSampleData && projectId()}>
         <TestStepContainer
           type={stepType}
           flowId={flowId}
@@ -73,8 +73,10 @@ const TestPanelHost = ({
           projectId={projectId}
           isSaving={saving}
         />
-      )}
-      {showStepInputOutFromRun && <FlowStepInputOutput />}
+      </Show>
+      <Show when={showStepInputOutFromRun()}>
+        <FlowStepInputOutput />
+      </Show>
     </div>
   );
 };

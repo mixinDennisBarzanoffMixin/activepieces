@@ -10,8 +10,8 @@ import {
   Import,
   FileJson,
   Lock,
-} from 'lucide-react';
-import { useState } from 'react';
+} from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { ActiveUsersWidget } from '@/components/custom/active-users-widget';
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
@@ -77,8 +77,9 @@ export function ApTableHeader({
     state.renameTable,
     state.deleteRecords,
   ]);
-  const [isImportTableDialogOpen, setIsImportTableDialogOpen] = useState(false);
-  const [isEditingTableName, setIsEditingTableName] = useState(false);
+  const [isImportTableDialogOpen, setIsImportTableDialogOpen] =
+    createSignal(false);
+  const [isEditingTableName, setIsEditingTableName] = createSignal(false);
   const { project } = projectCollectionUtils.useCurrentProject();
   const lockedByOtherUser = useTableState((state) => state.lockedByOtherUser);
   const userHasTableWritePermission = useAuthorization().checkAccess(
@@ -108,7 +109,7 @@ export function ApTableHeader({
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink onClick={onBack} className="cursor-pointer">
+          <BreadcrumbLink onClick={onBack} class="cursor-pointer">
             {getProjectName(project)}
           </BreadcrumbLink>
         </BreadcrumbItem>
@@ -117,7 +118,7 @@ export function ApTableHeader({
           <BreadcrumbPage>
             <div className="flex items-center gap-1">
               <EditableText
-                className="hover:cursor-text"
+                class="hover:cursor-text"
                 value={table?.name || t('Table Editor')}
                 readonly={!canEdit}
                 onValueChange={(newName) => {
@@ -131,19 +132,19 @@ export function ApTableHeader({
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="size-6 flex items-center justify-center"
+                    class="size-6 flex items-center justify-center"
                   >
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    <ChevronDown class="h-4 w-4 text-muted-foreground" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuContent align="start" class="w-48">
                   <DropdownMenuItem
                     onSelect={() => {
                       setTimeout(() => setIsEditingTableName(true), 300);
                     }}
                     disabled={!canEdit}
                   >
-                    <Edit2 className="mr-2 h-4 w-4" />
+                    <Edit2 class="mr-2 h-4 w-4" />
                     {t('Rename')}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -151,11 +152,11 @@ export function ApTableHeader({
                     onSelect={() => setIsImportTableDialogOpen(true)}
                     disabled={!canEdit}
                   >
-                    <Import className="mr-2 h-4 w-4" />
+                    <Import class="mr-2 h-4 w-4" />
                     {t('Import')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onSelect={exportTemplate}>
-                    <FileJson className="mr-2 h-4 w-4" />
+                    <FileJson class="mr-2 h-4 w-4" />
                     {t('Export Template')}
                   </DropdownMenuItem>
                   {showPushToGit && (
@@ -170,7 +171,7 @@ export function ApTableHeader({
                             onSelect={(e) => e.preventDefault()}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <UploadCloud className="mr-2 h-4 w-4" />
+                            <UploadCloud class="mr-2 h-4 w-4" />
                             {t('Push to Git')}
                           </DropdownMenuItem>
                         </PushToGitDialog>
@@ -180,7 +181,7 @@ export function ApTableHeader({
                   )}
                   {!showPushToGit && <DropdownMenuSeparator />}
                   <DropdownMenuItem onSelect={downloadCsv}>
-                    <Download className="mr-2 h-4 w-4" />
+                    <Download class="mr-2 h-4 w-4" />
                     {t('Download Data')}
                   </DropdownMenuItem>
                   <PermissionNeededTooltip hasPermission={canEdit}>
@@ -200,9 +201,9 @@ export function ApTableHeader({
                         disabled={!canEdit}
                         onSelect={(e) => e.preventDefault()}
                         onClick={(e) => e.stopPropagation()}
-                        className="text-destructive focus:text-destructive"
+                        class="text-destructive focus:text-destructive"
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
+                        <Trash2 class="mr-2 h-4 w-4" />
                         {t('Delete')}
                       </DropdownMenuItem>
                     </ConfirmationDeleteDialog>
@@ -220,13 +221,13 @@ export function ApTableHeader({
     <div className="flex items-center gap-2">
       {isSaving && (
         <div className="flex items-center gap-2 text-muted-foreground animate-in fade-in">
-          <RefreshCw className="h-4 w-4 animate-spin" />
+          <RefreshCw class="h-4 w-4 animate-spin" />
           <span className="text-sm">{t('Saving...')}</span>
         </div>
       )}
       {lockedBy && (
         <div className="flex items-center gap-1.5 border border-warning/50 rounded-md px-2.5 py-1 text-sm text-warning-700 dark:text-warning-300">
-          <Lock className="size-3.5 shrink-0" />
+          <Lock class="size-3.5 shrink-0" />
           <span>
             {t('{name} is editing', { name: lockedBy.userDisplayName })}
           </span>
@@ -254,10 +255,10 @@ export function ApTableHeader({
           >
             <Button
               variant="destructive"
-              className="flex gap-2 items-center"
+              class="flex gap-2 items-center"
               disabled={!canEdit}
             >
-              <Trash2 className="size-4" />
+              <Trash2 class="size-4" />
               {t('Delete Records')}{' '}
               {selectedRecords.size > 0 ? `(${selectedRecords.size})` : ''}
             </Button>
@@ -272,15 +273,15 @@ export function ApTableHeader({
       <PageHeader
         title={titleContent}
         rightContent={rightContent}
-        className="gap-1 justify-between px-4"
+        class="gap-1 justify-between px-4"
       />
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
-          className="flex gap-2 items-center"
+          class="flex gap-2 items-center"
           onClick={downloadCsv}
         >
-          <Download className="size-4" />
+          <Download class="size-4" />
           {t('Download Data')}
         </Button>
         <ImportTableDialog

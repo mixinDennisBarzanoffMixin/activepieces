@@ -1,6 +1,6 @@
 import { PlatformAnalyticsReport } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Clock } from 'lucide-react';
+import { Clock } from 'lucide-solid';
 
 import { formatUtils } from '@/lib/format-utils';
 

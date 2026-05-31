@@ -1,6 +1,6 @@
 import { FlowAction, FlowTrigger } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useState } from 'react';
+import { createSignal } from 'solid-js';
 
 import { SIDEBAR_ID } from '@/app/components/sidebar/dashboard';
 import { stepsHooks } from '@/features/pieces';
@@ -14,7 +14,7 @@ import { flowCanvasConsts } from '../../utils/consts';
 const StepDragOverlay = ({ step }: { step: FlowAction | FlowTrigger }) => {
   const { cursorPosition } = useCursorPosition();
   const [overlayPosition, setOverlayPosition] =
-    useState<typeof cursorPosition>(cursorPosition);
+    createSignal<typeof cursorPosition>(cursorPosition);
   const sidebar = document.getElementById(SIDEBAR_ID);
   const sidebarWidth = sidebar?.clientWidth ?? 0;
   const left = `${

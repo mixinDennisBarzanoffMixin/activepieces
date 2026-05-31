@@ -1,8 +1,8 @@
 import { ArraySubProps } from '@activepieces/pieces-framework';
 import { isNil } from '@activepieces/shared';
-import React, { useEffect, useRef } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { Show, createEffect } from 'solid-js';
 
+import { useFormContext } from '@/app/builder/builder-form';
 import { cn, GAP_SIZE_FOR_STEP_SETTINGS } from '@/lib/utils';
 
 import { useBuilderStateContext } from '../builder-hooks';
@@ -26,52 +26,55 @@ type ArrayPiecePropertyInInlineItemModeProps = BaseArrayPropertyProps &
       }
   );
 
-const ArrayPiecePropertyInInlineItemMode = React.memo(
-  (props: ArrayPiecePropertyInInlineItemModeProps) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const [
-      isFocusInsideListMapperModeInput,
-      setIsFocusInsideListMapperModeInput,
-    ] = useBuilderStateContext((state) => [
-      state.isFocusInsideListMapperModeInput,
-      state.setIsFocusInsideListMapperModeInput,
-    ]);
-    const { inputName, disabled } = props;
-    flowCanvasHooks.useIsFocusInsideListMapperModeInput({
-      containerRef,
-      setIsFocusInsideListMapperModeInput,
-      isFocusInsideListMapperModeInput,
-    });
-    useFixInlineArrayPropertyValue(inputName, props);
-    return (
-      <div className="w-full" ref={containerRef}>
-        {props.arrayProperties ? (
-          <div
-            className={cn(
-              'p-4 border rounded-md flex flex-col',
-              GAP_SIZE_FOR_STEP_SETTINGS,
-            )}
-          >
-            <GenericPropertiesForm
-              prefixValue={inputName}
-              props={props.arrayProperties}
-              useMentionTextInput={true}
-              propertySettings={null}
-              disabled={disabled}
-              dynamicPropsInfo={null}
-            />
-          </div>
-        ) : (
+const ArrayPiecePropertyInInlineItemMode = (
+  props: ArrayPiecePropertyInInlineItemModeProps,
+) => {
+  let containerRef: HTMLDivElement | undefined;
+  const [
+    isFocusInsideListMapperModeInput,
+    setIsFocusInsideListMapperModeInput,
+  ] = useBuilderStateContext((state) => [
+    state.isFocusInsideListMapperModeInput,
+    state.setIsFocusInsideListMapperModeInput,
+  ]);
+  const { inputName, disabled } = props;
+  flowCanvasHooks.useIsFocusInsideListMapperModeInput({
+    containerRef,
+    setIsFocusInsideListMapperModeInput,
+    isFocusInsideListMapperModeInput,
+  });
+  useFixInlineArrayPropertyValue(inputName, props);
+  return (
+    <div className="w-full" ref={(el) => (containerRef = el)}>
+      <Show
+        when={props.arrayProperties()}
+        fallback={
           <TextInputWithMentions
             disabled={disabled}
             onChange={props.onChange}
             initialValue={props.value ?? null}
           />
-        )}
-      </div>
-    );
-  },
-);
+        }
+      >
+        <div
+          className={cn(
+            'p-4 border rounded-md flex flex-col',
+            GAP_SIZE_FOR_STEP_SETTINGS,
+          )}
+        >
+          <GenericPropertiesForm
+            prefixValue={inputName}
+            props={props.arrayProperties}
+            useMentionTextInput={true}
+            propertySettings={null}
+            disabled={disabled}
+            dynamicPropsInfo={null}
+          />
+        </div>
+      </Show>
+    </div>
+  );
+};
 
 ArrayPiecePropertyInInlineItemMode.displayName =
   'ArrayPiecePropertyInInlineItemMode';
@@ -86,7 +89,7 @@ const useFixInlineArrayPropertyValue = (
   props: ArrayPiecePropertyInInlineItemModeProps,
 ) => {
   const form = useFormContext();
-  useEffect(() => {
+  createEffect(() => {
     const value = form.getValues(inputName);
     if (
       props.arrayProperties &&
@@ -94,5 +97,5 @@ const useFixInlineArrayPropertyValue = (
     ) {
       form.setValue(inputName, {}, { shouldValidate: true });
     }
-  }, []);
+  });
 };

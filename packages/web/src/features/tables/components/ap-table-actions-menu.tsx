@@ -7,9 +7,9 @@ import {
   UploadCloud,
   Import,
   FileJson,
-} from 'lucide-react';
-import React, { useState } from 'react';
-import { toast } from 'sonner';
+} from 'lucide-solid';
+import React, { createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
@@ -40,11 +40,12 @@ const ApTableActionsMenu = ({
   table: Table;
   refetch: (() => void) | null;
   onDelete?: () => void;
-  children: React.ReactNode;
+  children: any;
 }) => {
-  const [isImportTableDialogOpen, setIsImportTableDialogOpen] = useState(false);
-  const [isRenameOpen, setIsRenameOpen] = useState(false);
-  const [renameValue, setRenameValue] = useState(table.name);
+  const [isImportTableDialogOpen, setIsImportTableDialogOpen] =
+    createSignal(false);
+  const [isRenameOpen, setIsRenameOpen] = createSignal(false);
+  const [renameValue, setRenameValue] = createSignal(table.name);
 
   const { mutate: renameTableMutate, isPending: isRenamePending } =
     tableMutations.useRenameTable({
@@ -97,7 +98,7 @@ const ApTableActionsMenu = ({
               }}
             >
               <div className="flex items-center gap-2">
-                <PencilIcon className="h-4 w-4" />
+                <PencilIcon class="h-4 w-4" />
                 {t('Rename')}
               </div>
             </DropdownMenuItem>
@@ -106,12 +107,12 @@ const ApTableActionsMenu = ({
           <DropdownMenuSeparator />
 
           <DropdownMenuItem onSelect={() => setIsImportTableDialogOpen(true)}>
-            <Import className="mr-2 h-4 w-4" />
+            <Import class="mr-2 h-4 w-4" />
             {t('Import')}
           </DropdownMenuItem>
 
           <DropdownMenuItem onSelect={exportTemplate}>
-            <FileJson className="mr-2 h-4 w-4" />
+            <FileJson class="mr-2 h-4 w-4" />
             {t('Export Template')}
           </DropdownMenuItem>
 
@@ -127,7 +128,7 @@ const ApTableActionsMenu = ({
                     onSelect={(e) => e.preventDefault()}
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <UploadCloud className="mr-2 h-4 w-4" />
+                    <UploadCloud class="mr-2 h-4 w-4" />
                     {t('Push to Git')}
                   </DropdownMenuItem>
                 </PushToGitDialog>
@@ -138,7 +139,7 @@ const ApTableActionsMenu = ({
           {!showPushToGit && <DropdownMenuSeparator />}
 
           <DropdownMenuItem onSelect={downloadCsv}>
-            <Download className="mr-2 h-4 w-4" />
+            <Download class="mr-2 h-4 w-4" />
             {t('Download Data')}
           </DropdownMenuItem>
 
@@ -164,7 +165,7 @@ const ApTableActionsMenu = ({
                 }}
               >
                 <div className="flex items-center gap-2 text-destructive">
-                  <TrashIcon className="h-4 w-4" />
+                  <TrashIcon class="h-4 w-4" />
                   {t('Delete')}
                 </div>
               </ConfirmationDeleteDialog>

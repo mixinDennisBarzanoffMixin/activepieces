@@ -1,7 +1,7 @@
 import { t } from 'i18next';
-import { AlertTriangle, RefreshCw, Square } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Square } from 'lucide-solid';
 import { motion } from 'motion/react';
-import { useCallback, useEffect, useMemo } from 'react';
+import { createEffect, createMemo, For, Show } from 'solid-js';
 
 import {
   ChatContainerContent,
@@ -88,29 +88,25 @@ function ChatBoxContent({
 
   const quickReplies = useChatStoreContext((s) => s.quickReplies);
 
-  useEffect(() => {
+  createEffect(() => {
     if (initialConversationId) {
       void setConversationId(initialConversationId);
     }
-  }, [initialConversationId, setConversationId]);
+  });
 
-  const handleSend = useCallback(
-    async (text: string, files?: File[]) => {
-      if (!text.trim() && (!files || files.length === 0)) return;
-      await sendMessage(text.trim(), files);
-    },
-    [sendMessage],
-  );
+  const handleSend = async (text: string, files?: File[]) => {
+    if (!text.trim() && (!files || files.length === 0)) return;
+    await sendMessage(text.trim(), files);
+  };
 
-  const handleRetry = useCallback(() => {
+  const handleRetry = () => {
     const lastUser = messages.findLast((m) => m.role === 'user');
     if (lastUser) void sendMessage(getTextFromParts(lastUser.parts));
-  }, [messages, sendMessage]);
+  };
 
   const lastMessage = messages[messages.length - 1];
-  const lastAssistantMessage = useMemo(
-    () => messages.findLast((m) => m.role === 'assistant'),
-    [messages],
+  const lastAssistantMessage = createMemo(() =>
+    messages.findLast((m) => m.role === 'assistant'),
   );
 
   const showBanner = credits.creditsExhausted || credits.creditsWarning;
@@ -126,14 +122,14 @@ function ChatBoxContent({
           <SuggestionCards onSend={handleSend} />
           <div className="mt-3">
             <div className="overflow-hidden rounded-2xl border border-foreground/20 hover:border-foreground/40 focus-within:border-foreground/40 transition-colors">
-              {showBanner && (
+              <Show when={showBanner}>
                 <CreditsBanner
                   creditsExhausted={credits.creditsExhausted}
                   creditsWarning={credits.creditsWarning}
                   daysUntilReset={credits.daysUntilReset}
                   onDismiss={credits.dismissCreditsWarning}
                 />
-              )}
+              </Show>
               <ChatInput
                 isStreaming={isStreaming}
                 onSend={handleSend}
@@ -156,7 +152,7 @@ function ChatBoxContent({
   return (
     <div className="flex flex-col h-full flex-1 min-w-0">
       <ChatContainerRoot
-        className="flex-1 relative"
+        class="flex-1 relative"
         style={{
           maskImage:
             'linear-gradient(to bottom, black 0%, black calc(100% - 40px), transparent 100%)',
@@ -164,88 +160,92 @@ function ChatBoxContent({
             'linear-gradient(to bottom, black 0%, black calc(100% - 40px), transparent 100%)',
         }}
       >
-        <ChatContainerContent className="max-w-3xl mx-auto px-6 pt-8 pb-16 gap-0">
-          {isLoadingHistory && <MessageSkeletons />}
+        <ChatContainerContent class="max-w-3xl mx-auto px-6 pt-8 pb-16 gap-0">
+          <Show when={isLoadingHistory}>
+            <MessageSkeletons />
+          </Show>
 
-          {messages.map((msg, idx) => {
-            if (msg.role === 'user') {
+          <For each={messages}>
+            {(msg, idx) => {
+              if (msg.role === 'user') {
+                return (
+                  <UserMessage
+                    key={msg.id}
+                    message={msg}
+                    isLastMessage={idx === messages.length - 1}
+                  />
+                );
+              }
+
+              const isLastStreamingAssistant =
+                isStreaming && idx === messages.length - 1;
+
+              const isLastAssistant = idx === messages.length - 1;
+
               return (
-                <UserMessage
+                <AssistantMessage
                   key={msg.id}
                   message={msg}
-                  isLastMessage={idx === messages.length - 1}
+                  isStreaming={isLastStreamingAssistant}
+                  isLastMessage={isLastAssistant}
+                  onRetry={handleRetry}
+                  onSend={handleSend}
+                  lastAssistantMessage={
+                    isLastAssistant ? lastAssistantMessage : msg
+                  }
                 />
               );
-            }
+            }}
+          </For>
 
-            const isLastStreamingAssistant =
-              isStreaming && idx === messages.length - 1;
-
-            const isLastAssistant = idx === messages.length - 1;
-
-            return (
-              <AssistantMessage
-                key={msg.id}
-                message={msg}
-                isStreaming={isLastStreamingAssistant}
-                isLastMessage={isLastAssistant}
-                onRetry={handleRetry}
-                onSend={handleSend}
-                lastAssistantMessage={
-                  isLastAssistant ? lastAssistantMessage : msg
-                }
-              />
-            );
-          })}
-
-          {!isStreaming && !wasCancelled && quickReplies.length > 0 && (
+          <Show when={!isStreaming && !wasCancelled && quickReplies.length > 0}>
             <QuickReplies replies={quickReplies} onSend={handleSend} />
-          )}
+          </Show>
 
-          {wasCancelled && (
+          <Show when={wasCancelled}>
             <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground animate-in fade-in duration-200">
-              <Square className="h-3 w-3 fill-current" />
+              <Square class="h-3 w-3 fill-current" />
               <span>{t('Response stopped')}</span>
             </div>
-          )}
+          </Show>
 
-          {error && (
+          <Show when={error}>
             <motion.div
-              className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-destructive text-sm"
+              class="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-destructive text-sm"
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <AlertTriangle className="h-4 w-4 shrink-0" />
+              <AlertTriangle class="h-4 w-4 shrink-0" />
               <span className="flex-1">{error}</span>
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-destructive hover:text-destructive gap-1.5 shrink-0 h-7 px-2"
+                class="text-destructive hover:text-destructive gap-1.5 shrink-0 h-7 px-2"
                 onClick={handleRetry}
               >
-                <RefreshCw className="h-3 w-3" />
+                <RefreshCw class="h-3 w-3" />
                 {t('Retry')}
               </Button>
             </motion.div>
-          )}
+          </Show>
 
           <ChatContainerScrollAnchor />
         </ChatContainerContent>
-        <ScrollButton className="absolute bottom-4 right-1/2 translate-x-1/2" />
+        <ScrollButton class="absolute bottom-4 right-1/2 translate-x-1/2" />
       </ChatContainerRoot>
 
       <div className="px-6 pb-4">
         <div className="max-w-3xl mx-auto relative">
           <div className="overflow-hidden rounded-2xl border border-foreground/20 hover:border-foreground/40 focus-within:border-foreground/40 transition-colors">
-            {showBanner && (
+            <Show when={showBanner}>
               <CreditsBanner
                 creditsExhausted={credits.creditsExhausted}
                 creditsWarning={credits.creditsWarning}
                 daysUntilReset={credits.daysUntilReset}
                 onDismiss={credits.dismissCreditsWarning}
               />
-            )}
+            </Show>
             <ChatBottomBar
               isStreaming={isStreaming}
               onSend={handleSend}

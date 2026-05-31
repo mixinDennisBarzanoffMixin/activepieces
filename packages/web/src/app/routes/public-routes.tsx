@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import { Suspense, lazy } from 'solid-js';
 
 import { PageTitle } from '@/app/components/page-title';
 import { RouteLoadingBar } from '@/components/custom/route-loading-bar';
@@ -13,36 +13,36 @@ import { EmbeddedConnectionDialog } from './embed/embedded-connection-dialog';
 import { McpAuthorizePage } from './mcp-authorize';
 import { RedirectPage } from './redirect';
 
-const ChatPage = React.lazy(() =>
+const ChatPage = lazy(() =>
   import('./chat').then((m) => ({ default: m.ChatPage })),
 );
-const FormPage = React.lazy(() =>
+const FormPage = lazy(() =>
   import('./forms').then((m) => ({ default: m.FormPage })),
 );
-const TemplatesPage = React.lazy(() =>
+const TemplatesPage = lazy(() =>
   import('./templates').then((m) => ({ default: m.TemplatesPage })),
 );
 
-function SuspenseWrapper({ children }: { children: React.ReactNode }) {
+function SuspenseWrapper({ children }: { children: JSX.Element }) {
   return <Suspense fallback={<RouteLoadingBar />}>{children}</Suspense>;
 }
 
 export const publicRoutes = [
   {
     path: '/embed',
-    element: <EmbedPage></EmbedPage>,
+    component: () => <EmbedPage></EmbedPage>,
   },
   {
     path: '/embed/connections',
-    element: <EmbeddedConnectionDialog></EmbeddedConnectionDialog>,
+    component: () => <EmbeddedConnectionDialog></EmbeddedConnectionDialog>,
   },
   {
     path: '/authenticate',
-    element: <AuthenticatePage />,
+    component: () => <AuthenticatePage />,
   },
   {
     path: '/templates',
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <PageTitle title="Templates">
           <SuspenseWrapper>
@@ -54,11 +54,11 @@ export const publicRoutes = [
   },
   {
     path: '/templates/:templateId',
-    element: <TemplateDetailsWrapper />,
+    component: () => <TemplateDetailsWrapper />,
   },
   {
     path: '/forms/:flowId',
-    element: (
+    component: () => (
       <PageTitle title="Forms">
         <SuspenseWrapper>
           <FormPage />
@@ -68,7 +68,7 @@ export const publicRoutes = [
   },
   {
     path: '/chats/:flowId',
-    element: (
+    component: () => (
       <PageTitle title="Chats">
         <SuspenseWrapper>
           <ChatPage />
@@ -78,7 +78,7 @@ export const publicRoutes = [
   },
   {
     path: '/mcp-authorize',
-    element: (
+    component: () => (
       <PageTitle title="Authorize">
         <McpAuthorizePage />
       </PageTitle>
@@ -86,11 +86,11 @@ export const publicRoutes = [
   },
   {
     path: '/redirect',
-    element: <RedirectPage></RedirectPage>,
+    component: () => <RedirectPage></RedirectPage>,
   },
   {
     path: '/404',
-    element: (
+    component: () => (
       <PageTitle title="Not Found">
         <NotFoundPage />
       </PageTitle>

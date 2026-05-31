@@ -4,11 +4,11 @@ import {
   isNil,
   Template,
 } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { useLocation, useNavigate } from '@solidjs/router';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -26,7 +26,7 @@ const TemplateViewer = ({ template }: { template: Template }) => {
   const location = useLocation();
   const token = authenticationSession.getToken();
 
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending } = createMutation({
     mutationFn: async () => {
       const flows = await flowHooks.importFlowsFromTemplates({
         templates: [template],
@@ -63,26 +63,29 @@ const TemplateViewer = ({ template }: { template: Template }) => {
   };
 
   return (
-    <Card className="min-w-[500px] shadow-lg border-2">
+    <Card class="min-w-[500px] shadow-lg border-2">
       <>
-        <CardHeader className="space-y-3 pb-4">
+        <CardHeader class="space-y-3 pb-4">
           <h2 className="text-2xl font-bold tracking-tight">{template.name}</h2>
           <Separator />
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent class="space-y-6">
           <div className="space-y-4">
             <div className="flex flex-row w-full justify-between items-center py-2">
               <span className="text-sm font-medium text-muted-foreground">
                 {t('Steps in this flow')}
               </span>
-              {template.flows?.[0]?.trigger && (
+              <Show when={template.flows?.[0]?.trigger}>
+                (
                 <PieceIconList
                   trigger={template.flows[0].trigger}
                   maxNumberOfIconsToShow={5}
                 />
-              )}
+                )
+              </Show>
             </div>
-            {template.description && (
+            <Show when={template.description}>
+              (
               <>
                 <Separator />
                 <div className="space-y-2 py-2">
@@ -92,7 +95,8 @@ const TemplateViewer = ({ template }: { template: Template }) => {
                   </p>
                 </div>
               </>
-            )}
+              )
+            </Show>
           </div>
           <div className="flex items-center justify-end pt-2">
             <Button loading={isPending} onClick={handleUseTemplate} size="lg">
@@ -105,7 +109,7 @@ const TemplateViewer = ({ template }: { template: Template }) => {
   );
 };
 
-const ShareTemplate: React.FC<{ template: Template }> = ({ template }) => {
+const ShareTemplate = ({ template }) => {
   return (
     <div className="flex items-center justify-center min-h-screen w-full bg-gradient-to-br from-background to-muted/20 p-6">
       <div className="w-full max-w-2xl">

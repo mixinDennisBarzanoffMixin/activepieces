@@ -6,9 +6,9 @@ import {
   ChevronRight,
   Pencil,
   X,
-} from 'lucide-react';
+} from 'lucide-solid';
 import { motion, AnimatePresence } from 'motion/react';
-import { Fragment, useEffect, useId, useRef, useState } from 'react';
+import { createEffect, createSignal, For, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,46 +28,50 @@ export function MultiQuestionForm({
   onSubmit: (text: string) => void;
   onDismiss?: () => void;
 }) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const [focusedRow, setFocusedRow] = useState<number | 'custom' | null>(null);
-  const [hoveredRow, setHoveredRow] = useState<number | 'custom' | null>(null);
+  const [currentStep, setCurrentStep] = createSignal(0);
+  const [answers, setAnswers] = createSignal<Record<number, string>>({});
+  const [submitted, setSubmitted] = createSignal(false);
+  const [focusedRow, setFocusedRow] = createSignal<number | 'custom' | null>(
+    null,
+  );
+  const [hoveredRow, setHoveredRow] = createSignal<number | 'custom' | null>(
+    null,
+  );
   const fieldId = useId();
-  const firstOptionRef = useRef<HTMLButtonElement | null>(null);
-  const lastOptionRef = useRef<HTMLButtonElement | null>(null);
-  const customAnswerInputRef = useRef<HTMLInputElement>(null);
-  const textInputRef = useRef<HTMLInputElement>(null);
-  const lastFocusedElRef = useRef<HTMLElement | null>(null);
+  let firstOptionRef = null;
+  let lastOptionRef = null;
+  let customAnswerInputRef = null;
+  let textInputRef = null;
+  let lastFocusedElRef = null;
 
   const isLastStep = currentStep === questions.length - 1;
   const currentAnswer = answers[currentStep]?.trim() ?? '';
 
-  useEffect(() => {
-    const target = firstOptionRef.current ?? textInputRef.current;
-    if (target && lastFocusedElRef.current !== target) {
+  createEffect(() => {
+    const target = firstOptionRef ?? textInputRef;
+    if (target && lastFocusedElRef !== target) {
       target.focus({ preventScroll: true });
-      lastFocusedElRef.current = target;
+      lastFocusedElRef = target;
     }
-  }, [currentStep]);
+  });
 
   function setAnswer(value: string) {
     setAnswers((prev) => ({ ...prev, [currentStep]: value }));
   }
 
   function setFirstOptionEl(el: HTMLButtonElement | null) {
-    firstOptionRef.current = el;
-    if (el && lastFocusedElRef.current !== el) {
+    firstOptionRef = el;
+    if (el && lastFocusedElRef !== el) {
       el.focus({ preventScroll: true });
-      lastFocusedElRef.current = el;
+      lastFocusedElRef = el;
     }
   }
 
   function setTextInputEl(el: HTMLInputElement | null) {
-    textInputRef.current = el;
-    if (el && lastFocusedElRef.current !== el) {
+    textInputRef = el;
+    if (el && lastFocusedElRef !== el) {
       el.focus({ preventScroll: true });
-      lastFocusedElRef.current = el;
+      lastFocusedElRef = el;
     }
   }
 
@@ -123,11 +127,11 @@ export function MultiQuestionForm({
   if (submitted) {
     return (
       <motion.div
-        className="my-3 flex items-center gap-2 text-sm text-muted-foreground"
+        class="my-3 flex items-center gap-2 text-sm text-muted-foreground"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
-        <Check className="size-4 text-green-600 dark:text-green-400" />
+        <Check class="size-4 text-green-600 dark:text-green-400" />
         <span>{t('Answers submitted')}</span>
       </motion.div>
     );
@@ -156,7 +160,7 @@ export function MultiQuestionForm({
 
   return (
     <motion.div
-      className="rounded-2xl border border-border/60 bg-background p-5 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] dark:bg-neutral-900 dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)] backdrop-blur-sm transition-colors"
+      class="rounded-2xl border border-border/60 bg-background p-5 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)] dark:bg-neutral-900 dark:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.45)] backdrop-blur-sm transition-colors"
       initial={{ opacity: 0, y: 16, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -173,8 +177,8 @@ export function MultiQuestionForm({
               transition={{ duration: 0.2 }}
             >
               <Label
-                htmlFor={fieldId}
-                className="block text-base font-semibold leading-snug text-foreground"
+                for={fieldId}
+                class="block text-base font-semibold leading-snug text-foreground"
               >
                 {q.question}
               </Label>
@@ -186,12 +190,12 @@ export function MultiQuestionForm({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            class="h-7 w-7"
             onClick={() => setCurrentStep((s) => s - 1)}
             disabled={currentStep === 0}
             aria-label={t('Back')}
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeft class="size-4" />
           </Button>
           <span className="text-xs tabular-nums px-1">
             {t('{current} of {total}', {
@@ -202,21 +206,21 @@ export function MultiQuestionForm({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7"
+            class="h-7 w-7"
             onClick={() => handleNext()}
             disabled={!currentAnswer}
             aria-label={t('Next')}
           >
-            <ChevronRight className="size-4" />
+            <ChevronRight class="size-4" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="ms-1 h-7 w-7"
+            class="ms-1 h-7 w-7"
             onClick={onDismiss}
             aria-label={t('Close')}
           >
-            <X className="size-4" />
+            <X class="size-4" />
           </Button>
         </div>
       </div>
@@ -228,10 +232,10 @@ export function MultiQuestionForm({
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -12 }}
           transition={{ duration: 0.2 }}
-          className="mt-4"
+          class="mt-4"
         >
           <div>
-            {q.type === 'choice' && q.options && (
+            <Show when={q.type === 'choice' && q.options}>
               <div>
                 <RadioGroup
                   value={
@@ -240,95 +244,104 @@ export function MultiQuestionForm({
                       : ''
                   }
                   onValueChange={setAnswer}
-                  className="gap-0"
+                  class="gap-0"
                 >
-                  {q.options.map((option, i) => {
-                    const id = `${fieldId}-opt-${i}`;
-                    const selected = answers[currentStep] === option;
-                    const isFirst = i === 0;
-                    const isLast = i === q.options!.length - 1;
-                    return (
-                      <Fragment key={option}>
-                        {i > 0 && (
-                          <div className="px-3">
-                            <Separator
-                              className={cn(
-                                'bg-border/60 transition-opacity duration-150',
-                                isMidSepHidden(i) && 'opacity-0',
-                              )}
-                            />
-                          </div>
-                        )}
-                        <div
-                          onClick={() => {
-                            handleNext(option);
-                          }}
-                          onMouseEnter={() => setHoveredRow(i)}
-                          onMouseLeave={() =>
-                            setHoveredRow((prev) => (prev === i ? null : prev))
-                          }
-                          onFocus={() => setFocusedRow(i)}
-                          onBlur={() =>
-                            setFocusedRow((prev) => (prev === i ? null : prev))
-                          }
-                          className={cn(
-                            'group flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-normal cursor-pointer transition-colors hover:bg-muted',
-                            focusedRow === i && !selected && 'bg-muted',
-                            selected && 'bg-muted-foreground/15',
-                          )}
-                        >
-                          <RadioGroupItem
-                            ref={(el) => {
-                              if (isFirst) setFirstOptionEl(el);
-                              if (isLast) lastOptionRef.current = el;
+                  <For each={q.options}>
+                    {(option, i) => {
+                      const id = `${fieldId}-opt-${i}`;
+                      const selected = answers[currentStep] === option;
+                      const isFirst = i === 0;
+                      const isLast = i === q.options!.length - 1;
+                      return (
+                        <Fragment key={option}>
+                          <Show when={i > 0}>
+                            <div className="px-3">
+                              <Separator
+                                class={cn(
+                                  'bg-border/60 transition-opacity duration-150',
+                                  isMidSepHidden(i) && 'opacity-0',
+                                )}
+                              />
+                            </div>
+                          </Show>
+                          <div
+                            onClick={() => {
+                              handleNext(option);
                             }}
-                            id={id}
-                            value={option}
-                            className="peer sr-only"
-                            onKeyDownCapture={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleNext(option);
-                                return;
-                              }
-                              if (
-                                e.key === 'ArrowLeft' ||
-                                e.key === 'ArrowRight'
-                              ) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                return;
-                              }
-                              const wrapDown = e.key === 'ArrowDown' && isLast;
-                              const wrapUp = e.key === 'ArrowUp' && isFirst;
-                              if (wrapDown || wrapUp) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                setAnswer('');
-                                customAnswerInputRef.current?.focus();
-                              }
-                            }}
-                          />
-                          <span
-                            aria-hidden
+                            onMouseEnter={() => setHoveredRow(i)}
+                            onMouseLeave={() =>
+                              setHoveredRow((prev) =>
+                                prev === i ? null : prev,
+                              )
+                            }
+                            onFocus={() => setFocusedRow(i)}
+                            onBlur={() =>
+                              setFocusedRow((prev) =>
+                                prev === i ? null : prev,
+                              )
+                            }
                             className={cn(
-                              'flex size-8 shrink-0 items-center justify-center rounded-md bg-muted-foreground/10 text-xs font-medium text-muted-foreground transition-colors peer-focus:bg-foreground peer-focus:text-background',
-                              selected && 'bg-foreground text-background',
+                              'group flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-normal cursor-pointer transition-colors hover:bg-muted',
+                              focusedRow === i && !selected && 'bg-muted',
+                              selected && 'bg-muted-foreground/15',
                             )}
                           >
-                            {i + 1}
-                          </span>
-                          <span className="flex-1 leading-snug">{option}</span>
-                        </div>
-                      </Fragment>
-                    );
-                  })}
+                            <RadioGroupItem
+                              ref={(el) => {
+                                if (isFirst) setFirstOptionEl(el);
+                                if (isLast) lastOptionRef = el;
+                              }}
+                              id={id}
+                              value={option}
+                              class="peer sr-only"
+                              onKeyDownCapture={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleNext(option);
+                                  return;
+                                }
+                                if (
+                                  e.key === 'ArrowLeft' ||
+                                  e.key === 'ArrowRight'
+                                ) {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  return;
+                                }
+                                const wrapDown =
+                                  e.key === 'ArrowDown' && isLast;
+                                const wrapUp = e.key === 'ArrowUp' && isFirst;
+                                if (wrapDown || wrapUp) {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setAnswer('');
+                                  customAnswerInputRef?.focus();
+                                }
+                              }}
+                            />
+                            <span
+                              aria-hidden
+                              className={cn(
+                                'flex size-8 shrink-0 items-center justify-center rounded-md bg-muted-foreground/10 text-xs font-medium text-muted-foreground transition-colors peer-focus:bg-foreground peer-focus:text-background',
+                                selected && 'bg-foreground text-background',
+                              )}
+                            >
+                              {i + 1}
+                            </span>
+                            <span className="flex-1 leading-snug">
+                              {option}
+                            </span>
+                          </div>
+                        </Fragment>
+                      );
+                    }}
+                  </For>
                 </RadioGroup>
 
                 <div className="px-3">
                   <Separator
-                    className={cn(
+                    class={cn(
                       'bg-border/60 transition-opacity duration-150',
                       isBottomSepHidden && 'opacity-0',
                     )}
@@ -357,12 +370,12 @@ export function MultiQuestionForm({
                       isCustomTextActive && 'bg-foreground text-background',
                     )}
                   >
-                    <Pencil className="size-3.5" />
+                    <Pencil class="size-3.5" />
                   </span>
                   <Input
-                    ref={customAnswerInputRef}
+                    ref={(el) => (customAnswerInputRef = el)}
                     id={fieldId}
-                    className="h-auto flex-1 min-w-0 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 focus-visible:border-0 dark:bg-transparent"
+                    class="h-auto flex-1 min-w-0 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 focus-visible:border-0 dark:bg-transparent"
                     placeholder={t('Type your answer...')}
                     value={isCustomTextActive ? answers[currentStep] : ''}
                     onFocus={() => {
@@ -376,14 +389,14 @@ export function MultiQuestionForm({
                         e.preventDefault();
                         const last = q.options![q.options!.length - 1];
                         setAnswer(last);
-                        lastOptionRef.current?.focus();
+                        lastOptionRef?.focus();
                         return;
                       }
                       if (e.key === 'ArrowDown') {
                         e.preventDefault();
                         const first = q.options![0];
                         setAnswer(first);
-                        firstOptionRef.current?.focus();
+                        firstOptionRef?.focus();
                         return;
                       }
                       if (e.key === 'Enter' && currentAnswer) {
@@ -396,7 +409,7 @@ export function MultiQuestionForm({
                     type="button"
                     variant={isCustomTextActive ? 'default' : 'outline'}
                     size={isCustomTextActive ? 'icon' : 'sm'}
-                    className={cn(
+                    class={cn(
                       'h-7 shrink-0',
                       isCustomTextActive ? 'w-7' : 'px-2.5 text-sm',
                     )}
@@ -405,17 +418,15 @@ export function MultiQuestionForm({
                     }
                     aria-label={isCustomTextActive ? t('Send') : t('Skip')}
                   >
-                    {isCustomTextActive ? (
-                      <ArrowRight className="size-4" />
-                    ) : (
-                      t('Skip')
-                    )}
+                    <Show when={isCustomTextActive} fallback={t('Skip')}>
+                      <ArrowRight class="size-4" />
+                    </Show>
                   </Button>
                 </label>
               </div>
-            )}
+            </Show>
 
-            {q.type === 'text' && (
+            <Show when={q.type === 'text'}>
               <label
                 htmlFor={fieldId}
                 className={cn(
@@ -430,12 +441,12 @@ export function MultiQuestionForm({
                     currentAnswer && 'bg-foreground text-background',
                   )}
                 >
-                  <Pencil className="size-3.5" />
+                  <Pencil class="size-3.5" />
                 </span>
                 <Input
                   ref={setTextInputEl}
                   id={fieldId}
-                  className="h-auto flex-1 min-w-0 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 focus-visible:border-0 dark:bg-transparent"
+                  class="h-auto flex-1 min-w-0 border-0 bg-transparent p-0 text-sm shadow-none focus-visible:ring-0 focus-visible:border-0 dark:bg-transparent"
                   placeholder={q.placeholder}
                   value={answers[currentStep] ?? ''}
                   onChange={(e) => setAnswer(e.target.value)}
@@ -450,21 +461,19 @@ export function MultiQuestionForm({
                   type="button"
                   variant={currentAnswer ? 'default' : 'outline'}
                   size={currentAnswer ? 'icon' : 'sm'}
-                  className={cn(
+                  class={cn(
                     'h-7 shrink-0',
                     currentAnswer ? 'w-7' : 'px-2.5 text-sm',
                   )}
                   onClick={() => (currentAnswer ? handleNext() : handleSkip())}
                   aria-label={currentAnswer ? t('Send') : t('Skip')}
                 >
-                  {currentAnswer ? (
-                    <ArrowRight className="size-4" />
-                  ) : (
-                    t('Skip')
-                  )}
+                  <Show when={currentAnswer} fallback={t('Skip')}>
+                    <ArrowRight class="size-4" />
+                  </Show>
                 </Button>
               </label>
-            )}
+            </Show>
           </div>
         </motion.div>
       </AnimatePresence>

@@ -1,5 +1,5 @@
 import { PlatformAnalyticsReport } from '@activepieces/shared';
-import { useContext, useMemo } from 'react';
+import { useContext, createMemo } from 'solid-js';
 
 import { RefreshAnalyticsContext } from '@/features/platform-admin';
 
@@ -16,12 +16,12 @@ export function useFlowDetailsData(report?: PlatformAnalyticsReport) {
     RefreshAnalyticsContext,
   );
 
-  const runsMap = useMemo(() => {
+  const runsMap = createMemo(() => {
     if (!report) return new Map<string, number>();
     return new Map(report.runs.map((run) => [run.flowId, run.runs ?? 0]));
-  }, [report]);
+  });
 
-  const flowDetails = useMemo((): FlowDetailRow[] | undefined => {
+  const flowDetails = createMemo((): FlowDetailRow[] | undefined => {
     if (!report) return undefined;
     return report.flows.map((flow) => {
       const override = timeSavedPerRunOverrides[flow.flowId];
@@ -35,9 +35,9 @@ export function useFlowDetailsData(report?: PlatformAnalyticsReport) {
         minutesSaved: (timeSavedPerRun ?? 0) * runs,
       };
     });
-  }, [report, timeSavedPerRunOverrides, runsMap]);
+  });
 
-  const uniqueOwners = useMemo((): Owner[] => {
+  const uniqueOwners = createMemo((): Owner[] => {
     if (!flowDetails) return [];
     const ownerMap = new Map<string, Owner>();
     flowDetails.forEach((flow) => {
@@ -49,14 +49,14 @@ export function useFlowDetailsData(report?: PlatformAnalyticsReport) {
       }
     });
     return Array.from(ownerMap.values());
-  }, [flowDetails]);
+  });
 
-  const flowsMissingTimeSaved = useMemo(() => {
+  const flowsMissingTimeSaved = createMemo(() => {
     if (!flowDetails) return 0;
     return flowDetails.filter(
       (flow) => flow.timeSavedPerRun === null || flow.timeSavedPerRun === 0,
     ).length;
-  }, [flowDetails]);
+  });
 
   return {
     flowDetails,

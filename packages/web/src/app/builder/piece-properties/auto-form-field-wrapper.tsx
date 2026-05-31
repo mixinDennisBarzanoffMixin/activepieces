@@ -9,12 +9,11 @@ import {
   PropertyExecutionType,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Calendar, SquareFunction, File } from 'lucide-react';
-import React from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
-import { ControllerRenderProps, useFormContext } from 'react-hook-form';
-import { toast } from 'sonner';
+import { Calendar, SquareFunction, File } from 'lucide-solid';
+import { Show, ErrorBoundary } from 'solid-js';
+import { toast } from 'solid-sonner';
 
+import { BuilderField, useFormContext } from '@/app/builder/builder-form';
 import { ReadMoreDescription } from '@/components/custom/read-more-description';
 import { Button } from '@/components/ui/button';
 import { FormItem, FormLabel } from '@/components/ui/form';
@@ -54,24 +53,28 @@ function AutoFormFieldWrapper({
       property={property ?? null}
       dynamicInputModeToggled={dynamicInputModeToggled}
     >
-      <FormItem className="flex flex-col">
-        {(!hideLabel || placeBeforeLabelText) && (
-          <FormLabel className="flex items-center gap-1 h-7.5 max-h-7.5">
-            {placeBeforeLabelText && !dynamicInputModeToggled && children}
+      <FormItem class="flex flex-col">
+        <Show when={(!hideLabel || placeBeforeLabelText)()}>
+          <FormLabel class="flex items-center gap-1 h-7.5 max-h-7.5">
+            <Show when={placeBeforeLabelText && !dynamicInputModeToggled()}>
+              {children}
+            </Show>
             <div className="pt-1">
               <span>
-                {isAuthProperty ? t('Connection') : property.displayName}
+                <Show when={isAuthProperty()} fallback={property.displayName}>
+                  {t('Connection')}
+                </Show>
               </span>{' '}
-              {(isAuthProperty || property.required) && (
+              <Show when={(isAuthProperty || property.required)()}>
                 <RequiredFieldAsterisk />
-              )}
+              </Show>
             </div>
-            {property && !isAuthProperty && (
+            <Show when={property && !isAuthProperty()}>
               <PropertyTypeTooltip property={property} />
-            )}
+            </Show>
 
             <span className="grow"></span>
-            {allowDynamicValues && (
+            <Show when={allowDynamicValues()}>
               <DynamicValueToggle
                 propertyName={propertyName}
                 inputName={inputName}
@@ -79,18 +82,18 @@ function AutoFormFieldWrapper({
                 disabled={disabled}
                 isToggled={dynamicInputModeToggled ?? false}
               />
-            )}
+            </Show>
           </FormLabel>
-        )}
-        {dynamicInputModeToggled && !isArrayProperty && (
+        </Show>
+        <Show when={dynamicInputModeToggled && !isArrayProperty()}>
           <TextInputWithMentions
             disabled={disabled}
             onChange={field.onChange}
             initialValue={field.value ?? null}
           />
-        )}
+        </Show>
 
-        {isArrayProperty && dynamicInputModeToggled && (
+        <Show when={isArrayProperty && dynamicInputModeToggled()}>
           <ArrayPiecePropertyInInlineItemMode
             disabled={disabled}
             arrayProperties={property.properties}
@@ -98,16 +101,20 @@ function AutoFormFieldWrapper({
             onChange={field.onChange}
             value={field.value ?? null}
           />
-        )}
+        </Show>
 
-        {!placeBeforeLabelText && !dynamicInputModeToggled && (
+        <Show when={!placeBeforeLabelText && !dynamicInputModeToggled()}>
           <div>{children}</div>
-        )}
-        {!isForConnectionSelect &&
-          !Array.isArray(property) &&
-          property.description && (
-            <ReadMoreDescription text={property.description} />
-          )}
+        </Show>
+        <Show
+          when={
+            !isForConnectionSelect &&
+            !Array.isArray(property) &&
+            property.description()
+          }
+        >
+          <ReadMoreDescription text={property.description} />
+        </Show>
       </FormItem>
     </AutoFormFielWrapperErrorBoundary>
   );
@@ -243,7 +250,7 @@ function DynamicValueToggle({
             size="sm"
           >
             <SquareFunction
-              className={cn('size-5', {
+              class={cn('size-5', {
                 'text-foreground': isToggled,
                 'text-muted-foreground': !isToggled,
               })}
@@ -266,20 +273,25 @@ function PropertyTypeTooltip({ property }: { property: PieceProperty }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        {property.type === PropertyType.FILE ? (
-          <File className="w-4 h-4 stroke-foreground/55"></File>
-        ) : (
-          property.type === PropertyType.DATE_TIME && (
-            <Calendar className="w-4 h-4 stroke-foreground/55"></Calendar>
-          )
-        )}
+        <Show
+          when={property.type === PropertyType.FILE()}
+          fallback={
+            property.type === PropertyType.DATE_TIME && (
+              <Calendar class="w-4 h-4 stroke-foreground/55"></Calendar>
+            )
+          }
+        >
+          <File class="w-4 h-4 stroke-foreground/55"></File>
+        </Show>
       </TooltipTrigger>
       <TooltipContent side="bottom">
         <>
-          {property.type === PropertyType.FILE &&
-            t('File Input i.e a url or file passed from a previous step')}
-          {property.type === PropertyType.DATE_TIME &&
-            t('Date Input must comply with ISO 8601 format')}
+          <Show when={property.type === PropertyType.FILE()}>
+            {t('File Input i.e a url or file passed from a previous step')}
+          </Show>
+          <Show when={property.type === PropertyType.DATE_TIME()}>
+            {t('Date Input must comply with ISO 8601 format')}
+          </Show>
         </>
       </TooltipContent>
     </Tooltip>
@@ -309,21 +321,21 @@ type DynamicValueToggleProps = {
 };
 
 type AutoFormFieldWrapperProps = {
-  children: React.ReactNode;
+  children: any;
   hideLabel?: boolean;
   allowDynamicValues: boolean;
   propertyName: string;
   placeBeforeLabelText?: boolean;
   disabled: boolean;
-  field: ControllerRenderProps<any, string>;
+  field: BuilderField;
   inputName: string;
   dynamicInputModeToggled?: boolean;
   property: PieceProperty | PieceAuthProperty[];
   isForConnectionSelect?: boolean;
 };
 type AutoFormFielWrapperErrorBoundaryProps = {
-  children: React.ReactNode;
-  field: ControllerRenderProps;
+  children: any;
+  field: BuilderField;
   property: PieceProperty | PieceAuthProperty[] | null;
   dynamicInputModeToggled?: boolean;
 };

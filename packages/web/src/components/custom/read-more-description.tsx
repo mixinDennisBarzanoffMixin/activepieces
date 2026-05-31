@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { createSignal } from 'solid-js';
 
 interface ReadMoreProps {
   text: string;
@@ -9,26 +9,28 @@ export const ReadMoreDescription = ({
   text,
   amountOfCharacters = 70,
 }: ReadMoreProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = createSignal(false);
   const itCanOverflow = text.length > amountOfCharacters;
   const beginText = itCanOverflow ? text.slice(0, amountOfCharacters) : text;
   const endText = text.slice(amountOfCharacters);
 
   const handleKeyboard = (e: { code: string }) => {
     if (e.code === 'Space' || e.code === 'Enter') {
-      setIsExpanded(!isExpanded);
+      setIsExpanded(!isExpanded());
     }
   };
 
   return (
     <p className="text-muted-foreground text-xs whitespace-pre-wrap">
       {beginText}
-      {itCanOverflow && (
+      <Show when={itCanOverflow}>
         <>
-          {!isExpanded && <span>... </span>}
+          <Show when={!isExpanded()}>
+            <span>... </span>
+          </Show>
           <span
-            className={`${!isExpanded && 'hidden'} whitespace-pre-wrap`}
-            aria-hidden={!isExpanded}
+            className={`${!isExpanded() && 'hidden'} whitespace-pre-wrap`}
+            aria-hidden={!isExpanded()}
           >
             {endText}
           </span>
@@ -36,14 +38,14 @@ export const ReadMoreDescription = ({
             className="text-primary ml-2 cursor-pointer"
             role="button"
             tabIndex={0}
-            aria-expanded={isExpanded}
+            aria-expanded={isExpanded()}
             onKeyDown={handleKeyboard}
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={() => setIsExpanded(!isExpanded())}
           >
-            {isExpanded ? 'show less' : 'show more'}
+            {isExpanded() ? 'show less' : 'show more'}
           </span>
         </>
-      )}
+      </Show>
     </p>
   );
 };

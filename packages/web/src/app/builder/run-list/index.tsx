@@ -3,9 +3,9 @@ import {
   isFlowRunStateTerminal,
   SeekPage,
 } from '@activepieces/shared';
-import { InfiniteData, useInfiniteQuery } from '@tanstack/react-query';
+import { InfiniteData, createInfiniteQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import React, { useMemo } from 'react';
+import { Show, createMemo } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { RightSideBarType } from '@/app/builder/types';
@@ -25,7 +25,7 @@ import { FLOW_CARD_HEIGHT, FlowRunCard } from './flow-run-card';
 type RunsListItem =
   | { type: 'flowRun'; run: FlowRun }
   | { type: 'loadMoreButton'; id: 'loadMoreButton' };
-const RunsList = React.memo(() => {
+const RunsList = () => {
   const [flow, setRightSidebar, run] = useBuilderStateContext((state) => [
     state.flow,
     state.setRightSidebar,
@@ -41,11 +41,11 @@ const RunsList = React.memo(() => {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery<
+  } = createInfiniteQuery<
     SeekPage<FlowRun>,
     Error,
     InfiniteData<SeekPage<FlowRun>>
-  >({
+  >(() => ({
     queryKey: ['flow-runs', flow.id],
     getNextPageParam: (lastPage) => lastPage.next,
     initialPageParam: undefined,
@@ -69,9 +69,9 @@ const RunsList = React.memo(() => {
       );
       return runningRuns?.length ? 15 * 1000 : false;
     },
-  });
+  }));
 
-  const allViewedRuns: RunsListItem[] = useMemo(() => {
+  const allViewedRuns: RunsListItem[] = createMemo(() => {
     const allRuns = (runs?.pages.flatMap((page) => page.data) ?? []).map(
       (run) => ({ type: 'flowRun' as const, run }),
     );
@@ -82,25 +82,35 @@ const RunsList = React.memo(() => {
       ];
     }
     return allRuns;
-  }, [runs, hasNextPage]);
+  });
 
   return (
     <div className="h-full w-full flex flex-col">
       <SidebarHeader onClose={() => setRightSidebar(RightSideBarType.NONE)}>
         {t('Recent Runs')}
       </SidebarHeader>
-      {isLoading && <CardListItemSkeleton numberOfCards={10} />}
+      <Show when={isLoading()}>
+        <CardListItemSkeleton numberOfCards={10} />
+      </Show>
 
-      {isError && <div>{t('Error, please try again.')}</div>}
+      <Show when={isError()}>
+        <div>{t('Error, please try again.')}</div>
+      </Show>
 
-      {runs &&
-        runs.pages.flatMap((page) => page.data).length === 0 &&
-        !isLoading &&
-        !isRefetching && <CardListEmpty message={t('No runs found')} />}
+      <Show
+        when={
+          runs &&
+          runs.pages.flatMap((page) => page.data).length === 0 &&
+          !isLoading &&
+          !isRefetching()
+        }
+      >
+        <CardListEmpty message={t('No runs found')} />
+      </Show>
 
-      {runs && runs.pages.flatMap((page) => page.data).length > 0 && (
+      <Show when={runs && runs.pages.flatMap((page) => page.data).length > 0()}>
         <VirtualizedScrollArea
-          className="w-full grow max-w-[calc(100%-6px)]"
+          class="w-full grow max-w-[calc(100%-6px)]"
           items={allViewedRuns}
           estimateSize={() => FLOW_CARD_HEIGHT}
           getItemKey={(index) => index}
@@ -120,7 +130,7 @@ const RunsList = React.memo(() => {
             return (
               <div className="mx-5 h-full flex items-center ">
                 <Button
-                  className="w-full"
+                  class="w-full"
                   variant={'accent'}
                   onClick={() => fetchNextPage()}
                   loading={isFetchingNextPage}
@@ -131,10 +141,10 @@ const RunsList = React.memo(() => {
             );
           }}
         ></VirtualizedScrollArea>
-      )}
+      </Show>
     </div>
   );
-});
+};
 
 RunsList.displayName = 'RunsList';
 export { RunsList };

@@ -1,23 +1,18 @@
 import { isNil } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useEffect } from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { createEffect } from 'solid-js';
 
-import { FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { FormItem, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { RoleSelector } from '@/features/members/components/role-selector';
 import { projectRoleApi } from '@/features/platform-admin/api/project-role-api';
 import { platformHooks } from '@/hooks/platform-hooks';
 
-type ProjectRoleSelectProps = {
-  form: UseFormReturn<any>;
-};
-
-export const ProjectRoleSelect = ({ form }: ProjectRoleSelectProps) => {
+export const ProjectRoleSelect = ({ value, onChange }: ProjectRoleSelectProps) => {
   const { platform } = platformHooks.useCurrentPlatform();
 
-  const { data: rolesData, isPending: rolesLoading } = useQuery({
+  const { data: rolesData, isPending: rolesLoading } = createQuery({
     queryKey: ['project-roles'],
     queryFn: () => projectRoleApi.list(),
     enabled:
@@ -29,33 +24,31 @@ export const ProjectRoleSelect = ({ form }: ProjectRoleSelectProps) => {
   const defaultProjectRole =
     roles?.find((role) => role.name === 'Editor')?.name || roles?.[0]?.name;
 
-  useEffect(() => {
+  createEffect(() => {
     if (roles.length > 0 && defaultProjectRole) {
-      const current = form.getValues('projectRole');
-      if (!current) {
-        form.setValue('projectRole', defaultProjectRole);
+      if (!value) {
+        onChange(defaultProjectRole);
       }
     }
-  }, [roles.length, defaultProjectRole, form]);
+  }, [roles.length, defaultProjectRole, value, onChange]);
 
   return (
-    <FormField
-      control={form.control}
-      name="projectRole"
-      render={({ field }) => (
-        <FormItem className="grid gap-3">
-          <Label>{t('Project Role')}</Label>
-          <RoleSelector
-            type="project"
-            value={field.value || defaultProjectRole}
-            onValueChange={field.onChange}
-            roles={roles}
-            placeholder={t('Select a project role')}
-            isLoading={rolesLoading}
-          />
-          <FormMessage />
-        </FormItem>
-      )}
-    />
+    <FormItem class="grid gap-3">
+      <Label>{t('Project Role')}</Label>
+      <RoleSelector
+        type="project"
+        value={value || defaultProjectRole}
+        onValueChange={onChange}
+        roles={roles}
+        placeholder={t('Select a project role')}
+        isLoading={rolesLoading}
+      />
+      <FormMessage />
+    </FormItem>
   );
+};
+
+type ProjectRoleSelectProps = {
+  value: string | undefined;
+  onChange: (value: string) => void;
 };

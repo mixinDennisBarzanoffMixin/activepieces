@@ -6,7 +6,7 @@ import {
   PieceTrigger,
   PieceTriggerSettings,
 } from '@activepieces/shared';
-import React from 'react';
+import { For, Show } from 'solid-js';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { flagsHooks } from '@/hooks/flags-hooks';
@@ -29,7 +29,7 @@ const removeAuthFromProps = (
   return rest;
 };
 
-const PieceSettings = React.memo((props: PieceSettingsProps) => {
+const PieceSettings = (props: PieceSettingsProps) => {
   const {
     pieceModel,
     selectedStep,
@@ -80,30 +80,36 @@ const PieceSettings = React.memo((props: PieceSettingsProps) => {
     !isNil(selectedTrigger) && (selectedTrigger.requireAuth ?? true);
   return (
     <div className="flex flex-col gap-4 w-full">
-      {!pieceModel && (
+      <Show when={!pieceModel()}>
         <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div className="space-y-2" key={index}>
-              <div className="flex justify-between items-center">
-                <Skeleton className="w-40 h-4" />
-                <Skeleton className="size-8" />
+          <For each={Array.from({ length: 5 })}>
+            {(_, index) => (
+              <div className="space-y-2" key={index}>
+                <div className="flex justify-between items-center">
+                  <Skeleton class="w-40 h-4" />
+                  <Skeleton class="size-8" />
+                </div>
+                <Skeleton class="w-full h-12" />
               </div>
-              <Skeleton className="w-full h-12" />
-            </div>
-          ))}
+            )}
+          </For>
         </div>
-      )}
+      </Show>
 
-      {pieceModel && (
+      <Show when={pieceModel()}>
         <>
-          {pieceModel.auth && (showAuthForAction || showAuthForTrigger) && (
+          <Show
+            when={
+              pieceModel.auth && (showAuthForAction || showAuthForTrigger)()
+            }
+          >
             <ConnectionSelect
               isTrigger={!isNil(selectedTrigger)}
               piece={pieceModel}
               disabled={props.readonly}
             ></ConnectionSelect>
-          )}
-          {selectedAction && (
+          </Show>
+          <Show when={selectedAction()}>
             <GenericPropertiesForm
               key={selectedAction.name}
               prefixValue={'settings.input'}
@@ -121,8 +127,8 @@ const PieceSettings = React.memo((props: PieceSettingsProps) => {
                 updatePropertySettingsSchema,
               }}
             ></GenericPropertiesForm>
-          )}
-          {selectedTrigger && (
+          </Show>
+          <Show when={selectedTrigger()}>
             <GenericPropertiesForm
               dynamicPropsInfo={{
                 pieceName: pieceModel.name,
@@ -140,12 +146,12 @@ const PieceSettings = React.memo((props: PieceSettingsProps) => {
               disabled={props.readonly}
               markdownVariables={markdownVariables}
             ></GenericPropertiesForm>
-          )}
+          </Show>
         </>
-      )}
+      </Show>
     </div>
   );
-});
+};
 
 PieceSettings.displayName = 'PieceSettings';
 export { PieceSettings };

@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import {
   ActivepiecesClientAuthenticationFailed,
   ActivepiecesClientAuthenticationSuccess,
@@ -9,10 +9,8 @@ import {
   ActivepiecesVendorInit,
   ActivepiecesVendorRouteChanged,
 } from 'ee-embed-sdk';
-import React from 'react';
-import { flushSync } from 'react-dom';
-import { useTranslation } from 'react-i18next';
-import { useEffectOnce } from 'react-use';
+import i18n from 'i18next';
+import { createEffect } from 'solid-js';
 
 import { memoryRouter } from '@/app/guards';
 import { LoadingScreen } from '@/components/custom/loading-screen';
@@ -85,9 +83,9 @@ const handleClientNavigation = () => {
   });
 };
 
-const EmbedPage = React.memo(() => {
+const EmbedPage = () => {
   const { setEmbedState, embedState } = useEmbedding();
-  const { mutateAsync } = useMutation({
+  const { mutateAsync } = createMutation({
     mutationFn: async ({
       externalAccessToken,
       locale,
@@ -103,7 +101,6 @@ const EmbedPage = React.memo(() => {
     },
   });
   const { setTheme } = useTheme();
-  const { i18n } = useTranslation();
   const { checkAccess } = useAuthorization();
   const initState = (event: MessageEvent<ActivepiecesVendorInit>) => {
     if (
@@ -181,7 +178,7 @@ const EmbedPage = React.memo(() => {
     }
   };
 
-  useEffectOnce(() => {
+  createEffect(() => {
     const event: ActivepiecesClientInit = {
       type: ActivepiecesClientEventName.CLIENT_INIT,
       data: {},
@@ -193,7 +190,7 @@ const EmbedPage = React.memo(() => {
     };
   });
   return <LoadingScreen brightSpinner={embedState.useDarkBackground} />;
-});
+};
 
 EmbedPage.displayName = 'EmbedPage';
 export { EmbedPage };

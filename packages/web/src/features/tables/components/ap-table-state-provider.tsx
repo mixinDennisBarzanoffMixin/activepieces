@@ -1,10 +1,10 @@
 import { Field, Table, PopulatedRecord, isNil } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { FileX } from 'lucide-react';
-import { createContext, useContext, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { useStore } from 'zustand';
+import { FileX } from 'lucide-solid';
+import { createWithStore } from 'solid-zustand';
+import { createContext, useContext } from 'solid-js';
+import { A as Link, useParams } from '@solidjs/router';
 
 import { RouteLoadingBar } from '@/components/custom/route-loading-bar';
 import { buttonVariants } from '@/components/ui/button';
@@ -27,13 +27,13 @@ export const TableStateProviderWithTable = ({
   fields,
   records,
 }: {
-  children: React.ReactNode;
+  children: any;
   table: Table;
   fields: Field[];
   records: PopulatedRecord[];
 }) => {
-  const tableStoreRef = useRef<ApTableStore>(
-    createApTableStore(table, fields, records),
+  let tableStoreRef =
+    createApTableStore(table, fields, records,
   );
   return (
     <TableContext.Provider value={tableStoreRef.current}>
@@ -45,14 +45,14 @@ export const TableStateProviderWithTable = ({
 export function ApTableStateProvider({
   children,
 }: {
-  children: React.ReactNode;
+  children: any;
 }) {
   const tableId = useParams().tableId;
   const {
     data: table,
     isLoading: isTableLoading,
     error: tableError,
-  } = useQuery({
+  } = createQuery(() => ({
     queryKey: ['table', tableId],
     queryFn: () => {
       return tablesApi.getById(tableId!);
@@ -61,13 +61,13 @@ export function ApTableStateProvider({
     refetchOnMount: true,
     staleTime: 0,
     gcTime: 0,
-  });
+  }));
 
   const {
     data: fields,
     isLoading: isFieldsLoading,
     error: fieldsError,
-  } = useQuery({
+  } = createQuery(() => ({
     queryKey: ['fields', tableId],
     queryFn: () =>
       fieldsApi.list({
@@ -77,13 +77,13 @@ export function ApTableStateProvider({
     refetchOnMount: true,
     staleTime: 0,
     gcTime: 0,
-  });
+  }));
 
   const {
     data: records,
     isLoading: isRecordsLoading,
     error: recordsError,
-  } = useQuery({
+  } = createQuery(() => ({
     queryKey: ['records', tableId],
     queryFn: () =>
       recordsApi.list({
@@ -95,7 +95,7 @@ export function ApTableStateProvider({
     refetchOnMount: true,
     staleTime: 0,
     gcTime: 0,
-  });
+  }));
 
   if (isTableLoading || isFieldsLoading || isRecordsLoading) {
     return <RouteLoadingBar />;
@@ -110,14 +110,14 @@ export function ApTableStateProvider({
     isNil(records)
   ) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-        <div className="rounded-full bg-muted p-4">
-          <FileX className="h-10 w-10 text-muted-foreground" />
+      <div class="flex flex-col items-center justify-center h-full text-center space-y-4">
+        <div class="rounded-full bg-muted p-4">
+          <FileX class="h-10 w-10 text-muted-foreground" />
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold">{t('Table not available')}</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 class="text-lg font-semibold">{t('Table not available')}</h2>
+          <p class="text-sm text-muted-foreground">
             {t(
               'We couldn’t load this table. It may have been removed or is unavailable.',
             )}
@@ -125,7 +125,7 @@ export function ApTableStateProvider({
         </div>
 
         <Link
-          className={cn(buttonVariants({ variant: 'outline' }))}
+          class={cn(buttonVariants({ variant: 'outline' }))}
           to="/tables"
         >
           {t('Go to Tables')}
@@ -150,7 +150,7 @@ export function useTableState<T>(selector: (state: TableState) => T) {
   if (!tableStore) {
     throw new Error('Table context not found');
   }
-  return useStore(tableStore, selector);
+  return createWithStore(tableStore)(selector);
 }
 
 export function useOptionalTableStore() {

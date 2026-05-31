@@ -3,11 +3,9 @@ import {
   UpdateUserRequestBody,
   User,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useState } from 'react';
-import { Resolver, useForm } from 'react-hook-form';
+import { createSignal, Show } from 'solid-js';
 
 import { platformUserApi } from '@/api/platform-user-api';
 import { Button } from '@/components/ui/button';
@@ -19,10 +17,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RoleSelector } from '@/features/members';
+
+const roles = Object.values(PlatformRole);
+
+function isPlatformRole(value: string): value is PlatformRole {
+  return roles.some((role) => role === value);
+}
 
 export const UpdateUserDialog = ({
   children,
@@ -31,39 +34,53 @@ export const UpdateUserDialog = ({
   role,
   externalId,
 }: {
-  children: React.ReactNode;
+  children: JSX.Element;
   onUpdate: (role: PlatformRole) => void;
   userId: string;
   role: PlatformRole;
   externalId?: string;
 }) => {
-  const [open, setOpen] = useState(false);
-  const form = useForm<{ role: PlatformRole; externalId?: string }>({
-    defaultValues: {
-      role,
-      externalId,
+  const [open, setOpen] = createSignal(false);
+  const [selected, setSelected] = createSignal(role);
+  const [external, setExternal] = createSignal(externalId || '');
+  const [error, setError] = createSignal('');
+  const { mutate, isPending } = createMutation<
+    User,
+    Error,
+    UpdateUserRequestBody
+  >({
+    mutationKey: ['update-user'],
+    mutationFn: (request) => platformUserApi.update(userId, request),
+    onSuccess: (user) => {
+      onUpdate(user.platformRole);
+      setOpen(false);
     },
-    resolver: zodResolver(UpdateUserRequestBody) as unknown as Resolver<{
-      role: PlatformRole;
-      externalId?: string;
-    }>,
   });
-  const { mutate, isPending } = useMutation<User, Error, UpdateUserRequestBody>(
-    {
-      mutationKey: ['update-user'],
-      mutationFn: (request) => platformUserApi.update(userId, request),
-      onSuccess: (user) => {
-        onUpdate(user.platformRole);
-        setOpen(false);
-      },
-    },
-  );
+
+  const reset = () => {
+    setSelected(role);
+    setExternal(externalId || '');
+    setError('');
+  };
+
+  const submit = () => {
+    const parsed = UpdateUserRequestBody.safeParse({
+      platformRole: selected(),
+      externalId: external(),
+    });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message || t('Invalid form data'));
+      return;
+    }
+    setError('');
+    mutate(parsed.data);
+  };
 
   return (
     <Dialog
       open={open}
       onOpenChange={(open) => {
-        form.reset();
+        reset();
         setOpen(open);
       }}
     >
@@ -72,43 +89,33 @@ export const UpdateUserDialog = ({
         <DialogHeader>
           <DialogTitle>{t('Update User Role')}</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form className="grid space-y-4" onSubmit={(e) => e.preventDefault()}>
-            <FormField
-              name="role"
-              render={({ field }) => (
-                <FormItem className="grid space-y-2">
-                  <Label htmlFor="role">{t('Role')}</Label>
-                  <RoleSelector
-                    type="platform"
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
+        <form className="grid space-y-4" onSubmit={(e) => e.preventDefault()}>
+          <div class="grid space-y-2">
+            <Label for="role">{t('Role')}</Label>
+            <RoleSelector
+              type="platform"
+              value={selected()}
+              onValueChange={(value) => {
+                if (isPlatformRole(value)) {
+                  setSelected(value);
+                }
+              }}
             />
-            <FormField
-              name="externalId"
-              render={({ field }) => (
-                <FormItem className="grid space-y-2">
-                  <Label htmlFor="externalId">{t('External ID')}</Label>
-                  <Input
-                    id="externalId"
-                    value={field.value}
-                    onChange={field.onChange}
-                  ></Input>
-                </FormItem>
-              )}
+          </div>
+          <div class="grid space-y-2">
+            <Label for="externalId">{t('External ID')}</Label>
+            <Input
+              id="externalId"
+              value={external()}
+              onInput={(event) => setExternal(event.currentTarget.value)}
             />
-
-            {form?.formState?.errors?.root?.serverError && (
-              <FormMessage>
-                {form.formState.errors.root.serverError.message}
-              </FormMessage>
-            )}
-          </form>
-        </Form>
+          </div>
+          <Show when={error()}>
+            <p class="text-sm font-medium text-destructive wrap-break-word">
+              {error()}
+            </p>
+          </Show>
+        </form>
         <DialogFooter>
           <Button
             variant={'outline'}
@@ -126,10 +133,7 @@ export const UpdateUserDialog = ({
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              mutate({
-                platformRole: form.getValues().role,
-                externalId: form.getValues().externalId,
-              });
+              submit();
             }}
           >
             {t('Save')}

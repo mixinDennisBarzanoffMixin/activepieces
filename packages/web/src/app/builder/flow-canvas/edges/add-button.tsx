@@ -1,7 +1,7 @@
 import { isNil } from '@activepieces/shared';
-import { useDndMonitor, useDroppable, DragMoveEvent } from '@dnd-kit/core';
-import { Plus } from 'lucide-react';
-import React, { useState } from 'react';
+import { useDndMonitor, useDroppable, DragMoveEvent } from '@/lib/solid-dnd-kit';
+import { Plus } from 'lucide-solid';
+import { Show, createSignal } from 'solid-js';
 
 import { PieceSelector } from '@/app/builder/pieces-selector';
 import { cn } from '@/lib/utils';
@@ -11,8 +11,8 @@ import { flowCanvasConsts } from '../utils/consts';
 import { flowCanvasUtils } from '../utils/flow-canvas-utils';
 import { ApButtonData } from '../utils/types';
 
-const ApAddButton = React.memo((props: ApButtonData) => {
-  const [isStepInsideDropZone, setIsStepInsideDropzone] = useState(false);
+const ApAddButton = (props: ApButtonData) => {
+  const [isStepInsideDropZone, setIsStepInsideDropzone] = createSignal(false);
   const [activeDraggingStep, readonly, isPieceSelectorOpen] =
     useBuilderStateContext((state) => [
       state.activeDraggingStep,
@@ -41,7 +41,7 @@ const ApAddButton = React.memo((props: ApButtonData) => {
 
   return (
     <>
-      {showDropIndicator && !readonly && (
+      <Show when={showDropIndicator && !readonly()}>
         <div
           style={{
             width: flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.width + 'px',
@@ -62,8 +62,8 @@ const ApAddButton = React.memo((props: ApButtonData) => {
             ref={setNodeRef}
           ></div>
         </div>
-      )}
-      {!showDropIndicator && !readonly && (
+      </Show>
+      <Show when={!showDropIndicator && !readonly()}>
         <PieceSelector
           operation={flowCanvasUtils.createAddOperationFromAddButtonData(props)}
           id={props.edgeId}
@@ -97,17 +97,17 @@ const ApAddButton = React.memo((props: ApButtonData) => {
                 )}
                 data-testid="add-action-button"
               >
-                {!isPieceSelectorOpen && (
-                  <Plus className="w-3 h-3 stroke-[3px] text-foreground" />
-                )}
+                <Show when={!isPieceSelectorOpen()}>
+                  <Plus class="w-3 h-3 stroke-[3px] text-foreground" />
+                </Show>
               </div>
             </div>
           </div>
         </PieceSelector>
-      )}
+      </Show>
     </>
   );
-});
+};
 
 ApAddButton.displayName = 'ApAddButton';
 export { ApAddButton };

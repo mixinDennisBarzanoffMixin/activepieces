@@ -6,15 +6,11 @@ import {
   supportUrl,
   UncategorizedFolderId,
 } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import { useNavigate, useSearchParams } from '@solidjs/router';
+import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { ChevronDown, CircleHelp, HistoryIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import {
-  createSearchParams,
-  useNavigate,
-  useSearchParams,
-} from 'react-router-dom';
+import { ChevronDown, CircleHelp, HistoryIcon } from 'lucide-solid';
+import { Show, createEffect, createSignal } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { RightSideBarType } from '@/app/builder/types';
@@ -83,15 +79,15 @@ export const BuilderHeader = () => {
   const isLatestVersion =
     flowVersion.state === FlowVersionState.DRAFT ||
     flowVersion.id === flow.publishedVersionId;
-  const [isEditingFlowName, setIsEditingFlowName] = useState(false);
-  useEffect(() => {
+  const [isEditingFlowName, setIsEditingFlowName] = createSignal(false);
+  createEffect(() => {
     setIsEditingFlowName(queryParams.get(NEW_FLOW_QUERY_PARAM) === 'true');
-  }, []);
+  });
 
   const goToFlowsPage = () => {
     navigate({
       pathname: authenticationSession.appendProjectRoutePrefix('/automations'),
-      search: createSearchParams({
+      search: new URLSearchParams({
         folderId: folderData?.id ?? UncategorizedFolderId,
       }).toString(),
     });
@@ -101,20 +97,20 @@ export const BuilderHeader = () => {
     <div className="flex items-center gap-2 px-4">
       <Breadcrumb>
         <BreadcrumbList>
-          {!embedState.disableNavigationInBuilder && (
+          <Show when={!embedState.disableNavigationInBuilder()}>
             <>
               <BreadcrumbItem>
                 <BreadcrumbLink
                   onClick={goToFlowsPage}
-                  className="cursor-pointer text-sm"
+                  class="cursor-pointer text-sm"
                 >
                   {getProjectName(project)}
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
             </>
-          )}
-          {!embedState.hideFlowNameInBuilder && (
+          </Show>
+          <Show when={!embedState.hideFlowNameInBuilder()}>
             <BreadcrumbItem>
               <BreadcrumbPage>
                 <div
@@ -123,7 +119,7 @@ export const BuilderHeader = () => {
                   })}
                 >
                   <EditableText
-                    className="hover:cursor-text"
+                    class="hover:cursor-text"
                     value={flowVersion.displayName}
                     readonly={!isLatestVersion}
                     onValueChange={(value) => {
@@ -160,15 +156,15 @@ export const BuilderHeader = () => {
                   >
                     <Button
                       variant="ghost"
-                      className="size-6 flex items-center justify-center"
+                      class="size-6 flex items-center justify-center"
                     >
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      <ChevronDown class="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </FlowActionMenu>
                 </div>
               </BreadcrumbPage>
             </BreadcrumbItem>
-          )}
+          </Show>
         </BreadcrumbList>
       </Breadcrumb>
     </div>
@@ -176,27 +172,27 @@ export const BuilderHeader = () => {
 
   const rightContent = (
     <div className="flex items-center justify-center gap-4">
-      {showSupport && (
+      <Show when={showSupport()}>
         <Button
           variant="ghost"
-          className="gap-2 px-2"
+          class="gap-2 px-2"
           onClick={() => openNewWindow(supportUrl)}
         >
-          <CircleHelp className="w-4 h-4"></CircleHelp>
+          <CircleHelp class="w-4 h-4"></CircleHelp>
           {t('Support')}
         </Button>
-      )}
+      </Show>
       <ActiveUsersWidget resourceId={flow.id} />
-      {hasPermissionToReadRuns && (
+      <Show when={hasPermissionToReadRuns()}>
         <Button
           variant="ghost"
           onClick={() => setRightSidebar(RightSideBarType.RUNS)}
-          className="gap-2 px-2"
+          class="gap-2 px-2"
         >
-          <HistoryIcon className="w-4 h-4" />
+          <HistoryIcon class="w-4 h-4" />
           {t('Runs')}
         </Button>
-      )}
+      </Show>
 
       <BuilderFlowStatusSection></BuilderFlowStatusSection>
     </div>
@@ -214,7 +210,7 @@ export const BuilderHeader = () => {
         title={titleContent}
         rightContent={rightContent}
         leftContent={leftContent}
-        className="select-none border-b"
+        class="select-none border-b"
       />
     </div>
   );

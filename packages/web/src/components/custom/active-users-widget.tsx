@@ -39,16 +39,17 @@ export function ActiveUsersWidget({ resourceId }: ActiveUsersWidgetProps) {
 
   return (
     <div className="flex items-center gap-1">
-      {visibleUsers.map((user) => (
-        <div
-          key={user.userId}
-          className="rounded-full border-2"
-          style={{ borderColor: getBorderColor(user.userId) }}
-        >
-          <ApAvatar id={user.userId} size="small" />
-        </div>
-      ))}
-      {overflowCount > 0 && (
+      <For each={visibleUsers}>
+        {(user) => (
+          <div
+            className="rounded-full border-2"
+            style={{ borderColor: getBorderColor(user.userId) }}
+          >
+            <ApAvatar id={user.userId} size="small" />
+          </div>
+        )}
+      </For>
+      <Show when={overflowCount > 0}>
         <Tooltip>
           <TooltipTrigger asChild>
             <div
@@ -62,7 +63,7 @@ export function ActiveUsersWidget({ resourceId }: ActiveUsersWidgetProps) {
             {t('+{count} more', { count: overflowCount })}
           </TooltipContent>
         </Tooltip>
-      )}
+      </Show>
     </div>
   );
 }

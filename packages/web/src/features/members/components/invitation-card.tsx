@@ -1,6 +1,6 @@
 import { Permission, UserInvitation } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Trash } from 'lucide-react';
+import { Trash } from 'lucide-solid';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
@@ -52,9 +52,9 @@ export function InvitationCard({ invitation }: { invitation: UserInvitation }) {
             <Button
               disabled={!userHasPermissionToRemoveInvitation}
               variant="ghost"
-              className="size-8 p-0"
+              class="size-8 p-0"
             >
-              <Trash className="text-destructive size-4" />
+              <Trash class="text-destructive size-4" />
             </Button>
           </ConfirmationDeleteDialog>
         </PermissionNeededTooltip>

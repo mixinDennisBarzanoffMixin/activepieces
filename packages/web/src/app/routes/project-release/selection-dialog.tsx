@@ -1,5 +1,5 @@
 import { ProjectReleaseType } from '@activepieces/shared';
-import { ReactNode, useState } from 'react';
+import { createSignal, Show } from 'solid-js';
 
 import { Button, ButtonProps } from '@/components/ui/button';
 import { projectCollectionUtils } from '@/features/projects';
@@ -8,7 +8,7 @@ import { ProjectSelectionDialog } from './selection-release-dialog/project-dialo
 
 type SelectionButtonProps = ButtonProps & {
   ReleaseType: ProjectReleaseType;
-  children: ReactNode;
+  children: JSX.Element;
   onSuccess: () => void;
 };
 export function SelectionButton({
@@ -18,7 +18,7 @@ export function SelectionButton({
   ...props
 }: SelectionButtonProps) {
   const { project } = projectCollectionUtils.useCurrentProject();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
 
   return (
     <>
@@ -30,14 +30,14 @@ export function SelectionButton({
       >
         {children}
       </Button>
-      {ReleaseType === ProjectReleaseType.PROJECT && (
+      <Show when={ReleaseType === ProjectReleaseType.PROJECT}>
         <ProjectSelectionDialog
           open={open}
           setOpen={setOpen}
           projectId={project.id}
           onSuccess={onSuccess}
         />
-      )}
+      </Show>
     </>
   );
 }

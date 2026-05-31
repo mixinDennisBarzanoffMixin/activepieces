@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import { createContext, useContext, createSignal, JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -42,7 +42,9 @@ const defaultState: EmbeddingState = {
 
 const EmbeddingContext = createContext<{
   embedState: EmbeddingState;
-  setEmbedState: React.Dispatch<React.SetStateAction<EmbeddingState>>;
+  setEmbedState: (
+    value: EmbeddingState | ((prev: EmbeddingState) => EmbeddingState),
+  ) => void;
 }>({
   embedState: defaultState,
   setEmbedState: () => {},
@@ -51,20 +53,20 @@ const EmbeddingContext = createContext<{
 export const useEmbedding = () => useContext(EmbeddingContext);
 
 type EmbeddingProviderProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
 };
 
 const EmbeddingProvider = ({ children }: EmbeddingProviderProps) => {
-  const [state, setState] = useState<EmbeddingState>(defaultState);
+  const [state, setState] = createSignal<EmbeddingState>(defaultState);
 
   return (
     <EmbeddingContext.Provider
-      value={{ embedState: state, setEmbedState: setState }}
+      value={{ embedState: state(), setEmbedState: setState }}
     >
       <div
         className={cn({
           'bg-black/80 h-screen w-screen':
-            state.useDarkBackground && state.isEmbedded,
+            state().useDarkBackground && state().isEmbedded,
         })}
       >
         {children}

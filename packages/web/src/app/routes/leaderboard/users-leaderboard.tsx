@@ -1,8 +1,8 @@
 import { BADGES, UserWithBadges } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
-import { Trophy } from 'lucide-react';
-import { useMemo } from 'react';
+import { Trophy } from 'lucide-solid';
+import { createMemo, For } from 'solid-js';
 
 import { ApAvatar } from '@/components/custom/ap-avatar';
 import { DataTable, RowDataWithActions } from '@/components/custom/data-table';
@@ -45,28 +45,31 @@ const BadgesCell = ({
 
   return (
     <div className="flex items-center gap-0.5">
-      {badges.map((badge) => {
-        const badgeInfo = BADGES[badge.name as keyof typeof BADGES];
-        if (!badgeInfo) return null;
-        return (
-          <Tooltip key={badge.name}>
-            <TooltipTrigger asChild>
-              <img
-                src={badgeInfo.imageUrl}
-                alt={badgeInfo.title}
-                className={cn(
-                  'h-7 w-7 object-cover rounded-md transition-opacity',
-                  !isTopRank && 'opacity-30 group-hover/leaderrow:opacity-100',
-                )}
-              />
-            </TooltipTrigger>
-            <TooltipContent className="text-left">
-              <p className="font-semibold">{badgeInfo.title}</p>
-              <p className="text-xs">{badgeInfo.description}</p>
-            </TooltipContent>
-          </Tooltip>
-        );
-      })}
+      <For each={badges}>
+        {(badge) => {
+          const badgeInfo = BADGES[badge.name as keyof typeof BADGES];
+          if (!badgeInfo) return null;
+          return (
+            <Tooltip key={badge.name}>
+              <TooltipTrigger asChild>
+                <img
+                  src={badgeInfo.imageUrl}
+                  alt={badgeInfo.title}
+                  className={cn(
+                    'h-7 w-7 object-cover rounded-md transition-opacity',
+                    !isTopRank &&
+                      'opacity-30 group-hover/leaderrow:opacity-100',
+                  )}
+                />
+              </TooltipTrigger>
+              <TooltipContent class="text-left">
+                <p className="font-semibold">{badgeInfo.title}</p>
+                <p className="text-xs">{badgeInfo.description}</p>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }}
+      </For>
     </div>
   );
 };
@@ -146,7 +149,7 @@ const getRowClassName = (
 };
 
 export function UsersLeaderboard({ data, isLoading }: UsersLeaderboardProps) {
-  const columns = useMemo(() => createColumns(), []);
+  const columns = createMemo(() => createColumns());
 
   return (
     <DataTable
@@ -163,7 +166,7 @@ export function UsersLeaderboard({ data, isLoading }: UsersLeaderboardProps) {
       emptyStateTextDescription={t(
         'Once your team starts building flows, their achievements will shine here',
       )}
-      emptyStateIcon={<Trophy className="h-10 w-10 text-muted-foreground" />}
+      emptyStateIcon={<Trophy class="h-10 w-10 text-muted-foreground" />}
     />
   );
 }

@@ -1,8 +1,7 @@
 import { ApEdition, ApFlagId } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Check, Plus } from 'lucide-react';
-import * as React from 'react';
-import { useState } from 'react';
+import { Check, Plus } from 'lucide-solid';
+import { createSignal, createMemo, JSX } from 'solid-js';
 
 import {
   DropdownMenu,
@@ -21,14 +20,14 @@ import { platformHooks } from '../../../hooks/platform-hooks';
 
 import { CreatePlatformDialog } from './create-platform-dialog';
 
-export function PlatformSwitcher({ children }: { children: React.ReactNode }) {
+export function PlatformSwitcher({ children }: { children: JSX.Element }) {
   const { data: allProjects } = projectHooks.useProjectsForPlatforms();
   const { platform: currentPlatform } = platformHooks.useCurrentPlatform();
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = createSignal(false);
   const isCloud = edition === ApEdition.CLOUD;
 
-  const platforms = React.useMemo(() => {
+  const platforms = createMemo(() => {
     if (!allProjects) return [];
     return allProjects.map((platform) => ({
       name: platform.platformName,
@@ -42,7 +41,7 @@ export function PlatformSwitcher({ children }: { children: React.ReactNode }) {
 
   const dropdownContent = (
     <DropdownMenuContent
-      className="w-56 rounded-lg z-60"
+      class="w-56 rounded-lg z-60"
       align="start"
       side="right"
       sideOffset={4}
@@ -55,11 +54,11 @@ export function PlatformSwitcher({ children }: { children: React.ReactNode }) {
           <DropdownMenuItem
             key={platform.id}
             onClick={() => handlePlatformSwitch(platform.id)}
-            className="text-sm p-2 break-all cursor-pointer"
+            class="text-sm p-2 break-all cursor-pointer"
           >
             {platform.name}
             <Check
-              className={cn(
+              class={cn(
                 'ml-auto h-4 w-4 shrink-0',
                 currentPlatform?.id === platform.id
                   ? 'opacity-100'
@@ -74,9 +73,9 @@ export function PlatformSwitcher({ children }: { children: React.ReactNode }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={() => setCreateDialogOpen(true)}
-            className="text-sm p-2 cursor-pointer"
+            class="text-sm p-2 cursor-pointer"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus class="mr-2 h-4 w-4" />
             {t('Create Platform')}
           </DropdownMenuItem>
         </>
@@ -87,7 +86,7 @@ export function PlatformSwitcher({ children }: { children: React.ReactNode }) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild className="w-full">
+        <DropdownMenuTrigger asChild class="w-full">
           {children}
         </DropdownMenuTrigger>
         {dropdownContent}

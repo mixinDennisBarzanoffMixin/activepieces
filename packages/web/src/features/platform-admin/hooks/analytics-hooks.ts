@@ -4,8 +4,12 @@ import {
   ProjectLeaderboardItem,
   UserLeaderboardItem,
 } from '@activepieces/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useCallback, useContext } from 'react';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/solid-query';
+import { useContext } from 'solid-js';
 
 import { analyticsApi } from '@/features/platform-admin/api/analytics-api';
 import { platformHooks } from '@/hooks/platform-hooks';
@@ -27,11 +31,11 @@ export const platformAnalyticsHooks = {
     timePeriod: AnalyticsTimePeriod,
   ): { data: UserLeaderboardItem[] | null; isLoading: boolean } => {
     const { platform } = platformHooks.useCurrentPlatform();
-    const { data, isLoading } = useQuery({
+    const { data, isLoading } = createQuery(() => ({
       queryKey: userLeaderboardQueryKey(timePeriod),
       queryFn: () => analyticsApi.getUserLeaderboard(timePeriod),
       enabled: platform.plan.analyticsEnabled,
-    });
+    }));
 
     return {
       data: data ?? null,
@@ -43,11 +47,11 @@ export const platformAnalyticsHooks = {
     timePeriod: AnalyticsTimePeriod,
   ): { data: ProjectLeaderboardItem[] | null; isLoading: boolean } => {
     const { platform } = platformHooks.useCurrentPlatform();
-    const { data, isLoading } = useQuery({
+    const { data, isLoading } = createQuery(() => ({
       queryKey: projectLeaderboardQueryKey(timePeriod),
       queryFn: () => analyticsApi.getProjectLeaderboard(timePeriod),
       enabled: platform.plan.analyticsEnabled,
-    });
+    }));
 
     return {
       data: data ?? null,
@@ -60,11 +64,11 @@ export const platformAnalyticsHooks = {
     isLoading: boolean;
   } => {
     const { platform } = platformHooks.useCurrentPlatform();
-    const { data, isLoading } = useQuery({
+    const { data, isLoading } = createQuery(() => ({
       queryKey: analyticsQueryKey,
       queryFn: () => analyticsApi.get(),
       enabled: platform.plan.analyticsEnabled,
-    });
+    }));
     return { data, isLoading };
   },
 
@@ -72,8 +76,7 @@ export const platformAnalyticsHooks = {
     timePeriod: AnalyticsTimePeriod,
     projectId?: string,
   ): { isLoading: boolean; data: PlatformAnalyticsReport | null } => {
-    const selectFilteredByProject = useCallback(
-      (report: PlatformAnalyticsReport) => {
+    const selectFilteredByProject = (report: PlatformAnalyticsReport) => {
         if (!projectId) {
           return report;
         }
@@ -88,17 +91,15 @@ export const platformAnalyticsHooks = {
           flows,
           runs,
         };
-      },
-      [projectId],
-    );
+    };
 
     const { platform } = platformHooks.useCurrentPlatform();
-    const { data, isLoading } = useQuery({
+    const { data, isLoading } = createQuery(() => ({
       queryKey: [...analyticsQueryKey, timePeriod],
       queryFn: () => analyticsApi.get(timePeriod),
       select: selectFilteredByProject,
       enabled: platform.plan.analyticsEnabled,
-    });
+    }));
 
     return {
       isLoading,
@@ -109,7 +110,7 @@ export const platformAnalyticsHooks = {
   useRefreshAnalytics: () => {
     const queryClient = useQueryClient();
     const { setIsRefreshing } = useContext(RefreshAnalyticsContext);
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async () => {
         setIsRefreshing(true);
         await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -124,6 +125,6 @@ export const platformAnalyticsHooks = {
       },
       retry: true,
       retryDelay: 50000,
-    });
+    }));
   },
 };

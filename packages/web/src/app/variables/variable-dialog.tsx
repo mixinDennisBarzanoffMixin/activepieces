@@ -4,13 +4,11 @@ import {
   VARIABLE_NAME_REGEX,
   VariableWithoutSensitiveData,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { Eye, EyeOff } from 'lucide-solid';
+import { Show, createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -23,14 +21,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { internalErrorToast } from '@/components/ui/sonner';
 import { variablesApi } from '@/features/variables/api/variables';
@@ -64,7 +54,7 @@ export function VariableDialog(props: VariableDialogProps) {
   const { open, onOpenChange, existing, onSaved } = props;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent class="max-w-md">
         <VariableForm
           key={open ? `${existing?.id ?? 'new'}-open` : 'closed'}
           existing={existing}
@@ -80,19 +70,17 @@ function VariableForm(props: VariableFormProps) {
   const { existing, onOpenChange, onSaved } = props;
   const isEdit = !!existing;
   const projectId = authenticationSession.getProjectId();
-  const [valueVisible, setValueVisible] = useState(false);
-  const [showValueField, setShowValueField] = useState(!isEdit);
-
-  const form = useForm<FormValues>({
-    resolver: zodResolver(FormSchema),
-    mode: 'onChange',
-    defaultValues: {
-      name: existing?.name ?? '',
-      value: '',
-    },
+  const [valueVisible, setValueVisible] = createSignal(false);
+  const [showValueField, setShowValueField] = createSignal(!isEdit);
+  const [values, setValues] = createSignal<FormValues>({
+    name: existing?.name ?? '',
+    value: '',
   });
+  const [errors, setErrors] = createSignal<
+    Partial<Record<keyof FormValues, string>>
+  >({});
 
-  const { mutate: save, isPending } = useMutation({
+  const { mutate: save, isPending } = createMutation(() => ({
     mutationFn: async (values: FormValues) => {
       if (!projectId) {
         throw new Error('No project');
@@ -113,117 +101,134 @@ function VariableForm(props: VariableFormProps) {
     },
     onError: (error) => {
       if (api.isApError(error, ErrorCode.VALIDATION)) {
-        form.setError('name', {
-          type: 'manual',
-          message: 'Variable name already used',
-        });
+        setErrors({ name: 'Variable name already used' });
         return;
       }
       internalErrorToast();
     },
-  });
+  }));
 
-  const handleSubmit = (values: FormValues) => {
-    if (!values.value) {
-      form.setError('value', { type: 'manual', message: formErrors.required });
+  const setValue = (name: keyof FormValues, value: string) => {
+    setValues((current) => ({ ...current, [name]: value }));
+    setErrors((current) => ({ ...current, [name]: undefined }));
+  };
+
+  const handleSubmit = (event: SubmitEvent) => {
+    event.preventDefault();
+    const parsed = FormSchema.safeParse(values());
+    if (!parsed.success) {
+      setErrors(
+        parsed.error.issues.reduce<Partial<Record<keyof FormValues, string>>>(
+          (acc, issue) => {
+            const key = issue.path[0];
+            if (key === 'name' || key === 'value') {
+              return { ...acc, [key]: issue.message };
+            }
+            return acc;
+          },
+          {}
+        )
+      );
       return;
     }
-    save(values);
+    if (!parsed.data.value) {
+      setErrors({ value: formErrors.required });
+      return;
+    }
+    setErrors({});
+    save(parsed.data);
   };
 
   return (
-    <Form {...form}>
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={form.handleSubmit(handleSubmit)}
-      >
-        <DialogHeader>
-          <DialogTitle>
-            {isEdit ? t('Edit variable') : t('New variable')}
-          </DialogTitle>
-          <DialogDescription>
-            {t(
-              'Store an API key, token, or other value you can reuse across flow steps without exposing it.',
-            )}
-          </DialogDescription>
-        </DialogHeader>
-        <FormField
-          control={form.control}
+    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+      <DialogHeader>
+        <DialogTitle>
+          {isEdit ? t('Edit variable') : t('New variable')}
+        </DialogTitle>
+        <DialogDescription>
+          {t(
+            'Store an API key, token, or other value you can reuse across flow steps without exposing it.'
+          )}
+        </DialogDescription>
+      </DialogHeader>
+      <div class="space-y-2">
+        <label class="text-sm font-medium leading-none" for="variable-name">
+          {t('Name')}
+        </label>
+        <Input
+          id="variable-name"
           name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('Name')}</FormLabel>
-              <FormControl>
-                <Input {...field} disabled={isEdit} placeholder="STRIPE_PROD" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          disabled={isEdit}
+          placeholder="STRIPE_PROD"
+          value={values().name}
+          onInput={(event) => setValue('name', event.currentTarget.value)}
         />
-        {(!isEdit || showValueField) && (
-          <FormField
-            control={form.control}
-            name="value"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Value')}</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      {...field}
-                      type={valueVisible ? 'text' : 'password'}
-                      autoComplete="new-password"
-                      className="pr-10"
-                      placeholder={
-                        isEdit ? t('Enter new value') : t('Enter the value')
-                      }
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
-                      onClick={() => setValueVisible((v) => !v)}
-                      aria-label={
-                        valueVisible ? t('Hide value') : t('Show value')
-                      }
-                    >
-                      {valueVisible ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        )}
-        {isEdit && !showValueField && (
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full"
-            onClick={() => setShowValueField(true)}
-          >
-            {t('Rotate value')}
+        <Show when={errors().name}>
+          <p class="text-sm font-medium text-destructive wrap-break-word">
+            {t(errors().name ?? '')}
+          </p>
+        </Show>
+      </div>
+      <Show when={!isEdit || showValueField()}>
+        <div class="space-y-2">
+          <label class="text-sm font-medium leading-none" for="variable-value">
+            {t('Value')}
+          </label>
+          <div className="relative">
+            <Input
+              id="variable-value"
+              name="value"
+              type={valueVisible() ? 'text' : 'password'}
+              autoComplete="new-password"
+              class="pr-10"
+              value={values().value ?? ''}
+              onInput={(event) => setValue('value', event.currentTarget.value)}
+              placeholder={isEdit ? t('Enter new value') : t('Enter the value')}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+              onClick={() => setValueVisible((v) => !v)}
+              aria-label={valueVisible() ? t('Hide value') : t('Show value')}
+            >
+              {valueVisible() ? (
+                <EyeOff class="h-4 w-4" />
+              ) : (
+                <Eye class="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <Show when={errors().value}>
+            <p class="text-sm font-medium text-destructive wrap-break-word">
+              {t(errors().value ?? '')}
+            </p>
+          </Show>
+        </div>
+      </Show>
+      <Show when={isEdit && !showValueField()}>
+        <Button
+          type="button"
+          variant="outline"
+          class="w-full"
+          onClick={() => setShowValueField(true)}
+        >
+          {t('Rotate value')}
+        </Button>
+      </Show>
+      <DialogFooter>
+        <DialogClose asChild>
+          <Button type="button" variant="outline">
+            {isEdit && !showValueField() ? t('Close') : t('Cancel')}
           </Button>
-        )}
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button type="button" variant="outline">
-              {isEdit && !showValueField ? t('Close') : t('Cancel')}
-            </Button>
-          </DialogClose>
-          {(!isEdit || showValueField) && (
-            <Button type="submit" loading={isPending}>
-              {isEdit ? t('Save new value') : t('Create')}
-            </Button>
-          )}
-        </DialogFooter>
-      </form>
-    </Form>
+        </DialogClose>
+        <Show when={!isEdit || showValueField()}>
+          <Button type="submit" loading={isPending}>
+            {isEdit ? t('Save new value') : t('Create')}
+          </Button>
+        </Show>
+      </DialogFooter>
+    </form>
   );
 }

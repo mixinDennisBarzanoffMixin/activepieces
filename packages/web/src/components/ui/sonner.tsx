@@ -1,13 +1,11 @@
-'use client';
-
 import {
   CircleCheckIcon,
   InfoIcon,
   Loader2Icon,
   OctagonXIcon,
   TriangleAlertIcon,
-} from 'lucide-react';
-import { Toaster as Sonner, toast, type ToasterProps } from 'sonner';
+} from 'lucide-solid';
+import { Toaster as Sonner, toast, type ToasterProps } from 'solid-sonner';
 
 import { useTheme } from '@/components/providers/theme-provider';
 
@@ -37,7 +35,7 @@ function Toaster({ ...props }: ToasterProps) {
   return (
     <Sonner
       theme={theme as ToasterProps['theme']}
-      className="toaster group"
+      class="toaster group"
       expand={true}
       toastOptions={{
         classNames: {
@@ -55,11 +53,11 @@ function Toaster({ ...props }: ToasterProps) {
         descriptionClassName: 'text-inherit!',
       }}
       icons={{
-        success: <CircleCheckIcon className="size-4" />,
-        info: <InfoIcon className="size-4" />,
-        warning: <TriangleAlertIcon className="size-4" />,
-        error: <OctagonXIcon className="size-4" />,
-        loading: <Loader2Icon className="size-4 animate-spin" />,
+        success: <CircleCheckIcon class="size-4" />,
+        info: <InfoIcon class="size-4" />,
+        warning: <TriangleAlertIcon class="size-4" />,
+        error: <OctagonXIcon class="size-4" />,
+        loading: <Loader2Icon class="size-4 animate-spin" />,
       }}
       style={
         {
@@ -67,7 +65,7 @@ function Toaster({ ...props }: ToasterProps) {
           '--normal-bg': 'var(--background)',
           '--normal-border': 'var(--border)',
           '--border-radius': 'var(--radius)',
-        } as React.CSSProperties
+        } as JSX.CSSProperties
       }
       {...props}
     />

@@ -1,4 +1,5 @@
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position } from '../solid-flow-adapter';
+import { Show } from 'solid-js';
 
 import { flowCanvasConsts } from '../utils/consts';
 import { ApGraphEndNode } from '../utils/types';
@@ -8,7 +9,9 @@ const ApGraphEndWidgetNode = ({ data }: Omit<ApGraphEndNode, 'position'>) => {
   return (
     <>
       <div className="h-px w-px relative ">
-        {data.showWidget && <FlowEndWidget></FlowEndWidget>}
+        <Show when={data.showWidget()}>
+          <FlowEndWidget></FlowEndWidget>
+        </Show>
       </div>
 
       <Handle

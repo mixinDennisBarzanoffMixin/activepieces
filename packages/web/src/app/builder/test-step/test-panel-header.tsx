@@ -1,6 +1,7 @@
 import { StepOutputStatus } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { StepStatusIcon } from '@/features/flow-runs';
 import { formatUtils } from '@/lib/format-utils';
@@ -34,7 +35,7 @@ const TestPanelHeader = ({
       )}
     >
       <TestPanelStatusBadge status={status} viewMode={viewMode} />
-      {lastTestDate && status !== 'testing' && (
+      <Show when={lastTestDate && status !== 'testing'()}>
         <span
           className={cn(
             'text-xs truncate',
@@ -44,7 +45,7 @@ const TestPanelHeader = ({
         >
           {formatUtils.formatDateWithTime(new Date(lastTestDate), false)}
         </span>
-      )}
+      </Show>
     </div>
   );
 };
@@ -63,7 +64,9 @@ const TestPanelStatusBadge = ({
       <div className="flex items-center gap-1.5 text-sm">
         <StepStatusIcon status={StepOutputStatus.FAILED} size="4.5" />
         <span className="text-destructive-700 dark:text-destructive-200 font-medium">
-          {viewMode === 'run' ? t('Failed') : t('Test Failed')}
+          <Show when={viewMode === 'run'()} fallback={t('Test Failed')}>
+            {t('Failed')}
+          </Show>
         </span>
       </div>
     );
@@ -71,7 +74,7 @@ const TestPanelStatusBadge = ({
   if (status === 'testing') {
     return (
       <div className="flex items-center gap-1.5 text-sm text-primary">
-        <Loader2 className="size-4 animate-spin" />
+        <Loader2 class="size-4 animate-spin" />
         <span className="font-medium">{t('Testing...')}</span>
       </div>
     );
@@ -80,7 +83,9 @@ const TestPanelStatusBadge = ({
     <div className="flex items-center gap-1.5 text-sm">
       <StepStatusIcon status={StepOutputStatus.SUCCEEDED} size="4.5" />
       <span className="text-success-700 font-medium">
-        {viewMode === 'run' ? t('Success') : t('Tested Successfully')}
+        <Show when={viewMode === 'run'()} fallback={t('Tested Successfully')}>
+          {t('Success')}
+        </Show>
       </span>
     </div>
   );

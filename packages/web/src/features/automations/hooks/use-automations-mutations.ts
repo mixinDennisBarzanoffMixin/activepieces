@@ -5,11 +5,10 @@ import {
   isNil,
   UncategorizedFolderId,
 } from '@activepieces/shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { createMutation, useQueryClient } from "@tanstack/solid-query";
 import { t } from 'i18next';
-import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { useNavigate } from "@solidjs/router";
+import { toast } from 'solid-sonner';
 
 import { flowsApi } from '@/features/flows/api/flows-api';
 import { flowHooks } from '@/features/flows/hooks/flow-hooks';
@@ -41,7 +40,7 @@ export function useAutomationsMutations(deps: MutationDeps) {
   const projectId = authenticationSession.getProjectId() ?? '';
 
   const { mutate: startFromScratch, isPending: isCreateFlowPending } =
-    useMutation<PopulatedFlow, Error, string | undefined>({
+    createMutation<PopulatedFlow, Error, string | undefined>({
       mutationFn: async (folderId) => {
         return flowsApi.create({
           projectId,
@@ -58,7 +57,7 @@ export function useAutomationsMutations(deps: MutationDeps) {
     });
 
   const { mutate: createTableMutation, isPending: isCreatingTable } =
-    useMutation<Table, Error, { name: string; folderId?: string }>({
+    createMutation<Table, Error, { name: string; folderId?: string }>({
       mutationFn: async ({ name, folderId }) => {
         return tableHooks.createTableWithDefaults({
           name,
@@ -77,7 +76,7 @@ export function useAutomationsMutations(deps: MutationDeps) {
   const { mutate: exportFlows, isPending: isExportFlowsPending } =
     flowHooks.useExportFlows();
 
-  const { mutateAsync: deleteItem } = useMutation({
+  const { mutateAsync: deleteItem } = createMutation(() => ({
     mutationFn: async (item: TreeItem) => {
       switch (item.type) {
         case 'flow':
@@ -96,9 +95,9 @@ export function useAutomationsMutations(deps: MutationDeps) {
       toast.success(t('Item deleted successfully'));
     },
     onError: () => toast.error(t('Failed to delete item')),
-  });
+  }));
 
-  const { mutateAsync: bulkDelete, isPending: isDeleting } = useMutation({
+  const { mutateAsync: bulkDelete, isPending: isDeleting } = createMutation(() => ({
     mutationFn: async (selectedItems: SelectedItemsMap) => {
       const { flowIds, tableIds, folderIds } =
         getSelectedIdsByType(selectedItems);
@@ -114,9 +113,9 @@ export function useAutomationsMutations(deps: MutationDeps) {
       toast.success(t('Items deleted successfully'));
     },
     onError: () => toast.error(t('Failed to delete items')),
-  });
+  }));
 
-  const { mutateAsync: bulkMoveTo, isPending: isBulkMoving } = useMutation({
+  const { mutateAsync: bulkMoveTo, isPending: isBulkMoving } = createMutation(() => ({
     mutationFn: async ({
       selectedItems,
       targetFolderId,
@@ -150,9 +149,9 @@ export function useAutomationsMutations(deps: MutationDeps) {
       toast.success(t('Items moved successfully'));
     },
     onError: () => toast.error(t('Failed to move items')),
-  });
+  }));
 
-  const { mutateAsync: rename, isPending: isRenaming } = useMutation({
+  const { mutateAsync: rename, isPending: isRenaming } = createMutation(() => ({
     mutationFn: async ({
       item,
       newName,
@@ -176,9 +175,9 @@ export function useAutomationsMutations(deps: MutationDeps) {
       toast.success(t('Renamed successfully'));
     },
     onError: () => toast.error(t('Failed to rename item')),
-  });
+  }));
 
-  const { mutate: duplicateFlow, isPending: isDuplicating } = useMutation({
+  const { mutate: duplicateFlow, isPending: isDuplicating } = createMutation(() => ({
     mutationFn: async (flow: PopulatedFlow) => {
       const version = flow.version;
       const displayName = `${version.displayName} - Copy`;
@@ -203,9 +202,9 @@ export function useAutomationsMutations(deps: MutationDeps) {
       toast.success(t('Flow duplicated successfully'));
     },
     onError: () => toast.error(t('Failed to duplicate flow')),
-  });
+  }));
 
-  const { mutate: moveItem, isPending: isMovingItem } = useMutation({
+  const { mutate: moveItem, isPending: isMovingItem } = createMutation(() => ({
     mutationFn: async ({
       item,
       targetFolderId,
@@ -234,53 +233,47 @@ export function useAutomationsMutations(deps: MutationDeps) {
       toast.success(t('Moved successfully'));
     },
     onError: () => toast.error(t('Failed to move item')),
-  });
+  }));
 
-  const { mutate: exportTable, isPending: isExportingTable } = useMutation({
+  const { mutate: exportTable, isPending: isExportingTable } = createMutation(() => ({
     mutationFn: async (table: Table) => {
       const exported = await tablesApi.export(table.id);
       tablesUtils.exportTables([exported]);
     },
     onSuccess: () => toast.success(t('Table has been exported.')),
     onError: () => toast.error(t('Failed to export table')),
-  });
+  }));
 
-  const handleBulkExport = useCallback(
-    (selectedItems: SelectedItemsMap) => {
-      const { flowIds, tableIds } = getSelectedIdsByType(selectedItems);
+  const handleBulkExport = (selectedItems: SelectedItemsMap) => {
+    const { flowIds, tableIds } = getSelectedIdsByType(selectedItems);
 
-      if (flowIds.length > 0) {
-        const flowsToExport = deps.flows.filter((f) => flowIds.includes(f.id));
-        if (flowsToExport.length > 0) {
-          exportFlows(flowsToExport);
-        }
+    if (flowIds.length > 0) {
+      const flowsToExport = deps.flows.filter((f) => flowIds.includes(f.id));
+      if (flowsToExport.length > 0) {
+        exportFlows(flowsToExport);
       }
+    }
 
-      if (tableIds.length > 0) {
-        const tables = tableIds.map((id) => ({ id } as Table));
-        Promise.all(tables.map((tbl) => tablesApi.export(tbl.id)))
-          .then((exported) => {
-            tablesUtils.exportTables(exported);
-            toast.success(
-              exported.length === 1
-                ? t('Table has been exported.')
-                : t('Tables have been exported.'),
-            );
-          })
-          .catch(() => toast.error(t('Failed to export tables')));
-      }
+    if (tableIds.length > 0) {
+      const tables = tableIds.map((id) => ({ id } as Table));
+      Promise.all(tables.map((tbl) => tablesApi.export(tbl.id)))
+        .then((exported) => {
+          tablesUtils.exportTables(exported);
+          toast.success(
+            exported.length === 1
+              ? t('Table has been exported.')
+              : t('Tables have been exported.'),
+          );
+        })
+        .catch(() => toast.error(t('Failed to export tables')));
+    }
 
-      deps.clearSelection();
-    },
-    [deps, exportFlows],
-  );
+    deps.clearSelection();
+  };
 
-  const handleExportFlow = useCallback(
-    (flow: PopulatedFlow) => {
-      exportFlows([flow]);
-    },
-    [exportFlows],
-  );
+  const handleExportFlow = (flow: PopulatedFlow) => {
+    exportFlows([flow]);
+  };
 
   return {
     createFlow: (folderId?: string) => startFromScratch(folderId),

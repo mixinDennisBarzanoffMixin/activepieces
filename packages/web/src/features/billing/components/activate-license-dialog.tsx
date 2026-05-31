@@ -1,7 +1,6 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useQueryClient } from '@tanstack/react-query';
+import { createForm, reset, zodForm } from '@modular-forms/solid';
 import { t } from 'i18next';
-import { useForm } from 'react-hook-form';
+import { createMemo } from 'solid-js';
 import { z } from 'zod';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
@@ -15,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
+import { queryClient } from '@/app/query-client';
 import { Input } from '@/components/ui/input';
 import { platformHooks } from '@/hooks/platform-hooks';
 
@@ -34,29 +33,27 @@ export const ActivateLicenseDialog = ({
   isOpen,
   onOpenChange,
 }: ActivateLicenseDialogProps) => {
-  const queryClinet = useQueryClient();
-
-  const form = useForm<LicenseKeySchema>({
-    resolver: zodResolver(LicenseKeySchema),
-    defaultValues: {
+  const [form, { Form, Field }] = createForm<LicenseKeySchema>({
+    initialValues: {
       tempLicenseKey: '',
     },
-    mode: 'onChange',
+    validate: zodForm(LicenseKeySchema),
   });
+  const key = createMemo(
+    () => form.internal.fields.tempLicenseKey?.value.get() ?? '',
+  );
 
   const { mutate: activateLicenseKey, isPending } =
-    platformHooks.useUpdateLisenceKey(queryClinet);
+    platformHooks.useUpdateLisenceKey(queryClient);
 
   const handleSubmit = (data: LicenseKeySchema) => {
-    form.clearErrors();
     activateLicenseKey(data.tempLicenseKey, {
       onSuccess: () => handleClose(),
     });
   };
 
   const handleClose = () => {
-    form.reset();
-    form.clearErrors();
+    reset(form);
     onOpenChange(false);
   };
 
@@ -70,36 +67,34 @@ export const ActivateLicenseDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form
-            className="space-y-4"
-            onSubmit={form.handleSubmit(handleSubmit)}
-          >
-            <FormField
-              control={form.control}
+        <Form
+          class="space-y-4"
+          onSubmit={handleSubmit}
+        >
+            <Field
               name="tempLicenseKey"
-              render={({ field }) => (
-                <FormItem>
+            >
+              {(field, props) => (
+                <div class="space-y-1">
                   <Input
-                    {...field}
+                    {...props}
+                    value={field.value ?? ''}
                     required
                     type="text"
                     placeholder={t('Enter your license key')}
                     disabled={isPending}
                   />
-                  <FormMessage />
-                </FormItem>
+                  {field.error && (
+                    <p class="text-sm font-medium text-destructive wrap-break-word">
+                      {t(field.error)}
+                    </p>
+                  )}
+                </div>
               )}
-            />
-            {form?.formState?.errors?.root?.serverError && (
-              <FormMessage>
-                {form.formState.errors.root.serverError.message}
-              </FormMessage>
-            )}
-          </form>
+            </Field>
         </Form>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter class="gap-2">
           <DialogClose asChild>
             <Button
               variant="outline"
@@ -110,11 +105,11 @@ export const ActivateLicenseDialog = ({
             </Button>
           </DialogClose>
           <Button
-            onClick={form.handleSubmit(handleSubmit)}
-            disabled={isPending || !form.watch('tempLicenseKey')?.trim()}
-            className="min-w-20"
+            onClick={() => form.element?.requestSubmit()}
+            disabled={isPending || !key().trim()}
+            class="min-w-20"
           >
-            {isPending ? <LoadingSpinner className="size-4" /> : t('Activate')}
+            {isPending ? <LoadingSpinner class="size-4" /> : t('Activate')}
           </Button>
         </DialogFooter>
       </DialogContent>

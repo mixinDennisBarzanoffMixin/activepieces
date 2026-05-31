@@ -1,5 +1,5 @@
-import { Timer } from 'lucide-react';
-import { useMemo } from 'react';
+import { Timer } from 'lucide-solid';
+import { Show, createMemo } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { TextWithTooltip } from '@/components/custom/text-with-tooltip';
@@ -9,7 +9,7 @@ import { formatUtils } from '@/lib/format-utils';
 const StepNodeRunDuration = ({ duration }: { duration: number }) => {
   return (
     <div className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
-      <Timer className="size-3" />
+      <Timer class="size-3" />
       <span>{formatUtils.formatDuration(duration, true)}</span>
     </div>
   );
@@ -27,11 +27,11 @@ const StepNodeRunDurationAndPieceName = ({
     state.loopsIndexes,
     state.flowVersion,
   ]);
-  const selectedStepOutput = useMemo(() => {
+  const selectedStepOutput = createMemo(() => {
     return run && run.steps
       ? flowRunUtils.extractStepOutput(stepName, loopIndexes, run.steps)
       : null;
-  }, [run, stepName, loopIndexes, flowVersion.trigger]);
+  });
 
   return (
     <div className="flex justify-between mt-0.5 w-full items-center">
@@ -43,9 +43,9 @@ const StepNodeRunDurationAndPieceName = ({
           {pieceDisplayName}
         </div>
       </TextWithTooltip>
-      {selectedStepOutput && (
+      <Show when={selectedStepOutput()}>
         <StepNodeRunDuration duration={selectedStepOutput?.duration ?? 0} />
-      )}
+      </Show>
     </div>
   );
 };

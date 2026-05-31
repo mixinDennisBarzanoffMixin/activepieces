@@ -1,5 +1,5 @@
+import { createEffect, createSignal } from 'solid-js';
 import { t } from 'i18next';
-import { useEffect, useRef, useState } from 'react';
 
 import { ZapIcon, ZapIconHandle } from '@/components/icons/zap';
 import { cn } from '@/lib/utils';
@@ -25,27 +25,26 @@ const PasswordStrengthBolt = ({ password }: { password: string }) => {
   const isComplete = passedCount === total && total > 0;
   const boltColor = getBoltColor(passedCount);
 
-  const glowRef = useRef<HTMLDivElement>(null);
-  const iconRef = useRef<ZapIconHandle>(null);
+  let glowRef: HTMLDivElement | undefined;
+  let iconRef: ZapIconHandle | undefined;
 
-  useEffect(() => {
-    const el = glowRef.current;
-    if (!el) return;
+  createEffect(() => {
+    if (!glowRef) return;
     if (isComplete) {
-      el.style.animation = 'none';
-      void el.offsetWidth;
-      el.style.animation = 'boltGlow 0.6s ease-in forwards';
-      iconRef.current?.startAnimation();
+      glowRef.style.animation = 'none';
+      void glowRef.offsetWidth;
+      glowRef.style.animation = 'boltGlow 0.6s ease-in forwards';
+      iconRef?.startAnimation();
     } else {
-      el.style.animation = '';
+      glowRef.style.animation = '';
     }
-  }, [isComplete]);
+  });
 
   return (
     <div className="flex items-center justify-center">
-      <div ref={glowRef}>
+      <div ref={(el) => (glowRef = el)}>
         <ZapIcon
-          ref={iconRef}
+          ref={(el) => (iconRef = el)}
           size={20}
           fillColor={boltColor}
           fillPercent={fillPercent}
@@ -55,8 +54,6 @@ const PasswordStrengthBolt = ({ password }: { password: string }) => {
   );
 };
 
-PasswordStrengthBolt.displayName = 'PasswordStrengthBolt';
-
 const PasswordRequirementsList = ({
   password,
   isSubmitted,
@@ -64,9 +61,9 @@ const PasswordRequirementsList = ({
   password: string;
   isSubmitted: boolean;
 }) => {
-  const [hasReachedMin, setHasReachedMin] = useState(false);
+  const [hasReachedMin, setHasReachedMin] = createSignal(false);
 
-  useEffect(() => {
+  createEffect(() => {
     if (password.length >= 8) {
       setHasReachedMin(true);
     }
@@ -103,7 +100,5 @@ const PasswordRequirementsList = ({
     </div>
   );
 };
-
-PasswordRequirementsList.displayName = 'PasswordRequirementsList';
 
 export { PasswordStrengthBolt, PasswordRequirementsList };

@@ -22,12 +22,12 @@ const CopyToClipboardInput = ({
   return (
     <div className="flex gap-2 items-center bg-background border border-solid text-sm rounded block w-full select-none pr-3">
       {useInput ? (
-        <Input value={textToCopy} className={noBorderInputClass} readOnly />
+        <Input value={textToCopy} class={noBorderInputClass} readOnly />
       ) : (
         <Textarea
           value={textToCopy}
           rows={6}
-          className={noBorderInputClass}
+          class={noBorderInputClass}
           readOnly
         />
       )}
@@ -37,14 +37,14 @@ const CopyToClipboardInput = ({
         })}
       >
         <CopyButton textToCopy={textToCopy} variant="ghost" />
-        {fileName && (
+        <Show when={fileName}>
           <DownloadButton
             textToDownload={textToCopy}
             fileName={fileName}
             variant="ghost"
             tooltipSide="bottom"
           />
-        )}
+        </Show>
       </div>
     </div>
   );

@@ -1,8 +1,8 @@
 import { NoteColorVariant } from '@activepieces/shared';
 import { Editor } from '@tiptap/core';
 import { t } from 'i18next';
-import { TrashIcon } from 'lucide-react';
-import { forwardRef, useRef, useState } from 'react';
+import { TrashIcon } from 'lucide-solid';
+import { For, JSX, createSignal } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import {
@@ -19,14 +19,14 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
 export const NoteTools = ({ editor, currentColor, id }: NoteToolsProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  let containerRef: HTMLDivElement | undefined;
   const [updateNoteColor, deleteNote] = useBuilderStateContext((state) => [
     state.updateNoteColor,
     state.deleteNote,
   ]);
   return (
     <div
-      ref={containerRef}
+      ref={(el) => (containerRef = el)}
       className="absolute cursor-default -top-[45px] w-full left-0"
     >
       <div className="flex items-center justify-center">
@@ -36,10 +36,10 @@ export const NoteTools = ({ editor, currentColor, id }: NoteToolsProps) => {
             setCurrentColor={(color: NoteColorVariant) => {
               updateNoteColor(id, color);
             }}
-            container={containerRef.current}
+            container={containerRef}
           />
           <MarkdownTools editor={editor} />
-          <Separator orientation="vertical" className="h-[30px]"></Separator>
+          <Separator orientation="vertical" class="h-[30px]"></Separator>
           <ToolWrapper tooltip={t('Delete')}>
             <Button
               variant="ghost"
@@ -48,7 +48,7 @@ export const NoteTools = ({ editor, currentColor, id }: NoteToolsProps) => {
                 deleteNote(id);
               }}
             >
-              <TrashIcon className="size-4 text-destructive" />
+              <TrashIcon class="size-4 text-destructive" />
             </Button>
           </ToolWrapper>
         </div>
@@ -71,8 +71,8 @@ const NoteColorPicker = ({
   setCurrentColor,
   container,
 }: NoteColorPickerProps) => {
-  const [open, setOpen] = useState(false);
-  const popoverTriggerRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = createSignal(false);
+  let popoverTriggerRef: HTMLButtonElement | undefined;
   return (
     <Popover onOpenChange={setOpen} open={open}>
       <ToolWrapper tooltip={t('Color')}>
@@ -81,7 +81,7 @@ const NoteColorPicker = ({
             <ColorButton
               color={currentColor}
               big={true}
-              ref={popoverTriggerRef}
+              ref={(el) => (popoverTriggerRef = el)}
             />
           </div>
         </PopoverTrigger>
@@ -90,22 +90,24 @@ const NoteColorPicker = ({
       <PopoverContent
         container={container}
         side="top"
-        className="w-[80px] p-1 mb-2"
+        class="w-[80px] p-1 mb-2"
       >
         <div className="flex items-center cursor-default gap-1 justify-between flex-wrap w-full ">
-          {Object.values(NoteColorVariant).map((color) => (
-            <ColorButton
-              key={color}
-              color={color}
-              onClick={() => {
-                setCurrentColor(color);
-                setOpen(false);
-                requestAnimationFrame(() => {
-                  popoverTriggerRef.current?.focus();
-                });
-              }}
-            />
-          ))}
+          <For each={Object.values(NoteColorVariant)}>
+            {(color) => (
+              <ColorButton
+                key={color}
+                color={color}
+                onClick={() => {
+                  setCurrentColor(color);
+                  setOpen(false);
+                  requestAnimationFrame(() => {
+                    popoverTriggerRef?.focus();
+                  });
+                }}
+              />
+            )}
+          </For>
         </div>
       </PopoverContent>
     </Popover>
@@ -125,39 +127,34 @@ type NoteColorPickerProps = {
   container: HTMLDivElement | null;
 };
 
-const ColorButton = forwardRef<HTMLButtonElement, ColorButtonProps>(
-  ({ color, onClick, big }, ref) => {
-    return (
-      <Button
-        key={color}
-        ref={ref}
-        variant="ghost"
-        size="icon"
-        role="button"
-        className={cn('size-5 shrink-0 grow flex items-center justify-center', {
-          'size-6': big,
-        })}
-        onClick={onClick}
-        onFocus={() => {
-          console.log('focus');
-        }}
-      >
-        <div
-          className={cn(
-            NoteColorPickerClassName[color] ??
-              NoteColorPickerClassName[NoteColorVariant.YELLOW],
-            'size-4 shrink-0 rounded-full',
-            {
-              'size-5': big,
-            },
-          )}
-        ></div>
-      </Button>
-    );
-  },
-);
+function ColorButton({ color, onClick, big, ref }: ColorButtonProps) {
+  return (
+    <Button
+      key={color}
+      ref={ref}
+      variant="ghost"
+      size="icon"
+      role="button"
+      class={cn('size-5 shrink-0 grow flex items-center justify-center', {
+        'size-6': big,
+      })}
+      onClick={onClick}
+    >
+      <div
+        className={cn(
+          NoteColorPickerClassName[color] ??
+            NoteColorPickerClassName[NoteColorVariant.YELLOW],
+          'size-4 shrink-0 rounded-full',
+          {
+            'size-5': big,
+          },
+        )}
+      ></div>
+    </Button>
+  );
+}
 ColorButton.displayName = 'ColorButton';
-type ColorButtonProps = {
+type ColorButtonProps = JSX.IntrinsicElements['button'] & {
   color: NoteColorVariant;
   onClick?: () => void;
   big?: boolean;

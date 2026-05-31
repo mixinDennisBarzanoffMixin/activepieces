@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Columns2, Rows2 } from 'lucide-react';
+import { Columns2, Rows2 } from 'lucide-solid';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { Button } from '@/components/ui/button';
@@ -30,10 +30,10 @@ const TestPanelViewToggle = ({
       size="sm"
       onClick={() => setTestPanelView(isSplit ? 'drawer' : 'split')}
       disabled={disabled}
-      className={cn('text-sm shrink-0', className)}
+      class={cn('text-sm shrink-0', className)}
       aria-label={toggleLabel}
     >
-      <ToggleIcon className="size-4" />
+      <ToggleIcon class="size-4" />
       <span>{toggleLabel}</span>
     </Button>
   );

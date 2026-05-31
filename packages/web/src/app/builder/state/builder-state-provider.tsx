@@ -1,6 +1,5 @@
 import { Permission } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
-import { useRef } from 'react';
+import { useQueryClient } from '@tanstack/solid-query';
 
 import {
   BuilderInitialState,
@@ -13,7 +12,7 @@ import { projectHooks } from '@/features/projects';
 import { useAuthorization } from '@/hooks/authorization-hooks';
 
 type BuilderStateProviderProps = Omit<
-  React.PropsWithChildren<BuilderInitialState>,
+  BuilderInitialState & { children?: any },
   'socket' | 'queryClient'
 >;
 
@@ -23,14 +22,14 @@ export function BuilderStateProvider({
   inputSampleData: sampleDataInput,
   ...props
 }: BuilderStateProviderProps) {
-  const storeRef = useRef<BuilderStore>(undefined);
+  let storeRef: BuilderStore | undefined;
   const { checkAccess } = useAuthorization();
   const readonly = !checkAccess(Permission.WRITE_FLOW) || props.readonly;
   projectHooks.useReloadPageIfProjectIdChanged(props.flow.projectId);
   const socket = useSocket();
   const queryClient = useQueryClient();
-  if (!storeRef.current) {
-    storeRef.current = createBuilderStore({
+  if (!storeRef) {
+    storeRef = createBuilderStore({
       ...props,
       readonly,
       outputSampleData: sampleData,
@@ -41,7 +40,7 @@ export function BuilderStateProvider({
   }
 
   return (
-    <BuilderStateContext.Provider value={storeRef.current}>
+    <BuilderStateContext.Provider value={storeRef}>
       {children}
     </BuilderStateContext.Provider>
   );

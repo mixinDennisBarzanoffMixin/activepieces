@@ -1,3 +1,4 @@
+import { createSignal } from 'solid-js';
 import { PieceMetadataModelSummary } from '@activepieces/pieces-framework';
 import {
   AppConnectionWithoutSensitiveData,
@@ -15,9 +16,8 @@ import {
   User,
   Workflow,
   X,
-} from 'lucide-react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+} from 'lucide-solid';
+import { useNavigate } from "@solidjs/router";
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
@@ -105,7 +105,7 @@ export const AutomationsFilters = ({
   const { embedState } = useEmbedding();
   const ownerOptions = useOwnerOptions();
   const [isTemplatesBrowseDialogOpen, setIsTemplatesBrowseDialogOpen] =
-    useState(false);
+    createSignal(false);
   const typeOptions = [
     { value: 'flow', label: t('Flows') },
     ...(embedState.hideTables ? [] : [{ value: 'table', label: t('Tables') }]),
@@ -129,7 +129,7 @@ export const AutomationsFilters = ({
       value: connection.externalId,
       label: connection.displayName,
       icon: pieceIcon ? (
-        <img src={pieceIcon} alt="" className="h-4 w-4 object-contain" />
+        <img src={pieceIcon} alt="" class="h-4 w-4 object-contain" />
       ) : undefined,
     };
   });
@@ -137,12 +137,12 @@ export const AutomationsFilters = ({
   return (
     <>
       <div
-        className={cn('overflow-x-auto mt-4 mb-4', DASHBOARD_CONTENT_PADDING_X)}
+        class={cn('overflow-x-auto mt-4 mb-4', DASHBOARD_CONTENT_PADDING_X)}
       >
-        <div className="flex items-center justify-between gap-4 min-w-max">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div class="flex items-center justify-between gap-4 min-w-max">
+          <div class="flex items-center gap-2">
+            <div class="relative">
+              <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={
                   embedState.hideTables
@@ -154,7 +154,7 @@ export const AutomationsFilters = ({
                   onSearchChange(e.target.value);
                   onFilterChange?.();
                 }}
-                className="min-w-[300px] max-w-xs pl-8 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0"
+                class="min-w-[300px] max-w-xs pl-8 pr-8 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
               {searchTerm && (
                 <button
@@ -162,16 +162,16 @@ export const AutomationsFilters = ({
                     onSearchChange('');
                     onFilterChange?.();
                   }}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center h-5 w-5 rounded-full bg-muted hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground transition-colors"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center h-5 w-5 rounded-full bg-muted hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <X className="h-3 w-3" />
+                  <X class="h-3 w-3" />
                 </button>
               )}
             </div>
 
             <MultiSelectFilter
               label={t('Type')}
-              icon={<Filter className="h-4 w-4" />}
+              icon={<Filter class="h-4 w-4" />}
               options={typeOptions}
               selectedValues={typeFilter}
               onChange={(values) => {
@@ -182,7 +182,7 @@ export const AutomationsFilters = ({
 
             <MultiSelectFilter
               label={t('Status')}
-              icon={<ToggleLeft className="h-4 w-4" />}
+              icon={<ToggleLeft class="h-4 w-4" />}
               options={statusOptions}
               selectedValues={statusFilter}
               onChange={(values) => {
@@ -193,7 +193,7 @@ export const AutomationsFilters = ({
 
             <MultiSelectFilter
               label={t('Connections')}
-              icon={<Link2 className="h-4 w-4" />}
+              icon={<Link2 class="h-4 w-4" />}
               options={connectionOptions}
               selectedValues={connectionFilter}
               onChange={(values) => {
@@ -206,7 +206,7 @@ export const AutomationsFilters = ({
             {!embedState.isEmbedded && (
               <MultiSelectFilter
                 label={t('Owner')}
-                icon={<User className="h-4 w-4" />}
+                icon={<User class="h-4 w-4" />}
                 options={ownerOptions}
                 selectedValues={ownerFilter}
                 onChange={(values) => {
@@ -220,7 +220,7 @@ export const AutomationsFilters = ({
             {folderOptions.length > 0 && (
               <MultiSelectFilter
                 label={t('Folder')}
-                icon={<FolderIcon className="h-4 w-4" />}
+                icon={<FolderIcon class="h-4 w-4" />}
                 options={folderOptions}
                 selectedValues={folderFilter}
                 onChange={(values) => {
@@ -235,19 +235,19 @@ export const AutomationsFilters = ({
               <Button
                 variant="link"
                 size="sm"
-                className="h-9 text-sm gap-1 text-muted-foreground hover:text-foreground"
+                class="h-9 text-sm gap-1 text-muted-foreground hover:text-foreground"
                 onClick={() => {
                   onClearAllFilters();
                   onFilterChange?.();
                 }}
               >
-                <X className="h-3.5 w-3.5" />
+                <X class="h-3.5 w-3.5" />
                 {t('Clear all')}
               </Button>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div class="flex items-center gap-2">
             {!embedState.hideExportAndImportFlow && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -256,21 +256,21 @@ export const AutomationsFilters = ({
                     iconSize={16}
                     variant="outline"
                     size="sm"
-                    className="h-9"
+                    class="h-9"
                   >
                     {t('Import')}
                   </AnimatedIconButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="end" class="w-48">
                   <PermissionNeededTooltip
                     hasPermission={userHasPermissionToWriteFlow}
                   >
                     <DropdownMenuItem
                       disabled={!userHasPermissionToWriteFlow}
                       onClick={onImportFlow}
-                      className="cursor-pointer"
+                      class="cursor-pointer"
                     >
-                      <Workflow className="h-4 w-4 mr-2" />
+                      <Workflow class="h-4 w-4 mr-2" />
                       {t('Import Flow')}
                     </DropdownMenuItem>
                   </PermissionNeededTooltip>
@@ -281,9 +281,9 @@ export const AutomationsFilters = ({
                       <DropdownMenuItem
                         disabled={!userHasPermissionToWriteTable}
                         onClick={onImportTable}
-                        className="cursor-pointer"
+                        class="cursor-pointer"
                       >
-                        <Table2 className="h-4 w-4 mr-2" />
+                        <Table2 class="h-4 w-4 mr-2" />
                         {t('Import Table')}
                       </DropdownMenuItem>
                     </PermissionNeededTooltip>
@@ -317,7 +317,7 @@ export const AutomationsFilters = ({
                 icon={PlusIcon}
                 iconSize={16}
                 size="sm"
-                className="h-9"
+                class="h-9"
               >
                 {t('Create New')}
               </AnimatedIconButton>

@@ -1,8 +1,8 @@
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Check, Copy } from 'lucide-react';
-import React, { forwardRef, useState } from 'react';
-import { toast } from 'sonner';
+import { Check, Copy } from 'lucide-solid';
+import { createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button, ButtonProps } from '@/components/ui/button';
 import {
@@ -13,81 +13,64 @@ import {
 
 interface CopyButtonProps extends ButtonProps {
   textToCopy: string;
-  tooltipSide?: React.ComponentProps<typeof TooltipContent>['side'];
+  tooltipSide?: any;
   withoutTooltip?: boolean;
-  children?: React.ReactNode;
+  children?: any;
   variant?: 'ghost' | 'outline';
 }
 
-export const CopyButton = forwardRef<HTMLButtonElement, CopyButtonProps>(
-  (
-    {
-      textToCopy,
-      className,
-      tooltipSide,
-      withoutTooltip = false,
-      variant = 'outline',
-      ...props
+export const CopyButton = (
+  props: CopyButtonProps & { ref?: HTMLButtonElement },
+) => {
+  let ref: HTMLButtonElement | undefined;
+  const [isCopied, setIsCopied] = createSignal(false);
+
+  const { mutate: copyToClipboard } = createMutation(() => ({
+    mutationFn: async () => {
+      await navigator.clipboard.writeText(props.textToCopy);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 1500);
     },
-    ref,
-  ) => {
-    const [isCopied, setIsCopied] = useState(false);
+    onError: () => {
+      toast.error(t('Failed to copy to clipboard'), {
+        duration: 3000,
+      });
+    },
+  }));
 
-    const { mutate: copyToClipboard } = useMutation({
-      mutationFn: async () => {
-        await navigator.clipboard.writeText(textToCopy);
-        setIsCopied(true);
-        setTimeout(() => setIsCopied(false), 1500);
-      },
-      onError: () => {
-        toast.error(t('Failed to copy to clipboard'), {
-          duration: 3000,
-        });
-      },
-    });
-
-    if (withoutTooltip) {
-      return (
+  if (props.withoutTooltip) {
+    return (
+      <Button
+        ref={(el) => (ref = el)}
+        variant={props.variant}
+        size={'icon'}
+        type="button"
+        class={props.className}
+        onClick={() => copyToClipboard()}
+        {...props}
+      >
+        {isCopied() ? <Check class="h-4 w-4" /> : <Copy class="h-4 w-4" />}
+      </Button>
+    );
+  }
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
         <Button
-          ref={ref}
-          variant={variant}
+          ref={(el) => (ref = el)}
+          variant={props.variant}
           size={'icon'}
           type="button"
-          className={className}
+          class={props.className}
           onClick={() => copyToClipboard()}
           {...props}
         >
-          {isCopied ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}
+          {isCopied() ? <Check class="h-4 w-4" /> : <Copy class="h-4 w-4" />}
         </Button>
-      );
-    }
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            ref={ref}
-            variant={variant}
-            size={'icon'}
-            type="button"
-            className={className}
-            onClick={() => copyToClipboard()}
-            {...props}
-          >
-            {isCopied ? (
-              <Check className="h-4 w-4" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side={tooltipSide}>{t('Copy')}</TooltipContent>
-      </Tooltip>
-    );
-  },
-);
+      </TooltipTrigger>
+      <TooltipContent side={props.tooltipSide}>{t('Copy')}</TooltipContent>
+    </Tooltip>
+  );
+};
 
 CopyButton.displayName = 'CopyButton';

@@ -1,11 +1,12 @@
-import { ChevronDownIcon } from 'lucide-react';
-import React, {
+import { ChevronDownIcon } from 'lucide-solid';
+import {
+  createSignal,
+  createEffect,
   createContext,
   useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+  JSX,
+  onCleanup,
+} from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -31,7 +32,7 @@ function useReasoningContext() {
 }
 
 export type ReasoningProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   className?: string;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -44,8 +45,8 @@ function Reasoning({
   onOpenChange,
   isStreaming,
 }: ReasoningProps) {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const [wasAutoOpened, setWasAutoOpened] = useState(false);
+  const [internalOpen, setInternalOpen] = createSignal(false);
+  const [wasAutoOpened, setWasAutoOpened] = createSignal(false);
 
   const isControlled = open !== undefined;
   const isOpen = isControlled ? open : internalOpen;
@@ -57,7 +58,7 @@ function Reasoning({
     onOpenChange?.(newOpen);
   };
 
-  useEffect(() => {
+  createEffect(() => {
     if (isStreaming && !wasAutoOpened) {
       if (!isControlled) setInternalOpen(true);
       setWasAutoOpened(true);
@@ -82,14 +83,12 @@ function Reasoning({
 }
 
 export type ReasoningTriggerProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   className?: string;
-} & React.HTMLAttributes<HTMLButtonElement>;
+} & JSX.HTMLAttributes<HTMLButtonElement>;
 
-const ReasoningTrigger = React.forwardRef<
-  HTMLButtonElement,
-  ReasoningTriggerProps
->(function ReasoningTrigger({ children, className, onClick, ...props }, ref) {
+function ReasoningTrigger(props: ReasoningTriggerProps) {
+  const { children, className, onClick, ref, ...rest } = props;
   const { isOpen, onOpenChange } = useReasoningContext();
 
   return (
@@ -100,27 +99,24 @@ const ReasoningTrigger = React.forwardRef<
         onClick?.(event);
         if (!event.defaultPrevented) onOpenChange(!isOpen);
       }}
-      {...props}
+      {...rest}
     >
       <span className="text-primary">{children}</span>
       <div
-        className={cn(
-          'transform transition-transform',
-          isOpen ? 'rotate-180' : '',
-        )}
+        className={cn('transform transition-transform', isOpen ? 'rotate-180' : '')}
       >
-        <ChevronDownIcon className="size-4" />
+        <ChevronDownIcon class="size-4" />
       </div>
     </button>
   );
-});
+}
 
 export type ReasoningContentProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   className?: string;
   markdown?: boolean;
   contentClassName?: string;
-} & React.HTMLAttributes<HTMLDivElement>;
+} & JSX.HTMLAttributes<HTMLDivElement>;
 
 function ReasoningContent({
   children,
@@ -129,26 +125,26 @@ function ReasoningContent({
   markdown = false,
   ...props
 }: ReasoningContentProps) {
-  const contentRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
+  let contentRef: HTMLDivElement | undefined;
+  let innerRef: HTMLDivElement | undefined;
   const { isOpen } = useReasoningContext();
 
-  useEffect(() => {
-    if (!contentRef.current || !innerRef.current) return;
+  createEffect(() => {
+    if (!contentRef || !innerRef) return;
 
     const observer = new ResizeObserver(() => {
-      if (contentRef.current && innerRef.current && isOpen) {
-        contentRef.current.style.maxHeight = `${innerRef.current.scrollHeight}px`;
+      if (contentRef && innerRef && isOpen) {
+        contentRef.style.maxHeight = `${innerRef.scrollHeight}px`;
       }
     });
 
-    observer.observe(innerRef.current);
+    observer.observe(innerRef);
 
     if (isOpen) {
-      contentRef.current.style.maxHeight = `${innerRef.current.scrollHeight}px`;
+      contentRef.style.maxHeight = `${innerRef.scrollHeight}px`;
     }
 
-    return () => observer.disconnect();
+    onCleanup(() => observer.disconnect());
   }, [isOpen]);
 
   const content = markdown ? (
@@ -159,18 +155,18 @@ function ReasoningContent({
 
   return (
     <div
-      ref={contentRef}
+      ref={(el) => (contentRef = el)}
       className={cn(
         'overflow-hidden transition-[max-height] duration-150 ease-out',
         className,
       )}
       style={{
-        maxHeight: isOpen ? contentRef.current?.scrollHeight : '0px',
+        maxHeight: isOpen && contentRef ? `${contentRef.scrollHeight}px` : '0px',
       }}
       {...props}
     >
       <div
-        ref={innerRef}
+        ref={(el) => (innerRef = el)}
         className={cn(
           'text-muted-foreground prose prose-sm dark:prose-invert',
           contentClassName,

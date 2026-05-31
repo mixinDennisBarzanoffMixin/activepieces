@@ -1,8 +1,7 @@
 import { isNil, USE_DRAFT_QUERY_PARAM_NAME } from '@activepieces/shared';
+import { useParams, useSearchParams } from '@solidjs/router';
 import { nanoid } from 'nanoid';
-import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { useSearchParam } from 'react-use';
+import { createSignal, createEffect } from 'solid-js';
 
 import { ChatDrawerSource } from '@/app/builder/types';
 import { LoadingScreen } from '@/components/custom/loading-screen';
@@ -13,19 +12,20 @@ import { ChatNotFound, FlowChat } from './flow-chat';
 
 export function ChatPage() {
   const { flowId } = useParams();
+  const [searchParams] = useSearchParams();
   const hasDraftSearchParam =
-    useSearchParam(USE_DRAFT_QUERY_PARAM_NAME) === 'true';
+    searchParams[USE_DRAFT_QUERY_PARAM_NAME] === 'true';
 
-  const [messages, setMessages] = useState<Messages>([]);
-  const [chatSessionId, setChatSessionId] = useState<string | null>(null);
+  const [messages, setMessages] = createSignal<Messages>([]);
+  const [chatSessionId, setChatSessionId] = createSignal<string | null>(null);
   const { data: flow, isLoading } = flowHooks.useGetFlow({
     flowId: flowId ?? '',
   });
-  useEffect(() => {
+  createEffect(() => {
     if (!chatSessionId) {
       setChatSessionId(nanoid());
     }
-  }, [chatSessionId]);
+  });
 
   const addMessage = (message: Messages[0]) => {
     setMessages((prev) => [...prev, message]);

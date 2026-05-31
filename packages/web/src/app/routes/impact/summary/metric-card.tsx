@@ -1,5 +1,5 @@
-import { Info } from 'lucide-react';
-import React from 'react';
+import { Info } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -10,9 +10,9 @@ import {
 } from '@/components/ui/tooltip';
 
 export type MetricCardProps = {
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  icon: ComponentType<SVGProps<SVGSVGElement>>;
   title: string;
-  value: React.ReactNode;
+  value: JSX.Element;
   description: string;
   subtitle?: string;
   iconColor: string;
@@ -29,7 +29,7 @@ export const MetricCard = ({
   iconBgColor,
 }: MetricCardProps) => {
   return (
-    <Card className="p-5">
+    <Card class="p-5">
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">
@@ -37,21 +37,21 @@ export const MetricCard = ({
           </span>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-3.5 w-3.5 text-muted-foreground/70 cursor-help" />
+              <Info class="h-3.5 w-3.5 text-muted-foreground/70 cursor-help" />
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs">{description}</TooltipContent>
+            <TooltipContent class="max-w-xs">{description}</TooltipContent>
           </Tooltip>
           <div
             className={`size-8 rounded-full ${iconBgColor} flex items-center justify-center shrink-0 ml-auto`}
           >
-            <Icon className={`size-4 ${iconColor}`} />
+            <Icon class={`size-4 ${iconColor}`} />
           </div>
         </div>
         <div className="flex flex-col gap-1">
           <div className="text-2xl font-semibold text-foreground">{value}</div>
-          {subtitle && (
+          <Show when={subtitle}>
             <div className="text-sm text-muted-foreground">{subtitle}</div>
-          )}
+          </Show>
         </div>
       </div>
     </Card>
@@ -60,19 +60,19 @@ export const MetricCard = ({
 
 export const MetricCardSkeleton = () => {
   return (
-    <Card className="p-5">
+    <Card class="p-5">
       <div className="flex items-start justify-between">
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-1.5">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-3.5 w-3.5 rounded-full" />
+            <Skeleton class="h-4 w-24" />
+            <Skeleton class="h-3.5 w-3.5 rounded-full" />
           </div>
           <div className="flex flex-col gap-1">
-            <Skeleton className="h-8 w-28" />
-            <Skeleton className="h-4 w-36" />
+            <Skeleton class="h-8 w-28" />
+            <Skeleton class="h-4 w-36" />
           </div>
         </div>
-        <Skeleton className="size-9 rounded-full shrink-0" />
+        <Skeleton class="size-9 rounded-full shrink-0" />
       </div>
     </Card>
   );

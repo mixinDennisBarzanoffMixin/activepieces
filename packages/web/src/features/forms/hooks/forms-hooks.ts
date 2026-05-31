@@ -1,5 +1,5 @@
 import { FormResponse, HumanInputFormResult } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 
 import { humanInputApi } from '../api/human-input-api';
 
@@ -9,7 +9,7 @@ export const formsKeys = {
 
 export const formsQueries = {
   useForm: (flowId: string, useDraft: boolean, enabled: boolean) =>
-    useQuery<FormResponse | null, Error>({
+    createQuery<FormResponse | null, Error>({
       queryKey: formsKeys.form(flowId),
       queryFn: () => humanInputApi.getForm(flowId, useDraft),
       enabled,
@@ -26,7 +26,7 @@ export const formsMutations = {
     onSuccess: (result: HumanInputFormResult | null) => void;
     onError: (error: Error) => void;
   }) => {
-    return useMutation<
+    return createMutation<
       HumanInputFormResult | null,
       Error,
       { form: FormResponse; useDraft: boolean; data: Record<string, unknown> }

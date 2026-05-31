@@ -1,12 +1,11 @@
 import { formErrors, PieceAction, PieceTrigger } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { ArrowUp, ArrowUpDown } from 'lucide-react';
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { ArrowUp, ArrowUpDown } from 'lucide-solid';
+import { Show, createSignal } from 'solid-js';
 import { z } from 'zod';
 
+import { createForm, zodResolver } from '@/app/builder/builder-form';
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,11 +36,8 @@ import { UpgradePieceVersionContent } from './upgrade-piece-version-dialog';
 
 type DialogView = 'upgrade' | 'advanced';
 
-const UpdatePieceVersionDialog: React.FC<UpdatePieceVersionDialogProps> = ({
-  step,
-  currentVersion,
-}) => {
-  const [view, setView] = useState<DialogView | null>(null);
+const UpdatePieceVersionDialog: any = ({ step, currentVersion }) => {
+  const [view, setView] = createSignal<DialogView | null>(null);
   const pieceName = step.settings.pieceName;
   const { pieceVersions, isLoading } = piecesHooks.usePieceVersions(pieceName);
   const latestVersion = changeVersionUtils.getLatestVersion({
@@ -68,19 +64,22 @@ const UpdatePieceVersionDialog: React.FC<UpdatePieceVersionDialogProps> = ({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-6"
+            class="size-6"
             onClick={handleOpen}
             loading={isLoading}
           >
-            {hasNewerVersion ? (
-              <ArrowUp className="size-3.5 text-green-500" />
-            ) : (
-              <ArrowUpDown className="size-3.5" />
-            )}
+            <Show
+              when={hasNewerVersion()}
+              fallback={<ArrowUpDown class="size-3.5" />}
+            >
+              <ArrowUp class="size-3.5 text-green-500" />
+            </Show>
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          {hasNewerVersion ? t('New version available') : t('Switch version')}
+          <Show when={hasNewerVersion()} fallback={t('Switch version')}>
+            {t('New version available')}
+          </Show>
         </TooltipContent>
       </Tooltip>
 
@@ -89,14 +88,17 @@ const UpdatePieceVersionDialog: React.FC<UpdatePieceVersionDialogProps> = ({
         onOpenChange={(open) => !open && setView(null)}
       >
         <DialogContent>
-          <DialogHeader className="mb-0">
+          <DialogHeader class="mb-0">
             <DialogTitle>
-              {view === 'upgrade'
-                ? t('New Version Available')
-                : t('Update Piece Version')}
+              <Show
+                when={view === 'upgrade'()}
+                fallback={t('Update Piece Version')}
+              >
+                {t('New Version Available')}
+              </Show>
             </DialogTitle>
           </DialogHeader>
-          {view === 'upgrade' && latestVersion && (
+          <Show when={view === 'upgrade' && latestVersion()}>
             <UpgradePieceVersionContent
               key="upgrade"
               step={step}
@@ -106,8 +108,8 @@ const UpdatePieceVersionDialog: React.FC<UpdatePieceVersionDialogProps> = ({
               onClose={() => setView(null)}
               onOpenAdvanced={() => setView('advanced')}
             />
-          )}
-          {view === 'advanced' && (
+          </Show>
+          <Show when={view === 'advanced'()}>
             <AdvancedForm
               key="advanced"
               step={step}
@@ -115,7 +117,7 @@ const UpdatePieceVersionDialog: React.FC<UpdatePieceVersionDialogProps> = ({
               onClose={() => setView(null)}
               onBack={hasNewerVersion ? () => setView('upgrade') : undefined}
             />
-          )}
+          </Show>
         </DialogContent>
       </Dialog>
     </>
@@ -129,20 +131,15 @@ type UpdatePieceVersionDialogProps = {
   currentVersion: string;
 };
 
-const AdvancedForm: React.FC<AdvancedFormProps> = ({
-  step,
-  currentVersion,
-  onClose,
-  onBack,
-}) => {
+const AdvancedForm: any = ({ step, currentVersion, onClose, onBack }) => {
   const pieceName = step.settings.pieceName;
 
   const { pieceVersions, isLoading } = piecesHooks.usePieceVersions(pieceName);
   const applyOperation = useBuilderStateContext(
     (state) => state.applyOperation,
   );
-  const [showAllVersions, setShowAllVersions] = useState(false);
-  const [versionSelectOpen, setVersionSelectOpen] = useState(false);
+  const [showAllVersions, setShowAllVersions] = createSignal(false);
+  const [versionSelectOpen, setVersionSelectOpen] = createSignal(false);
 
   const patchVersions = (pieceVersions ?? []).filter((p) => {
     const changeType = changeVersionUtils.getVersionChangeType({
@@ -183,7 +180,7 @@ const AdvancedForm: React.FC<AdvancedFormProps> = ({
     };
   });
 
-  const form = useForm<FormSchema>({
+  const form = createForm<FormSchema>({
     resolver: zodResolver(FormSchema),
     defaultValues: { version: currentVersion },
     mode: 'onChange',
@@ -201,8 +198,8 @@ const AdvancedForm: React.FC<AdvancedFormProps> = ({
     versionChangeType === VersionChangeType.PATCH_UPGRADE &&
     selectedVersion !== currentVersion;
 
-  const { mutate: applyVersionChange, isPending: isApplyPending } = useMutation(
-    {
+  const { mutate: applyVersionChange, isPending: isApplyPending } =
+    createMutation(() => ({
       mutationFn: async ({ version }: FormSchema) => {
         await changeVersionUtils.applyPieceVersionChange({
           step,
@@ -220,8 +217,7 @@ const AdvancedForm: React.FC<AdvancedFormProps> = ({
           message: error.message,
         });
       },
-    },
-  );
+    }));
 
   return (
     <Form {...form}>
@@ -233,22 +229,25 @@ const AdvancedForm: React.FC<AdvancedFormProps> = ({
           control={form.control}
           name="version"
           render={({ field }) => (
-            <FormItem className="flex flex-col gap-2">
+            <FormItem class="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{t('Version')}</span>
                 <Button
                   type="button"
                   variant="link"
                   size="sm"
-                  className="h-auto p-0 text-xs"
+                  class="h-auto p-0 text-xs"
                   onClick={() => {
                     setShowAllVersions((v) => !v);
                     setVersionSelectOpen(true);
                   }}
                 >
-                  {showAllVersions
-                    ? t('Patch versions only')
-                    : t('Show all versions')}
+                  <Show
+                    when={showAllVersions()}
+                    fallback={t('Show all versions')}
+                  >
+                    {t('Patch versions only')}
+                  </Show>
                 </Button>
               </div>
               <SearchableSelect
@@ -271,29 +270,35 @@ const AdvancedForm: React.FC<AdvancedFormProps> = ({
           )}
         />
 
-        {isMinorOrMajor && <MinorOrMajorSelectionAlert />}
+        <Show when={isMinorOrMajor()}>
+          <MinorOrMajorSelectionAlert />
+        </Show>
 
-        {isPatchUpgrade && <PatchUpgradeInfoAlert />}
+        <Show when={isPatchUpgrade()}>
+          <PatchUpgradeInfoAlert />
+        </Show>
 
-        {isPatchDowngrade && <PatchDowngradeInfoAlert />}
+        <Show when={isPatchDowngrade()}>
+          <PatchDowngradeInfoAlert />
+        </Show>
 
-        {form.formState.errors.root?.serverError && (
+        <Show when={form.formState.errors.root?.serverError()}>
           <p className="text-sm font-medium text-destructive">
             {form.formState.errors.root.serverError.message}
           </p>
-        )}
+        </Show>
 
         <DialogFooter>
-          {onBack && (
+          <Show when={onBack()}>
             <Button
               type="button"
               variant="outline"
-              className="mr-auto"
+              class="mr-auto"
               onClick={onBack}
             >
               {t('Back')}
             </Button>
-          )}
+          </Show>
           <Button type="button" variant="outline" onClick={onClose}>
             {t('Cancel')}
           </Button>

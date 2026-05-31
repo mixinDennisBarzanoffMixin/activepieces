@@ -6,11 +6,11 @@ import {
   UncategorizedFolderId,
   isNil,
 } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@solidjs/router';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { createEffect, createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -48,13 +48,13 @@ export const UseTemplateDialog = ({
   onOpenChange,
 }: UseTemplateDialogProps) => {
   const navigate = useNavigate();
-  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
-  const [selectedFolderId, setSelectedFolderId] = useState<string>('');
+  const [selectedProjectId, setSelectedProjectId] = createSignal('');
+  const [selectedFolderId, setSelectedFolderId] = createSignal('');
 
   const { data: projects } = projectCollectionUtils.useAll();
   const { folders } = foldersHooks.useFolders();
 
-  useEffect(() => {
+  createEffect(() => {
     if (open) {
       const currentProjectId = authenticationSession.getProjectId();
       if (currentProjectId) {
@@ -66,7 +66,7 @@ export const UseTemplateDialog = ({
     }
   }, [open, projects]);
 
-  const { mutate: createFlow, isPending } = useMutation<
+  const { mutate: createFlow, isPending } = createMutation<
     PopulatedFlow[],
     Error,
     { projectId: string; folderId: string }
@@ -115,11 +115,11 @@ export const UseTemplateDialog = ({
   });
 
   const handleConfirmUseTemplate = () => {
-    if (!selectedProjectId) {
+    if (!selectedProjectId()) {
       toast.error(t('Please select a project'));
       return;
     }
-    createFlow({ projectId: selectedProjectId, folderId: selectedFolderId });
+    createFlow({ projectId: selectedProjectId(), folderId: selectedFolderId() });
 
     const userId = authenticationSession.getCurrentUserId();
 
@@ -153,9 +153,9 @@ export const UseTemplateDialog = ({
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="flex flex-col gap-2">
-            <Label htmlFor="project">{t('Project')}</Label>
+            <Label for="project">{t('Project')}</Label>
             <Select
-              value={selectedProjectId}
+              value={selectedProjectId()}
               onValueChange={setSelectedProjectId}
             >
               <SelectTrigger id="project">
@@ -176,9 +176,9 @@ export const UseTemplateDialog = ({
           </div>
           {!hasMultipleFlows && (
             <div className="flex flex-col gap-2">
-              <Label htmlFor="folder">{t('Folder')}</Label>
+              <Label for="folder">{t('Folder')}</Label>
               <Select
-                value={selectedFolderId}
+                value={selectedFolderId()}
                 onValueChange={setSelectedFolderId}
               >
                 <SelectTrigger id="folder">
@@ -209,7 +209,7 @@ export const UseTemplateDialog = ({
           <Button
             onClick={handleConfirmUseTemplate}
             loading={isPending}
-            disabled={!selectedProjectId}
+            disabled={!selectedProjectId()}
           >
             {t('Confirm')}
           </Button>

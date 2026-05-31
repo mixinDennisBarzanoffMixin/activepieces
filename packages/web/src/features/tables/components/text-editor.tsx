@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal } from 'solid-js';
 
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -7,16 +7,16 @@ import { useCellContext } from './cell-context';
 
 const TextEditor = () => {
   const { value, handleCellChange, setIsEditing, isEditing } = useCellContext();
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
-  const [inputValue, setInputValue] = useState(value);
-  useEffect(() => {
+  const textAreaRef = null;
+  const [inputValue, setInputValue] = createSignal(value);
+  createEffect(() => {
     if (isEditing) {
       textAreaRef.current?.focus();
       setInputValue(value);
     } else {
       setInputValue(value);
     }
-  }, [isEditing]);
+  });
   return (
     <div className="h-full relative w-full relative">
       <div
@@ -49,7 +49,7 @@ const TextEditor = () => {
             }}
             minRows={4}
             maxRows={6}
-            className={cn(
+            class={cn(
               'flex-1 h-full min-w-0 rounded-none',
               'border-none text-sm px-2 resize-none ',
               'focus:outline-hidden',

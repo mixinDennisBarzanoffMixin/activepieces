@@ -2,10 +2,10 @@ import {
   UpdateAICreditsAutoTopUpParamsSchema,
   AiCreditsAutoTopUpState,
 } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { Loader2 } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -39,11 +39,11 @@ export function AutoTopUpConfigDialog({
   isEditing = false,
 }: AutoTopUpConfigDialogProps) {
   const queryClient = useQueryClient();
-  const [threshold, setThreshold] = useState(currentThreshold ?? 1000);
-  const [creditsToAdd, setCreditsToAdd] = useState(
+  const [threshold, setThreshold] = createSignal(currentThreshold ?? 1000);
+  const [creditsToAdd, setCreditsToAdd] = createSignal(
     currentCreditsToAdd ?? 10000,
   );
-  const [maxMonthlyLimit, setMaxMonthlyLimit] = useState<number | null>(
+  const [maxMonthlyLimit, setMaxMonthlyLimit] = createSignal<number | null>(
     currentMaxMonthlyLimit ?? null,
   );
 
@@ -69,7 +69,7 @@ export function AutoTopUpConfigDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px]">
+      <DialogContent class="max-w-[480px]">
         <DialogHeader>
           <DialogTitle>
             {isEditing
@@ -188,7 +188,7 @@ export function AutoTopUpConfigDialog({
             {t('Cancel')}
           </Button>
           <Button onClick={handleSave} disabled={isPending}>
-            {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+            {isPending && <Loader2 class="w-4 h-4 animate-spin mr-2" />}
             {t('Save Configuration')}
           </Button>
         </DialogFooter>

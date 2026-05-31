@@ -1,6 +1,7 @@
 import { ApiKeyResponseWithoutValue } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Key, MoreHorizontal, Trash } from 'lucide-react';
+import { Key, MoreHorizontal, Trash } from 'lucide-solid';
+import { For, Show } from 'solid-js';
 
 import { CenteredPage } from '@/app/components/centered-page';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -58,84 +59,87 @@ const ApiKeysPage = () => {
           </NewApiKeyDialog>
         }
       >
-        {isLoading && (
-          <SkeletonList numberOfItems={3} className="w-full h-[72px]" />
-        )}
+        <Show when={isLoading}>
+          <SkeletonList numberOfItems={3} class="w-full h-[72px]" />
+        </Show>
 
-        {!isLoading && keys.length === 0 && (
+        <Show when={!isLoading && keys.length === 0}>
           <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
-            <Key className="size-10" />
+            <Key class="size-10" />
             <p className="text-sm">
               {t('No API keys yet. Create one to get started.')}
             </p>
           </div>
-        )}
+        </Show>
 
-        {!isLoading && keys.length > 0 && (
-          <ItemGroup className="gap-2">
-            {keys.map((apiKey) => (
-              <Item key={apiKey.id} variant="outline" size="sm">
-                <ItemMedia variant="icon">
-                  <Key />
-                </ItemMedia>
-                <ItemContent>
-                  <ItemTitle>{apiKey.displayName}</ItemTitle>
-                  <ItemDescription className="text-xs">
-                    <span className="font-mono">
-                      sk-...{apiKey.truncatedValue}
-                    </span>
-                    {' · '}
-                    {t('Created')}{' '}
-                    {formatUtils.formatDateToAgo(new Date(apiKey.created))}
-                    {apiKey.lastUsedAt ? (
-                      <>
-                        {' '}
-                        · {t('Last used')}{' '}
-                        {formatUtils.formatDateToAgo(
-                          new Date(apiKey.lastUsedAt),
-                        )}
-                      </>
-                    ) : (
-                      <> · {t('Never used')}</>
-                    )}
-                  </ItemDescription>
-                </ItemContent>
-                <ItemActions>
-                  <DropdownMenu modal={true}>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm" className="size-8 p-0">
-                        <MoreHorizontal className="size-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <ConfirmationDeleteDialog
-                        title={t('Revoke API Key')}
-                        message={t(
-                          'Revoking this API key will immediately break any integrations using it. This action cannot be undone.',
-                        )}
-                        entityName={t('API Key')}
-                        buttonText={t('Revoke')}
-                        mutationFn={async () => {
-                          await apiKeyApi.delete(apiKey.id);
-                          refetch();
-                        }}
-                        onError={() => internalErrorToast()}
+        <Show when={!isLoading && keys.length > 0}>
+          <ItemGroup class="gap-2">
+            <For each={keys}>
+              {(apiKey) => (
+                <Item key={apiKey.id} variant="outline" size="sm">
+                  <ItemMedia variant="icon">
+                    <Key />
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>{apiKey.displayName}</ItemTitle>
+                    <ItemDescription class="text-xs">
+                      <span className="font-mono">
+                        sk-...{apiKey.truncatedValue}
+                      </span>
+                      {' · '}
+                      {t('Created')}{' '}
+                      {formatUtils.formatDateToAgo(new Date(apiKey.created))}
+                      <Show
+                        when={apiKey.lastUsedAt}
+                        fallback={<> · {t('Never used')}</>}
                       >
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onSelect={(e) => e.preventDefault()}
+                        <>
+                          {' '}
+                          · {t('Last used')}{' '}
+                          {formatUtils.formatDateToAgo(
+                            new Date(apiKey.lastUsedAt),
+                          )}
+                        </>
+                      </Show>
+                    </ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <DropdownMenu modal={true}>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" class="size-8 p-0">
+                          <MoreHorizontal class="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <ConfirmationDeleteDialog
+                          title={t('Revoke API Key')}
+                          message={t(
+                            'Revoking this API key will immediately break any integrations using it. This action cannot be undone.',
+                          )}
+                          entityName={t('API Key')}
+                          buttonText={t('Revoke')}
+                          mutationFn={async () => {
+                            await apiKeyApi.delete(apiKey.id);
+                            refetch();
+                          }}
+                          onError={() => internalErrorToast()}
                         >
-                          <Trash className="size-4 mr-2 text-destructive" />
-                          {t('Revoke API Key')}
-                        </DropdownMenuItem>
-                      </ConfirmationDeleteDialog>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </ItemActions>
-              </Item>
-            ))}
+                          <DropdownMenuItem
+                            class="text-destructive focus:text-destructive"
+                            onSelect={(e) => e.preventDefault()}
+                          >
+                            <Trash class="size-4 mr-2 text-destructive" />
+                            {t('Revoke API Key')}
+                          </DropdownMenuItem>
+                        </ConfirmationDeleteDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </ItemActions>
+                </Item>
+              )}
+            </For>
           </ItemGroup>
-        )}
+        </Show>
       </CenteredPage>
     </LockedFeatureGuard>
   );

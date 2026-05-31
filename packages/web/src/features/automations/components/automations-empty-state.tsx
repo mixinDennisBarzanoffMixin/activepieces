@@ -1,3 +1,4 @@
+import { For, createSignal } from 'solid-js';
 import {
   Permission,
   Template,
@@ -12,9 +13,8 @@ import {
   Table2,
   Upload,
   Workflow,
-} from 'lucide-react';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+} from 'lucide-solid';
+import { useNavigate } from "@solidjs/router";
 
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
 import { TagWithBright } from '@/components/custom/tag-with-bright';
@@ -35,7 +35,7 @@ import { flagsHooks } from '@/hooks/flags-hooks';
 import { platformHooks } from '@/hooks/platform-hooks';
 
 type ActionRowProps = {
-  icon: React.ReactNode;
+  icon;
   label: string;
   onClick?: () => void;
   disabled?: boolean;
@@ -53,13 +53,13 @@ const ActionRow = ({
     <button
       onClick={onClick}
       disabled={disabled || !hasPermission}
-      className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-t first:border-t-0"
+      class="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-t first:border-t-0"
     >
-      <div className="flex items-center gap-3">
-        <span className="text-muted-foreground">{icon}</span>
-        <span className="text-sm font-medium">{label}</span>
+      <div class="flex items-center gap-3">
+        <span class="text-muted-foreground">{icon}</span>
+        <span class="text-sm font-medium">{label}</span>
       </div>
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      <ChevronRight class="h-4 w-4 text-muted-foreground" />
     </button>
   );
 
@@ -75,11 +75,11 @@ const ActionRow = ({
 };
 
 type GetStartedCardProps = {
-  icon: React.ReactNode;
+  icon;
   iconBgClass: string;
   title: string;
   description: string;
-  children: React.ReactNode;
+  children;
 };
 
 const GetStartedCard = ({
@@ -90,20 +90,20 @@ const GetStartedCard = ({
   children,
 }: GetStartedCardProps) => {
   return (
-    <Card className="flex-1 overflow-hidden">
-      <CardContent className="p-0">
-        <div className="flex items-center gap-3 px-4 py-4">
+    <Card class="flex-1 overflow-hidden">
+      <CardContent class="p-0">
+        <div class="flex items-center gap-3 px-4 py-4">
           <div
-            className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBgClass}`}
+            class={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBgClass}`}
           >
             {icon}
           </div>
           <div>
-            <h3 className="font-semibold text-base">{title}</h3>
-            <p className="text-sm text-muted-foreground">{description}</p>
+            <h3 class="font-semibold text-base">{title}</h3>
+            <p class="text-sm text-muted-foreground">{description}</p>
           </div>
         </div>
-        <div className="flex flex-col">{children}</div>
+        <div class="flex flex-col">{children}</div>
       </CardContent>
     </Card>
   );
@@ -129,22 +129,22 @@ const SuggestedTemplateCard = ({
     <Card
       onClick={() => onSelect(template)}
       variant="interactive"
-      className="h-[220px] flex flex-col"
+      class="h-[220px] flex flex-col"
     >
-      <CardContent className="py-4 px-4 flex flex-col gap-1 flex-1 min-h-0">
-        <div className="h-12 flex flex-col justify-start flex-shrink-0">
-          <h3 className="font-semibold text-base leading-tight line-clamp-2">
+      <CardContent class="py-4 px-4 flex flex-col gap-1 flex-1 min-h-0">
+        <div class="h-12 flex flex-col justify-start flex-shrink-0">
+          <h3 class="font-semibold text-base leading-tight line-clamp-2">
             {template.name}
           </h3>
         </div>
 
-        <p className="text-muted-foreground text-sm line-clamp-2 mt-1 flex-shrink-0">
+        <p class="text-muted-foreground text-sm line-clamp-2 mt-1 flex-shrink-0">
           {template.summary || (
-            <span className="italic">{t('No summary')}</span>
+            <span class="italic">{t('No summary')}</span>
           )}
         </p>
 
-        <div className="h-8 flex gap-2 flex-wrap overflow-hidden mt-2 flex-shrink-0">
+        <div class="h-8 flex gap-2 flex-wrap overflow-hidden mt-2 flex-shrink-0">
           {displayTags.length > 0 &&
             displayTags.map((tag, index) => (
               <TagWithBright
@@ -160,7 +160,7 @@ const SuggestedTemplateCard = ({
       </CardContent>
 
       <div
-        className="h-14 flex items-center px-4 rounded-b-lg transition-all duration-300"
+        class="h-14 flex items-center px-4 rounded-b-lg transition-all duration-300"
         style={{
           background: gradient || 'rgba(0,0,0,0.02)',
         }}
@@ -170,7 +170,7 @@ const SuggestedTemplateCard = ({
             trigger={template.flows![0]?.trigger}
             maxNumberOfIconsToShow={4}
             size="md"
-            className="flex gap-0.5"
+            class="flex gap-0.5"
             background="white"
             excludeCore={true}
           />
@@ -182,14 +182,14 @@ const SuggestedTemplateCard = ({
 
 const TemplateCardSkeleton = () => {
   return (
-    <Card className="h-[220px] flex flex-col">
-      <CardContent className="py-4 px-4 flex flex-col gap-2 flex-1">
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-4 w-full mt-2" />
-        <Skeleton className="h-4 w-2/3" />
-        <Skeleton className="h-6 w-24 mt-2" />
+    <Card class="h-[220px] flex flex-col">
+      <CardContent class="py-4 px-4 flex flex-col gap-2 flex-1">
+        <Skeleton class="h-6 w-3/4" />
+        <Skeleton class="h-4 w-full mt-2" />
+        <Skeleton class="h-4 w-2/3" />
+        <Skeleton class="h-6 w-24 mt-2" />
       </CardContent>
-      <div className="h-14 bg-muted/30 rounded-b-lg" />
+      <div class="h-14 bg-muted/30 rounded-b-lg" />
     </Card>
   );
 };
@@ -203,13 +203,13 @@ export const AutomationsEmptyState = ({
 }: AutomationsEmptyStateProps) => {
   const navigate = useNavigate();
   const { embedState } = useEmbedding();
-  const [isImportTableDialogOpen, setIsImportTableDialogOpen] = useState(false);
+  const [isImportTableDialogOpen, setIsImportTableDialogOpen] = createSignal(false);
   const [isTemplatesBrowseDialogOpen, setIsTemplatesBrowseDialogOpen] =
-    useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    createSignal(false);
+  const [selectedTemplate, setSelectedTemplate] = createSignal<Template | null>(
     null,
   );
-  const [useTemplateDialogOpen, setUseTemplateDialogOpen] = useState(false);
+  const [useTemplateDialogOpen, setUseTemplateDialogOpen] = createSignal(false);
 
   const { checkAccess } = useAuthorization();
   const userHasPermissionToWriteFlow = checkAccess(Permission.WRITE_FLOW);
@@ -251,22 +251,22 @@ export const AutomationsEmptyState = ({
   const branding = flagsHooks.useWebsiteBranding();
 
   return (
-    <div className="flex flex-col gap-8 py-8 px-4 max-w-5xl mx-auto">
+    <div class="flex flex-col gap-8 py-8 px-4 max-w-5xl mx-auto">
       <div>
-        <h2 className="text-sm font-medium text-muted-foreground mb-4">
+        <h2 class="text-sm font-medium text-muted-foreground mb-4">
           {t('Get started with {brandName}', {
-            brandName: branding.websiteName ?? platform.name,
+            brandName: branding()?.websiteName ?? platform.name,
           })}
         </h2>
-        <div className="flex gap-4">
+        <div class="flex gap-4">
           <GetStartedCard
-            icon={<Workflow className="h-5 w-5 text-primary" />}
+            icon={<Workflow class="h-5 w-5 text-primary" />}
             iconBgClass="bg-primary-100"
             title={t('Build a Flow')}
             description={t('Create automated workflows')}
           >
             <ActionRow
-              icon={<Plus className="h-4 w-4" />}
+              icon={<Plus class="h-4 w-4" />}
               label={t('Start from scratch')}
               onClick={() => createFlow()}
               disabled={isCreateFlowPending}
@@ -282,20 +282,20 @@ export const AutomationsEmptyState = ({
               >
                 <button
                   disabled={!userHasPermissionToWriteFlow}
-                  className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-t"
+                  class="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-t"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-muted-foreground">
-                      <Upload className="h-4 w-4" />
+                  <div class="flex items-center gap-3">
+                    <span class="text-muted-foreground">
+                      <Upload class="h-4 w-4" />
                     </span>
-                    <span className="text-sm font-medium">{t('Import')}</span>
+                    <span class="text-sm font-medium">{t('Import')}</span>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight class="h-4 w-4 text-muted-foreground" />
                 </button>
               </ImportFlowDialog>
             </PermissionNeededTooltip>
             <ActionRow
-              icon={<Sparkles className="h-4 w-4" />}
+              icon={<Sparkles class="h-4 w-4" />}
               label={t('Use Templates')}
               onClick={() => {
                 if (embedState.isEmbedded) {
@@ -310,20 +310,20 @@ export const AutomationsEmptyState = ({
 
           {!embedState.hideTables && (
             <GetStartedCard
-              icon={<Table2 className="h-5 w-5 text-primary" />}
+              icon={<Table2 class="h-5 w-5 text-primary" />}
               iconBgClass="bg-primary-100"
               title={t('Create a Table')}
               description={t('Organize and manage data')}
             >
               <ActionRow
-                icon={<Plus className="h-4 w-4" />}
+                icon={<Plus class="h-4 w-4" />}
                 label={t('Start from scratch')}
                 onClick={() => createTable({ name: t('New Table') })}
                 disabled={isCreateTablePending}
                 hasPermission={userHasPermissionToWriteTable}
               />
               <ActionRow
-                icon={<Upload className="h-4 w-4" />}
+                icon={<Upload class="h-4 w-4" />}
                 label={t('Import')}
                 onClick={() => setIsImportTableDialogOpen(true)}
                 hasPermission={userHasPermissionToWriteTable}
@@ -335,20 +335,20 @@ export const AutomationsEmptyState = ({
 
       {(hasTemplates || isLoadingTemplates) && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-sm font-medium text-muted-foreground flex items-center gap-2">
               {t('Templates For You')}
-              <Sparkles className="h-4 w-4 text-yellow-500" />
+              <Sparkles class="h-4 w-4 text-yellow-500" />
             </h2>
             <button
               onClick={handleViewAllTemplates}
-              className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              class="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
             >
               {t('All templates')}
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight class="h-4 w-4" />
             </button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             {isLoadingTemplates ? (
               <>
                 <TemplateCardSkeleton />

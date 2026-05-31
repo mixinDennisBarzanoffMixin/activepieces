@@ -1,9 +1,8 @@
-import { Label as LabelPrimitive } from 'radix-ui';
-import * as React from 'react';
+import { Show } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
-type LabelProps = React.ComponentProps<typeof LabelPrimitive.Root> & {
+type LabelProps = JSX.IntrinsicElements['label'] & {
   showRequiredIndicator?: boolean;
 };
 
@@ -18,17 +17,19 @@ function Label({
   ...props
 }: LabelProps) {
   return (
-    <LabelPrimitive.Root
+    <label
       data-slot="label"
-      className={cn(
+      class={cn(
         'flex items-center gap-1 text-sm leading-none font-medium select-none group-data-[disabled=true]:pointer-events-none group-data-[disabled=true]:opacity-50 peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
         className,
       )}
       {...props}
     >
       {children}
-      {showRequiredIndicator && <RequiredFieldAsterisk />}
-    </LabelPrimitive.Root>
+      <Show when={showRequiredIndicator}>
+        <RequiredFieldAsterisk />
+      </Show>
+    </label>
   );
 }
 

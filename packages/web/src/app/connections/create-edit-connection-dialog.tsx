@@ -1,6 +1,7 @@
 import {
   getAuthPropertyForValue,
   PieceAuthProperty,
+  PiecePropertyMap,
   PieceMetadataModel,
   PieceMetadataModelSummary,
   PropertyType,
@@ -14,10 +15,8 @@ import {
   isNil,
   UpsertAppConnectionRequestBody,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from 'i18next';
-import { useState } from 'react';
-import { Resolver, useForm } from 'react-hook-form';
+import { createSignal } from 'solid-js';
 
 import { ApMarkdown } from '@/components/custom/markdown';
 import { Button } from '@/components/ui/button';
@@ -30,15 +29,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormError,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { FormError } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -56,9 +47,16 @@ import { formUtils } from '@/features/pieces';
 import { flagsHooks } from '@/hooks/flags-hooks';
 
 import { BasicAuthConnectionSettings } from './basic-secret-connection-settings';
-import { CustomAuthConnectionSettings } from './custom-auth-connection-settings';
+import {
+  ErrorMap,
+  getPath,
+  issues,
+  setPath,
+  SolidConnectionForm,
+} from './connection-form';
 import { MutliAuthList, AuthListItem } from './multi-auth-list';
 import { OAuth2ConnectionSettings } from './oauth2-connection-settings';
+import { SecretInput } from './secret-input';
 import { SecretTextConnectionSettings } from './secret-text-connection-settings';
 
 function CreateOrEditConnectionSection({
@@ -88,33 +86,59 @@ function CreateOrEditConnectionSection({
   const { data: redirectUrl } = flagsHooks.useFlag<string>(
     ApFlagId.THIRD_PARTY_AUTH_PROVIDER_REDIRECT_URL,
   );
-  const form = useForm<ConnectionFormValues>({
-    defaultValues: {
-      request: {
-        ...newConnectionUtils.createDefaultValues({
-          auth: selectedAuth.authProperty,
-          suggestedExternalId: externalId,
-          suggestedDisplayName: displayName,
-          pieceName: piece.name,
-          oauth2App: selectedAuth.oauth2App,
-          grantType: selectedAuth.grantType,
-          redirectUrl: redirectUrl ?? '',
-          projectId: projectIdOverride ?? undefined,
-        }),
-        ...(isGlobalConnection ? { scope: AppConnectionScope.PLATFORM } : {}),
-        projectIds: reconnectConnection?.projectIds ?? [],
-        preSelectForNewProjects: false,
-        pieceVersion: piece.version,
-      },
+  const initial = {
+    request: {
+      ...newConnectionUtils.createDefaultValues({
+        auth: selectedAuth.authProperty,
+        suggestedExternalId: externalId,
+        suggestedDisplayName: displayName,
+        pieceName: piece.name,
+        oauth2App: selectedAuth.oauth2App,
+        grantType: selectedAuth.grantType,
+        redirectUrl: redirectUrl ?? '',
+        projectId: projectIdOverride ?? undefined,
+      }),
+      ...(isGlobalConnection ? { scope: AppConnectionScope.PLATFORM } : {}),
+      projectIds: reconnectConnection?.projectIds ?? [],
+      preSelectForNewProjects: false,
+      pieceVersion: piece.version,
     },
-    mode: 'onChange',
-    reValidateMode: 'onChange',
-    resolver: zodResolver(
-      formSchema,
-    ) as unknown as Resolver<ConnectionFormValues>,
-  });
+  };
+  const [values, setValues] = createSignal<ConnectionFormValues>(initial);
+  const [errors, setErrors] = createSignal<ErrorMap>({});
+  const form: SolidConnectionForm<ConnectionFormValues> = {
+    values,
+    errors,
+    getValue: (path) => getPath(values(), path),
+    getValues: values,
+    setValue: (path, value) => {
+      setValues((prev) => setPath(prev, path, value));
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[path];
+        return next;
+      });
+    },
+    setError: (path, error) =>
+      setErrors((prev) => ({ ...prev, [path]: error.message })),
+    clearError: (path) =>
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[path];
+        return next;
+      }),
+    validate: () => {
+      const result = formSchema.safeParse(values());
+      if (result.success) {
+        setErrors({});
+        return result.data as ConnectionFormValues;
+      }
+      setErrors(issues(result.error));
+      return null;
+    },
+  };
 
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = createSignal('');
 
   const { mutate: upsertConnection, isPending } =
     appConnectionsMutations.useUpsertAppConnection({
@@ -128,8 +152,8 @@ function CreateOrEditConnectionSection({
 
   return (
     <>
-      <DialogHeader className="mb-0">
-        <DialogTitle className="px-5">
+      <DialogHeader class="mb-0">
+        <DialogTitle class="px-5">
           <div className="flex items-center gap-2">
             {reconnectConnection
               ? t('Reconnect {displayName} Connection', {
@@ -142,10 +166,17 @@ function CreateOrEditConnectionSection({
         </DialogTitle>
       </DialogHeader>
 
-      <Form {...form}>
-        <form className="flex flex-col gap-3">
+      <form
+        className="flex flex-col gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (form.validate()) {
+            upsertConnection();
+          }
+        }}
+      >
           <ScrollArea
-            className="px-2"
+            class="px-2"
             viewPortClassName="max-h-[calc(70vh-180px)] px-4 py-2 mb-1"
           >
             {' '}
@@ -156,87 +187,81 @@ function CreateOrEditConnectionSection({
               }}
             ></ApMarkdown>
             {selectedAuth.authProperty.description && (
-              <Separator className="my-4" />
+              <Separator class="my-4" />
             )}
             {(isNil(externalIdComingFromSdk) ||
               externalIdComingFromSdk === '') && (
-              <FormField
-                name="request.displayName"
-                control={form.control}
-                render={({ field }) => (
-                  <FormItem className="flex flex-col gap-2">
-                    <FormLabel htmlFor="displayName" showRequiredIndicator>
-                      {t('Connection Name')}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        required
-                        id="displayName"
-                        type="text"
-                        placeholder={t('Connection name')}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+              <div class="flex flex-col gap-2">
+                <Label for="displayName" showRequiredIndicator>
+                  {t('Connection Name')}
+                </Label>
+                <Input
+                  value={String(form.getValue('request.displayName') ?? '')}
+                  onInput={(e) =>
+                    form.setValue('request.displayName', e.currentTarget.value)
+                  }
+                  required
+                  id="displayName"
+                  type="text"
+                  placeholder={t('Connection name')}
+                />
+                {errors()['request.displayName'] && (
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {t(errors()['request.displayName'])}
+                  </p>
                 )}
-              ></FormField>
+              </div>
             )}
             {isGlobalConnection && isNil(reconnectConnection) && (
               <div className="my-4 flex flex-col gap-4">
                 <ProjectSelector
-                  control={form.control}
-                  name="request.projectIds"
+                  value={form.getValue('request.projectIds') as string[]}
+                  onChange={(value) => form.setValue('request.projectIds', value)}
                 />
-                <FormField
-                  control={form.control}
-                  name="request.preSelectForNewProjects"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-3">
-                      <Checkbox
-                        id="preSelectForNewProjects"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                      <Label
-                        htmlFor="preSelectForNewProjects"
-                        className="cursor-pointer"
-                      >
-                        {t('Include by default in new projects')}
-                      </Label>
-                    </FormItem>
-                  )}
-                />
+                <div class="flex flex-row items-center gap-3">
+                  <Checkbox
+                    id="preSelectForNewProjects"
+                    checked={Boolean(
+                      form.getValue('request.preSelectForNewProjects'),
+                    )}
+                    onCheckedChange={(value) =>
+                      form.setValue('request.preSelectForNewProjects', value)
+                    }
+                  />
+                  <Label for="preSelectForNewProjects" class="cursor-pointer">
+                    {t('Include by default in new projects')}
+                  </Label>
+                </div>
                 {isNil(reconnectConnection) && (
                   <div>
-                    <FormField
-                      control={form.control}
-                      name="request.externalId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{t('External ID')}</FormLabel>
-                          <Input {...field} />
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    ></FormField>
+                    <Label>{t('External ID')}</Label>
+                    <Input
+                      value={String(form.getValue('request.externalId') ?? '')}
+                      onInput={(e) =>
+                        form.setValue('request.externalId', e.currentTarget.value)
+                      }
+                    />
                   </div>
                 )}
               </div>
             )}
             <div className="mt-3.5">
-              <ConnectionSettings selectedAuth={selectedAuth} piece={piece} />
+              <ConnectionSettings
+                selectedAuth={selectedAuth}
+                piece={piece}
+                form={form}
+              />
             </div>
           </ScrollArea>
           {errorMessage && (
             <FormError
               formMessageId="create-connection-server-error-message"
-              className="text-left px-6"
+              class="text-left px-6"
             >
               {errorMessage}
             </FormError>
           )}
-          <DialogFooter className="mt-0">
+          <DialogFooter class="mt-0">
             <div className="mx-5 flex gap-2 w-full">
               {showTryAnotherMethodButton && (
                 <Button
@@ -252,7 +277,6 @@ function CreateOrEditConnectionSection({
                 <Button variant="outline">{t('Cancel')}</Button>
               </DialogClose>
               <Button
-                onClick={(e) => form.handleSubmit(() => upsertConnection())(e)}
                 loading={isPending}
                 type="submit"
               >
@@ -260,27 +284,32 @@ function CreateOrEditConnectionSection({
               </Button>
             </div>
           </DialogFooter>
-        </form>
-      </Form>
+      </form>
     </>
   );
 }
-function ConnectionSettings({ selectedAuth, piece }: ConnectionSettingsProps) {
+function ConnectionSettings({ selectedAuth, piece, form }: ConnectionSettingsProps) {
   switch (selectedAuth.authProperty.type) {
     case PropertyType.SECRET_TEXT:
       return (
         <SecretTextConnectionSettings
           authProperty={selectedAuth.authProperty}
+          form={form}
         />
       );
     case PropertyType.BASIC_AUTH:
       return (
-        <BasicAuthConnectionSettings authProperty={selectedAuth.authProperty} />
+        <BasicAuthConnectionSettings
+          authProperty={selectedAuth.authProperty}
+          form={form}
+        />
       );
     case PropertyType.CUSTOM_AUTH:
       return (
-        <CustomAuthConnectionSettings
-          authProperty={selectedAuth.authProperty}
+        <ConnectionPropertiesForm
+          form={form}
+          prefix="request.value.props"
+          props={selectedAuth.authProperty.props}
         />
       );
     case PropertyType.OAUTH2:
@@ -288,21 +317,59 @@ function ConnectionSettings({ selectedAuth, piece }: ConnectionSettingsProps) {
         return <div>Error: Grant type and OAuth2 app are required</div>;
       }
       return (
-        <OAuth2ConnectionSettings
-          authProperty={selectedAuth.authProperty}
-          piece={piece}
-          grantType={selectedAuth.grantType}
-          oauth2App={selectedAuth.oauth2App}
-        />
+        <>
+          <OAuth2ConnectionSettings
+            authProperty={selectedAuth.authProperty}
+            piece={piece}
+            grantType={selectedAuth.grantType}
+            oauth2App={selectedAuth.oauth2App}
+            form={form}
+          />
+          {selectedAuth.authProperty.props && (
+            <ConnectionPropertiesForm
+              form={form}
+              prefix="request.value.props"
+              props={selectedAuth.authProperty.props}
+            />
+          )}
+        </>
       );
   }
+}
+
+function ConnectionPropertiesForm({ form, prefix, props }: ConnectionPropertiesFormProps) {
+  return (
+    <div class="flex flex-col gap-4">
+      {Object.entries(props).map(([name, prop]) => {
+        const path = `${prefix}.${name}`;
+        if (prop.type === PropertyType.MARKDOWN) {
+          return <ApMarkdown markdown={prop.description} variables={{}} />;
+        }
+        return (
+          <div class="flex flex-col gap-2">
+            <Label showRequiredIndicator={prop.required}>
+              {prop.displayName}
+            </Label>
+            <SecretInput
+              value={String(form.getValue(path) ?? '')}
+              onChange={(value) => form.setValue(path, value)}
+              type={prop.type === PropertyType.SECRET_TEXT ? 'password' : 'text'}
+            />
+            {prop.description && (
+              <p class="text-sm text-muted-foreground">{prop.description}</p>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function CreateOrEditConnectionDialogContent(
   props: CreateOrEditConnectionDialogContentProps,
 ) {
   const piece = props.piece;
-  const [selectedAuth, setSelectedAuth] = useState<AuthListItem | null>(
+  const [selectedAuth, setSelectedAuth] = createSignal<AuthListItem | null>(
     piece.auth
       ? getInitiallySelectedAuthListItem(
           piece.auth,
@@ -312,7 +379,7 @@ function CreateOrEditConnectionDialogContent(
         )
       : null,
   );
-  const [showMultiAuthList, setShowMultiAuthList] = useState(false);
+  const [showMultiAuthList, setShowMultiAuthList] = createSignal(false);
   if (isNil(piece.auth)) {
     return null;
   }
@@ -367,12 +434,12 @@ function CreateOrEditConnectionDialog({
     <Dialog open={open} onOpenChange={(open) => setOpen(open)} key={piece.name}>
       <DialogContent
         onInteractOutside={(e) => e.preventDefault()}
-        className="max-h-[70vh] px-0  min-w-[450px] max-w-[450px] lg:min-w-[650px] lg:max-w-[650px] overflow-y-auto"
+        class="max-h-[70vh] px-0  min-w-[450px] max-w-[450px] lg:min-w-[650px] lg:max-w-[650px] overflow-y-auto"
       >
         {loadingPiecesOAuth2AppsMap && hasOAuth2PieceAuth(piece) ? (
           <>
-            <DialogHeader className="mb-0">
-              <DialogTitle className="px-5">
+            <DialogHeader class="mb-0">
+              <DialogTitle class="px-5">
                 <div className="flex items-center gap-2">
                   {reconnectConnection
                     ? t('Reconnect {displayName} Connection', {
@@ -384,7 +451,7 @@ function CreateOrEditConnectionDialog({
                 </div>
               </DialogTitle>
             </DialogHeader>
-            <SkeletonList numberOfItems={4} className="h-7 mt-2"></SkeletonList>
+            <SkeletonList numberOfItems={4} class="h-7 mt-2"></SkeletonList>
           </>
         ) : (
           <CreateOrEditConnectionDialogContent
@@ -511,6 +578,13 @@ type CreateOrEditConnectionSectionProps =
 type ConnectionSettingsProps = {
   piece: PieceMetadataModelSummary | PieceMetadataModel;
   selectedAuth: AuthListItem;
+  form: SolidConnectionForm<ConnectionFormValues>;
+};
+
+type ConnectionPropertiesFormProps = {
+  form: SolidConnectionForm<ConnectionFormValues>;
+  prefix: string;
+  props: PiecePropertyMap;
 };
 
 type ConnectionFormValues = {

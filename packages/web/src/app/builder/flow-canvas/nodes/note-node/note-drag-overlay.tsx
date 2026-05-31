@@ -1,6 +1,6 @@
 import { isNil } from '@activepieces/shared';
-import { useReactFlow } from '@xyflow/react';
-import { useRef, useState } from 'react';
+import { useReactFlow } from '../../solid-flow-adapter';
+import { createSignal } from 'solid-js';
 
 import { SIDEBAR_ID } from '@/app/components/sidebar/dashboard';
 
@@ -17,7 +17,7 @@ import { NoteContent } from '.';
 const NoteDragOverlay = () => {
   const { cursorPosition } = useCursorPosition();
   const [overlayPosition, setOverlayPosition] =
-    useState<typeof cursorPosition>(cursorPosition);
+    createSignal<typeof cursorPosition>(cursorPosition);
   const sidebar = document.getElementById(SIDEBAR_ID);
   const [draggedNote, noteDragOverlayMode, addNote, draggedNoteOffset] =
     useBuilderStateContext((state) => [
@@ -27,7 +27,7 @@ const NoteDragOverlay = () => {
       state.draggedNoteOffset,
     ]);
   const reactFlow = useReactFlow();
-  const containerRef = useRef<HTMLDivElement>(null);
+  let containerRef: HTMLDivElement | undefined;
   const sidebarWidth = sidebar?.clientWidth ?? 0;
 
   const nodeSizeWithZoom = {
@@ -57,10 +57,10 @@ const NoteDragOverlay = () => {
   return (
     <div
       className={'absolute !cursor-grabbing note-drag-overlay'}
-      ref={containerRef}
+      ref={(el) => (containerRef = el)}
       onClick={() => {
         if (noteDragOverlayMode === NoteDragOverlayMode.CREATE) {
-          const rect = containerRef.current?.getBoundingClientRect();
+          const rect = containerRef?.getBoundingClientRect();
           if (rect) {
             const positionOnCanvas = reactFlow.screenToFlowPosition({
               x: rect.left,

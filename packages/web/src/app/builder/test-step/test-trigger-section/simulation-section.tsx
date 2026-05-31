@@ -1,15 +1,15 @@
 import { t } from 'i18next';
-import { AlertCircle } from 'lucide-react';
-import React from 'react';
+import { AlertCircle } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 type SimulationSectionProps = {
-  note: React.ReactNode;
+  note: any;
   resetSimulation: () => void;
-  abortControllerRef: React.MutableRefObject<AbortController>;
+  abortControllerRef: AbortController | undefined;
 };
 
 export const SimulationNote = ({
@@ -20,7 +20,7 @@ export const SimulationNote = ({
   return (
     <div className="flex flex-col gap-4 w-full px-3 pt-3">
       <div className="flex gap-2 items-center justify-center w-full">
-        <LoadingSpinner className="size-4"></LoadingSpinner>
+        <LoadingSpinner class="size-4"></LoadingSpinner>
         <div>{t('Testing Trigger')}</div>
         <div className="grow"></div>
 
@@ -37,9 +37,9 @@ export const SimulationNote = ({
         </Button>
       </div>
 
-      {note && (
+      <Show when={note()}>
         <Alert>
-          <AlertCircle className="h-4 w-4 text-warning" />
+          <AlertCircle class="h-4 w-4 text-warning" />
           <div className="flex flex-col gap-1">
             <AlertTitle>{t('Action Required')}:</AlertTitle>
             <AlertDescription>
@@ -47,7 +47,7 @@ export const SimulationNote = ({
             </AlertDescription>
           </div>
         </Alert>
-      )}
+      </Show>
     </div>
   );
 };

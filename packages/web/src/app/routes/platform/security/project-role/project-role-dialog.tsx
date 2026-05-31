@@ -1,6 +1,6 @@
 import { Permission, ProjectRole, RoleType } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useState, ReactNode } from 'react';
+import { createSignal, For, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -97,7 +97,7 @@ interface ProjectRoleDialogProps {
   projectRole?: ProjectRole;
   platformId: string;
   onSave: () => void;
-  children: ReactNode;
+  children: JSX.Element;
   disabled?: boolean;
 }
 
@@ -108,9 +108,9 @@ export const ProjectRoleDialog = ({
   children,
   disabled = false,
 }: ProjectRoleDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [roleName, setRoleName] = useState(projectRole?.name || '');
-  const [permissions, setPermissions] = useState<string[]>(() => {
+  const [isOpen, setIsOpen] = createSignal(false);
+  const [roleName, setRoleName] = createSignal(projectRole?.name || '');
+  const [permissions, setPermissions] = createSignal<string[]>(() => {
     if (!projectRole?.permissions) {
       // Set default Read permissions for any permission with disableNone
       const defaultPermissions = new Set<string>();
@@ -204,7 +204,7 @@ export const ProjectRoleDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="w-full max-w-3xl">
+      <DialogContent class="w-full max-w-3xl">
         <DialogHeader>
           <DialogTitle>
             {mode === 'create'
@@ -214,11 +214,13 @@ export const ProjectRoleDialog = ({
               : t('Edit Role: {name}', { name: projectRole?.name })}
           </DialogTitle>
           <DialogDescription>
-            {mode === 'create'
-              ? t(
-                  'Define a custom role with specific permissions for project members.',
-                )
-              : t('Review and manage permissions for this role.')}
+            <Show
+              when={mode === 'create'}
+              fallback={t('Review and manage permissions for this role.')}
+            >
+              t( 'Define a custom role with specific permissions for project
+              members.',
+            </Show>
           </DialogDescription>
         </DialogHeader>
         <div className="grid space-y-4 mt-4">
@@ -233,7 +235,7 @@ export const ProjectRoleDialog = ({
               id="name"
               type="text"
               placeholder={t('Role Name')}
-              className="rounded-sm mt-2"
+              class="rounded-sm mt-2"
               disabled={disabled}
             />
           </div>
@@ -242,74 +244,87 @@ export const ProjectRoleDialog = ({
               {t('Permissions')}
             </span>
             <div className="overflow-y-auto p-2 rounded-md">
-              <ScrollArea className="h-[55vh] pr-4">
+              <ScrollArea class="h-[55vh] pr-4">
                 <div className="grid grid-cols-2 gap-x-6">
-                  {initialPermissions.map((permission) => (
-                    <div
-                      key={permission.name}
-                      className="flex flex-col justify-between py-3 border-b last:border-b-0"
-                    >
-                      <div className="flex flex-row items-center justify-between gap-2">
-                        <span className="font-semibold text-sm text-foreground">
-                          {permission.name}
-                        </span>
-                        <div className="flex bg-accent rounded-sm">
-                          {!permission.disableNone && (
+                  <For each={initialPermissions}>
+                    {(permission) => (
+                      <div
+                        key={permission.name}
+                        className="flex flex-col justify-between py-3 border-b last:border-b-0"
+                      >
+                        <div className="flex flex-row items-center justify-between gap-2">
+                          <span className="font-semibold text-sm text-foreground">
+                            {permission.name}
+                          </span>
+                          <div className="flex bg-accent rounded-sm">
+                            <Show when={!permission.disableNone}>
+                              <Button
+                                class="h-9 px-4"
+                                variant={getButtonVariant(
+                                  permission.name,
+                                  'None',
+                                )}
+                                onClick={() =>
+                                  handlePermissionChange(
+                                    permission.name,
+                                    'None',
+                                  )
+                                }
+                                disabled={disabled}
+                              >
+                                {t('None')}
+                              </Button>
+                            </Show>
+                            <Show when={!permission.disableRead}>
+                              <Button
+                                class="h-9 px-4"
+                                variant={getButtonVariant(
+                                  permission.name,
+                                  'Read',
+                                )}
+                                onClick={() =>
+                                  handlePermissionChange(
+                                    permission.name,
+                                    'Read',
+                                  )
+                                }
+                                disabled={disabled}
+                              >
+                                {t('Read')}
+                              </Button>
+                            </Show>
                             <Button
-                              className="h-9 px-4"
+                              class="h-9 px-4"
                               variant={getButtonVariant(
                                 permission.name,
-                                'None',
+                                'Write',
                               )}
                               onClick={() =>
-                                handlePermissionChange(permission.name, 'None')
+                                handlePermissionChange(permission.name, 'Write')
                               }
                               disabled={disabled}
                             >
-                              {t('None')}
+                              {t('Write')}
                             </Button>
-                          )}
-                          {!permission.disableRead && (
-                            <Button
-                              className="h-9 px-4"
-                              variant={getButtonVariant(
-                                permission.name,
-                                'Read',
-                              )}
-                              onClick={() =>
-                                handlePermissionChange(permission.name, 'Read')
-                              }
-                              disabled={disabled}
-                            >
-                              {t('Read')}
-                            </Button>
-                          )}
-                          <Button
-                            className="h-9 px-4"
-                            variant={getButtonVariant(permission.name, 'Write')}
-                            onClick={() =>
-                              handlePermissionChange(permission.name, 'Write')
-                            }
-                            disabled={disabled}
-                          >
-                            {t('Write')}
-                          </Button>
+                          </div>
                         </div>
+                        <span className="text-xs text-muted-foreground mt-1">
+                          {permission.description}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground mt-1">
-                        {permission.description}
-                      </span>
-                    </div>
-                  ))}
+                    )}
+                  </For>
                 </div>
               </ScrollArea>
             </div>
           </div>
-          {!disabled && (
+          <Show when={!disabled}>
             <Button onClick={handleSubmit}>
-              {mode === 'create' ? t('Create') : t('Save')}
+              <Show when={mode === 'create'} fallback={t('Save')}>
+                t('Create'
+              </Show>
             </Button>
-          )}
+          </Show>
         </div>
       </DialogContent>
     </Dialog>

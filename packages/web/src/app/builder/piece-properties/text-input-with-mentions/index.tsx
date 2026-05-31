@@ -1,15 +1,5 @@
 import { flowStructureUtil, isNil } from '@activepieces/shared';
-import { Extensions } from '@tiptap/core';
-import { Document } from '@tiptap/extension-document';
-import { HardBreak } from '@tiptap/extension-hard-break';
-import { History } from '@tiptap/extension-history';
-import { MentionNodeAttrs, Mention } from '@tiptap/extension-mention';
-import { Paragraph } from '@tiptap/extension-paragraph';
-import { Placeholder } from '@tiptap/extension-placeholder';
-import { Text } from '@tiptap/extension-text';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import { useMemo } from 'react';
+import { createMemo } from 'solid-js';
 
 import { inputClass } from '@/components/ui/input';
 import { stepsHooks } from '@/features/pieces';
@@ -30,53 +20,6 @@ type TextInputWithMentionsProps = {
   enableMarkdown?: boolean;
 };
 
-function getExtensions({
-  enableMarkdown,
-  placeholder,
-}: {
-  placeholder?: string;
-  enableMarkdown?: boolean;
-}): Extensions {
-  const baseExtensions = [
-    Placeholder.configure({
-      placeholder: placeholder,
-      emptyNodeClass: 'before:text-muted-foreground opacity-75',
-    }),
-    Mention.configure({
-      suggestion: {
-        char: '',
-      },
-      deleteTriggerWithBackspace: true,
-      renderHTML({ node }) {
-        const mentionAttrs = node.attrs as unknown as MentionNodeAttrs;
-        return textMentionUtils.generateMentionHtmlElement(mentionAttrs);
-      },
-    }),
-  ];
-
-  if (enableMarkdown) {
-    return [
-      ...baseExtensions,
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
-    ] as Extensions;
-  }
-
-  return [
-    ...baseExtensions,
-    Document,
-    History,
-    HardBreak,
-    Text,
-    Paragraph.configure({
-      HTMLAttributes: {},
-    }),
-  ] as Extensions;
-}
-
 function convertToText(value: unknown): string {
   if (isNil(value)) {
     return '';
@@ -96,10 +39,9 @@ export const TextInputWithMentions = ({
   onChange,
   disabled,
   placeholder,
-  enableMarkdown,
 }: TextInputWithMentionsProps) => {
   const steps = useBuilderStateContext((state) =>
-    flowStructureUtil.getAllSteps(state.flowVersion.trigger),
+    flowStructureUtil.getAllSteps(state.flowVersion.trigger)
   );
   const stepsMetadata = stepsHooks
     .useStepsMetadata(steps)
@@ -122,68 +64,34 @@ export const TextInputWithMentions = ({
     extraKeys: ['mention-resolver-variables', projectId ?? ''],
     enabled: !!projectId,
   });
-  const variableByName = useMemo(
-    () => new Map((variablesPage?.data ?? []).map((v) => [v.name, v.name])),
-    [variablesPage],
+  const variableByName = createMemo(
+    () => new Map((variablesPage?.data ?? []).map((v) => [v.name, v.name]))
   );
 
   const setInsertMentionHandler = useBuilderStateContext(
-    (state) => state.setInsertMentionHandler,
+    (state) => state.setInsertMentionHandler
   );
 
   const insertMention = (propertyPath: string) => {
-    const mentionNode = textMentionUtils.createMentionNodeFromText(
-      `{{${propertyPath}}}`,
-      steps,
-      stepsMetadata,
-      variableByName,
-    );
-    editor?.chain().focus().insertContent(mentionNode).run();
-  };
-
-  const editor = useEditor({
-    editable: !disabled,
-    extensions: getExtensions({ placeholder, enableMarkdown }),
-    content: {
-      type: 'doc',
-      content: textMentionUtils.convertTextToTipTapJsonContent(
-        convertToText(initialValue),
-        steps,
-        stepsMetadata,
-        variableByName,
-      ),
-    },
-    editorProps: {
-      attributes: {
-        class: cn(
-          className ?? cn(inputClass, 'py-2 h-[unset] block   min-h-9  '),
-          textMentionUtils.inputWithMentionsCssClass,
-          {
-            'cursor-not-allowed opacity-50': disabled,
-          },
-        ),
-      },
-    },
-    onUpdate: ({ editor }) => {
-      const editorContent = editor.getJSON();
-      const textResult =
-        textMentionUtils.convertTiptapJsonToText(editorContent);
-      if (onChange) {
-        onChange(textResult);
-      }
-    },
-    onFocus: () => {
-      setInsertMentionHandler(insertMention);
-    },
-  });
-
-  if (!editor) {
-    return null;
+    onChange(`${convertToText(initialValue)}{{${propertyPath}}}`);
   }
 
   return (
     <div className="w-full">
-      <EditorContent editor={editor} />
+      <textarea
+        class={cn(
+          className ?? cn(inputClass, 'py-2 h-[unset] block min-h-9'),
+          textMentionUtils.inputWithMentionsCssClass,
+          {
+            'cursor-not-allowed opacity-50': disabled,
+          }
+        )}
+        disabled={disabled}
+        placeholder={placeholder}
+        value={convertToText(initialValue)}
+        onFocus={() => setInsertMentionHandler(insertMention)}
+        onInput={(e) => onChange(e.currentTarget.value)}
+      />
     </div>
   );
 };

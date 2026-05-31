@@ -1,5 +1,7 @@
 import { StepLocationRelativeToParent } from '@activepieces/shared';
-import { BaseEdge, EdgeProps } from '@xyflow/react';
+import { BaseEdge } from '../solid-flow-adapter';
+import type { EdgeProps } from '../solid-flow-adapter';
+import { Show } from 'solid-js';
 
 import { flowCanvasConsts } from '../utils/consts';
 import { ApRouterStartEdge } from '../utils/types';
@@ -99,7 +101,7 @@ export const ApRouterStartCanvasEdge = ({
         path={path}
         style={{ strokeWidth: `${flowCanvasConsts.LINE_WIDTH}px` }}
       ></BaseEdge>
-      {!data.isBranchEmpty && (
+      <Show when={!data.isBranchEmpty()}>
         <foreignObject
           x={targetX - flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.width / 2}
           y={targetY - verticalLineLength / 2}
@@ -107,26 +109,34 @@ export const ApRouterStartCanvasEdge = ({
           height={flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.height}
           className="overflow-visible"
         >
-          {data.stepLocationRelativeToParent !==
-            StepLocationRelativeToParent.INSIDE_BRANCH && (
+          <Show
+            when={
+              data.stepLocationRelativeToParent !==
+              StepLocationRelativeToParent.INSIDE_BRANCH()
+            }
+          >
             <ApAddButton
               edgeId={id}
               stepLocationRelativeToParent={data.stepLocationRelativeToParent}
               parentStepName={source}
             ></ApAddButton>
-          )}
+          </Show>
 
-          {data.stepLocationRelativeToParent ===
-            StepLocationRelativeToParent.INSIDE_BRANCH && (
+          <Show
+            when={
+              data.stepLocationRelativeToParent ===
+              StepLocationRelativeToParent.INSIDE_BRANCH()
+            }
+          >
             <ApAddButton
               edgeId={id}
               stepLocationRelativeToParent={data.stepLocationRelativeToParent}
               parentStepName={source}
               branchIndex={data.branchIndex}
             ></ApAddButton>
-          )}
+          </Show>
         </foreignObject>
-      )}
+      </Show>
 
       <foreignObject
         width={flowCanvasConsts.AP_NODE_SIZE.STEP.width - 10 + 'px'}

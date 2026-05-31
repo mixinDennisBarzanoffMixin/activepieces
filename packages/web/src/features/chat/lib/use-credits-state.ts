@@ -1,6 +1,6 @@
 import { AIProviderName } from '@activepieces/shared';
 import dayjs from 'dayjs';
-import { useCallback, useState } from 'react';
+import { createSignal } from 'solid-js';
 
 import { aiProviderQueries } from '@/features/platform-admin';
 import { platformHooks } from '@/hooks/platform-hooks';
@@ -13,8 +13,8 @@ export function useCreditsState() {
   const { platform } = platformHooks.useCurrentPlatform();
   const { data: providers } = aiProviderQueries.useAiProviders();
 
-  const [creditsExhausted, setCreditsExhausted] = useState(false);
-  const [warningDismissed, setWarningDismissed] = useState(false);
+  const [creditsExhausted, setCreditsExhausted] = createSignal(false);
+  const [warningDismissed, setWarningDismissed] = createSignal(false);
 
   const creditsWarning = warningDismissed
     ? null
@@ -24,9 +24,9 @@ export function useCreditsState() {
     platform.plan.lastFreeAiCreditsRenewalDate,
   );
 
-  const dismissCreditsWarning = useCallback(() => {
+  const dismissCreditsWarning = () => {
     setWarningDismissed(true);
-  }, []);
+  };
 
   return {
     creditsWarning,

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, createEffect, useContext } from 'solid-js';
 
 const CursorPositionContext = createContext<{
   cursorPosition: { x: number; y: number };
@@ -12,18 +12,14 @@ export const useCursorPosition = () => {
   return useContext(CursorPositionContext);
 };
 
-export const CursorPositionProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  const cursorPositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+export const CursorPositionProvider = ({ children }: { children: any }) => {
+  let cursorPositionRef: { x: number; y: number } | undefined;
   const setCursorPosition = (position: { x: number; y: number }) => {
-    cursorPositionRef.current = position;
+    cursorPositionRef = position;
   };
   return (
     <CursorPositionContext.Provider
-      value={{ cursorPosition: cursorPositionRef.current, setCursorPosition }}
+      value={{ cursorPosition: cursorPositionRef, setCursorPosition }}
     >
       {children}
     </CursorPositionContext.Provider>
@@ -34,7 +30,7 @@ export const CursorPositionProvider = ({
 export const useCursorPositionEffect = (
   callback: (position: { x: number; y: number }) => void,
 ) => {
-  useEffect(() => {
+  createEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
       callback({ x: event.clientX, y: event.clientY });
     };
@@ -42,5 +38,5 @@ export const useCursorPositionEffect = (
     return () => {
       window.removeEventListener('pointermove', handleMouseMove);
     };
-  }, [callback]);
+  });
 };

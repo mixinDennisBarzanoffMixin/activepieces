@@ -1,22 +1,24 @@
-import { useEffect } from 'react';
+import { createEffect } from 'solid-js';
 
 import { flagsHooks } from '@/hooks/flags-hooks';
 
 type PageTitleProps = {
   title: string;
-  children: React.ReactNode;
+  children: JSX.Element;
 };
 
 const PageTitle = ({ title, children }: PageTitleProps) => {
   const websiteBranding = flagsHooks.useWebsiteBranding();
 
-  useEffect(() => {
-    document.title = `${title} | ${websiteBranding.websiteName}`;
-  }, [title, websiteBranding.websiteName]);
+  createEffect(() => {
+    const branding = websiteBranding();
+    if (!branding) {
+      return;
+    }
+    document.title = `${title} | ${branding.websiteName}`;
+  });
 
   return children;
 };
-
-PageTitle.displayName = 'PageTitle';
 
 export { PageTitle };

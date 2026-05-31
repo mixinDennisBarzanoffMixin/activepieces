@@ -1,7 +1,5 @@
 import { FieldType } from '@activepieces/shared';
-import { useEffect, useRef, useState } from 'react';
-import { CalculatedColumn } from 'react-data-grid';
-import { ErrorBoundary } from 'react-error-boundary';
+import { createEffect, createSignal, ErrorBoundary } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -20,7 +18,7 @@ type EditableCellProps = {
   value?: string;
   row: Row;
   onClick?: () => void;
-  column: CalculatedColumn<Row, { id: string }>;
+  column: { key: string; idx: number };
   rowIdx: number;
   disabled?: boolean;
   locked?: boolean;
@@ -40,14 +38,14 @@ const EditorSelector = ({ fieldType }: { fieldType: FieldType }) => {
 };
 
 const useSetInitialFocus = (isSelected: boolean) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
+  const containerRef = null;
+  createEffect(() => {
     requestAnimationFrame(() => {
       if (isSelected) {
         containerRef.current?.focus();
       }
     });
-  }, []);
+  });
   return containerRef;
 };
 
@@ -68,11 +66,11 @@ export function EditableCell({
       state.fields,
     ],
   );
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = createSignal(false);
   const isSelected =
     selectedCell?.rowIdx === rowIdx && selectedCell?.columnIdx === column.idx;
   const containerRef = useSetInitialFocus(isSelected);
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     const isTypingKey = e.key.length === 1 || e.key === 'Enter';
     if (isTypingKey && !disabled && !isEditing) {
       setIsEditing(true);

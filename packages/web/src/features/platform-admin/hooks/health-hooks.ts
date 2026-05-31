@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 
 import { healthApi } from '@/api/health-api';
 
@@ -8,8 +8,8 @@ export const healthKeys = {
 
 export const healthQueries = {
   useSystemHealth: () =>
-    useQuery({
+    createQuery(() => ({
       queryKey: healthKeys.all,
       queryFn: () => healthApi.getSystemHealthChecks(),
-    }),
+    })),
 };

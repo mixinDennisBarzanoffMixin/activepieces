@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { createEffect } from 'solid-js';
 
 import { useResourceLock } from '@/hooks/use-resource-lock';
 
@@ -10,22 +10,22 @@ function useFlowLock() {
     state.flow.id,
     state.setReadOnly,
   ]);
-  const readonlySetByLock = useRef(false);
+  let readonlySetByLock: any | undefined;
 
   const { lockedBy, takeOver } = useResourceLock({
     resourceId: flowId,
   });
 
-  useEffect(() => {
+  createEffect(() => {
     if (lockedBy && !readonly) {
-      readonlySetByLock.current = true;
+      readonlySetByLock = true;
       setReadOnly(true);
     }
-    if (!lockedBy && readonlySetByLock.current) {
-      readonlySetByLock.current = false;
+    if (!lockedBy && readonlySetByLock) {
+      readonlySetByLock = false;
       setReadOnly(false);
     }
-  }, [lockedBy, readonly, setReadOnly]);
+  });
 
   return { lockedBy, takeOver };
 }

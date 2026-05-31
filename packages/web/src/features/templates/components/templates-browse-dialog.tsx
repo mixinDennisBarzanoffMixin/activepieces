@@ -1,9 +1,9 @@
 import { Template, TemplateType } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
+import { useDebounce } from '@/lib/debounce';
+import { createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { LayoutGrid, Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useDebounce } from 'use-debounce';
+import { LayoutGrid, Search } from 'lucide-solid';
+import { createSignal, createMemo } from 'solid-js';
 
 import {
   Empty,
@@ -44,10 +44,10 @@ type TemplatesBrowseDialogProps = {
 const TemplateCardSkeleton = () => (
   <div className="h-[250px] rounded-lg border bg-card flex flex-col">
     <div className="p-4 flex flex-col gap-2 flex-1">
-      <Skeleton className="h-5 w-3/4" />
-      <Skeleton className="h-4 w-full mt-1" />
-      <Skeleton className="h-4 w-2/3" />
-      <Skeleton className="h-5 w-20 mt-2" />
+      <Skeleton class="h-5 w-3/4" />
+      <Skeleton class="h-4 w-full mt-1" />
+      <Skeleton class="h-4 w-2/3" />
+      <Skeleton class="h-5 w-20 mt-2" />
     </div>
     <div className="h-16 bg-muted/30 rounded-b-lg" />
   </div>
@@ -57,12 +57,12 @@ export const TemplatesBrowseDialog = ({
   open,
   onOpenChange,
 }: TemplatesBrowseDialogProps) => {
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+  const [search, setSearch] = createSignal('');
+  const [selectedCategory, setSelectedCategory] = createSignal('All');
+  const [selectedTemplate, setSelectedTemplate] = createSignal<Template | null>(
     null,
   );
-  const [useTemplateDialogOpen, setUseTemplateDialogOpen] = useState(false);
+  const [useTemplateDialogOpen, setUseTemplateDialogOpen] = createSignal(false);
 
   const [debouncedSearch] = useDebounce(search, 300);
 
@@ -72,7 +72,7 @@ export const TemplatesBrowseDialog = ({
     ? TemplateType.OFFICIAL
     : TemplateType.CUSTOM;
 
-  const { data: categories } = useQuery<string[]>({
+  const { data: categories } = createQuery<string[]>({
     queryKey: ['template', 'categories'],
     queryFn: async () => {
       const result = await templatesApi.getCategories();
@@ -82,9 +82,9 @@ export const TemplatesBrowseDialog = ({
   });
 
   const categoryParam =
-    selectedCategory !== 'All' ? selectedCategory : undefined;
+    selectedCategory() !== 'All' ? selectedCategory() : undefined;
 
-  const { data: templates, isLoading } = useQuery<Template[]>({
+  const { data: templates, isLoading } = createQuery<Template[]>({
     queryKey: [
       'templates-browse-dialog',
       templateType,
@@ -103,7 +103,7 @@ export const TemplatesBrowseDialog = ({
     enabled: open,
   });
 
-  const allCategories = useMemo(
+  const allCategories = createMemo(
     () => ['All', ...(categories || [])],
     [categories],
   );
@@ -124,39 +124,39 @@ export const TemplatesBrowseDialog = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-5xl w-full h-[85vh] flex flex-col gap-0 p-0">
-          <DialogHeader className="px-6 pt-6 pb-4 mb-0 flex-shrink-0">
+        <DialogContent class="max-w-5xl w-full h-[85vh] flex flex-col gap-0 p-0">
+          <DialogHeader class="px-6 pt-6 pb-4 mb-0 flex-shrink-0">
             <DialogTitle>{t('Browse Templates')}</DialogTitle>
           </DialogHeader>
 
           <div className="px-6 pb-3 flex-shrink-0">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={t('Search templates by name or description')}
-                value={search}
+                value={search()}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-8 focus-visible:ring-0 focus-visible:ring-offset-0"
+                class="pl-8 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
           </div>
 
-          {isShowingOfficialTemplates && allCategories.length > 1 && (
+          {isShowingOfficialTemplates && allCategories().length > 1 && (
             <div className="flex-shrink-0 border-t border-b py-2">
               <Carousel
                 opts={{ align: 'start', loop: false }}
-                className="w-full px-4"
+                class="w-full px-4"
               >
-                <CarouselContent className="-ml-2 gap-1">
-                  {allCategories.map((category) => {
-                    const isSelected = selectedCategory === category;
+                <CarouselContent class="-ml-2 gap-1">
+                  {allCategories().map((category) => {
+                    const isSelected = selectedCategory() === category;
                     return (
-                      <CarouselItem key={category} className="basis-auto pl-2">
+                      <CarouselItem key={category} class="basis-auto pl-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setSelectedCategory(category)}
-                          className={cn(
+                          class={cn(
                             'px-3 py-1 h-auto whitespace-nowrap transition-colors border-none',
                             isSelected
                               ? 'bg-black text-white hover:!bg-black hover:!text-white'
@@ -169,8 +169,8 @@ export const TemplatesBrowseDialog = ({
                     );
                   })}
                 </CarouselContent>
-                <CarouselPrevious variant="ghost" className="left-0" />
-                <CarouselNext variant="ghost" className="right-0" />
+                <CarouselPrevious variant="ghost" class="left-0" />
+                <CarouselNext variant="ghost" class="right-0" />
               </Carousel>
             </div>
           )}
@@ -183,7 +183,7 @@ export const TemplatesBrowseDialog = ({
                 ))}
               </div>
             ) : !templates || templates.length === 0 ? (
-              <Empty className="min-h-[300px]">
+              <Empty class="min-h-[300px]">
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
                     <LayoutGrid />
@@ -209,11 +209,11 @@ export const TemplatesBrowseDialog = ({
         </DialogContent>
       </Dialog>
 
-      {selectedTemplate && (
+      {selectedTemplate() && (
         <UseTemplateDialog
-          key={selectedTemplate.id}
-          template={selectedTemplate}
-          open={useTemplateDialogOpen}
+          key={selectedTemplate()!.id}
+          template={selectedTemplate()!}
+          open={useTemplateDialogOpen()}
           onOpenChange={handleUseTemplateDialogClose}
         />
       )}

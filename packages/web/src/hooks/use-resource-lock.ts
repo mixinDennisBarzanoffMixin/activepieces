@@ -5,7 +5,7 @@ import {
   WebsocketClientEvent,
   WebsocketServerEvent,
 } from '@activepieces/shared';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal, onCleanup } from 'solid-js';
 
 import { useSocket } from '@/components/providers/socket-provider';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -13,13 +13,13 @@ import { authenticationSession } from '@/lib/authentication-session';
 function useResourceLock({ resourceId }: UseResourceLockParams) {
   const socket = useSocket();
   const currentUserId = authenticationSession.getCurrentUserId();
-  const isOwner = useRef(false);
-  const [lockedBy, setLockedBy] = useState<{
+  let isOwner = false;
+  const [lockedBy, setLockedBy] = createSignal<{
     userId: string;
     userDisplayName: string;
   } | null>(null);
 
-  useEffect(() => {
+  createEffect(() => {
     const handleLocked = (event: ResourceLockedEvent) => {
       if (event.resourceId === resourceId && event.userId !== currentUserId) {
         setLockedBy({
@@ -37,19 +37,19 @@ function useResourceLock({ resourceId }: UseResourceLockParams) {
     socket.on(WebsocketClientEvent.RESOURCE_LOCKED, handleLocked);
     socket.on(WebsocketClientEvent.RESOURCE_UNLOCKED, handleUnlocked);
 
-    return () => {
+    onCleanup(() => {
       socket.off(WebsocketClientEvent.RESOURCE_LOCKED, handleLocked);
       socket.off(WebsocketClientEvent.RESOURCE_UNLOCKED, handleUnlocked);
-    };
-  }, [resourceId, socket, currentUserId]);
+    });
+  });
 
-  useEffect(() => {
+  createEffect(() => {
     socket.emit(
       WebsocketServerEvent.LOCK_RESOURCE,
       { resourceId },
       (response: LockResourceResponse) => {
         if (response.acquired) {
-          isOwner.current = true;
+          isOwner = true;
         } else if (response.lock) {
           setLockedBy(response.lock);
         }
@@ -57,7 +57,7 @@ function useResourceLock({ resourceId }: UseResourceLockParams) {
     );
 
     const heartbeat = setInterval(() => {
-      if (!isOwner.current) {
+      if (!isOwner) {
         return;
       }
       socket.emit(
@@ -65,34 +65,34 @@ function useResourceLock({ resourceId }: UseResourceLockParams) {
         { resourceId },
         (response: LockResourceResponse) => {
           if (!response.acquired && response.lock) {
-            isOwner.current = false;
+            isOwner = false;
             setLockedBy(response.lock);
           }
         },
       );
     }, 30_000);
 
-    return () => {
+    onCleanup(() => {
       clearInterval(heartbeat);
-      if (isOwner.current) {
+      if (isOwner) {
         socket.emit(WebsocketServerEvent.UNLOCK_RESOURCE, { resourceId });
-        isOwner.current = false;
+        isOwner = false;
       }
-    };
-  }, [resourceId, socket]);
+    });
+  });
 
-  const takeOver = useCallback(() => {
+  const takeOver = () => {
     socket.emit(
       WebsocketServerEvent.LOCK_RESOURCE,
       { resourceId, force: true },
       (response: LockResourceResponse) => {
         if (response.acquired) {
-          isOwner.current = false;
+          isOwner = false;
           window.location.reload();
         }
       },
     );
-  }, [resourceId, socket]);
+  };
 
   return { lockedBy, takeOver };
 }

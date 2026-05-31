@@ -1,5 +1,4 @@
 import { VariantProps, cva } from 'class-variance-authority';
-import React from 'react';
 
 import { ImageWithColorBackground } from '@/components/custom/image-with-color-background';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,48 +51,41 @@ interface PieceIconProps extends VariantProps<typeof pieceIconVariants> {
   background?: string;
 }
 
-const PieceIcon = React.memo(
-  ({
-    displayName,
-    logoUrl,
-    border,
-    size,
-    showTooltip,
-    background,
-  }: PieceIconProps) => {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className={cn(
-              pieceIconVariants({ border, size }),
-              'overflow-hidden',
-            )}
-            style={background ? { backgroundColor: background } : undefined}
-          >
-            {logoUrl ? (
-              <ImageWithColorBackground
-                src={logoUrl}
-                alt={displayName}
-                className={cn(
-                  pieceIconVariantsWithPadding({ size }),
-                  'object-contain w-full h-full',
-                )}
-                key={logoUrl}
-                fallback={<Skeleton className="rounded-md w-full h-full" />}
-              />
-            ) : (
-              <Skeleton className="rounded-md w-full h-full" />
-            )}
-          </div>
-        </TooltipTrigger>
-        {showTooltip ? (
-          <TooltipContent side="bottom">{displayName}</TooltipContent>
-        ) : null}
-      </Tooltip>
-    );
-  },
-);
-
-PieceIcon.displayName = 'PieceIcon';
+const PieceIcon = ({
+  displayName,
+  logoUrl,
+  border,
+  size,
+  showTooltip,
+  background,
+}: PieceIconProps) => {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className={cn(pieceIconVariants({ border, size }), 'overflow-hidden')}
+          style={background ? { backgroundColor: background } : undefined}
+        >
+          {logoUrl ? (
+            <ImageWithColorBackground
+              src={logoUrl}
+              alt={displayName}
+              class={cn(
+                pieceIconVariantsWithPadding({ size }),
+                'object-contain w-full h-full',
+              )}
+              key={logoUrl}
+              fallback={<Skeleton class="rounded-md w-full h-full" />}
+            />
+          ) : (
+            <Skeleton class="rounded-md w-full h-full" />
+          )}
+        </div>
+      </TooltipTrigger>
+      {showTooltip ? (
+        <TooltipContent side="bottom">{displayName}</TooltipContent>
+      ) : null}
+    </Tooltip>
+  );
+};
 export { PieceIcon };

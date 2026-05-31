@@ -4,9 +4,10 @@ import {
   isFlowRunStateTerminal,
   StepOutputStatus,
 } from '@activepieces/shared';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow } from '../solid-flow-adapter';
 import { t } from 'i18next';
-import { ArrowRight, CircleHelp, Magnet } from 'lucide-react';
+import { ArrowRight, CircleHelp, Magnet } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { flowRunUtils } from '@/features/flow-runs';
@@ -98,7 +99,7 @@ const RunInfoWidget = () => {
     >
       <div className="flex items-center justify-between w-full flex-wrap">
         <div className="flex items-center text-sm shrink-0">
-          <Icon className="size-5 mr-2" />
+          <Icon class="size-5 mr-2" />
           <span className="text-foreground dark:text-foreground font-medium">
             {getStatusText({
               status: run.status,
@@ -109,10 +110,10 @@ const RunInfoWidget = () => {
           </span>
 
           <div className="shrink-0 text-foreground dark:text-foreground">
-            {isRunTerminal && (
+            <Show when={isRunTerminal()}>
               <>
                 &nbsp;-&nbsp;
-                {run.startTime && (
+                <Show when={run.startTime()}>
                   <DateSection
                     text={t('Started')}
                     dateOrDuration={formatUtils.formatDateWithTime(
@@ -120,9 +121,9 @@ const RunInfoWidget = () => {
                       true,
                     )}
                   />
-                )}
+                </Show>
                 {', '}
-                {run.finishTime && run.startTime && (
+                <Show when={run.finishTime && run.startTime()}>
                   <DateSection
                     text={t('Took')}
                     dateOrDuration={formatUtils.formatDuration(
@@ -130,17 +131,17 @@ const RunInfoWidget = () => {
                         new Date(run.startTime).getTime(),
                     )}
                   />
-                )}
+                </Show>
               </>
-            )}
+            </Show>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <ResumeLiveFollowButton isRunTerminal={isRunTerminal} />
-          {run.failedStep && (
+          <Show when={run.failedStep()}>
             <JumpToFailedStepButton failedStepName={run.failedStep.name} />
-          )}
+          </Show>
           <EditFlowOrViewDraftButton
             onCanvas={false}
           ></EditFlowOrViewDraftButton>
@@ -182,7 +183,7 @@ const ResumeLiveFollowButton = ({
   }
   return (
     <Button variant="ghost" size="sm" onClick={resumeLiveFollow}>
-      <Magnet className="size-4" />
+      <Magnet class="size-4" />
       {t('Follow run updates')}
     </Button>
   );
@@ -224,9 +225,9 @@ const JumpToFailedStepButton = ({
       variant="ghost"
       size="sm"
       onClick={handleClick}
-      className="text-destructive-700 hover:text-destructive-700 dark:text-destructive-200 dark:hover:text-destructive-200"
+      class="text-destructive-700 hover:text-destructive-700 dark:text-destructive-200 dark:hover:text-destructive-200"
     >
-      <ArrowRight className="size-4" />
+      <ArrowRight class="size-4" />
       {t('See error')}
     </Button>
   );

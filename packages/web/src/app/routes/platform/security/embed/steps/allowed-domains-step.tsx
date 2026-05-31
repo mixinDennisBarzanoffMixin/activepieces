@@ -1,24 +1,16 @@
 import { allowedEmbedOriginSchema, ApFlagId } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Loader2 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { Loader2 } from 'lucide-solid';
+import { createSignal, For, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 import { z } from 'zod';
 
 import { platformApi } from '@/api/platforms-api';
 import { TagInput } from '@/components/custom/tag-input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { internalErrorToast } from '@/components/ui/sonner';
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { platformHooks } from '@/hooks/platform-hooks';
@@ -45,14 +37,10 @@ export const AllowedDomainsStep = ({
   const { data: envAllowedOrigins } = flagsHooks.useFlag<string[]>(
     ApFlagId.ALLOWED_EMBED_ORIGINS,
   );
+  const [origins, setOrigins] = createSignal(allowedEmbedOrigins);
+  const [error, setError] = createSignal('');
 
-  const form = useForm<AllowedOriginsForm>({
-    resolver: zodResolver(AllowedOriginsForm),
-    defaultValues: { origins: allowedEmbedOrigins },
-    mode: 'onChange',
-  });
-
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending } = createMutation(() => ({
     mutationFn: async (values: AllowedOriginsForm) => {
       await platformApi.update(
         { allowedEmbedOrigins: values.origins },
@@ -64,7 +52,18 @@ export const AllowedDomainsStep = ({
       toast.success(t('Allowed domains updated'));
     },
     onError: () => internalErrorToast(),
-  });
+  }));
+
+  const submit = (event: SubmitEvent) => {
+    event.preventDefault();
+    const parsed = AllowedOriginsForm.safeParse({ origins: origins() });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message || 'invalidEmbedOrigin');
+      return;
+    }
+    setError('');
+    mutate(parsed.data);
+  };
 
   return (
     <StepShell
@@ -73,34 +72,27 @@ export const AllowedDomainsStep = ({
         'List the websites that can load your embed in an iframe. All other origins are blocked.',
       )}
     >
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit((values) => mutate(values))}
-          className="flex flex-col gap-2"
-        >
-          <FormField
-            name="origins"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t('Allowed websites')}</FormLabel>
-                <p className="text-xs text-muted-foreground">
-                  {t(
-                    'Press Enter or use a comma to add another, e.g. https://app.acme.com',
-                  )}
-                </p>
-                <FormControl>
-                  <TagInput
-                    value={field.value}
-                    onChange={(next) => field.onChange([...next])}
-                    validateItem={isValidOrigin}
-                    placeholder="https://app.acme.com"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {envAllowedOrigins && envAllowedOrigins.length > 0 && (
+      <form onSubmit={submit} className="flex flex-col gap-2">
+          <div className="space-y-1">
+            <Label>{t('Allowed websites')}</Label>
+            <p className="text-xs text-muted-foreground">
+              {t(
+                'Press Enter or use a comma to add another, e.g. https://app.acme.com',
+              )}
+            </p>
+            <TagInput
+              value={origins()}
+              onChange={(next) => setOrigins([...next])}
+              validateItem={isValidOrigin}
+              placeholder="https://app.acme.com"
+            />
+            <Show when={error()}>
+              <p className="text-sm font-medium text-destructive wrap-break-word">
+                {t(error())}
+              </p>
+            </Show>
+          </div>
+          <Show when={envAllowedOrigins && envAllowedOrigins.length > 0}>
             <div className="mt-2 flex flex-col gap-1.5">
               <p className="text-xs text-muted-foreground">
                 {t(
@@ -108,26 +100,25 @@ export const AllowedDomainsStep = ({
                 )}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {envAllowedOrigins.map((d) => (
-                  <Badge
-                    key={d}
-                    variant="outline"
-                    className="font-mono text-xs"
-                  >
-                    {d}
-                  </Badge>
-                ))}
+                <For each={envAllowedOrigins}>
+                  {(d) => (
+                    <Badge key={d} variant="outline" class="font-mono text-xs">
+                      {d}
+                    </Badge>
+                  )}
+                </For>
               </div>
             </div>
-          )}
+          </Show>
           <div className="flex justify-end mt-6">
             <Button size="sm" type="submit" disabled={isPending}>
-              {isPending && <Loader2 className="size-4 animate-spin mr-2" />}
+              <Show when={isPending}>
+                <Loader2 class="size-4 animate-spin mr-2" />
+              </Show>
               {t('Save')}
             </Button>
           </div>
         </form>
-      </Form>
     </StepShell>
   );
 };

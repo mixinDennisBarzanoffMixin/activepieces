@@ -5,7 +5,7 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { RouteOff } from 'lucide-react';
+import { RouteOff } from 'lucide-solid';
 
 import { flowRunUtils } from '@/features/flow-runs';
 
@@ -35,7 +35,7 @@ const ApStepNodeSkippedStatus = ({ stepName }: { stepName: string }) => {
       <div
         className={flowRunUtils.getStatusContainerClassName('default', true)}
       >
-        <RouteOff className="size-3" />
+        <RouteOff class="size-3" />
         <div>{t('Skipped')}</div>
       </div>
     </div>

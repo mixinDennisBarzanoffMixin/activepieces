@@ -4,8 +4,8 @@ import {
   UserWithMetaInformation,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { User } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { User } from 'lucide-solid';
+import { createMemo, createSignal } from 'solid-js';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -34,7 +34,7 @@ export type UserRowData =
     };
 
 export default function UsersPage() {
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = createSignal(false);
 
   const {
     data: usersData,
@@ -53,7 +53,7 @@ export default function UsersPage() {
     refetchInvitations();
   };
 
-  const combinedData: UserRowData[] = useMemo(() => {
+  const combinedData: UserRowData[] = createMemo(() => {
     const users: UserRowData[] =
       usersData?.data?.map((user) => ({
         id: user.id,
@@ -69,7 +69,7 @@ export default function UsersPage() {
       })) ?? [];
 
     return [...users, ...pendingInvitations];
-  }, [usersData, invitationsData]);
+  });
 
   const isLoading = usersLoading || invitationsLoading;
 
@@ -120,7 +120,7 @@ export default function UsersPage() {
         <DataTable
           emptyStateTextTitle={t('No users found')}
           emptyStateTextDescription={t('Start inviting users to your project')}
-          emptyStateIcon={<User className="size-14" />}
+          emptyStateIcon={<User class="size-14" />}
           columns={columns}
           page={{
             data: combinedData,
@@ -132,7 +132,7 @@ export default function UsersPage() {
           toolbarButtons={[
             <Button
               key="invite"
-              className="gap-2"
+              class="gap-2"
               size="sm"
               onClick={() => setInviteOpen(true)}
             >

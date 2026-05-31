@@ -2,7 +2,7 @@ import {
   AgentMcpTool,
   ValidateAgentMcpToolResponse,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 
 import { flowsApi } from '@/features/flows/api/flows-api';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -12,7 +12,7 @@ import { mcpToolApi } from '../agent-tools/mcp-tool-dialog/api';
 export const agentQueries = {
   useFlowsForAgent: () => {
     const projectId = authenticationSession.getProjectId();
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['flows', projectId],
       queryFn: async () => {
         return await flowsApi.list({
@@ -21,7 +21,7 @@ export const agentQueries = {
           projectId: projectId!,
         });
       },
-    });
+    }));
   },
 };
 
@@ -33,7 +33,7 @@ export const agentMutations = {
     onSuccess: (data: ValidateAgentMcpToolResponse) => void;
     onError: (error: Error) => void;
   }) => {
-    return useMutation<
+    return createMutation<
       ValidateAgentMcpToolResponse,
       Error,
       { projectId: string; tool: AgentMcpTool }

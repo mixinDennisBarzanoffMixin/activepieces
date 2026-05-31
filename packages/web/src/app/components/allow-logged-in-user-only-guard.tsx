@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { JSX } from 'solid-js';
 
 import { SocketProvider } from '@/components/providers/socket-provider';
 import { useTelemetry } from '@/components/providers/telemetry-provider';
@@ -11,22 +11,26 @@ import { authenticationSession } from '../../lib/authentication-session';
 import { BadgeCelebrate } from './badge-celebrate';
 
 type AllowOnlyLoggedInUserOnlyGuardProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
 };
 export const AllowOnlyLoggedInUserOnlyGuard = ({
   children,
 }: AllowOnlyLoggedInUserOnlyGuardProps) => {
   const { reset } = useTelemetry();
-  const location = useLocation();
   if (!authenticationSession.isLoggedIn()) {
-    authenticationSession.logOut();
+    authenticationSession.clearSession();
     reset();
+    if (window.location.pathname === '/sign-in') {
+      return null;
+    }
     const searchParams = new URLSearchParams();
-    searchParams.set('from', location.pathname + location.search);
-    return <Navigate to={`/sign-in?${searchParams.toString()}`} replace />;
+    searchParams.set('from', window.location.pathname + window.location.search);
+    window.location.replace(`/sign-in?${searchParams.toString()}`);
+    return null;
   }
   if (authenticationSession.isOnboarding()) {
-    return <Navigate to="/create-platform" replace />;
+    window.location.replace('/create-platform');
+    return null;
   }
   platformHooks.useCurrentPlatform();
   flagsHooks.useFlags();

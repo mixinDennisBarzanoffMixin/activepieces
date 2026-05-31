@@ -1,15 +1,22 @@
+import {
+  CategoryScale,
+  Chart,
+  Filler,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  Tooltip as ChartTooltip,
+} from 'chart.js';
 import { t } from 'i18next';
-import { Download } from 'lucide-react';
-import { useRef } from 'react';
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Download } from 'lucide-solid';
+import { Show, createEffect, onCleanup } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ChartConfig,
   ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
 } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -20,6 +27,16 @@ import {
 
 import { downloadChartAsPng } from '../lib/impact-utils';
 
+Chart.register(
+  CategoryScale,
+  Filler,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  ChartTooltip,
+);
+
 type AnalyticsAreaChartProps = {
   title: string;
   subtitle: string;
@@ -29,7 +46,7 @@ type AnalyticsAreaChartProps = {
   gradientId: string;
   chartData: Array<Record<string, string | number>>;
   isLoading: boolean;
-  emptyIcon: React.ReactNode;
+  emptyIcon: JSX.Element;
   emptyText: string;
   downloadFilename: string;
   yAxisFormatter?: (value: number) => string;
@@ -51,18 +68,18 @@ export function AnalyticsAreaChart({
   yAxisFormatter,
   tooltipFormatter,
 }: AnalyticsAreaChartProps) {
-  const chartRef = useRef<HTMLDivElement>(null);
+  let chartRef = null;
 
   const chartConfig = {
     [dataKey]: { label: tooltipLabel, color },
   } satisfies ChartConfig;
 
   return (
-    <Card ref={chartRef}>
-      <CardHeader className="space-y-0 pb-2">
+    <Card ref={(el) => (chartRef = el)}>
+      <CardHeader class="space-y-0 pb-2">
         <div className="flex items-start justify-between">
           <div className="space-y-0.5">
-            <CardTitle className="text-base font-medium">{title}</CardTitle>
+            <CardTitle class="text-base font-medium">{title}</CardTitle>
             <p className="text-sm text-muted-foreground">{subtitle}</p>
           </div>
           <Tooltip>
@@ -70,105 +87,127 @@ export function AnalyticsAreaChart({
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8 print:hidden"
+                class="h-8 w-8 print:hidden"
                 onClick={() => downloadChartAsPng(chartRef, downloadFilename)}
               >
-                <Download className="h-4 w-4" />
+                <Download class="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{t('Download as PNG')}</TooltipContent>
           </Tooltip>
         </div>
       </CardHeader>
-      <CardContent className="pt-4">
-        {isLoading ? (
-          <Skeleton className="h-[300px] w-full" />
-        ) : chartData.length === 0 ? (
-          <div className="flex h-[300px] w-full flex-col items-center justify-center gap-2">
-            {emptyIcon}
-            <p className="text-sm text-muted-foreground">{emptyText}</p>
-          </div>
-        ) : (
-          <ChartContainer
-            config={chartConfig}
-            className="aspect-auto h-[300px] w-full"
-          >
-            <AreaChart
-              accessibilityLayer
-              data={chartData}
-              margin={{ left: 0, right: 12, top: 12, bottom: 0 }}
+      <CardContent class="pt-4">
+        <Show
+          when={isLoading}
+          fallback={
+            <Show
+              when={chartData.length === 0}
+              fallback={
+                  <ChartContainer config={chartConfig} class="h-[300px] w-full">
+                    <AreaCanvas
+                      data={chartData}
+                      dataKey={dataKey}
+                      color={color}
+                      yAxisFormatter={yAxisFormatter}
+                      tooltipFormatter={tooltipFormatter}
+                      tooltipLabel={tooltipLabel}
+                    />
+                  </ChartContainer>
+              }
             >
-              <defs>
-                <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                vertical={false}
-                strokeDasharray="3 3"
-                stroke="hsl(var(--border))"
-              />
-              <XAxis
-                dataKey="date"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                minTickGap={32}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                tickFormatter={(value) =>
-                  new Date(value).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                }
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                width={40}
-                tickFormatter={yAxisFormatter}
-              />
-              <ChartTooltip
-                content={
-                  <ChartTooltipContent
-                    className="w-[150px]"
-                    nameKey={dataKey}
-                    labelFormatter={(value) =>
-                      new Date(value).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    }
-                    formatter={
-                      tooltipFormatter
-                        ? (value) => tooltipFormatter(value as number)
-                        : undefined
-                    }
-                  />
-                }
-              />
-              <Area
-                dataKey={dataKey}
-                type="monotone"
-                stroke={color}
-                strokeWidth={2}
-                fill={`url(#${gradientId})`}
-                dot={false}
-                activeDot={{
-                  r: 5,
-                  fill: color,
-                  strokeWidth: 2,
-                  stroke: '#fff',
-                }}
-              />
-            </AreaChart>
-          </ChartContainer>
-        )}
+              <div className="flex h-[300px] w-full flex-col items-center justify-center gap-2">
+                {emptyIcon}
+                <p className="text-sm text-muted-foreground">{emptyText}</p>
+              </div>
+            </Show>
+          }
+        >
+          <Skeleton class="h-[300px] w-full" />
+        </Show>
       </CardContent>
     </Card>
   );
+}
+
+function AreaCanvas({
+  data,
+  dataKey,
+  color,
+  yAxisFormatter,
+  tooltipFormatter,
+  tooltipLabel,
+}: {
+  data: Array<Record<string, string | number>>;
+  dataKey: string;
+  color: string;
+  yAxisFormatter?: (value: number) => string;
+  tooltipFormatter?: (value: number) => string;
+  tooltipLabel: string;
+}) {
+  let canvas: HTMLCanvasElement | undefined;
+
+  createEffect(() => {
+    if (!canvas) {
+      return;
+    }
+    const chart = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: data.map((item) =>
+          new Date(item.date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+          }),
+        ),
+        datasets: [
+          {
+            label: tooltipLabel,
+            data: data.map((item) => Number(item[dataKey])),
+            borderColor: color,
+            backgroundColor: `${color}33`,
+            fill: true,
+            pointRadius: 0,
+            pointHoverRadius: 5,
+            tension: 0.35,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: 'index' },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (item) => {
+                const value = Number(item.raw);
+                return `${tooltipLabel}: ${tooltipFormatter ? tooltipFormatter(value) : value}`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: 'hsl(var(--muted-foreground))' },
+          },
+          y: {
+            border: { display: false },
+            grid: { color: 'hsl(var(--border))' },
+            ticks: {
+              color: 'hsl(var(--muted-foreground))',
+              callback: (value) =>
+                yAxisFormatter ? yAxisFormatter(Number(value)) : value,
+            },
+          },
+        },
+      },
+    });
+
+    onCleanup(() => chart.destroy());
+  });
+
+  return <canvas ref={(el) => (canvas = el)} />;
 }

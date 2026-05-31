@@ -1,4 +1,3 @@
-import { Editor } from '@tiptap/react';
 import { t } from 'i18next';
 import {
   ImageIcon,
@@ -7,8 +6,8 @@ import {
   Strikethrough,
   BoldIcon,
   ArrowDown,
-} from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+} from 'lucide-solid';
+import { createEffect, createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +21,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import type { Editor } from '@tiptap/core';
 
 export const MarkdownTools = ({ editor }: { editor: Editor }) => {
   const isStrikeActive = editor.isActive('strike');
@@ -29,7 +29,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
   const isItalicActive = editor.isActive('italic');
   const isUnderlineActive = editor.isActive('underline');
   //because tiptap doesn't instantly set the active state, we need to use a state to track it
-  const [activeState, setActiveState] = useState({
+  const [activeState, setActiveState] = createSignal({
     isStrikeActive,
     isBoldActive,
     isItalicActive,
@@ -40,7 +40,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
     editor.chain().focus().toggleStrike().run();
     editor.commands.focus();
     setActiveState({
-      ...activeState,
+      ...activeState(),
       isStrikeActive: !isStrikeActive,
     });
   };
@@ -49,7 +49,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
     editor.chain().focus().toggleBold().run();
     editor.commands.focus();
     setActiveState({
-      ...activeState,
+      ...activeState(),
       isBoldActive: !isBoldActive,
     });
   };
@@ -58,7 +58,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
     editor.chain().focus().toggleItalic().run();
     editor.commands.focus();
     setActiveState({
-      ...activeState,
+      ...activeState(),
       isItalicActive: !isItalicActive,
     });
   };
@@ -67,22 +67,22 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
     editor.chain().focus().toggleUnderline().run();
     editor.commands.focus();
     setActiveState({
-      ...activeState,
+      ...activeState(),
       isUnderlineActive: !isUnderlineActive,
     });
   };
-  useEffect(() => {
+  createEffect(() => {
     setActiveState({
       isStrikeActive,
       isBoldActive,
       isItalicActive,
       isUnderlineActive,
     });
-  }, [isStrikeActive, isBoldActive, isItalicActive, isUnderlineActive]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  });
+  let containerRef: HTMLDivElement | undefined;
   return (
     <div
-      ref={containerRef}
+      ref={(el) => (containerRef = el)}
       className="flex items-center gap-0.5 text-foreground"
     >
       <ImageTool editor={editor} containerRef={containerRef} />
@@ -92,7 +92,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
           size={'icon'}
           variant={isStrikeActive ? 'default' : 'ghost'}
         >
-          <Strikethrough className="size-4" />
+          <Strikethrough class="size-4" />
         </Button>
       </ToolWrapper>
       <ToolWrapper tooltip={t('Bold')}>
@@ -101,7 +101,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
           size={'icon'}
           variant={isBoldActive ? 'default' : 'ghost'}
         >
-          <BoldIcon className="size-4" />
+          <BoldIcon class="size-4" />
         </Button>
       </ToolWrapper>
       <ToolWrapper tooltip={t('Italic')}>
@@ -110,7 +110,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
           size={'icon'}
           variant={isItalicActive ? 'default' : 'ghost'}
         >
-          <ItalicIcon className="size-4" />
+          <ItalicIcon class="size-4" />
         </Button>
       </ToolWrapper>
       <ToolWrapper tooltip={t('Underline')}>
@@ -119,7 +119,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
           size={'icon'}
           variant={isUnderlineActive ? 'default' : 'ghost'}
         >
-          <UnderlineIcon className="size-4" />
+          <UnderlineIcon class="size-4" />
         </Button>
       </ToolWrapper>
     </div>
@@ -131,51 +131,51 @@ const ImageTool = ({
   containerRef,
 }: {
   editor: Editor;
-  containerRef: React.RefObject<HTMLDivElement | null>;
+  containerRef: HTMLDivElement | undefined;
 }) => {
-  const [open, setOpen] = useState(false);
-  const [imageUrl, setImageUrl] = useState('');
+  const [open, setOpen] = createSignal(false);
+  const [imageUrl, setImageUrl] = createSignal('');
   const handleAddImage = () => {
     editor
       .chain()
       .focus()
-      .setImage({ src: imageUrl, alt: 'note-img-' + Date.now() })
+      .setImage({ src: imageUrl(), alt: 'note-img-' + Date.now() })
       .run();
     editor.commands.focus();
     setImageUrl('');
     setOpen(false);
   };
   return (
-    <Popover modal={false} open={open} onOpenChange={setOpen}>
+    <Popover modal={false} open={open()} onOpenChange={setOpen}>
       <ToolWrapper tooltip={t('Image')}>
         <PopoverTrigger asChild>
           <Button size={'icon'} variant={'ghost'}>
-            <ImageIcon className="size-4" />
+            <ImageIcon class="size-4" />
           </Button>
         </PopoverTrigger>
       </ToolWrapper>
       <PopoverContent
         side="top"
-        className="p-1 px-1.5 mb-1"
-        container={containerRef.current}
+        class="p-1 px-1.5 mb-1"
+        container={containerRef}
       >
         <div className="flex items-center gap-2 min-w-[200px]">
           <Input
-            className="h-8"
+            class="h-8"
             onPointerDown={(ev) => ev.stopPropagation()}
             onKeyDown={(ev) => ev.key === 'Enter' && handleAddImage()}
             type="text"
             placeholder="Enter image URL"
-            value={imageUrl}
+            value={imageUrl()}
             onChange={(e) => setImageUrl(e.target.value)}
           />
           <Button
             size={'icon'}
             onClick={handleAddImage}
-            disabled={imageUrl.length === 0}
+            disabled={imageUrl().length === 0}
             variant={'ghost'}
           >
-            <ArrowDown className="size-4" />
+            <ArrowDown class="size-4" />
           </Button>
         </div>
       </PopoverContent>
@@ -187,7 +187,7 @@ export const ToolWrapper = ({
   children,
   tooltip,
 }: {
-  children: React.ReactNode;
+  children: any;
   tooltip: string;
 }) => {
   return (

@@ -1,9 +1,10 @@
 import { SAFE_STRING_PATTERN } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { createForm, type SubmitHandler } from 'solid-hook-form';
 
 import { platformApi } from '@/api/platforms-api';
+import { queryClient } from '@/app/query-client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -25,23 +25,27 @@ function CreatePlatformDialogForm({
 }: {
   onOpenChange: (open: boolean) => void;
 }) {
-  const form = useForm<CreatePlatformSchema>({
+  const form = createForm<CreatePlatformSchema>({
     defaultValues: { name: '' },
     mode: 'onChange',
   });
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: platformApi.createPlatform,
-    onSuccess: (data) => {
-      authenticationSession.saveResponse(data, false);
-      window.location.href = '/';
-    },
-    onError: () => {
-      form.setError('root.serverError', {
-        message: t('Something went wrong, please try again later'),
-      });
-    },
-  });
+  const { mutate, isPending } = createMutation(
+    () => ({
+      mutationFn: platformApi.createPlatform,
+      onSuccess: (data) => {
+        authenticationSession.saveResponse(data, false);
+        window.location.href = '/';
+      },
+      onError: () => {
+        form.setError('root.serverError', {
+          type: 'manual',
+          message: t('Something went wrong, please try again later'),
+        });
+      },
+    }),
+    () => queryClient,
+  );
 
   const onSubmit: SubmitHandler<CreatePlatformSchema> = (data) => {
     form.clearErrors('root.serverError');
@@ -49,12 +53,11 @@ function CreatePlatformDialogForm({
   };
 
   return (
-    <Form {...form}>
-      <form className="grid space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          rules={{
+    <form className="grid space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+      <div class="grid space-y-2">
+        <Label for="createPlatformName">{t('Platform Name')}</Label>
+        <Input
+          {...form.register('name', {
             required: t('Platform name is required'),
             maxLength: {
               value: 100,
@@ -64,45 +67,34 @@ function CreatePlatformDialogForm({
               value: new RegExp(SAFE_STRING_PATTERN),
               message: t('Platform name cannot contain "." or "/"'),
             },
-          }}
-          render={({ field }) => (
-            <FormItem className="grid space-y-2">
-              <Label htmlFor="createPlatformName">{t('Platform Name')}</Label>
-              <Input
-                {...field}
-                required
-                id="createPlatformName"
-                type="text"
-                placeholder={t('My Platform')}
-                className="rounded-sm"
-                autoFocus
-              />
-              <FormMessage />
-            </FormItem>
-          )}
+          })}
+          required
+          id="createPlatformName"
+          type="text"
+          placeholder={t('My Platform')}
+          class="rounded-sm"
+          autoFocus
         />
-        {form?.formState?.errors?.root?.serverError && (
-          <FormMessage>
-            {form.formState.errors.root.serverError.message}
-          </FormMessage>
+        {form.formState.errors.name?.message && (
+          <p class="text-sm font-medium text-destructive">
+            {form.formState.errors.name.message}
+          </p>
         )}
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            {t('Cancel')}
-          </Button>
-          <Button
-            loading={isPending}
-            onClick={(e) => form.handleSubmit(onSubmit)(e)}
-          >
-            {t('Create Platform')}
-          </Button>
-        </div>
-      </form>
-    </Form>
+      </div>
+      {form.formState.errors.root?.serverError?.message && (
+        <p class="text-sm font-medium text-destructive">
+          {form.formState.errors.root.serverError.message}
+        </p>
+      )}
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          {t('Cancel')}
+        </Button>
+        <Button loading={isPending} type="submit">
+          {t('Create Platform')}
+        </Button>
+      </div>
+    </form>
   );
 }
 

@@ -1,4 +1,5 @@
 import { isNil } from '@activepieces/shared';
+import { Show } from 'solid-js';
 
 import { ApAvatar } from '@/components/custom/ap-avatar';
 import { useEmbedding } from '@/components/providers/embed-provider';
@@ -13,14 +14,14 @@ export const NoteFooter = ({ creatorId, isDragging }: NoteFooterProps) => {
   return (
     <div className="flex items-center justify-between gap-2 cursor-grabbing overflow-hidden">
       <div className="grow">
-        {!isNil(creatorId) && (
+        <Show when={!isNil(creatorId)()}>
           <ApAvatar
             size="xsmall"
             id={creatorId}
             includeName={true}
             hideHover={isDragging}
           />
-        )}
+        </Show>
       </div>
     </div>
   );

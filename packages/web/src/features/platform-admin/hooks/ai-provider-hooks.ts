@@ -3,7 +3,7 @@ import {
   CreateAIProviderRequest,
   UpdateAIProviderRequest,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { AxiosError } from 'axios';
 
 import { aiProviderApi } from '../api/ai-provider-api';
@@ -14,21 +14,21 @@ export const aiProviderKeys = {
 
 export const aiProviderQueries = {
   useAiProviders: () =>
-    useQuery({
+    createQuery(() => ({
       queryKey: aiProviderKeys.all,
       queryFn: () => aiProviderApi.list(),
-    }),
+    })),
 };
 
 export const aiProviderMutations = {
   useDeleteAiProvider: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (provider: string) => aiProviderApi.delete(provider),
       onSuccess,
-    });
+    }));
   },
   useToggleChatProvider: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: ({
         providerId,
         displayName,
@@ -38,14 +38,14 @@ export const aiProviderMutations = {
       }) =>
         aiProviderApi.update(providerId, { displayName, enabledForChat: true }),
       onSuccess,
-    });
+    }));
   },
   useUpsertAiProvider: ({
     providerId,
     onSuccess,
     onError,
   }: UpsertAiProviderOptions) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (data: CreateAIProviderRequest): Promise<void> => {
         if (providerId) {
           const updateData: UpdateAIProviderRequest = {
@@ -60,7 +60,7 @@ export const aiProviderMutations = {
       },
       onSuccess,
       onError,
-    });
+    }));
   },
 };
 

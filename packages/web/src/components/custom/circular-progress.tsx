@@ -1,48 +1,41 @@
-import { PolarGrid, RadialBar, RadialBarChart } from 'recharts';
-
-import { ChartContainer } from '../ui/chart';
-
-const ProgressCircularComponent: React.FC<{
+const ProgressCircularComponent = ({
+  data,
+  size = 'big',
+}: {
   data: {
     plan: number;
     usage: number;
   };
   size?: 'big' | 'small';
-}> = ({ data, size = 'big' }) => {
-  const sizeClass = size === 'big' ? 'size-[40px]' : 'size-[25px]';
+}) => {
+  const px = size === 'big' ? 40 : 25;
+  const radius = 16;
+  const circumference = 2 * Math.PI * radius;
+  const percent = Math.min(data.usage / data.plan, 1);
   return (
-    <div className={`overflow-hidden ${sizeClass}`}>
-      <ChartContainer
-        config={{}}
-        className={`mx-auto aspect-square max-h-[250px] min-h-[180px] ${sizeClass}`}
+    <svg width={px} height={px} viewBox="0 0 40 40" class="-rotate-90">
+      <circle
+        cx="20"
+        cy="20"
+        r={radius}
+        fill="none"
+        stroke="hsl(var(--muted))"
+        stroke-width="6"
+      />
+      <circle
+        cx="20"
+        cy="20"
+        r={radius}
+        fill="none"
+        stroke="hsl(var(--primary))"
+        stroke-width="6"
+        stroke-linecap="round"
+        stroke-dasharray={circumference}
+        stroke-dashoffset={circumference * (1 - percent)}
       >
-        <RadialBarChart
-          data={[
-            {
-              name: 'plan',
-              progress: data.usage,
-              fill: 'hsl(var(--primary))',
-            },
-          ]}
-          startAngle={0}
-          endAngle={(data.usage / data.plan) * 360}
-          innerRadius={80}
-          outerRadius={110}
-          style={{
-            height: size === 'big' ? 40 : 25,
-          }}
-        >
-          <PolarGrid
-            gridType="circle"
-            radialLines={false}
-            stroke="none"
-            className="first:fill-muted last:fill-background"
-            polarRadius={[86, 74]}
-          />
-          <RadialBar dataKey="progress" background cornerRadius={10} />
-        </RadialBarChart>
-      </ChartContainer>
-    </div>
+        <title>{`${data.usage} / ${data.plan}`}</title>
+      </circle>
+    </svg>
   );
 };
 

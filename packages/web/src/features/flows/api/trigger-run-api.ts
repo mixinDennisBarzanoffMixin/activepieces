@@ -1,5 +1,5 @@
 import { TriggerStatusReport } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 
 import { api } from '@/lib/api';
 
@@ -11,10 +11,10 @@ export const triggerRunApi = {
 
 export const triggerRunHooks = {
   useStatusReport: () => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['trigger-status-report'],
       queryFn: triggerRunApi.getStatusReport,
       meta: { showErrorDialog: true, loadSubsetOptions: {} },
-    });
+    }));
   },
 };

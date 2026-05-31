@@ -11,7 +11,7 @@ import {
   ActivepiecesNewConnectionDialogClosed,
   NEW_CONNECTION_QUERY_PARAMS,
 } from 'ee-embed-sdk';
-import { useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal, Show } from 'solid-js';
 
 import { memoryRouter } from '@/app/guards';
 import { LoadingSpinner } from '@/components/custom/spinner';
@@ -56,8 +56,8 @@ const EmbeddedConnectionDialogContent = ({
   pieceName,
   connectionName,
 }: EmbeddedConnectionDialogContentProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(true);
-  const hasErrorRef = useRef(false);
+  const [isDialogOpen, setIsDialogOpen] = createSignal(true);
+  let hasErrorRef = false;
 
   const {
     data: pieceModel,
@@ -91,17 +91,17 @@ const EmbeddedConnectionDialogContent = ({
   ) => {
     parentWindow.postMessage(event, '*');
   };
-  useEffect(() => {
+  createEffect(() => {
     const showConnectionIframeEvent: ActivepiecesClientShowConnectionIframe = {
       type: ActivepiecesClientEventName.CLIENT_SHOW_CONNECTION_IFRAME,
       data: {},
     };
     parentWindow.postMessage(showConnectionIframeEvent, '*');
     document.body.style.background = 'transparent';
-  }, []);
+  });
 
-  useEffect(() => {
-    if (!isSuccess && !isLoadingPiece && !hasErrorRef.current) {
+  createEffect(() => {
+    if (!isSuccess && !isLoadingPiece && !hasErrorRef) {
       postMessageToParent({
         type: ActivepiecesClientEventName.CLIENT_CONNECTION_PIECE_NOT_FOUND,
         data: {
@@ -112,9 +112,9 @@ const EmbeddedConnectionDialogContent = ({
         },
       });
       hideConnectionIframe();
-      hasErrorRef.current = true;
+      hasErrorRef = true;
     }
-  }, [isSuccess, isLoadingPiece, pieceName]);
+  });
 
   const { data: piecesOAuth2AppsMap, isPending: loadingPiecesOAuth2AppsMap } =
     oauthAppsQueries.usePiecesOAuth2AppsMap();
@@ -131,7 +131,7 @@ const EmbeddedConnectionDialogContent = ({
       <DialogContent
         showOverlay={false}
         onInteractOutside={(e) => e.preventDefault()}
-        className={cn(
+        class={cn(
           'max-h-[70vh]  min-w-[450px] max-w-[450px] lg:min-w-[650px] lg:max-w-[650px] overflow-y-auto',
           {
             'bg-transparent! border-none! focus:outline-hidden border-transparent! shadow-none!':
@@ -143,11 +143,11 @@ const EmbeddedConnectionDialogContent = ({
         {isLoadingPiece ||
           (loadingPiecesOAuth2AppsMap && (
             <div className="flex justify-center items-center">
-              <LoadingSpinner className="stroke-background size-[50px]"></LoadingSpinner>
+              <LoadingSpinner class="stroke-background size-[50px]"></LoadingSpinner>
             </div>
           ))}
 
-        {!isLoadingPiece && pieceModel && piecesOAuth2AppsMap && (
+        <Show when={!isLoadingPiece && pieceModel && piecesOAuth2AppsMap}>
           <CreateOrEditConnectionDialogContent
             reconnectConnection={null}
             piecesOAuth2AppsMap={piecesOAuth2AppsMap}
@@ -161,7 +161,7 @@ const EmbeddedConnectionDialogContent = ({
               setIsDialogOpen(open);
             }}
           />
-        )}
+        </Show>
       </DialogContent>
     </Dialog>
   );

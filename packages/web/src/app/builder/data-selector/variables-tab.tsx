@@ -1,8 +1,8 @@
 import { Permission } from '@activepieces/shared';
+import { useDebounce } from '@/lib/debounce';
 import { t } from 'i18next';
-import { Plus, SearchXIcon, Variable } from 'lucide-react';
-import { useState } from 'react';
-import { useDebounce } from 'use-debounce';
+import { Plus, SearchXIcon, Variable } from 'lucide-solid';
+import { For, Show, createSignal } from 'solid-js';
 
 import { VariableDialog } from '@/app/variables/variable-dialog';
 import { SearchInput } from '@/components/custom/search-input';
@@ -17,9 +17,9 @@ import { useBuilderStateContext } from '../builder-hooks';
 
 const VariablesTab = () => {
   const insertMention = useBuilderStateContext((state) => state.insertMention);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = createSignal('');
   const [debouncedSearch] = useDebounce(search, 250);
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = createSignal(false);
   const projectId = authenticationSession.getProjectId();
   const { checkAccess } = useAuthorization();
   const canRead = checkAccess(Permission.READ_VARIABLE);
@@ -45,32 +45,60 @@ const VariablesTab = () => {
           value={search}
           placeholder={t('Search variables')}
         />
-        {canWrite && (
+        <Show when={canWrite()}>
           <Button
             type="button"
             size="sm"
             variant="outline"
-            className="shrink-0 gap-1.5"
+            class="shrink-0 gap-1.5"
             onClick={() => setCreateOpen(true)}
           >
-            <Plus className="w-4 h-4" />
+            <Plus class="w-4 h-4" />
             {t('New')}
           </Button>
-        )}
+        </Show>
       </div>
 
-      <ScrollArea className="transition-all flex-1 w-full">
-        {isLoading && (
+      <ScrollArea class="transition-all flex-1 w-full">
+        <Show when={isLoading()}>
           <div className="text-center text-sm text-muted-foreground py-8">
             {t('Loading…')}
           </div>
-        )}
+        </Show>
 
-        {!isLoading && variables.length === 0 && (
+        <Show when={!isLoading && variables.length === 0()}>
           <div className="flex items-center justify-center gap-2 mt-5 flex-col px-6">
-            {debouncedSearch ? (
+            <Show
+              when={debouncedSearch()}
+              fallback={
+                <>
+                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary">
+                    <Variable class="w-5 h-5" />
+                  </div>
+                  <div className="text-center font-semibold text-md">
+                    {t('No variables yet')}
+                  </div>
+                  <div className="text-center text-sm text-muted-foreground max-w-[280px]">
+                    {t(
+                      'Create a variable to reference a value from any step input.',
+                    )}
+                  </div>
+                  <Show when={canWrite()}>
+                    <Button
+                      type="button"
+                      size="sm"
+                      class="mt-2 gap-1.5"
+                      onClick={() => setCreateOpen(true)}
+                    >
+                      <Plus class="w-4 h-4" />
+                      {t('New variable')}
+                    </Button>
+                  </Show>
+                </>
+              }
+            >
               <>
-                <SearchXIcon className="w-[35px] h-[35px]" />
+                <SearchXIcon class="w-[35px] h-[35px]" />
                 <div className="text-center font-semibold text-md">
                   {t('No matching variables')}
                 </div>
@@ -78,72 +106,49 @@ const VariablesTab = () => {
                   {t('Try adjusting your search')}
                 </div>
               </>
-            ) : (
-              <>
-                <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary">
-                  <Variable className="w-5 h-5" />
-                </div>
-                <div className="text-center font-semibold text-md">
-                  {t('No variables yet')}
-                </div>
-                <div className="text-center text-sm text-muted-foreground max-w-[280px]">
-                  {t(
-                    'Create a variable to reference a value from any step input.',
-                  )}
-                </div>
-                {canWrite && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="mt-2 gap-1.5"
-                    onClick={() => setCreateOpen(true)}
-                  >
-                    <Plus className="w-4 h-4" />
-                    {t('New variable')}
-                  </Button>
-                )}
-              </>
-            )}
+            </Show>
           </div>
-        )}
+        </Show>
 
-        {!isLoading && variables.length > 0 && (
+        <Show when={!isLoading && variables.length > 0()}>
           <div className="flex flex-col">
-            {variables.map((variable) => (
-              <div
-                key={variable.id}
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
+            <For each={variables}>
+              {(variable) => (
+                <div
+                  key={variable.id}
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      if (insertMention) {
+                        insertMention(`variables['${variable.name}']`);
+                      }
+                    }
+                  }}
+                  onClick={() => {
                     if (insertMention) {
                       insertMention(`variables['${variable.name}']`);
                     }
-                  }
-                }}
-                onClick={() => {
-                  if (insertMention) {
-                    insertMention(`variables['${variable.name}']`);
-                  }
-                }}
-                className={cn(
-                  'group w-full max-w-full select-none focus:outline-hidden',
-                  'hover:bg-accent dark:hover:bg-accent/20 focus:bg-accent focus:bg-opacity-75',
-                  'cursor-pointer flex items-center gap-3 px-5 py-3',
-                )}
-              >
-                <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-primary/10 text-primary">
-                  <Variable className="w-4 h-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-mono text-sm truncate">
-                    {variable.name}
+                  }}
+                  className={cn(
+                    'group w-full max-w-full select-none focus:outline-hidden',
+                    'hover:bg-accent dark:hover:bg-accent/20 focus:bg-accent focus:bg-opacity-75',
+                    'cursor-pointer flex items-center gap-3 px-5 py-3',
+                  )}
+                >
+                  <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-primary/10 text-primary">
+                    <Variable class="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-mono text-sm truncate">
+                      {variable.name}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )}
+            </For>
           </div>
-        )}
+        </Show>
       </ScrollArea>
 
       <VariableDialog

@@ -5,12 +5,9 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { MentionNodeAttrs } from '@tiptap/extension-mention';
-import { JSONContent } from '@tiptap/react';
-import { Variable as VariableIcon } from 'lucide-react';
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 
 import { StepMetadata } from '@/features/pieces';
+import type { JSONContent } from '@tiptap/core';
 
 const removeQuotes = (text: string) => {
   if (
@@ -70,7 +67,7 @@ function convertTextToTipTapJsonContent(
   userInputText: string,
   steps: (FlowAction | FlowTrigger)[],
   stepsMetadata: (StepMetadataWithDisplayName | undefined)[],
-  variableByName?: Map<string, string>,
+  variableByName?: Map<string, string>
 ): {
   type: TipTapNodeTypes.paragraph;
   content: JSONContent[];
@@ -89,7 +86,7 @@ function convertTextToTipTapJsonContent(
         });
       } else if (isMentionNodeText(node)) {
         result[result.length - 1].content.push(
-          createMentionNodeFromText(node, steps, stepsMetadata, variableByName),
+          createMentionNodeFromText(node, steps, stepsMetadata, variableByName)
         );
       } else {
         result[result.length - 1].content.push({
@@ -107,7 +104,7 @@ function convertTextToTipTapJsonContent(
     ] as {
       type: TipTapNodeTypes.paragraph;
       content: JSONContent[];
-    }[],
+    }[]
   );
 }
 
@@ -145,7 +142,7 @@ function parseStepAndNameFromMention(mention: string) {
   const mentionWithoutInterpolationBrackets =
     removeIntroplationBrackets(mention);
   const { isValid, stepName, arrayPath } = parseFlattenArrayPath(
-    mentionWithoutInterpolationBrackets,
+    mentionWithoutInterpolationBrackets
   );
   if (isValid) {
     return {
@@ -170,7 +167,7 @@ function parseLabelFromMention(
   mention: string,
   steps: (FlowAction | FlowTrigger)[],
   stepsMetadata: (StepMetadataWithDisplayName | undefined)[],
-  variableByName?: Map<string, string>,
+  variableByName?: Map<string, string>
 ) {
   const { stepName, path } = parseStepAndNameFromMention(mention);
   if (stepName === 'variables') {
@@ -205,14 +202,14 @@ function createMentionNodeFromText(
   mention: string,
   steps: (FlowAction | FlowTrigger)[],
   stepsMetadata: (StepMetadataWithDisplayName | undefined)[],
-  variableByName?: Map<string, string>,
+  variableByName?: Map<string, string>
 ) {
   return {
     type: TipTapNodeTypes.mention,
     attrs: {
       id: mention,
       label: JSON.stringify(
-        parseLabelFromMention(mention, steps, stepsMetadata, variableByName),
+        parseLabelFromMention(mention, steps, stepsMetadata, variableByName)
       ),
     },
   };
@@ -244,26 +241,46 @@ function convertTiptapJsonToText(nodes: JSONContent[]): string {
   return res.join('');
 }
 
-// eslint-disable-next-line testing-library/render-result-naming-convention
-const VARIABLE_ICON_SVG_MARKUP = renderToStaticMarkup(
-  createElement(VariableIcon, {
-    className: 'w-4 h-4 shrink-0 text-primary',
-    'aria-hidden': true,
-  }),
-);
-
 const buildVariableIconElement = (): Element => {
-  const template = document.createElement('template');
-  template.innerHTML = VARIABLE_ICON_SVG_MARKUP;
-  const element = template.content.firstElementChild;
-  assertNotNullOrUndefined(element, 'variableIconMarkup');
-  return element;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'w-4 h-4 shrink-0 text-primary');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M8 21s-4-3-4-9 4-9 4-9');
+  svg.appendChild(path);
+
+  const path2 = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path2.setAttribute('d', 'M16 3s4 3 4 9-4 9-4 9');
+  svg.appendChild(path2);
+
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line.setAttribute('x1', '15');
+  line.setAttribute('x2', '9');
+  line.setAttribute('y1', '9');
+  line.setAttribute('y2', '15');
+  svg.appendChild(line);
+
+  const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line2.setAttribute('x1', '9');
+  line2.setAttribute('x2', '15');
+  line2.setAttribute('y1', '9');
+  line2.setAttribute('y2', '15');
+  svg.appendChild(line2);
+
+  return svg;
 };
 
 const generateMentionHtmlElement = (mentionAttrs: MentionNodeAttrs) => {
   const mentionElement = document.createElement('span');
   const apMentionNodeAttrs: ApMentionNodeAttrs = JSON.parse(
-    mentionAttrs.label || '{}',
+    mentionAttrs.label || '{}'
   );
   mentionElement.className =
     'inline-flex bg-muted/10 break-all my-1 mx-px border border-[#9e9e9e] border-solid items-center gap-2 py-1 px-2 rounded-[3px] text-muted-foreground ';
@@ -271,7 +288,7 @@ const generateMentionHtmlElement = (mentionAttrs: MentionNodeAttrs) => {
   assertNotNullOrUndefined(mentionAttrs.id, 'mentionAttrs.id');
   assertNotNullOrUndefined(
     apMentionNodeAttrs.displayText,
-    'apMentionNodeAttrs.displayText',
+    'apMentionNodeAttrs.displayText'
   );
   mentionElement.dataset.id = mentionAttrs.id;
   mentionElement.dataset.label = mentionAttrs.label;
@@ -293,7 +310,7 @@ const generateMentionHtmlElement = (mentionAttrs: MentionNodeAttrs) => {
   }
 
   const mentiontextDiv = document.createTextNode(
-    apMentionNodeAttrs.displayText,
+    apMentionNodeAttrs.displayText
   );
   mentionElement.setAttribute('serverValue', apMentionNodeAttrs.serverValue);
 

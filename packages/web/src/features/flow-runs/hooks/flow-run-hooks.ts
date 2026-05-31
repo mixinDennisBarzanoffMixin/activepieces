@@ -11,10 +11,10 @@ import {
   FlowRunWithRetryError,
   PopulatedFlow,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useMemo } from 'react';
-import { toast } from 'sonner';
+import { createMemo } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { getDefaultRange } from '@/components/custom/date-time-picker-range';
 import { internalErrorToast } from '@/components/ui/sonner';
@@ -84,15 +84,15 @@ export const DEFAULT_DATE_PRESET = '7days' as const;
 
 export const flowRunQueries = {
   useFlowRun: (runId: string) =>
-    useQuery({
+    createQuery(() => ({
       queryKey: flowRunKeys.detail(runId),
       queryFn: () => flowRunsApi.getPopulated(runId),
       refetchInterval: 7000,
-    }),
+    })),
   useRunStats: () => {
     const projectId = authenticationSession.getProjectId()!;
 
-    const { data, isLoading, dataUpdatedAt, refetch } = useQuery({
+    const { data, isLoading, dataUpdatedAt, refetch } = createQuery(() => ({
       queryKey: ['flow-run-count-by-status', projectId],
       queryFn: () => {
         const range = getDefaultRange(DEFAULT_DATE_PRESET);
@@ -103,10 +103,13 @@ export const flowRunQueries = {
         });
       },
       refetchInterval: 15000,
-    });
+    }));
 
-    const categories = useMemo(() => groupByCategory(data?.data ?? []), [data]);
-    const total = useMemo(
+    const categories = createMemo(
+      () => groupByCategory(data?.data ?? []),
+      [data],
+    );
+    const total = createMemo(
       () => categories.reduce((sum, c) => sum + c.count, 0),
       [categories],
     );
@@ -123,7 +126,7 @@ export const flowRunMutations = {
   }: {
     onSuccess: (result: { run: FlowRun; populatedFlow: PopulatedFlow }) => void;
   }) => {
-    return useMutation<
+    return createMutation<
       { run: FlowRun; populatedFlow: PopulatedFlow },
       Error,
       {
@@ -173,7 +176,7 @@ export const flowRunMutations = {
     onSuccess: (runs: FlowRun[]) => void;
     onPartialFailure?: (failedRuns: Required<FlowRunWithRetryError>[]) => void;
   }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (request: BulkActionOnRunsRequestBody) =>
         flowRunsApi.bulkRetry(request),
       onSuccess: (runs) => {
@@ -186,20 +189,20 @@ export const flowRunMutations = {
           onPartialFailure?.(failedRuns);
         }
       },
-    });
+    }));
   },
   useBulkCancelRuns: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (request: BulkCancelFlowRequestBody) =>
         flowRunsApi.bulkCancel(request),
       onSuccess,
-    });
+    }));
   },
   useBulkArchiveRuns: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (request: BulkArchiveActionOnRunsRequestBody) =>
         flowRunsApi.bulkArchive(request),
       onSuccess,
-    });
+    }));
   },
 };

@@ -1,8 +1,8 @@
 import { PlanStepUpdate } from '@activepieces/shared';
 import { t } from 'i18next';
-import { RefreshCw, Volume2, VolumeOff } from 'lucide-react';
+import { RefreshCw, Volume2, VolumeOff } from 'lucide-solid';
 import { motion } from 'motion/react';
-import { memo, useMemo } from 'react';
+import { createMemo, For, Show } from 'solid-js';
 
 import { Markdown } from '@/components/prompt-kit/markdown';
 import {
@@ -43,7 +43,7 @@ const PROSE_CLASSES =
 const ACTION_BUTTON_CLASS =
   'flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground';
 
-export const AssistantMessage = memo(function AssistantMessage({
+export function AssistantMessage({
   message,
   isStreaming,
   isLastMessage = false,
@@ -58,7 +58,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   onSend: (text: string, files?: File[]) => void;
   lastAssistantMessage?: ChatUIMessage;
 }) {
-  const { blocks, hasContent } = useMemo(() => {
+  const { blocks, hasContent } = createMemo(() => {
     const result: MessageBlock[] = [];
     let currentThinking: {
       steps: ThinkingStep[];
@@ -165,11 +165,10 @@ export const AssistantMessage = memo(function AssistantMessage({
     }
 
     return { blocks: result, hasContent: hasText };
-  }, [message.parts, isStreaming]);
+  });
 
-  const fullText = useMemo(
-    () => (isStreaming ? '' : getTextFromParts(message.parts)),
-    [isStreaming, message.parts],
+  const fullText = createMemo(() =>
+    isStreaming ? '' : getTextFromParts(message.parts),
   );
 
   const { isSpeaking, isSupported: isTtsSupported, speak, stop } = useTts();
@@ -195,77 +194,75 @@ export const AssistantMessage = memo(function AssistantMessage({
 
   return (
     <motion.div
-      className="py-3 group/msg"
+      class="py-3 group/msg"
       initial={isFromHistory ? false : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
       <Message>
         <div className="min-w-0 space-y-2 flex-1">
-          {blocks.map((block, i) => {
-            switch (block.kind) {
-              case 'thinking':
-                return (
-                  <ThinkingBlock
-                    key={`thinking-${i}`}
-                    thinkingSteps={block.steps}
-                    reasoningText={block.reasoningText}
-                    isStreaming={isStreaming && i === lastThinkingIdx}
-                    thinkingDurationMs={
-                      i === lastThinkingIdx
-                        ? (
-                            message as ChatUIMessage & {
-                              thinkingDurationMs?: number;
-                            }
-                          ).thinkingDurationMs
-                        : undefined
-                    }
-                  />
-                );
-              case 'text':
-                return (
-                  <div key={`text-${i}`} className={PROSE_CLASSES}>
-                    <Markdown>{block.text}</Markdown>
-                  </div>
-                );
-              case 'display-tool':
-                if (isStreaming) return null;
-                return (
-                  <DisplayToolCard
-                    key={block.part.toolCallId}
-                    part={block.part}
-                    onSend={onSend}
-                    isInteractive={isLastMessage}
-                  />
-                );
-              case 'plan-marker':
-                return (
-                  <InlinePlanCard
-                    key={`plan-${i}`}
-                    planPart={block.part}
-                    lastAssistantMessage={lastAssistantMessage}
-                    isStreaming={isStreaming}
-                  />
-                );
-              default:
-                return null;
-            }
-          })}
+          <For each={blocks}>
+            {(block, i) => {
+              switch (block.kind) {
+                case 'thinking':
+                  return (
+                    <ThinkingBlock
+                      key={`thinking-${i}`}
+                      thinkingSteps={block.steps}
+                      reasoningText={block.reasoningText}
+                      isStreaming={isStreaming && i === lastThinkingIdx}
+                      thinkingDurationMs={
+                        i === lastThinkingIdx && 'thinkingDurationMs' in message
+                          ? message.thinkingDurationMs
+                          : undefined
+                      }
+                    />
+                  );
+                case 'text':
+                  return (
+                    <div key={`text-${i}`} className={PROSE_CLASSES}>
+                      <Markdown>{block.text}</Markdown>
+                    </div>
+                  );
+                case 'display-tool':
+                  if (isStreaming) return null;
+                  return (
+                    <DisplayToolCard
+                      key={block.part.toolCallId}
+                      part={block.part}
+                      onSend={onSend}
+                      isInteractive={isLastMessage}
+                    />
+                  );
+                case 'plan-marker':
+                  return (
+                    <InlinePlanCard
+                      key={`plan-${i}`}
+                      planPart={block.part}
+                      lastAssistantMessage={lastAssistantMessage}
+                      isStreaming={isStreaming}
+                    />
+                  );
+                default:
+                  return null;
+              }
+            }}
+          </For>
 
           <MessageActions
-            className={cn(
+            class={cn(
               'gap-1 transition-opacity',
               isLastMessage
                 ? 'opacity-100'
                 : 'opacity-0 group-hover/msg:opacity-100',
             )}
           >
-            {hasContent && !isStreaming && (
+            <Show when={hasContent && !isStreaming}>
               <>
                 <MessageAction tooltip={t('Copy')}>
-                  <CopyIconButton textToCopy={fullText} className="h-6 w-6" />
+                  <CopyIconButton textToCopy={fullText} class="h-6 w-6" />
                 </MessageAction>
-                {isTtsSupported && (
+                <Show when={isTtsSupported}>
                   <MessageAction
                     tooltip={isSpeaking ? t('Stop reading') : t('Read aloud')}
                   >
@@ -277,31 +274,32 @@ export const AssistantMessage = memo(function AssistantMessage({
                         isSpeaking && 'text-foreground',
                       )}
                     >
-                      {isSpeaking ? (
-                        <VolumeOff className="h-3.5 w-3.5" />
-                      ) : (
-                        <Volume2 className="h-3.5 w-3.5" />
-                      )}
+                      <Show
+                        when={isSpeaking}
+                        fallback={<Volume2 class="h-3.5 w-3.5" />}
+                      >
+                        <VolumeOff class="h-3.5 w-3.5" />
+                      </Show>
                     </button>
                   </MessageAction>
-                )}
+                </Show>
                 <MessageAction tooltip={t('Regenerate')}>
                   <button
                     type="button"
                     onClick={onRetry}
                     className={ACTION_BUTTON_CLASS}
                   >
-                    <RefreshCw className="h-3.5 w-3.5" />
+                    <RefreshCw class="h-3.5 w-3.5" />
                   </button>
                 </MessageAction>
               </>
-            )}
+            </Show>
           </MessageActions>
         </div>
       </Message>
     </motion.div>
   );
-});
+}
 
 function InlinePlanCard({
   planPart,
@@ -345,7 +343,7 @@ function InlinePlanCard({
       return output.state === 'success' && output.data.success;
     })();
 
-  const updates = useMemo(() => {
+  const updates = createMemo(() => {
     if (!progress) return [];
     if (planCompleted) {
       return progress.steps.map(
@@ -353,7 +351,7 @@ function InlinePlanCard({
       );
     }
     return storePlanUpdates;
-  }, [storePlanUpdates, progress, planCompleted]);
+  });
 
   if (!progress) return null;
 

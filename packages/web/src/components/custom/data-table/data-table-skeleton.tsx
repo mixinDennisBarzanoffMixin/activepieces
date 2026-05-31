@@ -8,9 +8,9 @@ export function DataTableSkeleton({
   return (
     <div>
       <div className="p-2">
-        {Array.from({ length: skeletonRowCount }).map((_, rowIndex) => (
-          <TableRowSkeleton key={rowIndex} />
-        ))}
+        <For each={Array.from({ length: skeletonRowCount }).map((_, i) => i)}>
+          {(rowIndex) => <TableRowSkeleton key={rowIndex} />}
+        </For>
       </div>
     </div>
   );
@@ -23,7 +23,7 @@ function TableRowSkeleton() {
       className="w-full h-9 mb-3 rounded-sm"
       data-testid="header-cell"
     >
-      <Skeleton className="w-full min-h-9" />
+      <Skeleton class="w-full min-h-9" />
     </div>
   );
 }

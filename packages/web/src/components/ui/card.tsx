@@ -1,5 +1,4 @@
 import { cva } from 'class-variance-authority';
-import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -31,7 +30,7 @@ function Card({ className, variant, isSelected, ...props }: CardProps) {
   );
 }
 
-function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
+function CardHeader({ className, ...props }: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="card-header"
@@ -41,7 +40,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
+function CardTitle({ className, ...props }: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="card-title"
@@ -51,7 +50,10 @@ function CardTitle({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {
+function CardDescription({
+  className,
+  ...props
+}: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="card-description"
@@ -61,7 +63,7 @@ function CardDescription({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function CardAction({ className, ...props }: React.ComponentProps<'div'>) {
+function CardAction({ className, ...props }: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="card-action"
@@ -74,7 +76,7 @@ function CardAction({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
+function CardContent({ className, ...props }: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="card-content"
@@ -84,7 +86,7 @@ function CardContent({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
+function CardFooter({ className, ...props }: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="card-footer"
@@ -96,7 +98,7 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
 
 // Type definitions
 
-type CardProps = React.ComponentProps<'div'> & {
+type CardProps = JSX.IntrinsicElements['div'] & {
   variant?: 'default' | 'interactive';
   isSelected?: boolean;
 };

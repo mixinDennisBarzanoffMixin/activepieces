@@ -1,48 +1,30 @@
 import { SecretTextProperty } from '@activepieces/pieces-framework';
-import { UpsertSecretTextRequest } from '@activepieces/shared';
-import React from 'react';
-import { useFormContext } from 'react-hook-form';
-import { z } from 'zod';
 
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-} from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 
+import { SolidConnectionForm } from './connection-form';
 import { SecretInput } from './secret-input';
 
 type SecretTextConnectionSettingsProps = {
   authProperty: SecretTextProperty<boolean>;
+  form: SolidConnectionForm<unknown>;
 };
 
-const SecretTextConnectionSettings = React.memo(
-  ({ authProperty }: SecretTextConnectionSettingsProps) => {
-    const formSchema = z.object({
-      request: UpsertSecretTextRequest,
-    });
-
-    const form = useFormContext<z.infer<typeof formSchema>>();
-
-    return (
-      <FormField
-        name="request.value.secret_text"
-        control={form.control}
-        render={({ field }) => (
-          <FormItem className="flex flex-col gap-2">
-            <FormLabel showRequiredIndicator>
-              {authProperty.displayName}
-            </FormLabel>
-            <FormControl>
-              <SecretInput {...field} type="password" />
-            </FormControl>
-          </FormItem>
-        )}
-      ></FormField>
-    );
-  },
-);
+const SecretTextConnectionSettings = ({
+  authProperty,
+  form,
+}: SecretTextConnectionSettingsProps) => {
+  return (
+    <div class="flex flex-col gap-2">
+      <Label showRequiredIndicator>{authProperty.displayName}</Label>
+      <SecretInput
+        value={String(form.getValue('request.value.secret_text') ?? '')}
+        onChange={(value) => form.setValue('request.value.secret_text', value)}
+        type="password"
+      />
+    </div>
+  );
+};
 
 SecretTextConnectionSettings.displayName = 'SecretTextConnectionSettings';
 export { SecretTextConnectionSettings };

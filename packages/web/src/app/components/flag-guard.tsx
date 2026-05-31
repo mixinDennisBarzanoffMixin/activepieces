@@ -3,7 +3,7 @@ import { ApFlagId } from '@activepieces/shared';
 import { flagsHooks } from '@/hooks/flags-hooks';
 
 type FlagGuardProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   flag: ApFlagId;
 };
 const FlagGuard = ({ children, flag }: FlagGuardProps) => {
@@ -13,6 +13,4 @@ const FlagGuard = ({ children, flag }: FlagGuardProps) => {
   }
   return children;
 };
-
-FlagGuard.displayName = 'FlagGuard';
 export { FlagGuard };

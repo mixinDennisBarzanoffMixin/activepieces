@@ -1,5 +1,5 @@
 import { TemplateType, isNil } from '@activepieces/shared';
-import { Navigate, useParams, useLocation } from 'react-router-dom';
+import { useParams } from '@solidjs/router';
 
 import { PageTitle } from '@/app/components/page-title';
 import { ProjectDashboardLayout } from '@/app/components/project-layout';
@@ -11,7 +11,6 @@ import { FROM_QUERY_PARAM } from '@/lib/navigation-utils';
 
 const TemplateDetailsWrapper = () => {
   const { templateId } = useParams<{ templateId: string }>();
-  const location = useLocation();
   const { data: template, isLoading } = templatesHooks.useTemplate(templateId!);
 
   if (isLoading) {
@@ -19,7 +18,8 @@ const TemplateDetailsWrapper = () => {
   }
 
   if (!template) {
-    return <Navigate to="/templates" replace />;
+    window.location.replace('/templates');
+    return null;
   }
 
   const token = authenticationSession.getToken();
@@ -27,12 +27,13 @@ const TemplateDetailsWrapper = () => {
   const useProjectLayout = template.type !== TemplateType.SHARED;
 
   if (isNotAuthenticated && useProjectLayout) {
-    return (
-      <Navigate
-        to={`/sign-in?${FROM_QUERY_PARAM}=${location.pathname}${location.search}`}
-        replace
-      />
+    if (window.location.pathname === '/sign-in') {
+      return null;
+    }
+    window.location.replace(
+      `/sign-in?${FROM_QUERY_PARAM}=${window.location.pathname}${window.location.search}`,
     );
+    return null;
   }
 
   const content = (

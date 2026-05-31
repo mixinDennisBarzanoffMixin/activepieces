@@ -1,7 +1,7 @@
 import { Permission, UncategorizedFolderId } from '@activepieces/shared';
+import { useNavigate, useParams, useSearchParams } from '@solidjs/router';
 import { t } from 'i18next';
-import { useCallback } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Show } from 'solid-js';
 
 import { recordAccess } from '@/app/components/global-search/access-history';
 import { useEmbedding } from '@/components/providers/embed-provider';
@@ -99,14 +99,11 @@ const AutomationsPageContent = ({ projectId }: { projectId: string }) => {
     invalidateFolder,
   } = useAutomationsData(filters, pinnedList);
 
-  const expandFolderIfCollapsed = useCallback(
-    (folderId: string) => {
-      if (!expandedFolders.has(folderId)) {
-        toggleFolder(folderId);
-      }
-    },
-    [expandedFolders, toggleFolder],
-  );
+  const expandFolderIfCollapsed = (folderId: string) => {
+    if (!expandedFolders.has(folderId)) {
+      toggleFolder(folderId);
+    }
+  };
 
   const {
     selectedItems,
@@ -136,82 +133,76 @@ const AutomationsPageContent = ({ projectId }: { projectId: string }) => {
   const { projectMembers } = projectMembersHooks.useProjectMembers();
   const { pieces } = piecesHooks.usePieces({});
 
-  const handleRowClick = useCallback(
-    (item: TreeItem, ctrlKey?: boolean) => {
-      if (item.type === 'folder') {
-        toggleFolder(item.id);
-      } else if (item.type === 'flow') {
-        const href = authenticationSession.appendProjectRoutePrefix(
-          `/flows/${item.id}`,
-        );
-        const flowData = item.data as {
-          status?: 'ENABLED' | 'DISABLED';
-        } | null;
-        const folderName = item.folderId
-          ? folders.find((f) => f.id === item.folderId)?.displayName ?? null
-          : null;
-        recordAccess({
-          id: `flow-${item.id}`,
-          type: 'flow',
-          label: item.name,
-          href,
-          status: flowData?.status ?? null,
-          folderName,
-          projectName: currentProjectName,
-        });
-        if (ctrlKey) {
-          window.open(href, '_blank');
-        } else {
-          navigate(href);
-        }
-      } else if (item.type === 'table') {
-        const href = authenticationSession.appendProjectRoutePrefix(
-          `/tables/${item.id}`,
-        );
-        const folderName = item.folderId
-          ? folders.find((f) => f.id === item.folderId)?.displayName ?? null
-          : null;
-        recordAccess({
-          id: `table-${item.id}`,
-          type: 'table',
-          label: item.name,
-          href,
-          folderName,
-          projectName: currentProjectName,
-        });
-        if (ctrlKey) {
-          window.open(href, '_blank');
-        } else {
-          navigate(href);
-        }
+  const handleRowClick = (item: TreeItem, ctrlKey?: boolean) => {
+    if (item.type === 'folder') {
+      toggleFolder(item.id);
+    } else if (item.type === 'flow') {
+      const href = authenticationSession.appendProjectRoutePrefix(
+        `/flows/${item.id}`,
+      );
+      const flowData = item.data as {
+        status?: 'ENABLED' | 'DISABLED';
+      } | null;
+      const folderName = item.folderId
+        ? folders.find((f) => f.id === item.folderId)?.displayName ?? null
+        : null;
+      recordAccess({
+        id: `flow-${item.id}`,
+        type: 'flow',
+        label: item.name,
+        href,
+        status: flowData?.status ?? null,
+        folderName,
+        projectName: currentProjectName,
+      });
+      if (ctrlKey) {
+        window.open(href, '_blank');
+      } else {
+        navigate(href);
       }
-    },
-    [navigate, toggleFolder, folders, currentProjectName],
-  );
+    } else if (item.type === 'table') {
+      const href = authenticationSession.appendProjectRoutePrefix(
+        `/tables/${item.id}`,
+      );
+      const folderName = item.folderId
+        ? folders.find((f) => f.id === item.folderId)?.displayName ?? null
+        : null;
+      recordAccess({
+        id: `table-${item.id}`,
+        type: 'table',
+        label: item.name,
+        href,
+        folderName,
+        projectName: currentProjectName,
+      });
+      if (ctrlKey) {
+        window.open(href, '_blank');
+      } else {
+        navigate(href);
+      }
+    }
+  };
 
-  const handleCreateInFolder = useCallback(
-    (folderId: string, kind: CreateInFolderKind) => {
-      switch (kind) {
-        case 'flow':
-          mutations.createFlow(folderId);
-          break;
-        case 'table':
-          mutations.createTable(t('New Table'), folderId);
-          break;
-        case 'import-flow':
-          expandFolderIfCollapsed(folderId);
-          dialogs.setImportTargetFolderId(folderId);
-          dialogs.setIsImportFlowDialogOpen(true);
-          break;
-        case 'import-table':
-          expandFolderIfCollapsed(folderId);
-          dialogs.setImportTargetFolderId(folderId);
-          dialogs.setIsImportTableDialogOpen(true);
-          break;
-      }
-    },
-    [expandFolderIfCollapsed, mutations, dialogs],
-  );
+  const handleCreateInFolder = (folderId: string, kind: CreateInFolderKind) => {
+    switch (kind) {
+      case 'flow':
+        mutations.createFlow(folderId);
+        break;
+      case 'table':
+        mutations.createTable(t('New Table'), folderId);
+        break;
+      case 'import-flow':
+        expandFolderIfCollapsed(folderId);
+        dialogs.setImportTargetFolderId(folderId);
+        dialogs.setIsImportFlowDialogOpen(true);
+        break;
+      case 'import-table':
+        expandFolderIfCollapsed(folderId);
+        dialogs.setImportTargetFolderId(folderId);
+        dialogs.setIsImportTableDialogOpen(true);
+        break;
+    }
+  };
 
   const updateSearchParams = (newFolderId: string | undefined) => {
     setSearchParams(
@@ -277,51 +268,54 @@ const AutomationsPageContent = ({ projectId }: { projectId: string }) => {
         isCreatingTable={mutations.isCreatingTable}
       />
 
-      {isNoResultsState ? (
-        <AutomationsNoResultsState onClearFilters={clearAllFilters} />
-      ) : (
-        <>
-          <AutomationsTable
-            items={treeItems}
-            isLoading={isLoading}
-            selectedItems={selectedItems}
-            expandedFolders={expandedFolders}
-            loadingFolders={loadingFolders}
-            projectMembers={projectMembers}
-            folders={folders}
-            selectableCount={selectableItems.length}
-            isPinned={isPinned}
-            onTogglePin={togglePin}
-            onToggleAllSelection={toggleAllSelection}
-            onToggleItemSelection={toggleItemSelection}
-            onRowClick={handleRowClick}
-            onRenameItem={dialogs.openRenameDialog}
-            onDeleteItem={mutations.handleDeleteItem}
-            onDuplicateFlow={mutations.handleDuplicateFlow}
-            onMoveItem={mutations.handleMoveItem}
-            onExportFlow={mutations.handleExportFlow}
-            onExportTable={mutations.handleExportTable}
-            onCreateInFolder={handleCreateInFolder}
-            userHasPermissionToWriteFlow={userHasPermissionToWriteFlow}
-            userHasPermissionToWriteTable={userHasPermissionToWriteTable}
-            isCreatingFlow={mutations.isCreateFlowPending}
-            isCreatingTable={mutations.isCreatingTable}
-            isMoving={mutations.isMoving}
-            isDuplicating={mutations.isDuplicating}
-            onLoadMoreInFolder={loadMoreInFolder}
-            isItemSelected={isItemSelected}
-          />
+      <Show
+        when={isNoResultsState}
+        fallback={
+          <>
+            <AutomationsTable
+              items={treeItems}
+              isLoading={isLoading}
+              selectedItems={selectedItems}
+              expandedFolders={expandedFolders}
+              loadingFolders={loadingFolders}
+              projectMembers={projectMembers}
+              folders={folders}
+              selectableCount={selectableItems.length}
+              isPinned={isPinned}
+              onTogglePin={togglePin}
+              onToggleAllSelection={toggleAllSelection}
+              onToggleItemSelection={toggleItemSelection}
+              onRowClick={handleRowClick}
+              onRenameItem={dialogs.openRenameDialog}
+              onDeleteItem={mutations.handleDeleteItem}
+              onDuplicateFlow={mutations.handleDuplicateFlow}
+              onMoveItem={mutations.handleMoveItem}
+              onExportFlow={mutations.handleExportFlow}
+              onExportTable={mutations.handleExportTable}
+              onCreateInFolder={handleCreateInFolder}
+              userHasPermissionToWriteFlow={userHasPermissionToWriteFlow}
+              userHasPermissionToWriteTable={userHasPermissionToWriteTable}
+              isCreatingFlow={mutations.isCreateFlowPending}
+              isCreatingTable={mutations.isCreatingTable}
+              isMoving={mutations.isMoving}
+              isDuplicating={mutations.isDuplicating}
+              onLoadMoreInFolder={loadMoreInFolder}
+              isItemSelected={isItemSelected}
+            />
 
-          <AutomationsPagination
-            currentPage={rootPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            onPageSizeChange={changePageSize}
-            onPrevPage={prevRootPage}
-            onNextPage={nextRootPage}
-          />
-        </>
-      )}
+            <AutomationsPagination
+              currentPage={rootPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              onPageSizeChange={changePageSize}
+              onPrevPage={prevRootPage}
+              onNextPage={nextRootPage}
+            />
+          </>
+        }
+      >
+        <AutomationsNoResultsState onClearFilters={clearAllFilters} />
+      </Show>
 
       <AutomationsSelectionBar
         selectedCount={selectedItems.size}
@@ -378,7 +372,7 @@ const AutomationsPageContent = ({ projectId }: { projectId: string }) => {
         />
       </ImportFlowDialog>
 
-      {!embedState.hideTables && (
+      <Show when={!embedState.hideTables}>
         <ImportTableDialog
           open={dialogs.isImportTableDialogOpen}
           setIsOpen={(open) => {
@@ -389,7 +383,7 @@ const AutomationsPageContent = ({ projectId }: { projectId: string }) => {
           folderId={dialogs.importTargetFolderId}
           onImportSuccess={() => invalidateAll()}
         />
-      )}
+      </Show>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { createWithStore } from 'solid-zustand';
 
 interface FlowToolDialogState {
   showAddFlowDialog: boolean;
@@ -14,7 +14,7 @@ const initialState = {
   searchQuery: '',
 };
 
-export const useFlowToolDialogStore = create<FlowToolDialogState>((set) => ({
+export const useFlowToolDialogStore = createWithStore<FlowToolDialogState>((set) => ({
   ...initialState,
 
   setShowAddFlowDialog: (show) => set({ showAddFlowDialog: show }),

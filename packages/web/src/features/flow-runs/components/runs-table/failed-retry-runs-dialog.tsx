@@ -4,7 +4,7 @@ import {
   FlowRunWithRetryError,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -38,11 +38,11 @@ export const FailedRetryRunsDialog = ({
   );
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent class="max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('Failed Retries')}</DialogTitle>
         </DialogHeader>
-        <ScrollArea className="max-h-[400px]">
+        <ScrollArea class="max-h-[400px]">
           <ul className="flex flex-col gap-3 pr-3">
             {failedRuns.map((run) => {
               const { Icon, variant } = flowRunUtils.getStatusIcon(run.status);
@@ -54,7 +54,7 @@ export const FailedRetryRunsDialog = ({
                   <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-center gap-1.5 text-sm font-medium">
                       <Icon
-                        className={cn('size-4 shrink-0', {
+                        class={cn('size-4 shrink-0', {
                           'text-destructive': variant === 'error',
                           'text-success': variant === 'success',
                           'text-muted-foreground': variant === 'default',
@@ -80,7 +80,7 @@ export const FailedRetryRunsDialog = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="shrink-0"
+                    class="shrink-0"
                     onClick={() =>
                       openNewWindow(
                         authenticationSession.appendProjectRoutePrefix(
@@ -89,7 +89,7 @@ export const FailedRetryRunsDialog = ({
                       )
                     }
                   >
-                    <ExternalLink className="size-4" />
+                    <ExternalLink class="size-4" />
                     <span className="sr-only">{t('Open run')}</span>
                   </Button>
                 </li>

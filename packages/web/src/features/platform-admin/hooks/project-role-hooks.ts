@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { projectRoleApi } from '../api/project-role-api';
 
@@ -11,13 +11,13 @@ export const projectRoleKeys = {
 
 export const projectRoleQueries = {
   useProjectRoles: (enabled: boolean) =>
-    useQuery({
+    createQuery(() => ({
       queryKey: projectRoleKeys.all,
       queryFn: () => projectRoleApi.list(),
       enabled,
-    }),
+    })),
   useProjectRoleMembers: (roleId: string | undefined, enabled: boolean) =>
-    useQuery({
+    createQuery(() => ({
       queryKey: projectRoleKeys.members(roleId ?? ''),
       queryFn: () =>
         projectRoleApi.listProjectMembers(roleId!, {
@@ -25,12 +25,12 @@ export const projectRoleQueries = {
           limit: 10,
         }),
       enabled: enabled && !!roleId,
-    }),
+    })),
 };
 
 export const projectRoleMutations = {
   useUpsertProjectRole: ({ onSave }: { onSave: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async ({
         mode,
         roleId,
@@ -54,10 +54,10 @@ export const projectRoleMutations = {
           duration: 3000,
         });
       },
-    });
+    }));
   },
   useDeleteProjectRole: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationKey: ['delete-project-role'],
       mutationFn: (name: string) => projectRoleApi.delete(name),
       onSuccess: () => {
@@ -66,7 +66,7 @@ export const projectRoleMutations = {
           duration: 3000,
         });
       },
-    });
+    }));
   },
 };
 

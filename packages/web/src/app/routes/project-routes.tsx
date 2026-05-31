@@ -1,6 +1,5 @@
 import { Permission } from '@activepieces/shared';
-import React, { Suspense } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Suspense, lazy } from 'solid-js';
 
 import { PageTitle } from '@/app/components/page-title';
 import { RouteLoadingBar } from '@/components/custom/route-loading-bar';
@@ -15,51 +14,54 @@ import { RoutePermissionGuard } from '../guards/permission-guard';
 import { ProjectRouterWrapper } from '../guards/project-route-wrapper';
 
 import { AutomationsPage } from './automations';
-const FlowBuilderPage = React.lazy(() =>
+const FlowBuilderPage = lazy(() =>
   import('./flows/id').then((m) => ({ default: m.FlowBuilderPage })),
 );
-const AnalyticsPage = React.lazy(() => import('./impact'));
-const LeaderboardPage = React.lazy(() => import('./leaderboard'));
-const ProjectReleasesPage = React.lazy(() =>
+const AnalyticsPage = lazy(() => import('./impact'));
+const LeaderboardPage = lazy(() => import('./leaderboard'));
+const ProjectReleasesPage = lazy(() =>
   import('./project-release').then((m) => ({
     default: m.ProjectReleasesPage,
   })),
 );
-const ViewRelease = React.lazy(() => import('./project-release/view-release'));
-const RunsPage = React.lazy(() =>
+const ViewRelease = lazy(() => import('./project-release/view-release'));
+const RunsPage = lazy(() =>
   import('./runs').then((m) => ({ default: m.RunsPage })),
 );
-const FlowRunPage = React.lazy(() =>
+const FlowRunPage = lazy(() =>
   import('./runs/id').then((m) => ({ default: m.FlowRunPage })),
 );
-const AppConnectionsPage = React.lazy(() =>
+const AppConnectionsPage = lazy(() =>
   import('./connections').then((m) => ({ default: m.AppConnectionsPage })),
 );
-const VariablesPage = React.lazy(() =>
+const VariablesPage = lazy(() =>
   import('./variables').then((m) => ({ default: m.VariablesPage })),
 );
-const ApTableEditorPage = React.lazy(() =>
+const ApTableEditorPage = lazy(() =>
   import('./tables/id').then((m) => ({ default: m.ApTableEditorPage })),
 );
 
 const SettingsRerouter = () => {
-  const { hash } = useLocation();
-  const fragmentWithoutHash = hash.slice(1).toLowerCase();
-  return fragmentWithoutHash ? (
-    <Navigate to={`/settings/${fragmentWithoutHash}`} replace />
-  ) : (
-    <Navigate to="/settings/team" replace />
+  const fragmentWithoutHash = window.location.hash.slice(1).toLowerCase();
+  window.location.replace(
+    fragmentWithoutHash ? `/settings/${fragmentWithoutHash}` : '/settings/team',
   );
+  return null;
 };
 
-function SuspenseWrapper({ children }: { children: React.ReactNode }) {
+function SuspenseWrapper({ children }: { children: JSX.Element }) {
   return <Suspense fallback={<RouteLoadingBar />}>{children}</Suspense>;
 }
 
-function HideTablesGuard({ children }: { children: React.ReactNode }) {
+function Redirect({ to }: { to: string }) {
+  window.location.replace(to);
+  return null;
+}
+
+function HideTablesGuard({ children }: { children: JSX.Element }) {
   const { embedState } = useEmbedding();
   if (embedState.hideTables) {
-    return <Navigate to={routesThatRequireProjectId.automations} replace />;
+    return <Redirect to={routesThatRequireProjectId.automations} />;
   }
   return <>{children}</>;
 }
@@ -73,7 +75,7 @@ const automationsPagePermissions = [
 export const projectRoutes = [
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.automations,
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <RoutePermissionGuard requiredPermissions={automationsPagePermissions}>
           <PageTitle title="Flows">
@@ -87,11 +89,11 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.flows,
-    element: <Navigate to={routesThatRequireProjectId.automations} replace />,
+    component: () => <Redirect to={routesThatRequireProjectId.automations} />,
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.singleFlow,
-    element: (
+    component: () => (
       <RoutePermissionGuard requiredPermissions={Permission.READ_FLOW}>
         <PageTitle title="Builder">
           <BuilderLayout>
@@ -105,11 +107,11 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: '/flow-import-redirect/:flowId',
-    element: <AfterImportFlowRedirect></AfterImportFlowRedirect>,
+    component: () => <AfterImportFlowRedirect></AfterImportFlowRedirect>,
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.singleRun,
-    element: (
+    component: () => (
       <RoutePermissionGuard requiredPermissions={Permission.READ_RUN}>
         <PageTitle title="Flow Run">
           <BuilderLayout>
@@ -123,7 +125,7 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.runs,
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <RoutePermissionGuard requiredPermissions={Permission.READ_RUN}>
           <PageTitle title="Runs">
@@ -137,7 +139,7 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.singleRelease,
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <PageTitle title="Releases">
           <SuspenseWrapper>
@@ -149,11 +151,11 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.tables,
-    element: <Navigate to={routesThatRequireProjectId.automations} replace />,
+    component: () => <Redirect to={routesThatRequireProjectId.automations} />,
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.singleTable,
-    element: (
+    component: () => (
       <HideTablesGuard>
         <RoutePermissionGuard requiredPermissions={Permission.READ_TABLE}>
           <PageTitle title="Table">
@@ -171,7 +173,7 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.connections,
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <RoutePermissionGuard
           requiredPermissions={Permission.READ_APP_CONNECTION}
@@ -187,7 +189,7 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.variables,
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <RoutePermissionGuard requiredPermissions={Permission.READ_VARIABLE}>
           <PageTitle title="Variables">
@@ -201,7 +203,7 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.releases,
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <PageTitle title="Releases">
           <SuspenseWrapper>
@@ -213,7 +215,7 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.settings,
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <SettingsRerouter></SettingsRerouter>
       </ProjectDashboardLayout>
@@ -221,7 +223,7 @@ export const projectRoutes = [
   }),
   {
     path: '/impact',
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <PageTitle title="Impact">
           <SuspenseWrapper>
@@ -233,7 +235,7 @@ export const projectRoutes = [
   },
   {
     path: '/leaderboard',
-    element: (
+    component: () => (
       <ProjectDashboardLayout>
         <PageTitle title="Leaderboard">
           <SuspenseWrapper>

@@ -1,18 +1,10 @@
-import {
-  AddPieceRequestBody,
-  ApFlagId,
-  PackageType,
-  PieceScope,
-} from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { ApFlagId, PackageType, PieceScope } from '@activepieces/shared';
+import { createMutation } from '@tanstack/solid-query';
 import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
 import pako from 'pako';
-import { useState } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import { z } from 'zod';
+import { createSignal, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { ApMarkdown } from '@/components/custom/markdown';
@@ -26,13 +18,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -44,16 +31,6 @@ import {
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { platformHooks } from '@/hooks/platform-hooks';
 import { api } from '@/lib/api';
-import { authenticationSession } from '@/lib/authentication-session';
-
-import { piecesApi } from '../api/pieces-api';
-const FormSchema = z.object({
-  packageType: z.nativeEnum(PackageType),
-  pieceName: z.string().optional(),
-  scope: z.nativeEnum(PieceScope),
-  pieceVersion: z.string().optional(),
-  pieceArchive: z.unknown().optional(),
-});
 
 type InstallPieceDialogProps = {
   onInstallPiece: () => void;
@@ -65,21 +42,28 @@ const InstallPieceDialog = ({
 }: InstallPieceDialogProps) => {
   const { platform } = platformHooks.useCurrentPlatform();
   const isEnabled = platform.plan.managePiecesEnabled;
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = createSignal(false);
 
   const { data: privatePiecesEnabled } = flagsHooks.useFlag<boolean>(
-    ApFlagId.PRIVATE_PIECES_ENABLED,
+    ApFlagId.PRIVATE_PIECES_ENABLED
   );
 
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      scope,
-      packageType: PackageType.REGISTRY,
-    },
-  });
+  const [packageType, setPackageType] = createSignal(PackageType.REGISTRY);
+  const [pieceName, setPieceName] = createSignal('');
+  const [pieceVersion, setPieceVersion] = createSignal('');
+  const [pieceArchive, setPieceArchive] = createSignal<File>();
+  const [errors, setErrors] = createSignal<InstallPieceErrors>({});
+
+  const reset = () => {
+    setPackageType(PackageType.REGISTRY);
+    setPieceName('');
+    setPieceVersion('');
+    setPieceArchive(undefined);
+    setErrors({});
+  };
 
   const handleArchiveUpload = async (file: File) => {
+    setErrors({});
     if (file && file.name.endsWith('.tgz')) {
       try {
         const fileBuffer = await file.arrayBuffer();
@@ -88,54 +72,41 @@ const InstallPieceDialog = ({
 
         // Look for package.json content in the decompressed data
         const packageJsonMatch = text.match(
-          /package\.json.*?{[^}]*"name"\s*:\s*"([^"]+)".*?"version"\s*:\s*"([^"]+)"/s,
+          /package\.json.*?{[^}]*"name"\s*:\s*"([^"]+)".*?"version"\s*:\s*"([^"]+)"/s
         );
         if (packageJsonMatch) {
-          form.setValue('pieceName', packageJsonMatch[1]);
-          form.setValue('pieceVersion', packageJsonMatch[2]);
+          setPieceName(packageJsonMatch[1]);
+          setPieceVersion(packageJsonMatch[2]);
         } else {
-          form.setError('pieceArchive', {
-            message: t('package.json not found in archive'),
-          });
+          setErrors({ pieceArchive: t('package.json not found in archive') });
         }
       } catch (error) {
         console.error('Error processing file:', error);
-        form.setError('pieceArchive', {
-          message: t('Error processing archive file'),
-        });
+        setErrors({ pieceArchive: t('Error processing archive file') });
       }
     } else {
-      form.setError('pieceArchive', {
-        message: t('Please upload a .tgz file'),
-      });
+      setErrors({ pieceArchive: t('Please upload a .tgz file') });
     }
   };
 
-  const { mutate, isPending } = useMutation<void, Error, AddPieceRequestBody>({
+  const { mutate, isPending } = createMutation<void, Error, InstallPieceData>({
     mutationFn: async (data) => {
-      form.clearErrors();
-
-      if (data.packageType === PackageType.REGISTRY) {
-        if (!data.pieceName) {
-          form.setError('pieceName', {
-            message: t('Piece name is required for NPM Registry'),
-          });
-        }
-        if (!data.pieceVersion) {
-          form.setError('pieceVersion', {
-            message: t('Piece version is required for NPM Registry'),
-          });
-        }
-        if (!data.pieceName || !data.pieceVersion) {
-          throw new Error('Validation failed');
-        }
+      const body = new FormData();
+      body.set('packageType', data.packageType);
+      body.set('pieceName', data.pieceName);
+      body.set('pieceVersion', data.pieceVersion);
+      body.set('scope', data.scope);
+      if (data.packageType === PackageType.ARCHIVE) {
+        body.append('pieceArchive', data.pieceArchive);
       }
 
-      await piecesApi.install(data);
+      await api.post('/v1/pieces', body, undefined, {
+        'Content-Type': 'multipart/form-data',
+      });
     },
     onSuccess: () => {
       setIsOpen(false);
-      form.reset();
+      reset();
       onInstallPiece();
       toast.success(t('Piece installed'), {
         duration: 3000,
@@ -145,21 +116,69 @@ const InstallPieceDialog = ({
       if (api.isError(error)) {
         switch (error.response?.status) {
           case HttpStatusCode.Conflict:
-            form.setError('root.serverError', {
-              message: t(
-                'A piece with this name and version is already installed. Please update the version number in package.json and try again.',
+            setErrors({
+              server: t(
+                'A piece with this name and version is already installed. Please update the version number in package.json and try again.'
               ),
             });
             break;
           default:
-            form.setError('root.serverError', {
-              message: t('Something went wrong, please try again later'),
+            setErrors({
+              server: t('Something went wrong, please try again later'),
             });
             break;
         }
       }
     },
   });
+
+  const submit = (e: SubmitEvent) => {
+    e.preventDefault();
+    setErrors({});
+
+    const data = {
+      packageType: packageType(),
+      pieceName: pieceName().trim(),
+      pieceVersion: pieceVersion().trim(),
+      pieceArchive: pieceArchive(),
+      scope,
+    };
+
+    if (data.packageType === PackageType.REGISTRY) {
+      const next = {
+        pieceName: !data.pieceName
+          ? t('Piece name is required for NPM Registry')
+          : undefined,
+        pieceVersion: !data.pieceVersion
+          ? t('Piece version is required for NPM Registry')
+          : undefined,
+      };
+      if (next.pieceName || next.pieceVersion) {
+        setErrors(next);
+        return;
+      }
+      mutate({
+        packageType: PackageType.REGISTRY,
+        pieceName: data.pieceName,
+        pieceVersion: data.pieceVersion,
+        scope: data.scope,
+      });
+      return;
+    }
+
+    if (!data.pieceArchive) {
+      setErrors({ pieceArchive: t('Please upload a .tgz file') });
+      return;
+    }
+
+    mutate({
+      packageType: PackageType.ARCHIVE,
+      pieceName: data.pieceName,
+      pieceVersion: data.pieceVersion,
+      pieceArchive: data.pieceArchive,
+      scope: data.scope,
+    });
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => setIsOpen(open)}>
@@ -179,147 +198,141 @@ const InstallPieceDialog = ({
             />
           </DialogDescription>
         </DialogHeader>
-        <FormProvider {...form}>
-          <form
-            className="flex flex-col gap-4"
-            onSubmit={form.handleSubmit((data) =>
-              mutate({
-                projectId: authenticationSession.getProjectId()!,
-                ...data,
-              } as AddPieceRequestBody),
-            )}
-          >
-            <FormField
-              name="packageType"
-              control={form.control}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel htmlFor="packageType">
-                    {t('Package Type')}
-                  </FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      if (value === PackageType.ARCHIVE) {
-                        form.setValue('pieceName', undefined);
-                        form.setValue('pieceVersion', undefined);
-                      }
-                      form.clearErrors();
-                    }}
-                    defaultValue={PackageType.REGISTRY}
+        <form className="flex flex-col gap-4" onSubmit={submit}>
+          <div class="space-y-1">
+            <Label for="packageType">{t('Package Type')}</Label>
+            <Select
+              value={packageType()}
+              onValueChange={(value) => {
+                setPackageType(toPackageType(value));
+                if (value === PackageType.ARCHIVE) {
+                  setPieceName('');
+                  setPieceVersion('');
+                }
+                setErrors({});
+              }}
+              defaultValue={PackageType.REGISTRY}
+            >
+              <SelectTrigger>
+                <SelectValue defaultValue={PackageType.REGISTRY} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value={PackageType.REGISTRY}>
+                    {t('NPM Registry')}
+                  </SelectItem>
+                  <SelectItem
+                    value={PackageType.ARCHIVE}
+                    disabled={!isEnabled || !privatePiecesEnabled}
                   >
-                    <SelectTrigger>
-                      <SelectValue defaultValue={PackageType.REGISTRY} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value={PackageType.REGISTRY}>
-                          {t('NPM Registry')}
-                        </SelectItem>
-                        <SelectItem
-                          value={PackageType.ARCHIVE}
-                          disabled={!isEnabled || !privatePiecesEnabled}
-                        >
-                          {t('Packed Archive (.tgz)')}
-                        </SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    {t('Packed Archive (.tgz)')}
+                  </SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
 
-            {form.watch('packageType') === PackageType.REGISTRY && (
-              <>
-                <FormField
-                  name="pieceName"
-                  control={form.control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel htmlFor="pieceName">
-                        {t('Piece Name')}
-                      </FormLabel>
-                      <Input
-                        {...field}
-                        value={field.value || ''}
-                        id="pieceName"
-                        type="text"
-                        placeholder="@activepieces/piece-name"
-                        className="rounded-sm"
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
+          {packageType() === PackageType.REGISTRY && (
+            <>
+              <div class="space-y-1">
+                <Label for="pieceName">{t('Piece Name')}</Label>
+                <Input
+                  value={pieceName()}
+                  onInput={(e) => setPieceName(e.currentTarget.value)}
+                  id="pieceName"
+                  type="text"
+                  placeholder="@activepieces/piece-name"
+                  class="rounded-sm"
                 />
-                <FormField
-                  name="pieceVersion"
-                  control={form.control}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel htmlFor="pieceVersion">
-                        {t('Piece Version')}
-                      </FormLabel>
-                      <Input
-                        {...field}
-                        value={field.value || ''}
-                        id="pieceVersion"
-                        type="text"
-                        placeholder="0.0.1"
-                        className="rounded-sm"
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                <Show when={errors().pieceName}>
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {errors().pieceName}
+                  </p>
+                </Show>
+              </div>
+              <div class="space-y-1">
+                <Label for="pieceVersion">{t('Piece Version')}</Label>
+                <Input
+                  value={pieceVersion()}
+                  onInput={(e) => setPieceVersion(e.currentTarget.value)}
+                  id="pieceVersion"
+                  type="text"
+                  placeholder="0.0.1"
+                  class="rounded-sm"
                 />
-              </>
-            )}
+                <Show when={errors().pieceVersion}>
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {errors().pieceVersion}
+                  </p>
+                </Show>
+              </div>
+            </>
+          )}
 
-            {form.watch('packageType') === PackageType.ARCHIVE && (
-              <FormField
-                name="pieceArchive"
-                control={form.control}
-                render={({
-                  field: { value: _value, onChange, ...fieldProps },
-                }) => (
-                  <FormItem>
-                    <FormLabel htmlFor="pieceArchive">
-                      {t('Package Archive')}
-                    </FormLabel>
-                    <Input
-                      {...fieldProps}
-                      id="pieceArchive"
-                      type="file"
-                      onChange={(event) => {
-                        const file = event.target.files?.[0];
-                        if (file) {
-                          onChange(file);
-                          handleArchiveUpload(file);
-                        }
-                      }}
-                      placeholder={t('Package archive')}
-                      className="rounded-sm"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
+          {packageType() === PackageType.ARCHIVE && (
+            <div class="space-y-1">
+              <Label for="pieceArchive">{t('Package Archive')}</Label>
+              <Input
+                id="pieceArchive"
+                type="file"
+                onChange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  if (file) {
+                    setPieceArchive(file);
+                    handleArchiveUpload(file);
+                  }
+                }}
+                placeholder={t('Package archive')}
+                class="rounded-sm"
               />
-            )}
+              <Show when={errors().pieceArchive}>
+                <p class="text-sm font-medium text-destructive wrap-break-word">
+                  {errors().pieceArchive}
+                </p>
+              </Show>
+            </div>
+          )}
 
-            {form?.formState?.errors?.root?.serverError && (
-              <FormMessage>
-                {form.formState.errors.root.serverError.message}
-              </FormMessage>
-            )}
-            <Button loading={isPending} type="submit">
-              {t('Install')}
-            </Button>
-          </form>
-        </FormProvider>
+          <Show when={errors().server}>
+            <p class="text-sm font-medium text-destructive wrap-break-word">
+              {errors().server}
+            </p>
+          </Show>
+          <Button loading={isPending} type="submit">
+            {t('Install')}
+          </Button>
+        </form>
       </DialogContent>
     </Dialog>
   );
 };
+
+function toPackageType(value: string): PackageType {
+  if (value === PackageType.REGISTRY) return value;
+  if (value === PackageType.ARCHIVE) return value;
+  throw new Error('Invalid package type');
+}
+
+type InstallPieceData =
+  | {
+      packageType: PackageType.REGISTRY;
+      scope: PieceScope;
+      pieceName: string;
+      pieceVersion: string;
+    }
+  | {
+      packageType: PackageType.ARCHIVE;
+      scope: PieceScope;
+      pieceName: string;
+      pieceVersion: string;
+      pieceArchive: File;
+    };
+
+type InstallPieceErrors = Partial<{
+  pieceName: string;
+  pieceVersion: string;
+  pieceArchive: string;
+  server: string;
+}>;
 
 export { InstallPieceDialog };

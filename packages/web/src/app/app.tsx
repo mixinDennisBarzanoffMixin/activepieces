@@ -1,6 +1,4 @@
-import { QueryClientProvider } from '@tanstack/react-query';
-import React from 'react';
-import { useTranslation } from 'react-i18next';
+import { QueryClientProvider } from '@tanstack/solid-query';
 
 import { ApErrorDialog } from '@/components/custom/ap-error-dialog/ap-error-dialog';
 import { EmbeddingProvider } from '@/components/providers/embed-provider';
@@ -16,7 +14,6 @@ import { ApRouter } from './guards';
 import { queryClient } from './query-client';
 
 export function App() {
-  const { i18n } = useTranslation();
   return (
     <QueryClientProvider client={queryClient}>
       <RefreshAnalyticsProvider>
@@ -25,13 +22,11 @@ export function App() {
             <EmbeddingFontLoader>
               <TelemetryProvider>
                 <TooltipProvider>
-                  <React.Fragment key={i18n.language}>
-                    <ThemeProvider storageKey="vite-ui-theme">
-                      <ApRouter />
-                      <Toaster position="bottom-right" />
-                      <ApErrorDialog />
-                    </ThemeProvider>
-                  </React.Fragment>
+                  <ThemeProvider storageKey="vite-ui-theme">
+                    <ApRouter />
+                    <Toaster position="bottom-right" />
+                    <ApErrorDialog />
+                  </ThemeProvider>
                 </TooltipProvider>
               </TelemetryProvider>
             </EmbeddingFontLoader>

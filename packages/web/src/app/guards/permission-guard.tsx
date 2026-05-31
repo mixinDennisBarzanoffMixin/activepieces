@@ -1,6 +1,4 @@
 import { Permission } from '@activepieces/shared';
-import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
 
 import { useAuthorization } from '@/hooks/authorization-hooks';
 
@@ -15,7 +13,8 @@ export const RoutePermissionGuard = ({
   const permissions = Array.isArray(permission) ? permission : [permission];
   const hasAccess = permissions.some((p) => checkAccess(p));
   if (!hasAccess) {
-    return <Navigate replace={true} to="/404"></Navigate>;
+    window.location.replace('/404');
+    return null;
   }
   return children;
 };

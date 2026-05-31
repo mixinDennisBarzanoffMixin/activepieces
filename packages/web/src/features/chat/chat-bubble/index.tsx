@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import * as React from 'react';
+import { JSX } from 'solid-js';
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button, ButtonProps } from '@/components/ui/button';
@@ -26,51 +26,41 @@ const chatBubbleVariant = cva('flex gap-2 w-full items-start relative group', {
 });
 
 interface ChatBubbleProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends JSX.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof chatBubbleVariant> {}
 
-const ChatBubble = React.forwardRef<HTMLDivElement, ChatBubbleProps>(
-  ({ className, variant, layout, children, ...props }, ref) => (
+function ChatBubble(props: ChatBubbleProps) {
+  const { className, variant, layout, children, ref, ...rest } = props;
+  return (
     <div
       className={cn(
         chatBubbleVariant({ variant, layout, className }),
         'relative group',
       )}
       ref={ref}
-      {...props}
+      {...rest}
     >
-      {React.Children.map(children, (child) =>
-        React.isValidElement(child) && typeof child.type !== 'string'
-          ? React.cloneElement(child, {
-              variant,
-              layout,
-            } as React.ComponentProps<typeof child.type>)
-          : child,
-      )}
+      {children}
     </div>
-  ),
-);
+  );
+}
 ChatBubble.displayName = 'ChatBubble';
 
 // ChatBubbleAvatar
 interface ChatBubbleAvatarProps {
   src?: string;
-  fallback?: React.ReactNode;
+  fallback?: any;
   className?: string;
 }
 
-const ChatBubbleAvatar: React.FC<ChatBubbleAvatarProps> = ({
-  src,
-  fallback,
-  className,
-}) => (
+const ChatBubbleAvatar = ({ src, fallback, className }) => (
   <Avatar>
     <AvatarImage
       src={src}
       alt="Avatar"
-      className={cn('aspect-square p-2', className)}
+      class={cn('aspect-square p-2', className)}
     />
-    <AvatarFallback className="bg-background border">{fallback}</AvatarFallback>
+    <AvatarFallback class="bg-background border">{fallback}</AvatarFallback>
   </Avatar>
 );
 
@@ -93,26 +83,21 @@ const chatBubbleMessageVariants = cva('px-1', {
 });
 
 interface ChatBubbleMessageProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends JSX.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof chatBubbleMessageVariants> {
   isLoading?: boolean;
 }
 
-const ChatBubbleMessage = React.forwardRef<
-  HTMLDivElement,
-  ChatBubbleMessageProps
->(
-  (
-    { className, variant, layout, isLoading = false, children, ...props },
-    ref,
-  ) => (
+function ChatBubbleMessage(props: ChatBubbleMessageProps) {
+  const { className, variant, layout, isLoading = false, children, ref, ...rest } = props;
+  return (
     <div
       className={cn(
         chatBubbleMessageVariants({ variant, layout, className }),
         'wrap-break-word max-w-full whitespace-pre-wrap overflow-x-auto',
       )}
       ref={ref}
-      {...props}
+      {...rest}
     >
       {isLoading ? (
         <div className="flex items-center space-x-2">
@@ -122,16 +107,16 @@ const ChatBubbleMessage = React.forwardRef<
         children
       )}
     </div>
-  ),
-);
+  );
+}
 ChatBubbleMessage.displayName = 'ChatBubbleMessage';
 
 // ChatBubbleAction
 type ChatBubbleActionProps = ButtonProps & {
-  icon: React.ReactNode;
+  icon: any;
 };
 
-const ChatBubbleAction: React.FC<ChatBubbleActionProps> = ({
+const ChatBubbleAction = ({
   icon,
   onClick,
   className,
@@ -142,7 +127,7 @@ const ChatBubbleAction: React.FC<ChatBubbleActionProps> = ({
   <Button
     variant={variant}
     size={size}
-    className={className}
+    class={className}
     onClick={onClick}
     {...props}
   >

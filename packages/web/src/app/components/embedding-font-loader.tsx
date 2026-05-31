@@ -1,12 +1,12 @@
 import { isNil } from '@activepieces/shared';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { api } from '@/lib/api';
 const defaultFont = 'Roboto';
 const useDownloadEmbeddingFont = () => {
   const { embedState } = useEmbedding();
-  useSuspenseQuery<string, Error>({
+  createQuery(() => ({
     queryKey: ['font', embedState.fontFamily, embedState.fontUrl],
     queryFn: async () => {
       try {
@@ -44,14 +44,12 @@ const useDownloadEmbeddingFont = () => {
       }
       return defaultFont;
     },
-  });
+  }));
 };
-const EmbeddingFontLoader = ({ children }: { children: React.ReactNode }) => {
+const EmbeddingFontLoader = ({ children }: { children: JSX.Element }) => {
   useDownloadEmbeddingFont();
 
   return <>{children}</>;
 };
-
-EmbeddingFontLoader.displayName = 'EmbeddingFontLoader';
 
 export { EmbeddingFontLoader };

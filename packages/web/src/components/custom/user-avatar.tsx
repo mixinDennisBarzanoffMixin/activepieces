@@ -1,5 +1,5 @@
 import { isNil } from '@activepieces/shared';
-import Avatar from 'boring-avatars';
+import Avatar from 'boring-avatars-solid';
 
 import {
   Tooltip,
@@ -45,7 +45,7 @@ export function UserAvatar({
       colors={['#0a0310', '#49007e', '#ff005b', '#ff7d10', '#ffb238']}
       variant="beam"
       square
-      className={cn('rounded-full', className)}
+      class={cn('rounded-full', className)}
     />
   );
 

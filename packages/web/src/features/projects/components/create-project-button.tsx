@@ -4,7 +4,8 @@ import {
   ProjectWithLimits,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Plus } from 'lucide-react';
+import { Plus } from 'lucide-solid';
+import { JSX } from 'solid-js';
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { PlusIcon } from '@/components/icons/plus';
@@ -34,11 +35,11 @@ function useIsCreateProjectDisabled({
   return false;
 }
 
-function UpgradeTooltip({ children }: { children: React.ReactNode }) {
+function UpgradeTooltip({ children }: { children: JSX.Element }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent className="max-w-[250px]">
+      <TooltipContent class="max-w-[250px]">
         <p className="text-xs mb-1">
           {t('Upgrade your plan to create additional team projects.')}{' '}
           <button
@@ -66,7 +67,7 @@ function IconVariant({
     return (
       <UpgradeTooltip>
         <div>
-          <Button variant="ghost" size="icon" disabled className="h-6 w-6">
+          <Button variant="ghost" size="icon" disabled class="h-6 w-6">
             <Plus />
           </Button>
         </div>
@@ -75,7 +76,7 @@ function IconVariant({
   }
   return (
     <NewProjectDialog onCreate={onCreate}>
-      <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-accent">
+      <Button variant="ghost" size="icon" class="h-6 w-6 hover:bg-accent">
         <Plus />
       </Button>
     </NewProjectDialog>
@@ -113,8 +114,8 @@ function SidebarMenuVariant({
   if (disabled) {
     return (
       <UpgradeTooltip>
-        <SidebarMenuButton disabled className="text-muted-foreground gap-2">
-          <Plus className="size-4" />
+        <SidebarMenuButton disabled class="text-muted-foreground gap-2">
+          <Plus class="size-4" />
           <span>{t('Add team project')}</span>
         </SidebarMenuButton>
       </UpgradeTooltip>
@@ -122,8 +123,8 @@ function SidebarMenuVariant({
   }
   return (
     <NewProjectDialog onCreate={onCreate}>
-      <SidebarMenuButton className="text-muted-foreground gap-2">
-        <Plus className="size-4" />
+      <SidebarMenuButton class="text-muted-foreground gap-2">
+        <Plus class="size-4" />
         <span>{t('Add team project')}</span>
       </SidebarMenuButton>
     </NewProjectDialog>

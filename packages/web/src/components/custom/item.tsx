@@ -1,11 +1,9 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Slot } from 'radix-ui';
-import * as React from 'react';
 
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-function ItemGroup({ className, ...props }: React.ComponentProps<'div'>) {
+function ItemGroup({ className, ...props }: any) {
   return (
     <div
       role="list"
@@ -16,15 +14,12 @@ function ItemGroup({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function ItemSeparator({
-  className,
-  ...props
-}: React.ComponentProps<typeof Separator>) {
+function ItemSeparator({ className, ...props }: any) {
   return (
     <Separator
       data-slot="item-separator"
       orientation="horizontal"
-      className={cn('my-0', className)}
+      class={cn('my-0', className)}
       {...props}
     />
   );
@@ -57,15 +52,13 @@ function Item({
   size = 'default',
   asChild = false,
   ...props
-}: React.ComponentProps<'div'> &
-  VariantProps<typeof itemVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : 'div';
+}: any & VariantProps<typeof itemVariants> & { asChild?: boolean }) {
   return (
-    <Comp
+    <div
       data-slot="item"
       data-variant={variant}
       data-size={size}
-      className={cn(itemVariants({ variant, size, className }))}
+      class={cn(itemVariants({ variant, size, className }))}
       {...props}
     />
   );
@@ -92,7 +85,7 @@ function ItemMedia({
   className,
   variant = 'default',
   ...props
-}: React.ComponentProps<'div'> & VariantProps<typeof itemMediaVariants>) {
+}: any & VariantProps<typeof itemMediaVariants>) {
   return (
     <div
       data-slot="item-media"
@@ -103,7 +96,7 @@ function ItemMedia({
   );
 }
 
-function ItemContent({ className, ...props }: React.ComponentProps<'div'>) {
+function ItemContent({ className, ...props }: any) {
   return (
     <div
       data-slot="item-content"
@@ -116,7 +109,7 @@ function ItemContent({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function ItemTitle({ className, ...props }: React.ComponentProps<'div'>) {
+function ItemTitle({ className, ...props }: any) {
   return (
     <div
       data-slot="item-title"
@@ -129,7 +122,7 @@ function ItemTitle({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function ItemDescription({ className, ...props }: React.ComponentProps<'p'>) {
+function ItemDescription({ className, ...props }: any) {
   return (
     <p
       data-slot="item-description"
@@ -143,7 +136,7 @@ function ItemDescription({ className, ...props }: React.ComponentProps<'p'>) {
   );
 }
 
-function ItemActions({ className, ...props }: React.ComponentProps<'div'>) {
+function ItemActions({ className, ...props }: any) {
   return (
     <div
       data-slot="item-actions"
@@ -153,7 +146,7 @@ function ItemActions({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function ItemHeader({ className, ...props }: React.ComponentProps<'div'>) {
+function ItemHeader({ className, ...props }: any) {
   return (
     <div
       data-slot="item-header"
@@ -166,7 +159,7 @@ function ItemHeader({ className, ...props }: React.ComponentProps<'div'>) {
   );
 }
 
-function ItemFooter({ className, ...props }: React.ComponentProps<'div'>) {
+function ItemFooter({ className, ...props }: any) {
   return (
     <div
       data-slot="item-footer"

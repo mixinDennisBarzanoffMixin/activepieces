@@ -1,4 +1,5 @@
 import { FlowActionType, FlowOperationType, isNil } from '@activepieces/shared';
+import { For } from 'solid-js';
 
 import { CardList, CardListItemSkeleton } from '@/components/custom/card-list';
 import {
@@ -108,33 +109,35 @@ const ApprovalsTabContent = ({
 
   return (
     <CardList listClassName="gap-0">
-      {allApprovalActions.map((item) => (
-        <GenericActionOrTriggerItem
-          key={`${item.pieceMetadata.pieceName}-${item.action.name}`}
-          item={{
-            actionOrTrigger: item.action,
-            type: FlowActionType.PIECE,
-            pieceMetadata: item.pieceMetadata,
-          }}
-          hidePieceIconAndDescription={false}
-          stepMetadataWithSuggestions={{
-            ...item.pieceMetadata,
-            suggestedActions: [item.action],
-            suggestedTriggers: [],
-          }}
-          onClick={() => {
-            handleAddingOrUpdatingStep({
-              pieceSelectorItem: {
-                actionOrTrigger: item.action,
-                type: FlowActionType.PIECE,
-                pieceMetadata: item.pieceMetadata,
-              },
-              operation,
-              selectStepAfter: true,
-            });
-          }}
-        />
-      ))}
+      <For each={allApprovalActions}>
+        {(item) => (
+          <GenericActionOrTriggerItem
+            key={`${item.pieceMetadata.pieceName}-${item.action.name}`}
+            item={{
+              actionOrTrigger: item.action,
+              type: FlowActionType.PIECE,
+              pieceMetadata: item.pieceMetadata,
+            }}
+            hidePieceIconAndDescription={false}
+            stepMetadataWithSuggestions={{
+              ...item.pieceMetadata,
+              suggestedActions: [item.action],
+              suggestedTriggers: [],
+            }}
+            onClick={() => {
+              handleAddingOrUpdatingStep({
+                pieceSelectorItem: {
+                  actionOrTrigger: item.action,
+                  type: FlowActionType.PIECE,
+                  pieceMetadata: item.pieceMetadata,
+                },
+                operation,
+                selectStepAfter: true,
+              });
+            }}
+          />
+        )}
+      </For>
     </CardList>
   );
 };

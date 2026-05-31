@@ -9,7 +9,7 @@ import {
 
 type ButtonWithTooltipProps = {
   tooltip: string;
-  onClick: (e?: React.MouseEvent) => void;
+  onClick: (e?: MouseEvent) => void;
   variant?:
     | 'ghost'
     | 'outline'
@@ -17,7 +17,7 @@ type ButtonWithTooltipProps = {
     | 'destructive'
     | 'secondary'
     | 'link';
-  icon: React.ReactNode;
+  icon: any;
   className?: string;
   disabled?: boolean;
   hasPermission?: boolean;
@@ -39,7 +39,7 @@ export const ButtonWithTooltip = ({
           <Button
             variant={variant}
             size="icon"
-            className={className}
+            class={className}
             onClick={onClick}
             disabled={disabled || !hasPermission}
           >

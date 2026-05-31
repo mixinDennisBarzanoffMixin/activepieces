@@ -17,7 +17,8 @@ import {
   OAuth2GrantType,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { CheckIcon, UnplugIcon, XIcon } from 'lucide-react';
+import { CheckIcon, UnplugIcon, XIcon } from 'lucide-solid';
+import { Component } from 'solid-js';
 
 import { OAuth2App } from '@/features/connections/utils/oauth2-utils';
 import { formUtils } from '@/features/pieces/utils/form-utils';
@@ -43,7 +44,7 @@ export class NoProjectSelected extends Error {
 export const appConnectionUtils = {
   getStatusIcon(status: AppConnectionStatus): {
     variant: 'default' | 'success' | 'error';
-    icon: React.ComponentType;
+    icon: Component;
   } {
     switch (status) {
       case AppConnectionStatus.ACTIVE:

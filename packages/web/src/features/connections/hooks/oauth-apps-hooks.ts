@@ -4,9 +4,9 @@ import {
   ApFlagId,
   AppConnectionType,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { PiecesOAuth2AppsMap } from '@/features/connections/utils/oauth2-utils';
 import { flagsHooks } from '@/hooks/flags-hooks';
@@ -16,7 +16,7 @@ import { oauthAppsApi } from '../api/oauth-apps';
 
 export const oauthAppsMutations = {
   useDeleteOAuthApp: (refetch: () => void, setOpen: (open: boolean) => void) =>
-    useMutation({
+    createMutation(() => ({
       mutationFn: async (credentialId: string) => {
         await oauthAppsApi.delete(credentialId);
         refetch();
@@ -27,14 +27,14 @@ export const oauthAppsMutations = {
         });
         setOpen(false);
       },
-    }),
+    })),
 
   useUpsertOAuthApp: (
     refetch: () => void,
     setOpen: (open: boolean) => void,
     onConfigurationDone: () => void,
   ) =>
-    useMutation({
+    createMutation(() => ({
       mutationFn: async (request: UpsertOAuth2AppRequest) => {
         await oauthAppsApi.upsert(request);
         refetch();
@@ -46,12 +46,12 @@ export const oauthAppsMutations = {
         onConfigurationDone();
         setOpen(false);
       },
-    }),
+    })),
 };
 
 export const oauthAppsQueries = {
   useOAuthAppConfigured(pieceId: string) {
-    const query = useQuery({
+    const query = createQuery(() => ({
       queryKey: ['oauth2-apps-configured'],
       queryFn: async () => {
         const response = await oauthAppsApi.listPlatformOAuth2Apps({
@@ -63,7 +63,7 @@ export const oauthAppsQueries = {
         return data.find((app) => app.pieceName === pieceId);
       },
       staleTime: Infinity,
-    });
+    }));
     return {
       refetch: query.refetch,
       oauth2App: query.data,
@@ -73,7 +73,7 @@ export const oauthAppsQueries = {
     const { platform } = platformHooks.useCurrentPlatform();
     const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
 
-    return useQuery<PiecesOAuth2AppsMap, Error>({
+    return createQuery<PiecesOAuth2AppsMap, Error>({
       queryKey: ['oauth-apps'],
       queryFn: async () => {
         const apps =

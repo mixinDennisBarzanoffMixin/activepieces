@@ -3,9 +3,9 @@ import {
   UserWithMetaInformation,
   validateIndexBound,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
-import { User } from 'lucide-react';
+import { User } from 'lucide-solid';
 
 import {
   DataTableFilters,

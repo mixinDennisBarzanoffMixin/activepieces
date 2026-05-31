@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, createSignal, useContext } from 'solid-js';
 
 export type PieceSearchContextState = {
   searchQuery: string;
@@ -10,12 +10,8 @@ const PieceSearchContext = createContext<PieceSearchContextState>({
   setSearchQuery: () => {},
 });
 
-export const PieceSearchProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
+export const PieceSearchProvider = ({ children }: { children }) => {
+  const [searchQuery, setSearchQuery] = createSignal('');
   return (
     <PieceSearchContext.Provider value={{ searchQuery, setSearchQuery }}>
       {children}

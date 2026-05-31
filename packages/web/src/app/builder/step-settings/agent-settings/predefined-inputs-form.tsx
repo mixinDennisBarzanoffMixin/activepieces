@@ -4,12 +4,11 @@ import {
   isNil,
   PredefinedInputField,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from 'i18next';
-import { useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { For, Show, createEffect, createMemo } from 'solid-js';
 import { z } from 'zod';
 
+import { createForm, zodResolver } from '@/app/builder/builder-form';
 import { ApMarkdown } from '@/components/custom/markdown';
 import { Form, FormField } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -51,23 +50,20 @@ export const PredefinedInputsForm = () => {
   const { pieces } = piecesHooks.usePieces({});
   const selectedPiece = pieces?.find((p) => p.name === piece?.pieceName);
   const requireAuth = selectedAction?.requireAuth ?? true;
-  const formSchema = useMemo(
-    () => createPredefinedInputsFormSchema(requireAuth),
-    [requireAuth],
+  const formSchema = createMemo(() =>
+    createPredefinedInputsFormSchema(requireAuth),
   );
-  const properties = useMemo(
-    () =>
-      selectedAction
-        ? Object.fromEntries(
-            Object.entries(selectedAction.props).map(([name, prop]) => [
-              name,
-              prop as PieceProperty,
-            ]),
-          )
-        : {},
-    [selectedAction],
+  const properties = createMemo(() =>
+    selectedAction
+      ? Object.fromEntries(
+          Object.entries(selectedAction.props).map(([name, prop]) => [
+            name,
+            prop as PieceProperty,
+          ]),
+        )
+      : {},
   );
-  const defaultValues = useMemo<PredefinedInputsFormValues>(() => {
+  const defaultValues = createMemo<PredefinedInputsFormValues>(() => {
     const values: PredefinedInputsFormValues = {};
     if (requireAuth && predefinedInputs?.auth) {
       values.auth = predefinedInputs.auth;
@@ -83,14 +79,14 @@ export const PredefinedInputsForm = () => {
       });
     }
     return values;
-  }, [predefinedInputs, requireAuth]);
-  const form = useForm<PredefinedInputsFormValues>({
+  });
+  const form = createForm<PredefinedInputsFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues,
     mode: 'onChange',
     reValidateMode: 'onChange',
   });
-  useEffect(() => {
+  createEffect(() => {
     const subscription = form.watch((values, { name }) => {
       if (!name || name === 'auth') return;
 
@@ -114,7 +110,7 @@ export const PredefinedInputsForm = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [form, setPredefinedInputs]);
+  });
   const handleAuthChange = (value: string | null) => {
     const newAuth = !isNil(value) ? value : undefined;
     setPredefinedInputs({
@@ -155,7 +151,7 @@ export const PredefinedInputsForm = () => {
   const pieceHasAuth = requireAuth && selectedPiece?.auth;
   return (
     <Form {...form}>
-      <ScrollArea className="h-full">
+      <ScrollArea class="h-full">
         <div className="flex items-start border-b gap-3 p-4">
           <div className="flex size-11 shrink-0 items-center justify-center rounded-sm border bg-background">
             <img
@@ -168,105 +164,113 @@ export const PredefinedInputsForm = () => {
             <div className="text-sm font-medium">
               {selectedAction?.displayName}
             </div>
-            {selectedAction?.description && (
+            <Show when={selectedAction?.description()}>
               <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
                 {selectedAction.description}
               </p>
-            )}
+            </Show>
           </div>
         </div>
         <div className="space-y-6 p-4">
-          {pieceHasAuth && !isNil(selectedPiece) && (
+          <Show when={pieceHasAuth && !isNil(selectedPiece)()}>
             <ConnectionDropdown
               piece={selectedPiece}
               value={form.watch('auth') as string | null}
               onChange={handleAuthChange}
               placeholder={t('Connect your account')}
             />
-          )}
-          {Object.keys(properties).length > 0 && (
+          </Show>
+          <Show when={Object.keys(properties).length > 0()}>
             <div className="space-y-5">
-              {Object.entries(properties).map(([propertyName, property]) => {
-                const isMarkdown = property.type === PropertyType.MARKDOWN;
+              <For each={Object.entries(properties)}>
+                {([propertyName, property]) => {
+                  const isMarkdown = property.type === PropertyType.MARKDOWN;
 
-                if (isMarkdown) {
-                  return (
-                    <ApMarkdown
-                      key={propertyName}
-                      markdown={property.description}
-                      variables={{}}
-                      variant={property.variant}
-                    />
-                  );
-                }
-
-                const mode = getModeForProperty(propertyName);
-                const showInput = mode === FieldControlMode.CHOOSE_YOURSELF;
-                return (
-                  <div key={propertyName} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-medium">
-                        {property.displayName} {property.required && '*'}
-                      </h3>
-                      <Select
-                        value={mode}
-                        onValueChange={(v) =>
-                          handleModeChange(propertyName, v as FieldControlMode)
-                        }
-                      >
-                        <SelectTrigger className="w-80">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={FieldControlMode.AGENT_DECIDE}>
-                            {t('Let agent decide')}
-                          </SelectItem>
-                          <SelectItem value={FieldControlMode.CHOOSE_YOURSELF}>
-                            {t('Set value myself')}
-                          </SelectItem>
-                          {!property.required && (
-                            <SelectItem value={FieldControlMode.LEAVE_EMPTY}>
-                              {t('Leave empty')}
-                            </SelectItem>
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {showInput && (
-                      <FormField
-                        name={propertyName}
-                        control={form.control}
-                        render={({ field }) =>
-                          selectGenericFormComponentForProperty({
-                            field,
-                            hideLabel: true,
-                            propertyName,
-                            inputName: propertyName,
-                            property,
-                            allowDynamicValues: false,
-                            markdownVariables: {},
-                            useMentionTextInput: true,
-                            disabled: false,
-                            dynamicInputModeToggled: false,
-                            form,
-                            dynamicPropsInfo: {
-                              pieceName: selectedPiece?.name ?? '',
-                              pieceVersion: selectedPiece?.version ?? '',
-                              actionOrTriggerName: selectedAction?.name ?? '',
-                              placedInside: 'predefinedAgentInputs',
-                              updateFormSchema: null,
-                              updatePropertySettingsSchema: null,
-                            },
-                            propertySettings: null,
-                          })
-                        }
+                  if (isMarkdown) {
+                    return (
+                      <ApMarkdown
+                        key={propertyName}
+                        markdown={property.description}
+                        variables={{}}
+                        variant={property.variant}
                       />
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  }
+
+                  const mode = getModeForProperty(propertyName);
+                  const showInput = mode === FieldControlMode.CHOOSE_YOURSELF;
+                  return (
+                    <div key={propertyName} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium">
+                          {property.displayName}{' '}
+                          <Show when={property.required()}>{'*'}</Show>
+                        </h3>
+                        <Select
+                          value={mode}
+                          onValueChange={(v) =>
+                            handleModeChange(
+                              propertyName,
+                              v as FieldControlMode,
+                            )
+                          }
+                        >
+                          <SelectTrigger class="w-80">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={FieldControlMode.AGENT_DECIDE}>
+                              {t('Let agent decide')}
+                            </SelectItem>
+                            <SelectItem
+                              value={FieldControlMode.CHOOSE_YOURSELF}
+                            >
+                              {t('Set value myself')}
+                            </SelectItem>
+                            <Show when={!property.required()}>
+                              <SelectItem value={FieldControlMode.LEAVE_EMPTY}>
+                                {t('Leave empty')}
+                              </SelectItem>
+                            </Show>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Show when={showInput()}>
+                        <FormField
+                          name={propertyName}
+                          control={form.control}
+                          render={({ field }) =>
+                            selectGenericFormComponentForProperty({
+                              field,
+                              hideLabel: true,
+                              propertyName,
+                              inputName: propertyName,
+                              property,
+                              allowDynamicValues: false,
+                              markdownVariables: {},
+                              useMentionTextInput: true,
+                              disabled: false,
+                              dynamicInputModeToggled: false,
+                              form,
+                              dynamicPropsInfo: {
+                                pieceName: selectedPiece?.name ?? '',
+                                pieceVersion: selectedPiece?.version ?? '',
+                                actionOrTriggerName: selectedAction?.name ?? '',
+                                placedInside: 'predefinedAgentInputs',
+                                updateFormSchema: null,
+                                updatePropertySettingsSchema: null,
+                              },
+                              propertySettings: null,
+                            })
+                          }
+                        />
+                      </Show>
+                    </div>
+                  );
+                }}
+              </For>
             </div>
-          )}
+          </Show>
         </div>
       </ScrollArea>
     </Form>

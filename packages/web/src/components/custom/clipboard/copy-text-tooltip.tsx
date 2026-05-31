@@ -9,7 +9,7 @@ const CopyTextTooltip = ({
 }: {
   text: string;
   title: string;
-  children: React.ReactNode;
+  children: any;
 }) => {
   return (
     <Tooltip>
@@ -20,7 +20,7 @@ const CopyTextTooltip = ({
           <CopyButton
             withoutTooltip={true}
             variant="ghost"
-            className="hover:text-background"
+            class="hover:text-background"
             textToCopy={text || ''}
           ></CopyButton>
         </div>

@@ -1,10 +1,10 @@
 import { Note, NoteColorVariant } from '@activepieces/shared';
-import { useDraggable } from '@dnd-kit/core';
+import { useDraggable } from '@/lib/solid-dnd-kit';
+import { useDebouncedCallback } from '@/lib/debounce';
 import { Editor } from '@tiptap/core';
-import { NodeProps, NodeResizeControl } from '@xyflow/react';
+import { NodeProps, NodeResizeControl } from '../../solid-flow-adapter';
 import { t } from 'i18next';
-import { useRef, useState } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
+import { Show, createSignal } from 'solid-js';
 
 import { MarkdownInput } from '@/components/custom/markdown-input';
 import {
@@ -37,8 +37,8 @@ const ApNoteCanvasNode = (props: NodeProps & Omit<ApNoteNode, 'position'>) => {
     },
   });
   //because react flow only detects nowheel class, it doesn't work with focus-within:nowheel
-  const [isFocusWithin, setIsFocusWithin] = useState(false);
-  const [size, setSize] = useState(props.data.size);
+  const [isFocusWithin, setIsFocusWithin] = createSignal(false);
+  const [size, setSize] = createSignal(props.data.size);
   if (draggedNote?.id === props.id || note === null) {
     return null;
   }
@@ -119,7 +119,7 @@ ApNoteCanvasNode.displayName = 'ApNoteCanvasNode';
 const NoteContent = ({ note, isDragging }: NoteContentProps) => {
   const { id, ownerId: creatorId, color, size } = note;
   const { width, height } = size;
-  const [localNote, setLocalNote] = useState(note);
+  const [localNote, setLocalNote] = createSignal(note);
   const [updateContent, readonly] = useBuilderStateContext((state) => [
     state.updateContent,
     state.readonly,
@@ -131,7 +131,7 @@ const NoteContent = ({ note, isDragging }: NoteContentProps) => {
     500,
   );
 
-  const editorRef = useRef<Editor | null>(null);
+  let editorRef: Editor | null | undefined;
   return (
     <div
       id={id}
@@ -144,18 +144,14 @@ const NoteContent = ({ note, isDragging }: NoteContentProps) => {
         height: `${height}px`,
       }}
     >
-      {!isDragging && !readonly && editorRef.current && (
+      <Show when={!isDragging && !readonly && editorRef()}>
         <div
           className="opacity-0 focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto group-focus-within:opacity-100 transition-opacity duration-300"
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <NoteTools
-            editor={editorRef.current}
-            currentColor={note.color}
-            id={id}
-          />
+          <NoteTools editor={editorRef} currentColor={note.color} id={id} />
         </div>
-      )}
+      </Show>
 
       <div className="flex flex-col gap-2 h-full">
         <Tooltip>
@@ -165,7 +161,7 @@ const NoteContent = ({ note, isDragging }: NoteContentProps) => {
               className="grow h-full overflow-auto "
               onDoubleClick={(e) => {
                 e.stopPropagation();
-                editorRef.current?.commands.focus();
+                editorRef?.commands.focus();
               }}
               onKeyDown={(e) => {
                 e.stopPropagation();
@@ -175,20 +171,16 @@ const NoteContent = ({ note, isDragging }: NoteContentProps) => {
               }}
             >
               <MarkdownInput
-                ref={editorRef}
+                ref={(el) => (editorRef = el)}
                 key={`${localNote.id}-${readonly ? 'readonly' : 'editable'}-${
                   localNote.position.x
                 }-${localNote.position.y}`}
                 disabled={isDragging || readonly}
                 initialValue={localNote.content}
-                className={cn(
-                  'text-xs h-full',
-                  NoteColorVariantClassName[color],
-                  {
-                    '!cursor-grabbing': isDragging,
-                    '!text-foreground': true,
-                  },
-                )}
+                class={cn('text-xs h-full', NoteColorVariantClassName[color], {
+                  '!cursor-grabbing': isDragging,
+                  '!text-foreground': true,
+                })}
                 onlyEditableOnDoubleClick={true}
                 placeholder={t('Double click to edit...')}
                 placeholderClassName={cn(
@@ -204,11 +196,11 @@ const NoteContent = ({ note, isDragging }: NoteContentProps) => {
               />
             </div>
           </TooltipTrigger>
-          {!readonly && !isDragging && !editorRef.current?.isFocused && (
+          <Show when={!readonly && !isDragging && !editorRef?.isFocused()}>
             <TooltipContent side="right">
               {t('Double click to edit')}
             </TooltipContent>
-          )}
+          </Show>
         </Tooltip>
         <NoteFooter id={id} isDragging={isDragging} creatorId={creatorId} />
       </div>

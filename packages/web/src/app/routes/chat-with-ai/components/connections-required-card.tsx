@@ -2,11 +2,11 @@ import {
   AppConnectionStatus,
   AppConnectionWithoutSensitiveData,
 } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Check } from 'lucide-react';
+import { Check } from 'lucide-solid';
 import { motion } from 'motion/react';
-import { useEffect, useMemo, useState } from 'react';
+import { createEffect, createMemo, createSignal, For, Show } from 'solid-js';
 
 import { CreateOrEditConnectionDialog } from '@/app/connections/create-edit-connection-dialog';
 import { Button } from '@/components/ui/button';
@@ -27,13 +27,13 @@ export function ConnectionsRequiredCard({
   projectId?: string | null;
 }) {
   const queryClient = useQueryClient();
-  const [connectedSet, setConnectedSet] = useState<Set<string>>(new Set());
-  const [existingConns, setExistingConns] = useState<
+  const [connectedSet, setConnectedSet] = createSignal<Set<string>>(new Set());
+  const [existingConns, setExistingConns] = createSignal<
     Record<string, AppConnectionWithoutSensitiveData>
   >({});
   const [activeConnection, setActiveConnection] =
-    useState<ConnectionRequiredData | null>(null);
-  const [continued, setContinued] = useState(false);
+    createSignal<ConnectionRequiredData | null>(null);
+  const [continued, setContinued] = createSignal(false);
 
   const activePieceName = activeConnection
     ? normalizePieceName(activeConnection.piece)
@@ -43,12 +43,11 @@ export function ConnectionsRequiredCard({
     enabled: !!activePieceName,
   });
 
-  const connectionsKey = useMemo(
-    () => connections.map((c) => c.piece).join(','),
-    [connections],
+  const connectionsKey = createMemo(() =>
+    connections.map((c) => c.piece).join(','),
   );
 
-  useEffect(() => {
+  createEffect(() => {
     const projectId = selectedProjectId ?? authenticationSession.getProjectId();
     if (!projectId) return;
     let cancelled = false;
@@ -93,7 +92,7 @@ export function ConnectionsRequiredCard({
     return () => {
       cancelled = true;
     };
-  }, [connectionsKey, selectedProjectId]);
+  });
 
   const allConnected = connections.every((c) => connectedSet.has(c.piece));
 
@@ -104,7 +103,7 @@ export function ConnectionsRequiredCard({
   return (
     <>
       <motion.div
-        className="rounded-xl border bg-background overflow-hidden my-2"
+        class="rounded-xl border bg-background overflow-hidden my-2"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
@@ -114,43 +113,50 @@ export function ConnectionsRequiredCard({
           damping: 25,
         }}
       >
-        {connections.map((conn) => (
-          <ConnectionRow
-            key={conn.piece}
-            connection={conn}
-            isConnected={connectedSet.has(conn.piece)}
-            existingConn={existingConns[conn.piece] ?? null}
-            onConnect={() => handleConnect(conn)}
-          />
-        ))}
+        <For each={connections}>
+          {(conn) => (
+            <ConnectionRow
+              key={conn.piece}
+              connection={conn}
+              isConnected={connectedSet.has(conn.piece)}
+              existingConn={existingConns[conn.piece] ?? null}
+              onConnect={() => handleConnect(conn)}
+            />
+          )}
+        </For>
 
-        {allConnected && (
+        <Show when={allConnected}>
           <div className="border-t px-4 py-3 bg-muted/30">
-            {continued ? (
+            <Show
+              when={continued}
+              fallback={
+                onSend && (
+                  <Button
+                    size="sm"
+                    class="gap-1.5"
+                    onClick={() => {
+                      setContinued(true);
+                      onSend(
+                        t('All connections are ready, continue building.'),
+                      );
+                    }}
+                  >
+                    <Check class="h-3.5 w-3.5" />
+                    {t('Continue')}
+                  </Button>
+                )
+              }
+            >
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                <Check class="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                 {t('All connected')}
               </div>
-            ) : (
-              onSend && (
-                <Button
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => {
-                    setContinued(true);
-                    onSend(t('All connections are ready, continue building.'));
-                  }}
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  {t('Continue')}
-                </Button>
-              )
-            )}
+            </Show>
           </div>
-        )}
+        </Show>
       </motion.div>
 
-      {pieceModel && activeConnection && (
+      <Show when={pieceModel && activeConnection}>
         <CreateOrEditConnectionDialog
           key={activeConnection.piece}
           piece={pieceModel}
@@ -174,7 +180,7 @@ export function ConnectionsRequiredCard({
           reconnectConnection={existingConns[activeConnection.piece] ?? null}
           isGlobalConnection={false}
         />
-      )}
+      </Show>
     </>
   );
 }
@@ -215,26 +221,29 @@ function ConnectionRow({
             : t('Not connected')}
         </div>
       </div>
-      {isConnected ? (
+      <Show
+        when={isConnected}
+        fallback={
+          <Button
+            size="sm"
+            variant="outline"
+            class="gap-1.5 shrink-0"
+            disabled={isLoading}
+            onClick={onConnect}
+          >
+            {isReconnect ? t('Reconnect') : t('Connect')}
+          </Button>
+        }
+      >
         <motion.span
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-          className="shrink-0 flex items-center justify-center"
+          class="shrink-0 flex items-center justify-center"
         >
-          <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+          <Check class="h-5 w-5 text-green-600 dark:text-green-400" />
         </motion.span>
-      ) : (
-        <Button
-          size="sm"
-          variant="outline"
-          className="gap-1.5 shrink-0"
-          disabled={isLoading}
-          onClick={onConnect}
-        >
-          {isReconnect ? t('Reconnect') : t('Connect')}
-        </Button>
-      )}
+      </Show>
     </div>
   );
 }

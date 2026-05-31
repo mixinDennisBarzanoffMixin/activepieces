@@ -2,13 +2,11 @@ import {
   PlatformWithoutSensitiveData,
   UpdatePlatformRequestBody,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Plus, X } from 'lucide-react';
-import { useState } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
-import { toast } from 'sonner';
+import { Plus, X } from 'lucide-solid';
+import { createMemo, createSignal, For, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 import { z } from 'zod';
 
 import { platformApi } from '@/api/platforms-api';
@@ -21,45 +19,22 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-
-type AllowedDomainDialogProps = {
-  platform: PlatformWithoutSensitiveData;
-  refetch: () => Promise<void>;
-};
-
-const AllowedDomainsFormValues = z.object({
-  allowedAuthDomains: z.array(
-    z.object({
-      domain: z.string().min(1),
-    }),
-  ),
-});
-type AllowedDomainsFormValues = z.infer<typeof AllowedDomainsFormValues>;
 
 export const AllowedDomainDialog = ({
   platform,
   refetch,
 }: AllowedDomainDialogProps) => {
-  const [open, setOpen] = useState(false);
-  const form = useForm<AllowedDomainsFormValues>({
-    defaultValues: {
-      allowedAuthDomains: (platform?.allowedAuthDomains ?? []).map(
-        (domain) => ({
-          domain,
-        }),
-      ),
-    },
-    resolver: zodResolver(AllowedDomainsFormValues),
-  });
+  const initial = () => platform.allowedAuthDomains.map((domain) => domain);
+  const [open, setOpen] = createSignal(false);
+  const [domains, setDomains] = createSignal(initial());
+  const valid = createMemo(() =>
+    AllowedDomainsFormValues.safeParse({
+      allowedAuthDomains: domains().map((domain) => ({ domain })),
+    }).success,
+  );
 
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: 'allowedAuthDomains',
-  });
-
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending } = createMutation(() => ({
     mutationFn: async (request: UpdatePlatformRequestBody) => {
       await platformApi.update(request, platform.id);
       await refetch();
@@ -70,108 +45,115 @@ export const AllowedDomainDialog = ({
       });
       setOpen(false);
     },
-  });
+  }));
 
   return (
     <Dialog
       open={open}
       onOpenChange={(open) => {
         if (!open) {
-          form.reset();
+          setDomains(initial());
         }
         setOpen(open);
       }}
     >
       <DialogTrigger asChild>
         <Button size={'sm'} variant={'basic'} onClick={() => setOpen(true)}>
-          {platform.allowedAuthDomains.length > 0 ? t('Update') : t('Enable')}
+          <Show when={platform.allowedAuthDomains.length > 0} fallback={t('Enable')}>
+            {t('Update')}
+          </Show>
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Configure Allowed Domains')}</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form
-            className="grid space-y-4"
-            onSubmit={form.handleSubmit((data) => {
-              mutate({
-                allowedAuthDomains: data.allowedAuthDomains.map(
-                  (d) => d.domain,
-                ),
-                enforceAllowedAuthDomains:
-                  data.allowedAuthDomains.length === 0 ? false : true,
-              });
-            })}
-          >
-            <div className="flex flex-col gap-1">
-              <div className="text-muted-foreground text-sm">
-                {t(
-                  'Enter the allowed domains for the users to authenticate with. An empty list will allow all domains.',
-                )}
-              </div>
+        <form
+          className="grid space-y-4"
+          onSubmit={(e) => {
+            e.preventDefault();
+            mutate({
+              allowedAuthDomains: domains(),
+              enforceAllowedAuthDomains: domains().length > 0,
+            });
+          }}
+        >
+          <div className="flex flex-col gap-1">
+            <div className="text-muted-foreground text-sm">
+              {t(
+                'Enter the allowed domains for the users to authenticate with. An empty list will allow all domains.',
+              )}
             </div>
-            {fields.map((field, index) => (
-              <FormField
-                key={field.id}
-                name={`allowedAuthDomains.${index}.domain`}
-                render={({ field }) => (
-                  <FormItem className="grid space-y-4">
-                    <div className="flex space-x-2">
-                      <Input
-                        {...field}
-                        id={`allowedAuthDomains.${index}`}
-                        placeholder={t('example.com')}
-                        className="rounded-sm"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => remove(index)}
-                        variant="outline"
-                        size="sm"
-                        className="h-10"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            ))}
-            <Button
-              type="button"
-              onClick={() => append({ domain: '' })}
-              variant="outline"
-              size="sm"
-            >
-              <Plus className="size-4" />
-              {t('Add Domain')}
-            </Button>
-            {form?.formState?.errors?.root?.serverError && (
-              <FormMessage>
-                {form.formState.errors.root.serverError.message}
-              </FormMessage>
+          </div>
+          <For each={domains()}>
+            {(domain, index) => (
+              <div class="grid space-y-4">
+                <div className="flex space-x-2">
+                  <Input
+                    id={`allowedAuthDomains.${index()}`}
+                    value={domain}
+                    onInput={(e) =>
+                      setDomains((domains) =>
+                        domains.map((domain, idx) =>
+                          idx === index() ? e.currentTarget.value : domain,
+                        ),
+                      )
+                    }
+                    placeholder={t('example.com')}
+                    class="rounded-sm"
+                  />
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      setDomains((domains) =>
+                        domains.filter((_, idx) => idx !== index()),
+                      )
+                    }
+                    variant="outline"
+                    size="sm"
+                    class="h-10"
+                  >
+                    <X class="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
             )}
+          </For>
+          <Button
+            type="button"
+            onClick={() => setDomains((domains) => [...domains, ''])}
+            variant="outline"
+            size="sm"
+          >
+            <Plus class="size-4" />
+            {t('Add Domain')}
+          </Button>
 
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setOpen(false)}
-                type="button"
-              >
-                {t('Cancel')}
-              </Button>
-              <Button
-                loading={isPending}
-                disabled={!form.formState.isValid}
-                type="submit"
-              >
-                {t('Save')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)} type="button">
+              {t('Cancel')}
+            </Button>
+            <Button loading={isPending} disabled={!valid()} type="submit">
+              {t('Save')}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
+};
+
+const AllowedDomainsFormValues = z.object({
+  allowedAuthDomains: z.array(
+    z.object({
+      domain: z.string().min(1),
+    }),
+  ),
+});
+
+type AllowedDomainsFormValues = z.infer<typeof AllowedDomainsFormValues>;
+
+type AllowedDomainDialogProps = {
+  platform: PlatformWithoutSensitiveData;
+  refetch: () => Promise<void>;
 };

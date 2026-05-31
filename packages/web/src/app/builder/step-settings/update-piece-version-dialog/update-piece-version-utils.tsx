@@ -9,8 +9,9 @@ import {
   PieceTrigger,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { AlertTriangle, ArrowUp, Info } from 'lucide-react';
+import { AlertTriangle, ArrowUp, Info } from 'lucide-solid';
 import semver from 'semver';
+import { Show } from 'solid-js';
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { formUtils, pieceSelectorUtils, piecesApi } from '@/features/pieces';
@@ -101,22 +102,26 @@ export function LatestVersionAvailableAlert({
 }: LatestVersionAvailableAlertProps) {
   return (
     <Alert variant={isLatestMinorOrMajor ? 'warning' : 'default'}>
-      {isLatestMinorOrMajor ? (
-        <AlertTriangle className="size-4" />
-      ) : (
-        <ArrowUp className="size-4" />
-      )}
+      <Show when={isLatestMinorOrMajor()} fallback={<ArrowUp class="size-4" />}>
+        <AlertTriangle class="size-4" />
+      </Show>
       <AlertTitle>
-        {isLatestMinorOrMajor
-          ? t('Significant update available')
-          : t('Newer version available')}
+        <Show
+          when={isLatestMinorOrMajor()}
+          fallback={t('Newer version available')}
+        >
+          {t('Significant update available')}
+        </Show>
       </AlertTitle>
       <AlertDescription>
-        {isLatestMinorOrMajor
-          ? t('MajorUpgradeNote')
-          : t(
-              'Settings will carry over. Retest the step as the output may have changed.',
-            )}
+        <Show
+          when={isLatestMinorOrMajor()}
+          fallback={t(
+            'Settings will carry over. Retest the step as the output may have changed.',
+          )}
+        >
+          {t('MajorUpgradeNote')}
+        </Show>
       </AlertDescription>
     </Alert>
   );
@@ -125,7 +130,7 @@ export function LatestVersionAvailableAlert({
 export function MinorOrMajorSelectionAlert() {
   return (
     <Alert variant="warning">
-      <AlertTriangle className="size-4" />
+      <AlertTriangle class="size-4" />
       <AlertDescription>{t('MajorUpgradeNote')}</AlertDescription>
     </Alert>
   );
@@ -134,7 +139,7 @@ export function MinorOrMajorSelectionAlert() {
 export function PatchUpgradeInfoAlert() {
   return (
     <Alert>
-      <Info className="size-4" />
+      <Info class="size-4" />
       <AlertDescription>
         {t('Settings will carry over. Retest as the output may have changed.')}
       </AlertDescription>
@@ -145,7 +150,7 @@ export function PatchUpgradeInfoAlert() {
 export function PatchDowngradeInfoAlert() {
   return (
     <Alert>
-      <Info className="size-4" />
+      <Info class="size-4" />
       <AlertDescription>
         {t(
           "You're switching to an older patch. Your settings will be kept where possible.",

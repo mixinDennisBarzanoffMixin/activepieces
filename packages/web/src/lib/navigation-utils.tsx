@@ -1,24 +1,18 @@
-import { useNavigate, useSearchParams } from 'react-router-dom';
-
 import { useEmbedding } from '@/components/providers/embed-provider';
 
 export const useNewWindow = () => {
   const { embedState } = useEmbedding();
-  const navigate = useNavigate();
   if (embedState.isEmbedded) {
     return (route: string, searchParams?: string) =>
-      navigate({
-        pathname: route,
-        search: searchParams,
-      });
-  } else {
-    return (route: string, searchParams?: string) =>
-      window.open(
-        `${route}${searchParams ? '?' + searchParams : ''}`,
-        '_blank',
-        'noopener noreferrer',
-      );
+      window.location.assign(`${route}${searchParams ? '?' + searchParams : ''}`);
   }
+
+  return (route: string, searchParams?: string) =>
+    window.open(
+      `${route}${searchParams ? '?' + searchParams : ''}`,
+      '_blank',
+      'noopener noreferrer',
+    );
 };
 
 export const FROM_QUERY_PARAM = 'from';
@@ -32,9 +26,7 @@ export const useDefaultRedirectPath = () => {
 };
 
 export const useRedirectAfterLogin = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const defaultRedirectPath = useDefaultRedirectPath();
-  const from = searchParams.get(FROM_QUERY_PARAM) ?? defaultRedirectPath;
-  return () => navigate(from);
+  const from = new URLSearchParams(window.location.search).get(FROM_QUERY_PARAM);
+  return () => window.location.assign(from || defaultRedirectPath);
 };

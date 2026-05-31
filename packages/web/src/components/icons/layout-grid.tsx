@@ -1,9 +1,6 @@
-'use client';
-
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { createSignal } from 'solid-js';
+import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -12,7 +9,7 @@ export interface LayoutGridIconHandle {
   stopAnimation: () => void;
 }
 
-interface LayoutGridIconProps extends HTMLAttributes<HTMLDivElement> {
+interface LayoutGridIconProps extends JSX.HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
@@ -24,101 +21,107 @@ const rectVariants = (delay: number): Variants => ({
   },
 });
 
-const LayoutGridIcon = forwardRef<LayoutGridIconHandle, LayoutGridIconProps>(
-  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
+function LayoutGridIcon(
+  props: LayoutGridIconProps & { ref?: LayoutGridIconHandle },
+) {
+  const ref = props.ref;
+  const {
+    onMouseEnter,
+    onMouseLeave,
+    class: className,
+    size = 28,
+    ...divProps
+  } = props;
+  const [controls, setControls] = createSignal('normal');
+  let isControlledRef = false;
 
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
+  if (ref) {
+    isControlledRef = true;
+    const handle = {
+      startAnimation: () => setControls('animate'),
+      stopAnimation: () => setControls('normal'),
+    };
+    if (typeof ref === 'function') {
+      ref(handle);
+    } else {
+      Object.assign(ref, handle);
+    }
+  }
 
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
+  const handleMouseEnter = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseEnter?.(e);
+    } else {
+      setControls('animate');
+    }
+  };
 
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
+  const handleMouseLeave = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseLeave?.(e);
+    } else {
+      setControls('normal');
+    }
+  };
 
-    return (
-      <div
-        className={cn(className)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        {...props}
+  return (
+    <div
+      className={cn(className)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...divProps}
+    >
+      <svg
+        fill="none"
+        height={size}
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        width={size}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg
-          fill="none"
-          height={size}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          width={size}
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <motion.rect
-            animate={controls}
-            width="7"
-            height="7"
-            x="3"
-            y="3"
-            rx="1"
-            variants={rectVariants(0)}
-          />
-          <motion.rect
-            animate={controls}
-            width="7"
-            height="7"
-            x="14"
-            y="3"
-            rx="1"
-            variants={rectVariants(0.05)}
-          />
-          <motion.rect
-            animate={controls}
-            width="7"
-            height="7"
-            x="14"
-            y="14"
-            rx="1"
-            variants={rectVariants(0.1)}
-          />
-          <motion.rect
-            animate={controls}
-            width="7"
-            height="7"
-            x="3"
-            y="14"
-            rx="1"
-            variants={rectVariants(0.15)}
-          />
-        </svg>
-      </div>
-    );
-  },
-);
-
+        <motion.rect
+          animate={controls()}
+          width="7"
+          height="7"
+          x="3"
+          y="3"
+          rx="1"
+          variants={rectVariants(0)}
+        />
+        <motion.rect
+          animate={controls()}
+          width="7"
+          height="7"
+          x="14"
+          y="3"
+          rx="1"
+          variants={rectVariants(0.05)}
+        />
+        <motion.rect
+          animate={controls()}
+          width="7"
+          height="7"
+          x="14"
+          y="14"
+          rx="1"
+          variants={rectVariants(0.1)}
+        />
+        <motion.rect
+          animate={controls()}
+          width="7"
+          height="7"
+          x="3"
+          y="14"
+          rx="1"
+          variants={rectVariants(0.15)}
+        />
+      </svg>
+    </div>
+  );
+}
 LayoutGridIcon.displayName = 'LayoutGridIcon';
 
 export { LayoutGridIcon };

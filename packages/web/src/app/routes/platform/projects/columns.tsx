@@ -4,7 +4,7 @@ import {
   ProjectWithLimits,
   ProjectType,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   Lock,
@@ -15,7 +15,8 @@ import {
   Clock,
   Hash,
   Link2,
-} from 'lucide-react';
+} from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { RowDataWithActions } from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
@@ -45,8 +46,12 @@ export const projectsTableColumns = ({
 
         return (
           <div className="text-left flex items-center justify-start ">
-            {locked && <Lock className="size-3 mr-1.5" strokeWidth={2.5} />}
-            {isPersonal && <User className="size-4 mr-1.5"></User>}
+            <Show when={locked}>
+              <Lock class="size-3 mr-1.5" strokeWidth={2.5} />
+            </Show>
+            <Show when={isPersonal}>
+              <User class="size-4 mr-1.5"></User>
+            </Show>
             <span className="font-medium">{row.original.displayName}</span>
           </div>
         );
@@ -64,7 +69,7 @@ export const projectsTableColumns = ({
           column={column}
           title={t('Active Users')}
           icon={Users}
-          className="w-full"
+          class="w-full"
         />
       ),
       cell: ({ row }) => {
@@ -88,7 +93,7 @@ export const projectsTableColumns = ({
           column={column}
           title={t('Active Flows')}
           icon={Workflow}
-          className="w-full"
+          class="w-full"
         />
       ),
       cell: ({ row }) => {
@@ -136,7 +141,7 @@ export const projectsTableColumns = ({
           column={column}
           title={t('Global Connections')}
           icon={Link2}
-          className="w-full"
+          class="w-full"
         />
       ),
       cell: ({ row }) => {

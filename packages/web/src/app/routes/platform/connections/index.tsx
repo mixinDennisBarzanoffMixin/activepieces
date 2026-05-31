@@ -4,7 +4,8 @@ import {
   MAX_PLATFORM_APP_CONNECTION_OWNERS,
   PlatformAppConnectionsListItem,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { A as Link } from '@solidjs/router';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   Activity,
@@ -16,8 +17,8 @@ import {
   Shield,
   Unplug,
   User,
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
+} from 'lucide-solid';
+import { For, Show } from 'solid-js';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import { CopyTextTooltip } from '@/components/custom/clipboard/copy-text-tooltip';
@@ -226,19 +227,19 @@ export default function PlatformConnectionsPage() {
           'All app connections across every project on this platform',
         )}
       />
-      {owners?.truncated && (
+      <Show when={owners?.truncated}>
         <div className="px-6 pb-2 text-xs text-muted-foreground">
           {t('Owner filter is limited to the first {count} owners', {
             count: MAX_PLATFORM_APP_CONNECTION_OWNERS,
           })}
         </div>
-      )}
+      </Show>
       <DataTable
         emptyStateTextTitle={t('No connections found')}
         emptyStateTextDescription={t(
           'Connections created in any project on this platform will appear here.',
         )}
-        emptyStateIcon={<Unplug className="size-14" />}
+        emptyStateIcon={<Unplug class="size-14" />}
         columns={columns}
         page={connections}
         isLoading={isLoading}
@@ -272,7 +273,7 @@ const ProjectsCell = ({
     const project = projects[0];
     const name = getProjectName(project);
     return (
-      <Link to={`/projects/${project.id}`}>
+      <Link href={`/projects/${project.id}`}>
         <TextWithTooltip tooltipMessage={name}>
           <span className="truncate max-w-[200px] text-primary hover:underline">
             {name}
@@ -293,11 +294,13 @@ const ProjectsCell = ({
       </TooltipTrigger>
       <TooltipContent>
         <ul className="flex flex-col gap-1 max-w-[260px]">
-          {projects.map((project) => (
-            <li key={project.id} className="truncate">
-              {getProjectName(project)}
-            </li>
-          ))}
+          <For each={projects}>
+            {(project) => (
+              <li key={project.id} className="truncate">
+                {getProjectName(project)}
+              </li>
+            )}
+          </For>
         </ul>
       </TooltipContent>
     </Tooltip>

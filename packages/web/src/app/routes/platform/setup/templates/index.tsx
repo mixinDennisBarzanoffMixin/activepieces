@@ -1,11 +1,11 @@
 import { Template, TemplateType } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
-import { ColumnDef } from '@tanstack/react-table';
+import { useSearchParams } from '@solidjs/router';
+import { createQuery } from '@tanstack/solid-query';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
-import { FileText, Pencil, Trash, Tag, Clock, Puzzle } from 'lucide-react';
-import { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
+import { FileText, Pencil, Trash, Tag, Clock, Puzzle } from 'lucide-solid';
+import { createSignal, createMemo, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -37,7 +37,7 @@ const PlatformTemplatesPage = () => {
   const { platform } = platformHooks.useCurrentPlatform();
 
   const [searchParams] = useSearchParams();
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, refetch } = createQuery(() => ({
     queryKey: ['templates', searchParams.toString()],
     staleTime: 0,
     meta: { showErrorDialog: true, loadSubsetOptions: {} },
@@ -46,9 +46,9 @@ const PlatformTemplatesPage = () => {
         type: TemplateType.CUSTOM,
       });
     },
-  });
+  }));
 
-  const [selectedRows, setSelectedRows] = useState<Template[]>([]);
+  const [selectedRows, setSelectedRows] = createSignal<Template[]>([]);
 
   const bulkDeleteMutation = templatesMutations.useBulkDeleteTemplates({
     onSuccess: () => {
@@ -154,56 +154,50 @@ const PlatformTemplatesPage = () => {
     },
   ];
 
-  const bulkActions: BulkAction<Template>[] = useMemo(
-    () => [
-      {
-        render: (
-          _selectedRows: RowDataWithActions<Template>[],
-          resetSelection: () => void,
-        ) => (
-          <div onClick={(e) => e.stopPropagation()}>
-            <ConfirmationDeleteDialog
-              title={t('Delete Templates')}
-              message={t(
-                'Are you sure you want to delete the selected templates?',
-              )}
-              entityName={t('Templates')}
-              mutationFn={async () => {
-                await bulkDeleteMutation.mutateAsync(
-                  selectedRows.map((row) => row.id),
-                );
-                resetSelection();
-                setSelectedRows([]);
-              }}
-            >
-              {selectedRows.length > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash className="mr-1 w-4" />
-                  {`${t('Delete')} (${selectedRows.length})`}
-                </Button>
-              )}
-            </ConfirmationDeleteDialog>
-          </div>
-        ),
-      },
-    ],
-    [selectedRows, bulkDeleteMutation],
-  );
+  const bulkActions: BulkAction<Template>[] = createMemo(() => [
+    {
+      render: (
+        _selectedRows: RowDataWithActions<Template>[],
+        resetSelection: () => void,
+      ) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <ConfirmationDeleteDialog
+            title={t('Delete Templates')}
+            message={t(
+              'Are you sure you want to delete the selected templates?',
+            )}
+            entityName={t('Templates')}
+            mutationFn={async () => {
+              await bulkDeleteMutation.mutateAsync(
+                selectedRows.map((row) => row.id),
+              );
+              resetSelection();
+              setSelectedRows([]);
+            }}
+          >
+            <Show when={selectedRows.length > 0}>
+              <Button
+                variant="ghost"
+                size="sm"
+                class="text-destructive hover:text-destructive"
+              >
+                <Trash class="mr-1 w-4" />
+                {`${t('Delete')} (${selectedRows.length})`}
+              </Button>
+            </Show>
+          </ConfirmationDeleteDialog>
+        </div>
+      ),
+    },
+  ]);
 
-  const toolbarButtons = useMemo(
-    () => [
-      <CreateTemplateDialog key="new-template" onDone={() => refetch()}>
-        <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
-          {t('New Template')}
-        </AnimatedIconButton>
-      </CreateTemplateDialog>,
-    ],
-    [refetch],
-  );
+  const toolbarButtons = createMemo(() => [
+    <CreateTemplateDialog key="new-template" onDone={() => refetch()}>
+      <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
+        {t('New Template')}
+      </AnimatedIconButton>
+    </CreateTemplateDialog>,
+  ]);
 
   const isEnabled = platform.plan.manageTemplatesEnabled;
   return (
@@ -228,7 +222,7 @@ const PlatformTemplatesPage = () => {
           emptyStateTextDescription={t(
             'Create a template for your user to inspire them',
           )}
-          emptyStateIcon={<FileText className="size-14" />}
+          emptyStateIcon={<FileText class="size-14" />}
           columns={columnsWithCheckbox}
           page={data}
           hidePagination={true}
@@ -245,8 +239,8 @@ const PlatformTemplatesPage = () => {
                         onDone={() => refetch()}
                         template={row}
                       >
-                        <Button variant="ghost" className="size-8 p-0">
-                          <Pencil className="size-4" />
+                        <Button variant="ghost" class="size-8 p-0">
+                          <Pencil class="size-4" />
                         </Button>
                       </UpdateTemplateDialog>
                     </TooltipTrigger>

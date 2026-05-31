@@ -1,7 +1,8 @@
 import {
+  AIProviderAuthConfig,
+  AIProviderConfig,
   AIProviderName,
   AIProviderModelType,
-  CreateAIProviderRequest,
   ProviderModelConfig,
 } from '@activepieces/shared';
 import { t } from 'i18next';
@@ -12,20 +13,12 @@ import {
   ImageIcon,
   TextIcon,
   AlertCircle,
-} from 'lucide-react';
-import { useState } from 'react';
-import { UseFormReturn, useFieldArray } from 'react-hook-form';
+} from 'lucide-solid';
+import { createSignal, For, Show } from 'solid-js';
+import { SetStoreFunction } from 'solid-js/store';
 
 import { DictionaryInput } from '@/components/custom/dictionary-input';
 import { Button } from '@/components/ui/button';
-import {
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -43,9 +36,14 @@ import {
 import { AWS_BEDROCK_REGIONS } from '@/features/agents/aws-regions';
 
 import { ModelFormPopover } from './model-form-popover';
+import type { ProviderForm } from './upsert-provider-dialog';
 
 type UpsertProviderConfigFormProps = {
-  form: UseFormReturn<CreateAIProviderRequest>;
+  form: {
+    values: ProviderForm;
+    set: SetStoreFunction<ProviderForm>;
+    errors: Record<string, string>;
+  };
   provider: AIProviderName;
   apiKeyRequired?: boolean;
   isLoading?: boolean;
@@ -59,204 +57,171 @@ export const UpsertProviderConfigForm = ({
   isLoading,
   isEditMode = false,
 }: UpsertProviderConfigFormProps) => {
-  const { fields, append, remove, update } = useFieldArray({
-    control: form.control,
-    name: 'config.models',
-  });
-
-  const [showApiKeyInput, setShowApiKeyInput] = useState(!isEditMode);
-  const [showBedrockAuthInputs, setShowBedrockAuthInputs] = useState(
-    !isEditMode,
+  const [showApiKeyInput, setShowApiKeyInput] = createSignal(!isEditMode);
+  const [showBedrockAuthInputs, setShowBedrockAuthInputs] = createSignal(
+    !isEditMode
   );
+  const append = (model: ProviderModelConfig) =>
+    form.set('config', (cfg) => ({
+      ...cfg,
+      models: [...getModels(cfg), model],
+    }));
+  const update = (index: number, model: ProviderModelConfig) =>
+    form.set('config', (cfg) => ({
+      ...cfg,
+      models: getModels(cfg).map((item, idx) => (idx === index ? model : item)),
+    }));
+  const remove = (index: number) =>
+    form.set('config', (cfg) => ({
+      ...cfg,
+      models: getModels(cfg).filter((_, idx) => idx !== index),
+    }));
 
   return (
     <div className="grid space-y-4">
-      {provider !== AIProviderName.BEDROCK && (
-        <FormField
-          control={form.control}
-          name="auth.apiKey"
-          render={({ field }) => (
-            <FormItem className="grid space-y-3">
-              <div className="flex items-center justify-between">
-                <FormLabel htmlFor="apiKey">
-                  {provider === AIProviderName.CLOUDFLARE_GATEWAY
-                    ? t('AI Gateway Token')
-                    : t('API Key')}
-                </FormLabel>
-                {!showApiKeyInput && (
-                  <Button
-                    type="button"
-                    variant="basic"
-                    size="sm"
-                    onClick={() => setShowApiKeyInput(true)}
-                    disabled={isLoading}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    {t('Edit')}
-                  </Button>
-                )}
-              </div>
-              {showApiKeyInput && (
-                <FormControl>
-                  <Input
-                    {...field}
-                    required={apiKeyRequired}
-                    id="apiKey"
-                    placeholder={'sk_************************'}
-                    disabled={isLoading}
-                  />
-                </FormControl>
+      <Show when={provider !== AIProviderName.BEDROCK}>
+        <div class="grid space-y-3">
+          <div className="flex items-center justify-between">
+            <Label for="apiKey">
+              <Show
+                when={provider === AIProviderName.CLOUDFLARE_GATEWAY}
+                fallback={t('API Key')}
+              >
+                t('AI Gateway Token'
+              </Show>
+            </Label>
+            <Show when={!showApiKeyInput}>
+              <Button
+                type="button"
+                variant="basic"
+                size="sm"
+                onClick={() => setShowApiKeyInput(true)}
+                disabled={isLoading}
+              >
+                <Pencil class="h-4 w-4 mr-2" />
+                {t('Edit')}
+              </Button>
+            </Show>
+          </div>
+          <Show when={showApiKeyInput}>
+            <Input
+              value={getAuth(form.values.auth, 'apiKey')}
+              onInput={(e) => setAuth(form, 'apiKey', e.currentTarget.value)}
+              required={apiKeyRequired}
+              id="apiKey"
+              placeholder={'sk_************************'}
+              disabled={isLoading}
+            />
+          </Show>
+          <FieldError message={form.errors['auth.apiKey']} />
+        </div>
+      </Show>
+
+      <Show when={provider === AIProviderName.AZURE}>
+        <>
+          <div class="grid space-y-3">
+            <Label for="resourceName">{t('Resource Name')}</Label>
+            <Input
+              value={getConfig(form.values.config, 'resourceName')}
+              onInput={(e) =>
+                setConfig(form, 'resourceName', e.currentTarget.value)
+              }
+              required
+              id="resourceName"
+              placeholder={'your-resource-name'}
+              disabled={isLoading}
+            />
+            <FieldError message={form.errors['config.resourceName']} />
+          </div>
+
+          <div class="grid space-y-3">
+            <Label for="apiVersion">{t('API Version')}</Label>
+            <Input
+              value={getConfig(form.values.config, 'apiVersion')}
+              onInput={(e) =>
+                setConfig(form, 'apiVersion', e.currentTarget.value)
+              }
+              id="apiVersion"
+              placeholder={'2024-10-21'}
+              disabled={isLoading}
+            />
+            <p className="text-sm text-muted-foreground">
+              {t(
+                'Optional. Leave empty to use the default. Some Azure resources require a different version, e.g. 2023-03-15-preview.'
               )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
-
-      {provider === AIProviderName.AZURE && (
-        <>
-          <FormField
-            control={form.control}
-            name="config.resourceName"
-            render={({ field }) => (
-              <FormItem className="grid space-y-3">
-                <FormLabel htmlFor="resourceName">
-                  {t('Resource Name')}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    required
-                    id="resourceName"
-                    placeholder={'your-resource-name'}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="config.apiVersion"
-            render={({ field }) => (
-              <FormItem className="grid space-y-3">
-                <FormLabel htmlFor="apiVersion">{t('API Version')}</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    value={field.value ?? ''}
-                    id="apiVersion"
-                    placeholder={'2024-10-21'}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormDescription>
-                  {t(
-                    'Optional. Leave empty to use the default. Some Azure resources require a different version, e.g. 2023-03-15-preview.',
-                  )}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            </p>
+            <FieldError message={form.errors['config.apiVersion']} />
+          </div>
         </>
-      )}
+      </Show>
 
-      {provider === AIProviderName.CLOUDFLARE_GATEWAY && (
+      <Show when={provider === AIProviderName.CLOUDFLARE_GATEWAY}>
         <>
-          <FormField
-            control={form.control}
-            name="config.accountId"
-            render={({ field }) => (
-              <FormItem className="grid space-y-3">
-                <FormLabel htmlFor="accountId">{t('Account ID')}</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    required
-                    id="accountId"
-                    placeholder={'your-account-id'}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div class="grid space-y-3">
+            <Label for="accountId">{t('Account ID')}</Label>
+            <Input
+              value={getConfig(form.values.config, 'accountId')}
+              onInput={(e) =>
+                setConfig(form, 'accountId', e.currentTarget.value)
+              }
+              required
+              id="accountId"
+              placeholder={'your-account-id'}
+              disabled={isLoading}
+            />
+            <FieldError message={form.errors['config.accountId']} />
+          </div>
 
-          <FormField
-            control={form.control}
-            name="config.gatewayId"
-            render={({ field }) => (
-              <FormItem className="grid space-y-3">
-                <FormLabel htmlFor="gatewayId">{t('Gateway ID')}</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    required
-                    id="gatewayId"
-                    placeholder={'your-gateway-id'}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="config.vertexRegion"
-            render={({ field }) => (
-              <FormItem className="grid space-y-3">
-                <FormLabel htmlFor="vertexRegion">
-                  {t('Google Vertex Project Region')}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    id="vertexRegion"
-                    placeholder={'global'}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="config.vertexProject"
-            render={({ field }) => (
-              <FormItem className="grid space-y-3">
-                <FormLabel htmlFor="vertexProjectId">
-                  {t('Google Vertex Project ID')}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    id="vertexProjectId"
-                    placeholder={'project-1234'}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div class="grid space-y-3">
+            <Label for="gatewayId">{t('Gateway ID')}</Label>
+            <Input
+              value={getConfig(form.values.config, 'gatewayId')}
+              onInput={(e) =>
+                setConfig(form, 'gatewayId', e.currentTarget.value)
+              }
+              required
+              id="gatewayId"
+              placeholder={'your-gateway-id'}
+              disabled={isLoading}
+            />
+            <FieldError message={form.errors['config.gatewayId']} />
+          </div>
+          <div class="grid space-y-3">
+            <Label for="vertexRegion">
+              {t('Google Vertex Project Region')}
+            </Label>
+            <Input
+              value={getConfig(form.values.config, 'vertexRegion')}
+              onInput={(e) =>
+                setConfig(form, 'vertexRegion', e.currentTarget.value)
+              }
+              id="vertexRegion"
+              placeholder={'global'}
+              disabled={isLoading}
+            />
+            <FieldError message={form.errors['config.vertexRegion']} />
+          </div>
+          <div class="grid space-y-3">
+            <Label for="vertexProjectId">{t('Google Vertex Project ID')}</Label>
+            <Input
+              value={getConfig(form.values.config, 'vertexProject')}
+              onInput={(e) =>
+                setConfig(form, 'vertexProject', e.currentTarget.value)
+              }
+              id="vertexProjectId"
+              placeholder={'project-1234'}
+              disabled={isLoading}
+            />
+            <FieldError message={form.errors['config.vertexProject']} />
+          </div>
         </>
-      )}
+      </Show>
 
-      {provider === AIProviderName.BEDROCK && (
+      <Show when={provider === AIProviderName.BEDROCK}>
         <>
-          {!showBedrockAuthInputs && (
+          <Show when={!showBedrockAuthInputs}>
             <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">
-                {t('AWS Credentials')}
-              </Label>
+              <Label class="text-sm font-medium">{t('AWS Credentials')}</Label>
               <Button
                 type="button"
                 variant="basic"
@@ -264,163 +229,126 @@ export const UpsertProviderConfigForm = ({
                 onClick={() => setShowBedrockAuthInputs(true)}
                 disabled={isLoading}
               >
-                <Pencil className="h-4 w-4 mr-2" />
+                <Pencil class="h-4 w-4 mr-2" />
                 {t('Edit')}
               </Button>
             </div>
-          )}
+          </Show>
 
-          {showBedrockAuthInputs && (
+          <Show when={showBedrockAuthInputs}>
             <>
-              <FormField
-                control={form.control}
-                name="auth.accessKeyId"
-                render={({ field }) => (
-                  <FormItem className="grid space-y-3">
-                    <FormLabel htmlFor="accessKeyId">
-                      {t('AWS Access Key ID')}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        required={apiKeyRequired}
-                        id="accessKeyId"
-                        placeholder={'AKIA************'}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="auth.secretAccessKey"
-                render={({ field }) => (
-                  <FormItem className="grid space-y-3">
-                    <FormLabel htmlFor="secretAccessKey">
-                      {t('AWS Secret Access Key')}
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="password"
-                        required={apiKeyRequired}
-                        id="secretAccessKey"
-                        placeholder={'****************************************'}
-                        disabled={isLoading}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </>
-          )}
-
-          <FormField
-            control={form.control}
-            name="config.region"
-            render={({ field }) => (
-              <FormItem className="grid space-y-3">
-                <FormLabel htmlFor="region">{t('AWS Region')}</FormLabel>
-                <Select
-                  value={field.value}
-                  onValueChange={field.onChange}
+              <div class="grid space-y-3">
+                <Label for="accessKeyId">{t('AWS Access Key ID')}</Label>
+                <Input
+                  value={getAuth(form.values.auth, 'accessKeyId')}
+                  onInput={(e) =>
+                    setAuth(form, 'accessKeyId', e.currentTarget.value)
+                  }
+                  required={apiKeyRequired}
+                  id="accessKeyId"
+                  placeholder={'AKIA************'}
                   disabled={isLoading}
-                >
-                  <FormControl>
-                    <SelectTrigger id="region">
-                      <SelectValue placeholder={t('Select a region')} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {AWS_BEDROCK_REGIONS.map((region) => (
-                      <SelectItem key={region.value} value={region.value}>
-                        {region.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </>
-      )}
-
-      {provider === AIProviderName.CUSTOM && (
-        <>
-          <FormField
-            control={form.control}
-            name="config.baseUrl"
-            render={({ field }) => (
-              <FormItem className="grid space-y-3">
-                <FormLabel htmlFor="baseUrl">{t('Base URL')}</FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    required
-                    id="baseUrl"
-                    placeholder={'your-base-url'}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="config.apiKeyHeader"
-            render={({ field }) => (
-              <FormItem className="grid space-y-3">
-                <FormLabel htmlFor="apiKeyHeader">
-                  {t('API Key Header')}
-                </FormLabel>
-                <FormControl>
-                  <Input
-                    {...field}
-                    required
-                    id="apiKeyHeader"
-                    placeholder={'your-api-key-header'}
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="config.defaultHeaders"
-            render={({ field }) => (
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">
-                  {t('Custom Headers')}
-                </Label>
-                <DictionaryInput
-                  values={field.value}
-                  onChange={field.onChange}
-                  disabled={isLoading}
-                  keyPlaceholder={t('Header name')}
-                  valuePlaceholder={t('Header value')}
                 />
+                <FieldError message={form.errors['auth.accessKeyId']} />
               </div>
-            )}
-          />
-        </>
-      )}
 
-      {[AIProviderName.CUSTOM, AIProviderName.CLOUDFLARE_GATEWAY].includes(
-        provider,
-      ) && (
+              <div class="grid space-y-3">
+                <Label for="secretAccessKey">
+                  {t('AWS Secret Access Key')}
+                </Label>
+                <Input
+                  value={getAuth(form.values.auth, 'secretAccessKey')}
+                  onInput={(e) =>
+                    setAuth(form, 'secretAccessKey', e.currentTarget.value)
+                  }
+                  type="password"
+                  required={apiKeyRequired}
+                  id="secretAccessKey"
+                  placeholder={'****************************************'}
+                  disabled={isLoading}
+                />
+                <FieldError message={form.errors['auth.secretAccessKey']} />
+              </div>
+            </>
+          </Show>
+
+          <div class="grid space-y-3">
+            <Label for="region">{t('AWS Region')}</Label>
+            <Select
+              value={getConfig(form.values.config, 'region')}
+              onValueChange={(val) => setConfig(form, 'region', val)}
+              disabled={isLoading}
+            >
+              <SelectTrigger id="region">
+                <SelectValue placeholder={t('Select a region')} />
+              </SelectTrigger>
+              <SelectContent>
+                <For each={AWS_BEDROCK_REGIONS}>
+                  {(region) => (
+                    <SelectItem key={region.value} value={region.value}>
+                      {region.label}
+                    </SelectItem>
+                  )}
+                </For>
+              </SelectContent>
+            </Select>
+            <FieldError message={form.errors['config.region']} />
+          </div>
+        </>
+      </Show>
+
+      <Show when={provider === AIProviderName.CUSTOM}>
+        <>
+          <div class="grid space-y-3">
+            <Label for="baseUrl">{t('Base URL')}</Label>
+            <Input
+              value={getConfig(form.values.config, 'baseUrl')}
+              onInput={(e) => setConfig(form, 'baseUrl', e.currentTarget.value)}
+              required
+              id="baseUrl"
+              placeholder={'your-base-url'}
+              disabled={isLoading}
+            />
+            <FieldError message={form.errors['config.baseUrl']} />
+          </div>
+
+          <div class="grid space-y-3">
+            <Label for="apiKeyHeader">{t('API Key Header')}</Label>
+            <Input
+              value={getConfig(form.values.config, 'apiKeyHeader')}
+              onInput={(e) =>
+                setConfig(form, 'apiKeyHeader', e.currentTarget.value)
+              }
+              required
+              id="apiKeyHeader"
+              placeholder={'your-api-key-header'}
+              disabled={isLoading}
+            />
+            <FieldError message={form.errors['config.apiKeyHeader']} />
+          </div>
+
+          <div className="space-y-3">
+            <Label class="text-sm font-medium">{t('Custom Headers')}</Label>
+            <DictionaryInput
+              values={getHeaders(form.values.config)}
+              onChange={(headers) => setConfig(form, 'defaultHeaders', headers)}
+              disabled={isLoading}
+              keyPlaceholder={t('Header name')}
+              valuePlaceholder={t('Header value')}
+            />
+          </div>
+        </>
+      </Show>
+
+      <Show
+        when={[
+          AIProviderName.CUSTOM,
+          AIProviderName.CLOUDFLARE_GATEWAY,
+        ].includes(provider)}
+      >
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <Label className="text-base">{t('Models Configuration')}</Label>
+            <Label class="text-base">{t('Models Configuration')}</Label>
             <ModelFormPopover onSubmit={(model) => append(model)}>
               <Button
                 type="button"
@@ -428,38 +356,42 @@ export const UpsertProviderConfigForm = ({
                 variant="basic"
                 disabled={isLoading}
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus class="h-4 w-4 mr-2" />
                 {t('Add Model')}
               </Button>
             </ModelFormPopover>
           </div>
 
-          {fields.length === 0 ? (
+          <Show
+            when={getModels(form.values.config).length === 0}
+            fallback={
+              <div className="space-y-3">
+                <For each={getModels(form.values.config)}>
+                  {(field, index) => (
+                    <ProviderConfigModelItem
+                      model={field}
+                      isLoading={isLoading}
+                      onUpdate={(model) => update(index(), model)}
+                      onRemove={() => remove(index())}
+                    />
+                  )}
+                </For>
+              </div>
+            }
+          >
             <div className="text-center py-8 border border-dashed rounded-lg flex flex-col items-center justify-center gap-2">
               <span className="mb-2 flex justify-center text-muted-foreground">
-                <AlertCircle className="h-8 w-8 mx-auto" />
+                <AlertCircle class="h-8 w-8 mx-auto" />
               </span>
               <p className="text-sm text-muted-foreground">
                 {t(
-                  'This provider does not support listing models via API, please add models manually.',
+                  'This provider does not support listing models via API, please add models manually.'
                 )}
               </p>
             </div>
-          ) : (
-            <div className="space-y-3">
-              {fields.map((field, index) => (
-                <ProviderConfigModelItem
-                  key={field.id}
-                  model={field as ProviderModelConfig}
-                  isLoading={isLoading}
-                  onUpdate={(model) => update(index, model)}
-                  onRemove={() => remove(index)}
-                />
-              ))}
-            </div>
-          )}
+          </Show>
         </div>
-      )}
+      </Show>
     </div>
   );
 };
@@ -499,7 +431,7 @@ const ProviderConfigModelItem = ({
             size="icon"
             disabled={isLoading}
           >
-            <Pencil className="h-4 w-4" />
+            <Pencil class="h-4 w-4" />
             <span className="sr-only">{t('Edit')}</span>
           </Button>
         </ModelFormPopover>
@@ -510,7 +442,7 @@ const ProviderConfigModelItem = ({
           onClick={() => onRemove()}
           disabled={isLoading}
         >
-          <Trash2 className="h-4 w-4 text-destructive" />
+          <Trash2 class="h-4 w-4 text-destructive" />
           <span className="sr-only">{t('Delete')}</span>
         </Button>
       </div>
@@ -522,17 +454,57 @@ const ModelTypeIcon = ({ modelType }: { modelType: AIProviderModelType }) => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        {modelType === AIProviderModelType.IMAGE ? (
-          <ImageIcon className="size-8" />
-        ) : (
-          <TextIcon className="size-8" />
-        )}
+        <Show
+          when={modelType === AIProviderModelType.IMAGE}
+          fallback={<TextIcon class="size-8" />}
+        >
+          <ImageIcon class="size-8" />
+        </Show>
       </TooltipTrigger>
       <TooltipContent>
-        {modelType === AIProviderModelType.IMAGE
-          ? t('Image Model')
-          : t('Text Model')}
+        <Show
+          when={modelType === AIProviderModelType.IMAGE}
+          fallback={t('Text Model')}
+        >
+          t('Image Model'
+        </Show>
       </TooltipContent>
     </Tooltip>
   );
 };
+
+const FieldError = ({ message }: { message?: string }) => (
+  <Show when={message}>
+    <p class="text-sm font-medium text-destructive wrap-break-word">
+      {t(message ?? '')}
+    </p>
+  </Show>
+);
+
+const getAuth = (auth: AIProviderAuthConfig, key: string) =>
+  typeof auth[key as keyof AIProviderAuthConfig] === 'string'
+    ? String(auth[key as keyof AIProviderAuthConfig])
+    : '';
+
+const getConfig = (cfg: AIProviderConfig, key: string) =>
+  typeof cfg[key as keyof AIProviderConfig] === 'string'
+    ? String(cfg[key as keyof AIProviderConfig])
+    : '';
+
+const getHeaders = (cfg: AIProviderConfig) =>
+  'defaultHeaders' in cfg ? cfg.defaultHeaders ?? {} : {};
+
+const getModels = (cfg: AIProviderConfig) =>
+  'models' in cfg ? cfg.models : [];
+
+const setAuth = (
+  form: UpsertProviderConfigFormProps['form'],
+  key: keyof AIProviderAuthConfig,
+  value: string
+) => form.set('auth', (auth) => ({ ...auth, [key]: value }));
+
+const setConfig = (
+  form: UpsertProviderConfigFormProps['form'],
+  key: keyof AIProviderConfig,
+  value: string | Record<string, string>
+) => form.set('config', (cfg) => ({ ...cfg, [key]: value }));

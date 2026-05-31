@@ -1,7 +1,7 @@
+import { A as Link } from '@solidjs/router';
 import { ActivepiecesClientEventName } from 'ee-embed-sdk';
 import { t } from 'i18next';
-import { ChevronLeft } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-solid';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,7 @@ import {
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { authenticationSession } from '@/lib/authentication-session';
 
-const HomeButtonWrapper = ({ children }: { children: React.ReactNode }) => {
+const HomeButtonWrapper = ({ children }: { children: any }) => {
   const { embedState } = useEmbedding();
   if (embedState.emitHomeButtonClickedEvent) {
     const handleClick = () => {
@@ -30,7 +30,7 @@ const HomeButtonWrapper = ({ children }: { children: React.ReactNode }) => {
     return <div onClick={handleClick}>{children}</div>;
   }
   return (
-    <Link to={authenticationSession.appendProjectRoutePrefix('/flows')}>
+    <Link href={authenticationSession.appendProjectRoutePrefix('/flows')}>
       {children}
     </Link>
   );
@@ -41,33 +41,35 @@ const HomeButton = () => {
   const showBackButton = embedState.homeButtonIcon === 'back';
   return (
     <>
-      {!embedState.hideHomeButtonInBuilder && (
+      <Show when={!embedState.hideHomeButtonInBuilder}>
         <Tooltip>
           <HomeButtonWrapper>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 size={'icon'}
-                className={showBackButton ? 'size-8' : 'size-10'}
+                class={showBackButton ? 'size-8' : 'size-10'}
               >
-                {!showBackButton && (
+                <Show
+                  when={!showBackButton}
+                  fallback={<ChevronLeft class="h-4 w-4" />}
+                >
                   <img
                     className="h-5 w-5 object-contain"
-                    src={branding.logos.logoIconUrl}
-                    alt={branding.websiteName}
+                    src={branding()?.logos.logoIconUrl}
+                    alt={branding()?.websiteName}
                   />
-                )}
-                {showBackButton && <ChevronLeft className="h-4 w-4" />}
+                </Show>
               </Button>
             </TooltipTrigger>
           </HomeButtonWrapper>
-          {!showBackButton && (
+          <Show when={!showBackButton}>
             <TooltipContent side="bottom">
               {t('Go to Dashboard')}
             </TooltipContent>
-          )}
+          </Show>
         </Tooltip>
-      )}
+      </Show>
     </>
   );
 };

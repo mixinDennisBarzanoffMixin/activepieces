@@ -1,5 +1,4 @@
-import { FileIcon, VideoIcon } from 'lucide-react';
-import React from 'react';
+import { FileIcon, VideoIcon } from 'lucide-solid';
 
 interface FileMessageProps {
   content: string;
@@ -8,12 +7,7 @@ interface FileMessageProps {
   role?: 'user' | 'bot';
 }
 
-export const FileMessage: React.FC<FileMessageProps> = ({
-  content,
-  mimeType,
-  fileName,
-  role,
-}) => {
+export const FileMessage = ({ content, mimeType, fileName, role }) => {
   const isVideo = mimeType?.startsWith('video/');
   return (
     <a
@@ -25,9 +19,9 @@ export const FileMessage: React.FC<FileMessageProps> = ({
         <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
           <div className="h-full w-full flex items-center justify-center bg-foreground text-background">
             {isVideo ? (
-              <VideoIcon className="h-5 w-5" />
+              <VideoIcon class="h-5 w-5" />
             ) : (
-              <FileIcon className="h-5 w-5" />
+              <FileIcon class="h-5 w-5" />
             )}
           </div>
         </div>

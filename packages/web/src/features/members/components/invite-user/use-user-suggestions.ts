@@ -3,7 +3,7 @@ import {
   PlatformRole,
   UserWithMetaInformation,
 } from '@activepieces/shared';
-import { useMemo } from 'react';
+import { createMemo } from 'solid-js';
 
 import { projectMembersHooks } from '@/features/members/hooks/project-members-hooks';
 import { userInvitationsHooks } from '@/features/members/hooks/user-invitations-hooks';
@@ -50,7 +50,7 @@ export function useUserSuggestions({
   const currentUserEmail = currentUser?.email.toLowerCase();
   const searchTerm = inputValue.trim();
 
-  const pendingInvitationEmails = useMemo(
+  const pendingInvitationEmails = createMemo(
     () =>
       new Set(
         invitations
@@ -60,12 +60,12 @@ export function useUserSuggestions({
     [invitations],
   );
 
-  const projectMemberEmails = useMemo(
+  const projectMemberEmails = createMemo(
     () => new Set(projectMembers?.map((m) => m.user.email.toLowerCase()) ?? []),
     [projectMembers],
   );
 
-  const suggestedUsers = useMemo<SuggestedUser[]>(() => {
+  const suggestedUsers = createMemo<SuggestedUser[]>(() => {
     if (
       isPlatformInvite ||
       !platformUsersData?.data ||
@@ -113,7 +113,7 @@ export function useUserSuggestions({
     platform.plan.embeddingEnabled,
   ]);
 
-  const emailStatus = useMemo<EmailStatusType | null>(() => {
+  const emailStatus = createMemo<EmailStatusType | null>(() => {
     if (
       isPlatformInvite ||
       !platformUsersData?.data ||
@@ -164,7 +164,7 @@ export function useUserSuggestions({
     platform.plan.embeddingEnabled,
   ]);
 
-  const selectableItems = useMemo<string[]>(() => {
+  const selectableItems = createMemo<string[]>(() => {
     const items: string[] = [];
     for (const user of suggestedUsers) {
       if (user.memberStatus === 'available') {
@@ -181,7 +181,7 @@ export function useUserSuggestions({
     return items;
   }, [suggestedUsers, emailStatus]);
 
-  const platformUserEmails = useMemo(
+  const platformUserEmails = createMemo(
     () =>
       new Set(platformUsersData?.data.map((u) => u.email.toLowerCase()) ?? []),
     [platformUsersData],

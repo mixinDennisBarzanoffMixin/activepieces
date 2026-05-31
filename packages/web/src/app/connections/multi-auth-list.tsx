@@ -64,20 +64,20 @@ export function MutliAuthList({
 
   return (
     <>
-      <DialogHeader className="mb-0">
-        <DialogTitle className="px-5">
+      <DialogHeader class="mb-0">
+        <DialogTitle class="px-5">
           <div className="flex items-center gap-2">
             {t('Select an Authentication Method')}
           </div>
         </DialogTitle>
       </DialogHeader>
       <RadioGroupList
-        className="px-5 mt-5"
+        class="px-5 mt-5"
         items={authItems}
         onChange={setSelectedItem}
         value={selectedOption?.value ?? null}
       />
-      <DialogFooter className="mt-4">
+      <DialogFooter class="mt-4">
         <div className="mx-5 w-full flex justify-end gap-2">
           <DialogClose asChild>
             <Button variant="outline">{t('Cancel')}</Button>

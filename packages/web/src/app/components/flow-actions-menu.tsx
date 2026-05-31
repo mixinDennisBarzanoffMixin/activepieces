@@ -6,7 +6,8 @@ import {
   Permission,
   PopulatedFlow,
 } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { useLocation } from '@solidjs/router';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import {
   Copy,
@@ -19,10 +20,9 @@ import {
   Trash2,
   UploadCloud,
   User,
-} from 'lucide-react';
-import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import { toast } from 'sonner';
+} from 'lucide-solid';
+import { Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
@@ -54,7 +54,7 @@ import { ShareTemplateDialog } from '../../features/flows/components/share-templ
 type FlowActionMenuProps = {
   flow: PopulatedFlow;
   flowVersion: FlowVersion;
-  children?: React.ReactNode;
+  children?: JSX.Element;
   readonly: boolean;
   onRename: () => void;
   onMoveTo: (folderId: string) => void;
@@ -66,7 +66,7 @@ type FlowActionMenuProps = {
   | { insideBuilder: false; onVersionsListClick: null }
 );
 
-const FlowActionMenu: React.FC<FlowActionMenuProps> = ({
+const FlowActionMenu = ({
   flow,
   flowVersion,
   children,
@@ -96,33 +96,35 @@ const FlowActionMenu: React.FC<FlowActionMenuProps> = ({
   const { embedState } = useEmbedding();
   const isDevelopmentBranch =
     gitSync && gitSync.branchType === GitBranchType.DEVELOPMENT;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
   const allowPush =
     flow.publishedVersionId !== null &&
     flow.version.state === FlowVersionState.LOCKED;
   const { projectMembers } = projectMembersHooks.useProjectMembers();
   const hasProjectMembers = projectMembers && projectMembers.length > 0;
 
-  const [isRenameOpen, setIsRenameOpen] = useState(false);
-  const [renameValue, setRenameValue] = useState(flowVersion.displayName);
-  const [isMoveOpen, setIsMoveOpen] = useState(false);
-  const [folderToMoveId, setFolderToMoveId] = useState('');
+  const [isRenameOpen, setIsRenameOpen] = createSignal(false);
+  const [renameValue, setRenameValue] = createSignal(flowVersion.displayName);
+  const [isMoveOpen, setIsMoveOpen] = createSignal(false);
+  const [folderToMoveId, setFolderToMoveId] = createSignal('');
   const { folders } = foldersHooks.useFolders();
 
-  const { mutate: renameFlow, isPending: isRenamePending } = useMutation({
-    mutationFn: async () =>
-      flowsApi.update(flow.id, {
-        type: FlowOperationType.CHANGE_NAME,
-        request: { displayName: renameValue },
-      }),
-    onSuccess: () => {
-      setIsRenameOpen(false);
-      onRename();
-      toast.success(t('Flow has been renamed.'));
-    },
-  });
+  const { mutate: renameFlow, isPending: isRenamePending } = createMutation(
+    () => ({
+      mutationFn: async () =>
+        flowsApi.update(flow.id, {
+          type: FlowOperationType.CHANGE_NAME,
+          request: { displayName: renameValue },
+        }),
+      onSuccess: () => {
+        setIsRenameOpen(false);
+        onRename();
+        toast.success(t('Flow has been renamed.'));
+      },
+    }),
+  );
 
-  const { mutate: moveFlow, isPending: isMovePending } = useMutation({
+  const { mutate: moveFlow, isPending: isMovePending } = createMutation(() => ({
     mutationFn: async () =>
       flowsApi.update(flow.id, {
         type: FlowOperationType.CHANGE_FOLDER,
@@ -133,35 +135,36 @@ const FlowActionMenu: React.FC<FlowActionMenuProps> = ({
       onMoveTo(folderToMoveId);
       toast.success(t('Moved flow successfully'));
     },
-  });
+  }));
 
-  const { mutate: duplicateFlow, isPending: isDuplicatePending } = useMutation({
-    mutationFn: async () => {
-      const modifiedFlowVersion = {
-        ...flowVersion,
-        displayName: `${flowVersion.displayName} - Copy`,
-      };
-      const createdFlow = await flowsApi.create({
-        displayName: modifiedFlowVersion.displayName,
-        projectId: authenticationSession.getProjectId()!,
-        folderId: flow.folderId ?? undefined,
-      });
-      const updatedFlow = await flowsApi.update(createdFlow.id, {
-        type: FlowOperationType.IMPORT_FLOW,
-        request: {
+  const { mutate: duplicateFlow, isPending: isDuplicatePending } =
+    createMutation(() => ({
+      mutationFn: async () => {
+        const modifiedFlowVersion = {
+          ...flowVersion,
+          displayName: `${flowVersion.displayName} - Copy`,
+        };
+        const createdFlow = await flowsApi.create({
           displayName: modifiedFlowVersion.displayName,
-          trigger: modifiedFlowVersion.trigger,
-          schemaVersion: modifiedFlowVersion.schemaVersion,
-          notes: modifiedFlowVersion.notes,
-        },
-      });
-      return updatedFlow;
-    },
-    onSuccess: (data) => {
-      openNewWindow(`/flows/${data.id}`);
-      onDuplicate();
-    },
-  });
+          projectId: authenticationSession.getProjectId()!,
+          folderId: flow.folderId ?? undefined,
+        });
+        const updatedFlow = await flowsApi.update(createdFlow.id, {
+          type: FlowOperationType.IMPORT_FLOW,
+          request: {
+            displayName: modifiedFlowVersion.displayName,
+            trigger: modifiedFlowVersion.trigger,
+            schemaVersion: modifiedFlowVersion.schemaVersion,
+            notes: modifiedFlowVersion.notes,
+          },
+        });
+        return updatedFlow;
+      },
+      onSuccess: (data) => {
+        openNewWindow(`/flows/${data.id}`);
+        onDuplicate();
+      },
+    }));
 
   const { mutate: exportFlow, isPending: isExportPending } =
     flowHooks.useExportFlows();
@@ -173,48 +176,54 @@ const FlowActionMenu: React.FC<FlowActionMenuProps> = ({
           noAnimationOnOut={true}
           onCloseAutoFocus={(e) => e.preventDefault()}
         >
-          {!readonly && (
-            <>
-              {insideBuilder && (
-                <PermissionNeededTooltip
-                  hasPermission={userHasPermissionToUpdateFlow}
-                >
-                  <DropdownMenuItem
-                    onSelect={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setOpen(false);
-                      onRename();
-                    }}
-                    disabled={!userHasPermissionToUpdateFlow}
-                  >
-                    <div className="flex cursor-pointer flex-row gap-2 items-center">
-                      <Pencil className="h-4 w-4" />
-                      <span>{t('Rename')}</span>
-                    </div>
-                  </DropdownMenuItem>
-                </PermissionNeededTooltip>
-              )}
+          {
+            <Show when={!readonly}>
+              <>
+                {
+                  <Show when={insideBuilder}>
+                    <PermissionNeededTooltip
+                      hasPermission={userHasPermissionToUpdateFlow}
+                    >
+                      <DropdownMenuItem
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpen(false);
+                          onRename();
+                        }}
+                        disabled={!userHasPermissionToUpdateFlow}
+                      >
+                        <div className="flex cursor-pointer flex-row gap-2 items-center">
+                          <Pencil class="h-4 w-4" />
+                          <span>{t('Rename')}</span>
+                        </div>
+                      </DropdownMenuItem>
+                    </PermissionNeededTooltip>
+                  </Show>
+                }
 
-              {!insideBuilder && (
-                <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setOpen(false);
-                    setRenameValue(flowVersion.displayName);
-                    setIsRenameOpen(true);
-                  }}
-                  disabled={!userHasPermissionToUpdateFlow}
-                >
-                  <div className="flex cursor-pointer flex-row gap-2 items-center">
-                    <Pencil className="h-4 w-4" />
-                    <span>{t('Rename')}</span>
-                  </div>
-                </DropdownMenuItem>
-              )}
-            </>
-          )}
+                {
+                  <Show when={!insideBuilder}>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setOpen(false);
+                        setRenameValue(flowVersion.displayName);
+                        setIsRenameOpen(true);
+                      }}
+                      disabled={!userHasPermissionToUpdateFlow}
+                    >
+                      <div className="flex cursor-pointer flex-row gap-2 items-center">
+                        <Pencil class="h-4 w-4" />
+                        <span>{t('Rename')}</span>
+                      </div>
+                    </DropdownMenuItem>
+                  </Show>
+                }
+              </>
+            </Show>
+          }
 
           <PermissionNeededTooltip hasPermission={userHasPermissionToPushToGit}>
             <PublishedNeededTooltip allowPush={allowPush}>
@@ -225,7 +234,7 @@ const FlowActionMenu: React.FC<FlowActionMenuProps> = ({
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="flex cursor-pointer  flex-row gap-2 items-center">
-                    <UploadCloud className="h-4 w-4" />
+                    <UploadCloud class="h-4 w-4" />
                     <span>{t('Push to Git')}</span>
                   </div>
                 </DropdownMenuItem>
@@ -233,85 +242,104 @@ const FlowActionMenu: React.FC<FlowActionMenuProps> = ({
             </PublishedNeededTooltip>
           </PermissionNeededTooltip>
 
-          {!embedState.hideFolders && (
-            <PermissionNeededTooltip
-              hasPermission={
-                userHasPermissionToUpdateFlow || userHasPermissionToWriteFolder
-              }
-            >
-              <DropdownMenuItem
-                disabled={
-                  !userHasPermissionToUpdateFlow ||
-                  !userHasPermissionToWriteFolder
+          {
+            <Show when={!embedState.hideFolders}>
+              <PermissionNeededTooltip
+                hasPermission={
+                  userHasPermissionToUpdateFlow ||
+                  userHasPermissionToWriteFolder
                 }
-                onSelect={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setOpen(false);
-                  setIsMoveOpen(true);
-                }}
               >
-                <div className="flex cursor-pointer  flex-row gap-2 items-center">
-                  <CornerUpLeft className="h-4 w-4" />
-                  <span>{t('Move To')}</span>
-                </div>
-              </DropdownMenuItem>
-            </PermissionNeededTooltip>
-          )}
-          {!readonly && hasProjectMembers && !embedState.isEmbedded && (
-            <PermissionNeededTooltip
-              hasPermission={userHasPermissionToUpdateFlow}
+                <DropdownMenuItem
+                  disabled={
+                    !userHasPermissionToUpdateFlow ||
+                    !userHasPermissionToWriteFolder
+                  }
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setOpen(false);
+                    setIsMoveOpen(true);
+                  }}
+                >
+                  <div className="flex cursor-pointer  flex-row gap-2 items-center">
+                    <CornerUpLeft class="h-4 w-4" />
+                    <span>{t('Move To')}</span>
+                  </div>
+                </DropdownMenuItem>
+              </PermissionNeededTooltip>
+            </Show>
+          }
+          {
+            <Show
+              when={!readonly && hasProjectMembers && !embedState.isEmbedded}
             >
-              <ChangeOwnerDialog
-                flow={flow}
-                onOwnerChange={onOwnerChange || (() => {})}
+              <PermissionNeededTooltip
+                hasPermission={userHasPermissionToUpdateFlow}
+              >
+                <ChangeOwnerDialog
+                  flow={flow}
+                  onOwnerChange={onOwnerChange || (() => {})}
+                >
+                  <DropdownMenuItem
+                    disabled={!userHasPermissionToUpdateFlow}
+                    onSelect={(e) => e.preventDefault()}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex cursor-pointer  flex-row gap-2 items-center">
+                      <User class="h-4 w-4" />
+                      <span>{t('Change Owner')}</span>
+                    </div>
+                  </DropdownMenuItem>
+                </ChangeOwnerDialog>
+              </PermissionNeededTooltip>
+            </Show>
+          }
+          {
+            <Show when={!embedState.hideDuplicateFlow}>
+              <PermissionNeededTooltip
+                hasPermission={userHasPermissionToUpdateFlow}
               >
                 <DropdownMenuItem
                   disabled={!userHasPermissionToUpdateFlow}
-                  onSelect={(e) => e.preventDefault()}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={() => duplicateFlow()}
                 >
                   <div className="flex cursor-pointer  flex-row gap-2 items-center">
-                    <User className="h-4 w-4" />
-                    <span>{t('Change Owner')}</span>
+                    {
+                      <Show
+                        when={isDuplicatePending}
+                        fallback={<Copy class="h-4 w-4" />}
+                      >
+                        <LoadingSpinner />
+                      </Show>
+                    }
+                    <span>
+                      {isDuplicatePending ? t('Duplicating') : t('Duplicate')}
+                    </span>
                   </div>
                 </DropdownMenuItem>
-              </ChangeOwnerDialog>
-            </PermissionNeededTooltip>
-          )}
-          {!embedState.hideDuplicateFlow && (
-            <PermissionNeededTooltip
-              hasPermission={userHasPermissionToUpdateFlow}
-            >
-              <DropdownMenuItem
-                disabled={!userHasPermissionToUpdateFlow}
-                onClick={() => duplicateFlow()}
-              >
+              </PermissionNeededTooltip>
+            </Show>
+          }
+
+          {
+            <Show when={insideBuilder && !isRunsPage}>
+              <DropdownMenuItem onClick={onVersionsListClick}>
                 <div className="flex cursor-pointer  flex-row gap-2 items-center">
-                  {isDuplicatePending ? (
-                    <LoadingSpinner />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                  <span>
-                    {isDuplicatePending ? t('Duplicating') : t('Duplicate')}
-                  </span>
+                  <GalleryVerticalEnd class="h-4 w-4" />
+                  <span>{t('Versions')}</span>
                 </div>
               </DropdownMenuItem>
-            </PermissionNeededTooltip>
-          )}
-
-          {insideBuilder && !isRunsPage && (
-            <DropdownMenuItem onClick={onVersionsListClick}>
-              <div className="flex cursor-pointer  flex-row gap-2 items-center">
-                <GalleryVerticalEnd className="h-4 w-4" />
-                <span>{t('Versions')}</span>
-              </div>
-            </DropdownMenuItem>
-          )}
-          {!readonly &&
-            insideBuilder &&
-            !embedState.hideExportAndImportFlow && (
+            </Show>
+          }
+          {
+            <Show
+              when={
+                !readonly &&
+                insideBuilder &&
+                !embedState.hideExportAndImportFlow
+              }
+            >
               <PermissionNeededTooltip
                 hasPermission={userHasPermissionToUpdateFlow}
               >
@@ -321,43 +349,56 @@ const FlowActionMenu: React.FC<FlowActionMenuProps> = ({
                     onSelect={(e) => e.preventDefault()}
                   >
                     <div className="flex cursor-pointer flex-row gap-2 items-center">
-                      <Import className="w-4 h-4" />
+                      <Import class="w-4 h-4" />
                       {t('Import')}
                     </div>
                   </DropdownMenuItem>
                 </ImportFlowDialog>
               </PermissionNeededTooltip>
-            )}
+            </Show>
+          }
 
-          {!embedState.hideExportAndImportFlow && (
-            <DropdownMenuItem onClick={() => exportFlow([flow])}>
-              <div className="flex cursor-pointer  flex-row gap-2 items-center">
-                {isExportPending ? (
-                  <LoadingSpinner />
-                ) : (
-                  <Download className="h-4 w-4" />
-                )}
-                <span>{isExportPending ? t('Exporting') : t('Export')}</span>
-              </div>
-            </DropdownMenuItem>
-          )}
-          {!embedState.isEmbedded && (
-            <ShareTemplateDialog
-              flowId={flow.id}
-              flowVersionId={flowVersion.id}
-            >
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+          {
+            <Show when={!embedState.hideExportAndImportFlow}>
+              <DropdownMenuItem onClick={() => exportFlow([flow])}>
                 <div className="flex cursor-pointer  flex-row gap-2 items-center">
-                  <Share2 className="h-4 w-4" />
-                  <span>{t('Share')}</span>
+                  {
+                    <Show
+                      when={isExportPending}
+                      fallback={<Download class="h-4 w-4" />}
+                    >
+                      <LoadingSpinner />
+                    </Show>
+                  }
+                  <span>{isExportPending ? t('Exporting') : t('Export')}</span>
                 </div>
               </DropdownMenuItem>
-            </ShareTemplateDialog>
-          )}
-          {!readonly &&
-            (!embedState.isEmbedded ||
-              !embedState.disableNavigationInBuilder ||
-              !insideBuilder) && (
+            </Show>
+          }
+          {
+            <Show when={!embedState.isEmbedded}>
+              <ShareTemplateDialog
+                flowId={flow.id}
+                flowVersionId={flowVersion.id}
+              >
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                  <div className="flex cursor-pointer  flex-row gap-2 items-center">
+                    <Share2 class="h-4 w-4" />
+                    <span>{t('Share')}</span>
+                  </div>
+                </DropdownMenuItem>
+              </ShareTemplateDialog>
+            </Show>
+          }
+          {
+            <Show
+              when={
+                !readonly &&
+                (!embedState.isEmbedded ||
+                  !embedState.disableNavigationInBuilder ||
+                  !insideBuilder)
+              }
+            >
               <PermissionNeededTooltip
                 hasPermission={userHasPermissionToUpdateFlow}
               >
@@ -370,13 +411,15 @@ const FlowActionMenu: React.FC<FlowActionMenuProps> = ({
                           'This will permanently delete the flow, all its data, and any background runs.',
                         )}
                       </div>
-                      {isDevelopmentBranch && (
-                        <div className="font-bold mt-2">
-                          {t(
-                            'You are on a development branch, this will also delete the flow from the remote repository.',
-                          )}
-                        </div>
-                      )}
+                      {
+                        <Show when={isDevelopmentBranch}>
+                          <div className="font-bold mt-2">
+                            {t(
+                              'You are on a development branch, this will also delete the flow from the remote repository.',
+                            )}
+                          </div>
+                        </Show>
+                      }
                     </>
                   }
                   mutationFn={async () => {
@@ -392,13 +435,14 @@ const FlowActionMenu: React.FC<FlowActionMenuProps> = ({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className="flex cursor-pointer  flex-row gap-2 items-center">
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                      <Trash2 class="h-4 w-4 text-destructive" />
                       <span className="text-destructive">{t('Delete')}</span>
                     </div>
                   </DropdownMenuItem>
                 </ConfirmationDeleteDialog>
               </PermissionNeededTooltip>
-            )}
+            </Show>
+          }
         </DropdownMenuContent>
       </DropdownMenu>
       <RenameDialog

@@ -49,7 +49,7 @@ function PlatformUserItem({
       value={user.email}
       onSelect={() => !isDisabled && onSelect(user.email)}
       disabled={isDisabled}
-      className={cn('cursor-pointer', isDisabled && 'opacity-60')}
+      class={cn('cursor-pointer', isDisabled && 'opacity-60')}
     >
       <div className="flex items-center gap-2 w-full">
         <UserAvatar
@@ -69,7 +69,7 @@ function PlatformUserItem({
         </div>
         <Badge
           variant="ghost"
-          className={cn('ml-auto shrink-0 text-xs rounded-sm', badge.className)}
+          class={cn('ml-auto shrink-0 text-xs rounded-sm', badge.className)}
         >
           {badge.label}
         </Badge>
@@ -125,7 +125,7 @@ function EmailStatusSuggestionItem({
       value={emailStatus.email}
       onSelect={() => !disabled && onSelect(emailStatus.email)}
       disabled={disabled}
-      className={cn('cursor-pointer', disabled && 'opacity-60')}
+      class={cn('cursor-pointer', disabled && 'opacity-60')}
     >
       <div className="flex items-center gap-2 w-full">
         {user && (
@@ -149,7 +149,7 @@ function EmailStatusSuggestionItem({
         </div>
         <Badge
           variant="ghost"
-          className={cn('ml-auto shrink-0 text-xs rounded-sm', className)}
+          class={cn('ml-auto shrink-0 text-xs rounded-sm', className)}
         >
           {label}
         </Badge>

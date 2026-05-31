@@ -1,9 +1,7 @@
+import { createEffect, Show } from 'solid-js';
 import { ApFlagId, Permission } from '@activepieces/shared';
 import { nanoid } from 'nanoid';
-import { useRef, useEffect } from 'react';
-import DataGrid, { DataGridHandle } from 'react-data-grid';
-import 'react-data-grid/lib/styles.css';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from '@solidjs/router';
 
 import { useTheme } from '@/components/providers/theme-provider';
 import {
@@ -21,8 +19,6 @@ import { flagsHooks } from '@/hooks/flags-hooks';
 import { useResourceLock } from '@/hooks/use-resource-lock';
 import { authenticationSession } from '@/lib/authentication-session';
 import { cn } from '@/lib/utils';
-
-import './react-data-grid.css';
 
 const ApTableEditorPage = () => {
   const navigate = useNavigate();
@@ -53,11 +49,11 @@ const ApTableEditorPage = () => {
     resourceId: table.id,
   });
 
-  useEffect(() => {
+  createEffect(() => {
     setLockedByOtherUser(!!lockedBy);
-  }, [lockedBy, setLockedByOtherUser]);
+  });
 
-  const gridRef = useRef<DataGridHandle>(null);
+  let gridRef: HTMLDivElement | undefined;
   const { theme } = useTheme();
   const { data: maxRecords } = flagsHooks.useFlag<number>(
     ApFlagId.MAX_RECORDS_PER_TABLE,
@@ -76,10 +72,7 @@ const ApTableEditorPage = () => {
       values: [],
     });
     requestAnimationFrame(() => {
-      gridRef.current?.scrollToCell({
-        rowIdx: records.length,
-        idx: 0,
-      });
+      gridRef?.scrollTo({ top: gridRef.scrollHeight });
       setSelectedCell({
         rowIdx: records.length,
         columnIdx: 1,
@@ -87,7 +80,7 @@ const ApTableEditorPage = () => {
     });
   };
 
-  useEffect(() => {
+  createEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         selectedCell &&
@@ -101,7 +94,7 @@ const ApTableEditorPage = () => {
 
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, [selectedCell]);
+  });
 
   const columns = useTableColumns(createEmptyRecord);
   const rows = mapRecordsToRows(records, fields);
@@ -123,24 +116,41 @@ const ApTableEditorPage = () => {
       <div className="flex w-full flex-col flex-1 min-h-0">
         <div className="flex-1 flex flex-col min-h-0">
           <div className="flex-1 min-h-0">
-            <DataGrid
-              ref={gridRef}
-              columns={columns}
-              rows={rows}
-              rowKeyGetter={(row: Row) => row.id}
-              selectedRows={selectedRecords}
-              onSelectedRowsChange={setSelectedRecords}
-              className={cn(
-                'scroll-smooth w-full !h-full bg-muted/30 !border-0',
-                theme === 'dark' ? 'rdg-dark' : 'rdg-light',
+            <div
+              ref={(el) => (gridRef = el)}
+              class={cn(
+                'scroll-smooth w-full h-full overflow-auto bg-muted/30 border-0',
+                theme === 'dark' ? 'dark' : 'light',
               )}
-              bottomSummaryRows={canEdit ? [{ id: 'new-record' }] : []}
-              rowHeight={ROW_HEIGHT_MAP[RowHeight.DEFAULT]}
-              headerRowHeight={ROW_HEIGHT_MAP[RowHeight.DEFAULT]}
-              summaryRowHeight={
-                isAllowedToCreateRecord ? ROW_HEIGHT_MAP[RowHeight.DEFAULT] : 0
-              }
-            />
+            >
+              <div class="min-w-max">
+                <div class="sticky top-0 z-10 flex bg-background border-b">
+                  {columns.map((column, index) => (
+                    <div class="border-r" style={{ width: `${column.width ?? 207}px` }}>
+                      {column.renderHeaderCell?.() ?? column.name}
+                    </div>
+                  ))}
+                </div>
+                {rows.map((row, rowIdx) => (
+                  <div class="flex border-b" style={{ height: `${ROW_HEIGHT_MAP[RowHeight.DEFAULT]}px` }}>
+                    {columns.map((column, columnIdx) => (
+                      <div class="border-r" style={{ width: `${column.width ?? 207}px` }}>
+                        {column.renderCell?.({ row, rowIdx, column: { key: column.key, idx: columnIdx } })}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                <Show when={isAllowedToCreateRecord}>
+                  <div class="flex border-b" style={{ height: `${ROW_HEIGHT_MAP[RowHeight.DEFAULT]}px` }}>
+                    {columns.map((column) => (
+                      <div class="border-r" style={{ width: `${column.width ?? 207}px` }}>
+                        {column.renderSummaryCell?.()}
+                      </div>
+                    ))}
+                  </div>
+                </Show>
+              </div>
+            </div>
           </div>
           <ApTableFooter
             fieldsCount={fields.length}

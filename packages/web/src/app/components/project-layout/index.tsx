@@ -1,7 +1,6 @@
 import { ApEdition, ApFlagId, isNil } from '@activepieces/shared';
-import React, { ComponentType } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Navigate, useLocation } from 'react-router-dom';
+import { t } from 'i18next';
+import { Component, Show } from 'solid-js';
 
 import { ChartLineIcon } from '@/components/icons/chart-line';
 import { CompassIcon } from '@/components/icons/compass';
@@ -25,7 +24,7 @@ import { ProjectDashboardLayoutHeader } from './project-dashboard-layout-header'
 export type ProjectDashboardLayoutHeaderTab = {
   to: string;
   label: string;
-  icon: ComponentType<{ className?: string; size?: number }>;
+  icon: Component<any>;
   hasPermission: boolean;
   show: boolean;
   beta?: boolean;
@@ -36,7 +35,7 @@ const ProjectChangedRedirector = ({
   children,
 }: {
   currentProjectId: string;
-  children: React.ReactNode;
+  children: JSX.Element;
 }) => {
   projectHooks.useReloadPageIfProjectIdChanged(currentProjectId);
   return children;
@@ -45,16 +44,15 @@ const ProjectChangedRedirector = ({
 export function ProjectDashboardLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: JSX.Element;
 }) {
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
   const currentProjectId = authenticationSession.getProjectId();
-  const { t } = useTranslation();
-  const location = useLocation();
-  const isPlatformPage = location.pathname.includes('/platform/');
+  const isPlatformPage = window.location.pathname.includes('/platform/');
   const isEmbedded = useEmbedding().embedState.isEmbedded;
   if (isNil(currentProjectId) || currentProjectId === '') {
-    return <Navigate to="/sign-in" replace />;
+    window.location.replace('/sign-in');
+    return null;
   }
 
   const itemsWithoutHeader: ProjectDashboardLayoutHeaderTab[] = [
@@ -102,7 +100,11 @@ export function ProjectDashboardLayout({
         >
           {children}
         </ProjectDashboardLayoutInner>
-        {edition === ApEdition.CLOUD && <PurchaseExtraFlowsDialog />}
+        {
+          <Show when={edition === ApEdition.CLOUD}>
+            <PurchaseExtraFlowsDialog />
+          </Show>
+        }
       </GlobalSearchProvider>
     </ProjectChangedRedirector>
   );
@@ -117,14 +119,18 @@ function ProjectDashboardLayoutInner({
   hideHeader: boolean;
   isEmbedded: boolean;
   currentProjectId: string;
-  children: React.ReactNode;
+  children: JSX.Element;
 }) {
   const { open: searchOpen } = useGlobalSearch();
 
   return (
     <SidebarProvider hoverMode={!searchOpen}>
-      {!isEmbedded && <ProjectDashboardSidebar />}
-      <SidebarInset className="flex flex-col h-full overflow-hidden bg-sidebar">
+      {
+        <Show when={!isEmbedded}>
+          <ProjectDashboardSidebar />
+        </Show>
+      }
+      <SidebarInset class="flex flex-col h-full overflow-hidden bg-sidebar">
         <div
           className={cn(
             'flex-1 flex flex-col overflow-hidden',
@@ -139,9 +145,11 @@ function ProjectDashboardLayoutInner({
                 'rounded-xl shadow-[2px_0px_4px_-2px_rgba(0,0,0,0.05),0px_2px_4px_-2px_rgba(0,0,0,0.05)] border',
             )}
           >
-            {!hideHeader && (
-              <ProjectDashboardLayoutHeader key={currentProjectId} />
-            )}
+            {
+              <Show when={!hideHeader}>
+                <ProjectDashboardLayoutHeader key={currentProjectId} />
+              </Show>
+            }
             <div className="flex-1 overflow-auto">{children}</div>
           </div>
         </div>

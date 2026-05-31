@@ -1,6 +1,7 @@
 import { t } from 'i18next';
-import { Check, Circle, ListChecks, X } from 'lucide-react';
+import { Check, Circle, ListChecks, X } from 'lucide-solid';
 import { motion } from 'motion/react';
+import { For, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 
@@ -19,7 +20,7 @@ export function PlanApprovalForm({
 }) {
   return (
     <motion.div
-      className="rounded-2xl border bg-background overflow-hidden shadow-sm"
+      class="rounded-2xl border bg-background overflow-hidden shadow-sm"
       initial={{ opacity: 0, y: 12, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -29,7 +30,7 @@ export function PlanApprovalForm({
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-2.5 flex-1 min-w-0">
             <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10 shrink-0 mt-0.5">
-              <ListChecks className="h-4 w-4 text-primary" />
+              <ListChecks class="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">
@@ -46,37 +47,39 @@ export function PlanApprovalForm({
             onClick={onDismiss}
             aria-label={t('Close')}
           >
-            <X className="size-3.5" />
+            <X class="size-3.5" />
           </button>
         </div>
       </div>
 
-      {steps.length > 0 && (
+      <Show when={steps.length > 0}>
         <div className="px-4 pb-3">
           <div className="flex flex-col gap-0.5">
-            {steps.map((step, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2.5 py-1.5 px-2 rounded-md"
-              >
-                <Circle className="h-3 w-3 text-muted-foreground/30 shrink-0" />
-                <span className="text-xs text-muted-foreground">{step}</span>
-              </div>
-            ))}
+            <For each={steps}>
+              {(step, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2.5 py-1.5 px-2 rounded-md"
+                >
+                  <Circle class="h-3 w-3 text-muted-foreground/30 shrink-0" />
+                  <span className="text-xs text-muted-foreground">{step}</span>
+                </div>
+              )}
+            </For>
           </div>
         </div>
-      )}
+      </Show>
 
       <div className="flex items-center gap-2 px-4 py-3 border-t bg-muted/30">
-        <Button size="sm" onClick={onApprove} className="gap-1.5" type="button">
-          <Check className="size-3.5" />
+        <Button size="sm" onClick={onApprove} class="gap-1.5" type="button">
+          <Check class="size-3.5" />
           {t('Approve')}
         </Button>
         <Button
           size="sm"
           variant="ghost"
           onClick={onReject}
-          className="text-muted-foreground"
+          class="text-muted-foreground"
           type="button"
         >
           {t('Cancel')}

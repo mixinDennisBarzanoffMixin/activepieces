@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams } from '@solidjs/router';
+import { createQuery } from '@tanstack/solid-query';
 
 import {
   CURSOR_QUERY_PARAM,
@@ -17,7 +17,7 @@ export const auditLogQueries = {
   useAuditLogs: () => {
     const [searchParams] = useSearchParams();
     const { platform } = platformHooks.useCurrentPlatform();
-    return useQuery({
+    return createQuery(() => ({
       queryKey: auditLogKeys.all(searchParams.toString()),
       staleTime: 0,
       gcTime: 0,
@@ -39,6 +39,6 @@ export const auditLogQueries = {
           createdAfter: searchParams.get('createdAfter') ?? undefined,
         });
       },
-    });
+    }));
   },
 };

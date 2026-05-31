@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { SearchX } from 'lucide-react';
+import { SearchX } from 'lucide-solid';
 
 import {
   Empty,
@@ -11,8 +11,8 @@ import {
 
 export const EmptyTemplatesView = () => {
   return (
-    <Empty className="min-h-[300px]">
-      <EmptyHeader className="max-w-xl">
+    <Empty class="min-h-[300px]">
+      <EmptyHeader class="max-w-xl">
         <EmptyMedia variant="icon">
           <SearchX />
         </EmptyMedia>

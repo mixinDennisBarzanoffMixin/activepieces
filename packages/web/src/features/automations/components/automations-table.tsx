@@ -4,9 +4,9 @@ import {
   ProjectMemberWithUser,
   Table,
 } from '@activepieces/shared';
-import * as AccordionPrimitive from '@radix-ui/react-accordion';
+import { Accordion } from '@kobalte/core/accordion';
 import { t } from 'i18next';
-import { Activity, Clock, Info, Type, User } from 'lucide-react';
+import { Activity, Clock, Info, Type, User } from 'lucide-solid';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -100,27 +100,27 @@ export const AutomationsTable = ({
           </div>
           <div className="w-8 shrink-0"></div>
           <div className="flex-1 min-w-[200px] pl-2 flex items-center gap-1.5">
-            <Type className="h-3.5 w-3.5" />
+            <Type class="h-3.5 w-3.5" />
             {t('Name')}
           </div>
 
           <div className="w-[230px] shrink-0 px-2 flex items-center gap-1.5">
-            <Info className="h-3.5 w-3.5" />
+            <Info class="h-3.5 w-3.5" />
             {t('Details')}
           </div>
 
           <div className="w-[200px] shrink-0 px-2 flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5" />
+            <Clock class="h-3.5 w-3.5" />
             {t('Last modified')}
           </div>
           {!embedState.isEmbedded && (
             <div className="w-[250px] shrink-0 px-2 flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5" />
+              <User class="h-3.5 w-3.5" />
               {t('Owner')}
             </div>
           )}
           <div className="w-[120px] shrink-0 px-2 flex items-center gap-1.5">
-            <Activity className="h-3.5 w-3.5" />
+            <Activity class="h-3.5 w-3.5" />
             {t('Status')}
           </div>
           <div className="w-[80px] shrink-0 px-2"></div>
@@ -130,13 +130,13 @@ export const AutomationsTable = ({
           <div className="p-2">
             {Array.from({ length: 10 }).map((_, i) => (
               <div key={i} className="w-full h-9 mb-3 rounded-sm">
-                <Skeleton className="w-full min-h-9" />
+                <Skeleton class="w-full min-h-9" />
               </div>
             ))}
           </div>
         ) : (
-          <AccordionPrimitive.Root
-            type="multiple"
+          <Accordion
+            multiple
             value={Array.from(expandedFolders)}
           >
             {groups.map((group) => {
@@ -144,10 +144,10 @@ export const AutomationsTable = ({
 
               if (isFolder) {
                 return (
-                  <AccordionPrimitive.Item
+                  <Accordion.Item
                     key={`folder-${group.item.id}`}
                     value={group.item.id}
-                    className="border-b"
+                    class="border-b"
                   >
                     <div
                       className={cn(rowClassName)}
@@ -188,7 +188,7 @@ export const AutomationsTable = ({
                         onLoadMore={undefined}
                       />
                     </div>
-                    <AccordionPrimitive.Content className="overflow-hidden data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                    <Accordion.Content class="overflow-hidden data-[closed]:animate-accordion-up data-[expanded]:animate-accordion-down">
                       {group.children.map((child) => (
                         <div
                           key={`${child.type}-${child.id}`}
@@ -225,8 +225,8 @@ export const AutomationsTable = ({
                           />
                         </div>
                       ))}
-                    </AccordionPrimitive.Content>
-                  </AccordionPrimitive.Item>
+                    </Accordion.Content>
+                  </Accordion.Item>
                 );
               }
 
@@ -261,7 +261,7 @@ export const AutomationsTable = ({
                 </div>
               );
             })}
-          </AccordionPrimitive.Root>
+          </Accordion>
         )}
       </div>
     </div>

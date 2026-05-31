@@ -6,7 +6,7 @@ import {
   TableAutomationStatus,
 } from '@activepieces/shared';
 import { nanoid } from 'nanoid';
-import { create } from 'zustand';
+import { createWithStore } from 'solid-zustand';
 
 import { createServerState } from './ap-tables-server-state';
 
@@ -89,7 +89,7 @@ export const createApTableStore = (
   fields: Field[],
   records: PopulatedRecord[],
 ) => {
-  return create<TableState>((set) => {
+  return createWithStore<TableState>((set) => {
     const serverState = createServerState(
       table,
       fields,

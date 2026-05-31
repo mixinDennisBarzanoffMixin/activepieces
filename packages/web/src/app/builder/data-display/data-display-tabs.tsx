@@ -1,6 +1,7 @@
 import { t } from 'i18next';
-import { Copy, Download } from 'lucide-react';
-import { toast } from 'sonner';
+import { Copy, Download } from 'lucide-solid';
+import { Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { JsonViewer } from '@/components/custom/json-viewer';
 import { Button } from '@/components/ui/button';
@@ -58,7 +59,7 @@ const DataDisplayTabs = ({
 
   return (
     <div className={cn('group flex flex-col gap-2', className)}>
-      {canActOnData && (
+      <Show when={canActOnData()}>
         <TooltipProvider>
           <div className="sticky top-0 z-10 flex justify-end pointer-events-none">
             <div className="flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md border border-border shadow-sm pointer-events-auto opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -67,11 +68,11 @@ const DataDisplayTabs = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="size-7 p-0"
+                    class="size-7 p-0"
                     onClick={handleCopy}
                     aria-label={t('Copy to clipboard')}
                   >
-                    <Copy className="size-3.5" />
+                    <Copy class="size-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
@@ -83,11 +84,11 @@ const DataDisplayTabs = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="size-7 p-0"
+                    class="size-7 p-0"
                     onClick={handleDownload}
                     aria-label={t('Download JSON')}
                   >
-                    <Download className="size-3.5" />
+                    <Download class="size-3.5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
@@ -97,13 +98,13 @@ const DataDisplayTabs = ({
             </div>
           </div>
         </TooltipProvider>
-      )}
+      </Show>
       <JsonViewer
         json={data}
         title={title}
         hideHeader
         hideDownload
-        className="border-0 rounded-none"
+        class="border-0 rounded-none"
       />
     </div>
   );

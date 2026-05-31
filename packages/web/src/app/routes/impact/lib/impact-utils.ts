@@ -48,7 +48,7 @@ export const hmsToSeconds = (
 };
 
 export const downloadChartAsPng = async (
-  ref: React.RefObject<HTMLDivElement | null>,
+  ref: RefObject<HTMLDivElement | null>,
   filename: string,
 ): Promise<void> => {
   if (!ref.current) return;

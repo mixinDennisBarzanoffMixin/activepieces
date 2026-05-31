@@ -1,5 +1,6 @@
 import { t } from 'i18next';
-import { toast } from 'sonner';
+import { Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
 import { LoadingSpinner } from '@/components/custom/spinner';
@@ -42,46 +43,55 @@ const EnvironmentSettings = () => {
       )}
     >
       <div className="flex w-full flex-col items-start justify-center gap-4">
-        <Card className="w-full p-4">
+        <Card class="w-full p-4">
           <div className="flex w-full">
-            {!isLoading && (
-              <>
-                <div className="flex grow flex-col gap-2">
-                  <p>
-                    {t('Repository URL')}:{' '}
-                    {gitSync?.remoteUrl ?? t('Not connected')}
-                  </p>
-                  <p>
-                    {t('Branch')}: {gitSync?.branch ?? t('Not connected')}
-                  </p>
-                  <p>
-                    {t('Project Folder')}: {gitSync?.slug ?? t('Not connected')}
-                  </p>
+            {
+              <Show when={!isLoading}>
+                <>
+                  <div className="flex grow flex-col gap-2">
+                    <p>
+                      {t('Repository URL')}:{' '}
+                      {gitSync?.remoteUrl ?? t('Not connected')}
+                    </p>
+                    <p>
+                      {t('Branch')}: {gitSync?.branch ?? t('Not connected')}
+                    </p>
+                    <p>
+                      {t('Project Folder')}:{' '}
+                      {gitSync?.slug ?? t('Not connected')}
+                    </p>
+                  </div>
+                  <div className="flex flex-col justify-center items-center gap-2">
+                    {
+                      <Show when={!gitSync}>
+                        <ConnectGitDialog showButton={true}></ConnectGitDialog>
+                      </Show>
+                    }
+                    {
+                      <Show when={gitSync}>
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            size={'sm'}
+                            onClick={() => gitSync && mutate(gitSync.id)}
+                            class="w-32 text-destructive"
+                            variant={'basic'}
+                          >
+                            {t('Disconnect')}
+                          </Button>
+                        </div>
+                      </Show>
+                    }
+                  </div>
+                </>
+              </Show>
+            }
+            {
+              <Show when={isLoading}>
+                <div className="flex grow justify-center items-center">
+                  <LoadingSpinner class="size-5"></LoadingSpinner>
                 </div>
-                <div className="flex flex-col justify-center items-center gap-2">
-                  {!gitSync && (
-                    <ConnectGitDialog showButton={true}></ConnectGitDialog>
-                  )}
-                  {gitSync && (
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        size={'sm'}
-                        onClick={() => gitSync && mutate(gitSync.id)}
-                        className="w-32 text-destructive"
-                        variant={'basic'}
-                      >
-                        {t('Disconnect')}
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-            {isLoading && (
-              <div className="flex grow justify-center items-center">
-                <LoadingSpinner className="size-5"></LoadingSpinner>
-              </div>
-            )}
+              </Show>
+            }
           </div>
         </Card>
         <ReleaseCard />

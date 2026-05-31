@@ -1,5 +1,4 @@
 import { t } from 'i18next';
-import React from 'react';
 
 import {
   Tooltip,
@@ -7,20 +6,23 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-export const MessageTooltip = React.forwardRef<
-  HTMLButtonElement,
-  { children: React.ReactNode; isDisabled: boolean; message: string }
->(({ children, isDisabled, message }, ref) => {
+export const MessageTooltip = (props: {
+  children: any;
+  isDisabled: boolean;
+  message: string;
+  ref?: HTMLButtonElement;
+}) => {
+  let ref: HTMLButtonElement | undefined;
   return (
     <Tooltip delayDuration={100}>
-      <TooltipTrigger ref={ref} asChild>
-        <div>{children}</div>
+      <TooltipTrigger ref={(el) => (ref = el)} asChild>
+        <div>{props.children}</div>
       </TooltipTrigger>
-      {isDisabled && (
-        <TooltipContent side="bottom">{t(message)}</TooltipContent>
-      )}
+      <Show when={props.isDisabled}>
+        <TooltipContent side="bottom">{t(props.message)}</TooltipContent>
+      </Show>
     </Tooltip>
   );
-});
+};
 
 MessageTooltip.displayName = 'MessageTooltip';

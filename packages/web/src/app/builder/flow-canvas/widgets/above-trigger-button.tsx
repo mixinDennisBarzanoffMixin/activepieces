@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { useEffect } from 'react';
+import { Show, createEffect } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -31,7 +31,7 @@ const AboveTriggerButton = ({
 }: AboveTriggerButtonProps) => {
   const isMacSystem = isMac();
 
-  useEffect(() => {
+  createEffect(() => {
     const keydownHandler = (event: KeyboardEvent) => {
       const isEscapePressed = event.key === 'Escape' && shortCutIsEscape;
       const ctrlAndDPressed =
@@ -55,7 +55,7 @@ const AboveTriggerButton = ({
     return () => {
       window.removeEventListener('keydown', keydownHandler, { capture: true });
     };
-  }, [isMac, loading, onClick]);
+  });
 
   return (
     <Tooltip>
@@ -63,7 +63,7 @@ const AboveTriggerButton = ({
         <div className="bg-builder-background">
           <Button
             variant="ghost"
-            className={cn(
+            class={cn(
               'h-8 bg-background border-input hover:border-border  border p-2.5 border-solid rounded-lg animate-fade',
               {
                 'bg-primary-100/50! dark:text-primary-foreground  text-primary hover:text-primary disabled:pointer-events-auto hover:border-primary!  border-primary/50':
@@ -76,7 +76,7 @@ const AboveTriggerButton = ({
           >
             <div className="flex justify-center items-center gap-2">
               {text}
-              {showKeyboardShortcut && (
+              <Show when={showKeyboardShortcut()}>
                 <span
                   className={cn(
                     'text-[10px] bg-muted h-[20px] flex items-center justify-center px-1 rounded-sm tracking-widest whitespace-nowrap text-muted-foreground',
@@ -85,22 +85,23 @@ const AboveTriggerButton = ({
                     },
                   )}
                 >
-                  {shortCutIsEscape
-                    ? 'Esc'
-                    : isMacSystem
-                    ? '⌘ + D'
-                    : 'Ctrl + D'}
+                  <Show
+                    when={shortCutIsEscape()}
+                    fallback={isMacSystem ? '⌘ + D' : 'Ctrl + D'}
+                  >
+                    {'Esc'}
+                  </Show>
                 </span>
-              )}
+              </Show>
             </div>
           </Button>
         </div>
       </TooltipTrigger>
-      {disable && (
+      <Show when={disable()}>
         <TooltipContent side="bottom">
           {t('Please test the trigger first')}
         </TooltipContent>
-      )}
+      </Show>
     </Tooltip>
   );
 };

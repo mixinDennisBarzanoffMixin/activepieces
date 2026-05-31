@@ -5,7 +5,7 @@ import {
   KnowledgeBaseSourceType,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { BookOpen, FileText, Table2, X } from 'lucide-react';
+import { BookOpen, FileText, Table2, X } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -44,9 +44,9 @@ function KnowledgeBaseToolPills({
           )}
         >
           {tool.sourceType === KnowledgeBaseSourceType.FILE ? (
-            <FileText className="size-3.5 text-muted-foreground shrink-0" />
+            <FileText class="size-3.5 text-muted-foreground shrink-0" />
           ) : (
-            <Table2 className="size-3.5 text-muted-foreground shrink-0" />
+            <Table2 class="size-3.5 text-muted-foreground shrink-0" />
           )}
           <span className="text-xs font-medium max-w-40 truncate">
             {tool.sourceName}
@@ -62,7 +62,7 @@ function KnowledgeBaseToolPills({
                 }}
                 variant="ghost"
                 size="icon"
-                className="
+                class="
                   size-5 p-0.5
                   text-muted-foreground
                   hover:text-destructive
@@ -70,7 +70,7 @@ function KnowledgeBaseToolPills({
                   transition
                 "
               >
-                <X className="h-3 w-3" />
+                <X class="h-3 w-3" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{t('Remove knowledge source')}</TooltipContent>
@@ -122,7 +122,7 @@ export const KnowledgeBaseSection = ({
         ) : (
           <div className="flex flex-col items-center justify-center gap-4 rounded-xl border bg-card px-4 py-8 text-center">
             <div className="flex items-center justify-center h-10 w-10 rounded-full border bg-background">
-              <BookOpen className="size-5" />
+              <BookOpen class="size-5" />
             </div>
             {supportsEmbeddings ? (
               <>

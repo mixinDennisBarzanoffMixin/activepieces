@@ -1,5 +1,3 @@
-import React from 'react';
-
 import { Tabs, TabsTrigger, TabsList } from '@/components/ui/tabs';
 
 import {
@@ -10,7 +8,7 @@ import {
 type TabType = {
   value: PieceSelectorTabType;
   name: string;
-  icon: React.ReactNode;
+  icon;
 };
 
 export const PieceSelectorTabs = ({ tabs }: { tabs: TabType[] }) => {
@@ -19,10 +17,10 @@ export const PieceSelectorTabs = ({ tabs }: { tabs: TabType[] }) => {
     <Tabs
       value={selectedTab}
       onValueChange={(value) => setSelectedTab(value as PieceSelectorTabType)}
-      className="w-full"
+      class="w-full"
     >
       <TabsList
-        className={`h-full w-full flex gap-3 px-2  justify-start rounded-none bg-background`}
+        class={`h-full w-full flex gap-3 px-2  justify-start rounded-none bg-background`}
         style={{
           gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
         }}
@@ -31,7 +29,7 @@ export const PieceSelectorTabs = ({ tabs }: { tabs: TabType[] }) => {
           <TabsTrigger
             key={tab.value}
             value={tab.value}
-            className={`flex flex-col  grow  h-full rounded-md  w-[85px] max-w-[85px] shrink-0
+            class={`flex flex-col  grow  h-full rounded-md  w-[85px] max-w-[85px] shrink-0
               hover:bg-gray-300/30 dark:hover:bg-gray-300/10
                data-[state=active]:text-primary data-[state=active]:shadow-none
                border-transparent data-[state=active]:border-primary data-[state=active]:active data-[state=active]:bg-transparent

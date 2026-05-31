@@ -1,8 +1,8 @@
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { TriangleAlert } from 'lucide-solid';
+import { createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -18,17 +18,17 @@ import {
 
 interface ConfirmationDeleteDialogProps {
   title: string;
-  message: React.ReactNode | string;
+  message: any | string;
   mutationFn: () => Promise<void>;
   entityName: string;
-  children?: React.ReactNode;
+  children?: any;
   open?: boolean;
   isDanger?: boolean;
   buttonText?: string;
   onOpenChange?: (open: boolean) => void;
   showToast?: boolean;
   onError?: (error: Error) => void;
-  warning?: React.ReactNode | string;
+  warning?: any | string;
 }
 
 export const ConfirmationDeleteDialog = ({
@@ -45,12 +45,12 @@ export const ConfirmationDeleteDialog = ({
   onOpenChange,
   warning,
 }: ConfirmationDeleteDialogProps) => {
-  const [isControlled] = useState(
+  const [isControlled] = createSignal(
     open !== undefined && onOpenChange !== undefined,
   );
-  const [isUncontrolledOpen, setIsUncontrolledOpen] = useState(false);
+  const [isUncontrolledOpen, setIsUncontrolledOpen] = createSignal(false);
 
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending } = createMutation(() => ({
     mutationFn,
     onSuccess: () => {
       handleClose();
@@ -59,37 +59,39 @@ export const ConfirmationDeleteDialog = ({
       }
     },
     onError,
-  });
+  }));
 
   const handleClose = () => {
-    if (isControlled) {
+    if (isControlled()) {
       onOpenChange?.(false);
     } else {
       setIsUncontrolledOpen(false);
     }
   };
 
-  const isOpen = isControlled ? open : isUncontrolledOpen;
+  const isOpen = isControlled() ? open : isUncontrolledOpen();
 
   return (
     <Dialog
       open={isOpen}
-      onOpenChange={isControlled ? onOpenChange : setIsUncontrolledOpen}
+      onOpenChange={isControlled() ? onOpenChange : setIsUncontrolledOpen}
     >
-      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+      <Show when={children}>
+        <DialogTrigger asChild>{children}</DialogTrigger>
+      </Show>
 
       <DialogContent onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
-          <DialogDescription className="pt-2">{message}</DialogDescription>
+          <DialogDescription class="pt-2">{message}</DialogDescription>
         </DialogHeader>
-        {warning && (
+        <Show when={warning}>
           <Alert variant="warning">
-            <TriangleAlert className="h-4 w-4" />
+            <TriangleAlert class="h-4 w-4" />
             <AlertDescription>{warning}</AlertDescription>
           </Alert>
-        )}
-        <DialogFooter className="mt-3">
+        </Show>
+        <DialogFooter class="mt-3">
           <Button
             variant="outline"
             disabled={isPending}
@@ -102,7 +104,9 @@ export const ConfirmationDeleteDialog = ({
             loading={isPending}
             onClick={() => mutate()}
           >
-            {isDanger && <TriangleAlert className="size-4 mr-2" />}
+            <Show when={isDanger}>
+              <TriangleAlert class="size-4 mr-2" />
+            </Show>
             {buttonText || t('Remove')}
           </Button>
         </DialogFooter>

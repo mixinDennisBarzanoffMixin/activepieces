@@ -5,12 +5,10 @@ import {
   CreatePlatformEventDestinationRequestBody,
   isNil,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from 'i18next';
-import { ChevronDown, Sparkles } from 'lucide-react';
-import { useId, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { ChevronDown, Sparkles } from 'lucide-solid';
+import { createMemo, createSignal, createUniqueId, For, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -29,14 +27,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -46,34 +36,24 @@ import { eventDestinationsCollectionUtils } from '../lib/event-destinations-coll
 import { handlerFlowBuilder } from '../lib/handler-flow-builder';
 import { useEventLabels } from '../lib/use-event-labels';
 
-interface EventDestinationDialogProps {
-  children: React.ReactNode;
-  destination: EventDestination | null;
-}
-
 export const EventDestinationDialog = ({
   children,
   destination,
 }: EventDestinationDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = createSignal(false);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-2xl gap-2">
+      <DialogContent class="max-w-2xl gap-2">
         <EventDestinationForm
-          key={isOpen ? 'open' : 'closed'}
+          key={isOpen() ? 'open' : 'closed'}
           destination={destination}
           onClose={() => setIsOpen(false)}
         />
       </DialogContent>
     </Dialog>
   );
-};
-
-type EventDestinationFormProps = {
-  destination: EventDestination | null;
-  onClose: () => void;
 };
 
 const EventDestinationForm = ({
@@ -84,7 +64,7 @@ const EventDestinationForm = ({
   const { data: webhookPrefixUrl } = flagsHooks.useFlag<string>(
     ApFlagId.WEBHOOK_URL_PREFIX,
   );
-  const checkboxIdPrefix = useId();
+  const checkboxIdPrefix = createUniqueId();
 
   const formSchema = z.object({
     url: z.url(t('Invalid URL')).min(1, t('Webhook URL is required')),
@@ -93,17 +73,10 @@ const EventDestinationForm = ({
       .min(1, t('Select at least one event')),
   });
 
-  const form = useForm<CreatePlatformEventDestinationRequestBody>({
-    resolver: zodResolver(formSchema),
-    mode: 'onChange',
-    defaultValues: {
-      url: destination?.url ?? '',
-      events: destination?.events ?? [],
-    },
-  });
-
-  const watchedUrl = form.watch('url');
-  const watchedEvents = form.watch('events') ?? [];
+  const [url, setUrl] = createSignal(destination?.url ?? '');
+  const [events, setEvents] = createSignal(destination?.events ?? []);
+  const [errors, setErrors] = createSignal<FormErrors>({});
+  const values = createMemo(() => ({ url: url(), events: events() }));
 
   const { mutate: testDestination, isPending: isTesting } =
     eventDestinationsCollectionUtils.useTestEventDestination();
@@ -136,17 +109,16 @@ const EventDestinationForm = ({
           description: error instanceof Error ? error.message : 'Unknown error',
         });
       }
-    } else {
-      createDestination(data);
+      return;
     }
+    createDestination(data);
   };
 
   const { mutate: importHandlerFlow, isPending: isImporting } =
     eventDestinationsCollectionUtils.useImportHandlerFlow(
       (createdFlow) => {
-        form.setValue('url', `${webhookPrefixUrl}/${createdFlow.id}`, {
-          shouldValidate: true,
-        });
+        setUrl(`${webhookPrefixUrl}/${createdFlow.id}`);
+        setErrors((errors) => ({ ...errors, url: undefined }));
         window.open(
           `/flows/${createdFlow.id}`,
           '_blank',
@@ -162,11 +134,12 @@ const EventDestinationForm = ({
     );
 
   const handleImportHandlerFlow = () => {
-    const selectedEvents = form.getValues('events') ?? [];
+    const selectedEvents = events();
     if (selectedEvents.length === 0) {
-      form.setError('events', {
-        message: t('Select at least one event'),
-      });
+      setErrors((errors) => ({
+        ...errors,
+        events: t('Select at least one event'),
+      }));
       return;
     }
     if (!webhookPrefixUrl) {
@@ -206,162 +179,195 @@ const EventDestinationForm = ({
 
   const availableEvents = Object.values(ApplicationEventName);
   const isSubmitDisabled = isCreating || isImporting;
-
   const isTestingButtonDisabled =
-    isTesting ||
-    !watchedUrl ||
-    !isNil(form.formState.errors.url) ||
-    watchedEvents.length === 0;
+    isTesting || !url() || !isNil(errors().url) || events().length === 0;
 
   return (
     <>
       <DialogTitle>
-        {destination ? t('Edit Destination') : t('New Destination')}
+        <Show when={destination} fallback={t('New Destination')}>
+          {t('Edit Destination')}
+        </Show>
       </DialogTitle>
       <DialogDescription>
-        {destination
-          ? t('Update the webhook endpoint and event subscriptions.')
-          : t(
-              'Send audit events to a webhook. Use an internal flow to route them to your notification channels — Slack, Gmail, Microsoft Teams, or any other channel.',
-            )}
+        <Show
+          when={destination}
+          fallback={t(
+            'Send audit events to a webhook. Use an internal flow to route them to your notification channels — Slack, Gmail, Microsoft Teams, or any other channel.',
+          )}
+        >
+          {t('Update the webhook endpoint and event subscriptions.')}
+        </Show>
       </DialogDescription>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="events"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel showRequiredIndicator className="text-base">
-                  {t('Events')}
-                </FormLabel>
-                <ScrollArea
-                  className="h-48 rounded-md "
-                  viewPortClassName="px-0"
-                >
-                  <div className="grid grid-cols-2 gap-2">
-                    {availableEvents.map((event) => {
-                      const checkboxId = `${checkboxIdPrefix}-${event}`;
-                      const isChecked = field.value?.includes(event) ?? false;
-                      return (
-                        <div
-                          key={event}
-                          className="flex flex-row items-center gap-3"
-                        >
-                          <Checkbox
-                            id={checkboxId}
-                            checked={isChecked}
-                            onCheckedChange={(checked) => {
-                              const current = field.value ?? [];
-                              field.onChange(
-                                checked
-                                  ? [...current, event]
-                                  : current.filter((value) => value !== event),
-                              );
-                            }}
-                          />
-                          <Label
-                            htmlFor={checkboxId}
-                            className="cursor-pointer text-sm font-normal"
-                          >
-                            {eventLabels[event]?.label ?? event}
-                          </Label>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="url"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel showRequiredIndicator>{t('Webhook URL')}</FormLabel>
-                <FormControl>
-                  <Input placeholder="https://example.com/webhook" {...field} />
-                </FormControl>
-                {!destination && (
-                  <div className="flex flex-col gap-1 pt-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {t(
-                          'Or generate an internal flow to handle the selected events:',
-                        )}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleImportHandlerFlow}
-                        disabled={isImporting || isCreating}
-                        loading={isImporting}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const result = formSchema.safeParse(values());
+          if (!result.success) {
+            const fieldErrors = result.error.flatten().fieldErrors;
+            setErrors({
+              url: fieldErrors.url?.[0],
+              events: fieldErrors.events?.[0],
+            });
+            return;
+          }
+          setErrors({});
+          handleSubmit(result.data);
+        }}
+        className="space-y-4"
+      >
+        <div>
+          <Label class="text-base">
+            {t('Events')} <span class="text-destructive">*</span>
+          </Label>
+          <ScrollArea class="h-48 rounded-md " viewPortClassName="px-0">
+            <div className="grid grid-cols-2 gap-2">
+              <For each={availableEvents}>
+                {(event) => {
+                  const checkboxId = `${checkboxIdPrefix}-${event}`;
+                  const checked = createMemo(() => events().includes(event));
+                  return (
+                    <div className="flex flex-row items-center gap-3">
+                      <Checkbox
+                        id={checkboxId}
+                        checked={checked()}
+                        onCheckedChange={(checked) => {
+                          setEvents((events) =>
+                            checked
+                              ? [...events, event]
+                              : events.filter((value) => value !== event),
+                          );
+                          setErrors((errors) => ({
+                            ...errors,
+                            events: undefined,
+                          }));
+                        }}
+                      />
+                      <Label
+                        for={checkboxId}
+                        class="cursor-pointer text-sm font-normal"
                       >
-                        <Sparkles className="size-4" />
-                        {t('Generate handler flow')}
-                      </Button>
+                        {eventLabels[event]?.label ?? event}
+                      </Label>
                     </div>
-                    <span className="text-xs text-muted-foreground">
-                      {t(
-                        "Don't forget to publish your flow before creating the alert.",
-                      )}
-                    </span>
-                  </div>
-                )}
-              </FormItem>
-            )}
-          />
+                  );
+                }}
+              </For>
+            </div>
+          </ScrollArea>
+          <Show when={errors().events}>
+            <p class="text-sm font-medium text-destructive wrap-break-word">
+              {errors().events}
+            </p>
+          </Show>
+        </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={isSubmitDisabled}
-            >
-              {t('Cancel')}
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+        <div>
+          <Label for="webhookUrl">
+            {t('Webhook URL')} <span class="text-destructive">*</span>
+          </Label>
+          <Input
+            id="webhookUrl"
+            placeholder="https://example.com/webhook"
+            value={url()}
+            onInput={(e) => {
+              setUrl(e.currentTarget.value);
+              setErrors((errors) => ({ ...errors, url: undefined }));
+            }}
+          />
+          <Show when={errors().url}>
+            <p class="text-sm font-medium text-destructive wrap-break-word">
+              {errors().url}
+            </p>
+          </Show>
+          <Show when={!destination}>
+            <div className="flex flex-col gap-1 pt-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs text-muted-foreground">
+                  {t(
+                    'Or generate an internal flow to handle the selected events:',
+                  )}
+                </span>
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={isTestingButtonDisabled}
+                  size="sm"
+                  onClick={handleImportHandlerFlow}
+                  disabled={isImporting || isCreating}
+                  loading={isImporting}
                 >
-                  {isTesting ? t('Testing...') : t('Test webhook')}
-                  <ChevronDown className="size-4" />
+                  <Sparkles class="size-4" />
+                  {t('Generate handler flow')}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {watchedEvents.map((event) => (
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {t("Don't forget to publish your flow before creating the alert.")}
+              </span>
+            </div>
+          </Show>
+        </div>
+
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            disabled={isSubmitDisabled}
+          >
+            {t('Cancel')}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isTestingButtonDisabled}
+              >
+                <Show when={isTesting} fallback={t('Test webhook')}>
+                  {t('Testing...')}
+                </Show>
+                <ChevronDown class="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <For each={events()}>
+                {(event) => (
                   <DropdownMenuItem
-                    key={event}
                     onSelect={() =>
                       testDestination({
-                        url: watchedUrl,
+                        url: url(),
                         event,
                       })
                     }
                   >
                     {eventLabels[event]?.label ?? event}
                   </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              type="submit"
-              disabled={isSubmitDisabled}
-              loading={isCreating}
-            >
-              {destination ? t('Save changes') : t('Create alert')}
-            </Button>
-          </DialogFooter>
-        </form>
-      </Form>
+                )}
+              </For>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button type="submit" disabled={isSubmitDisabled} loading={isCreating}>
+            <Show when={destination} fallback={t('Create alert')}>
+              {t('Save changes')}
+            </Show>
+          </Button>
+        </DialogFooter>
+      </form>
     </>
   );
+};
+
+type EventDestinationDialogProps = {
+  children: JSX.Element;
+  destination: EventDestination | null;
+};
+
+type EventDestinationFormProps = {
+  destination: EventDestination | null;
+  onClose: () => void;
+};
+
+type FormErrors = {
+  url?: string;
+  events?: string;
 };

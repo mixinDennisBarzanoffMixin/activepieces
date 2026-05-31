@@ -4,7 +4,7 @@ import {
   ALLOWED_CHAT_MODELS_BY_PROVIDER,
   isNil,
 } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 
 import { aiProviderApi } from '@/features/platform-admin/api/ai-provider-api';
 
@@ -38,14 +38,14 @@ function getAllowedModelsForProvider(
 
 export const aiModelHooks = {
   useListProviders: () => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['ai-providers'],
       queryFn: () => aiProviderApi.list(),
-    });
+    }));
   },
 
   useGetModelsForProvider: (provider?: AIProviderName) => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['ai-models', provider],
       enabled: !!provider,
       queryFn: async () => {
@@ -55,6 +55,6 @@ export const aiModelHooks = {
 
         return getAllowedModelsForProvider(provider, allModels, 'text');
       },
-    });
+    }));
   },
 };

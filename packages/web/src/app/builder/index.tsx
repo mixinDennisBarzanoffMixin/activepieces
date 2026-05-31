@@ -5,9 +5,8 @@ import {
   FlowTriggerType,
   flowStructureUtil,
 } from '@activepieces/shared';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { PanelImperativeHandle } from 'react-resizable-panels';
-import { usePrevious } from 'react-use';
+import { PanelImperativeHandle } from '@corvu/resizable';
+import { Show, createEffect, createSignal } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { DataSelector } from '@/app/builder/data-selector';
@@ -69,20 +68,20 @@ const BuilderPage = () => {
     state.setTestPanelView,
     state.setTestPanelOpen,
   ]);
-  useEffect(() => {
+  createEffect(() => {
     return () => {
       removeAllStepTestsListeners();
     };
-  }, [removeAllStepTestsListeners]);
+  });
   flowCanvasHooks.useShowBuilderIsSavingWarningBeforeLeaving();
-  const middlePanelRef = useRef<HTMLDivElement>(null);
+  let middlePanelRef: HTMLDivElement | undefined;
   const middlePanelSize = useElementSize(middlePanelRef);
-  const [isDraggingHandle, setIsDraggingHandle] = useState(false);
-  useEffect(() => {
+  const [isDraggingHandle, setIsDraggingHandle] = createSignal(false);
+  createEffect(() => {
     const handlePointerUp = () => setIsDraggingHandle(false);
     window.addEventListener('pointerup', handlePointerUp);
     return () => window.removeEventListener('pointerup', handlePointerUp);
-  }, []);
+  });
   const isSplitForPiece =
     rightSidebar === RightSideBarType.PIECE_SETTINGS &&
     testPanelView === 'split' &&
@@ -91,18 +90,19 @@ const BuilderPage = () => {
     rightSidebar === RightSideBarType.PIECE_SETTINGS &&
     testPanelView === 'split';
 
-  const rightHandleRef = useRef<PanelImperativeHandle>(null);
-  const rightSidePanelRef = useRef<HTMLDivElement>(null);
-  const previousRightSidebar = usePrevious(rightSidebar);
+  let rightHandleRef: PanelImperativeHandle | undefined;
+  let rightSidePanelRef: HTMLDivElement | undefined;
+  const [previousRightSidebar, setPreviousRightSidebar] = createSignal(rightSidebar);
+  createEffect(() => setPreviousRightSidebar(rightSidebar));
 
-  useLayoutEffect(() => {
-    const handle = rightHandleRef.current;
+  createEffect(() => {
+    const handle = rightHandleRef;
     if (!handle) return;
     if (rightSidebar === RightSideBarType.NONE) {
       handle.resize('0%');
       return;
     }
-    const isInitialOpen = previousRightSidebar === RightSideBarType.NONE;
+    const isInitialOpen = previousRightSidebar() === RightSideBarType.NONE;
     const targetSize = prefersSplitLayout
       ? isInitialOpen
         ? SPLIT_MODE_INITIAL_OPEN_SIZE_PX
@@ -111,11 +111,11 @@ const BuilderPage = () => {
     handle.resize(targetSize);
     const rafId = window.requestAnimationFrame(() => handle.resize(targetSize));
     return () => window.cancelAnimationFrame(rafId);
-  }, [prefersSplitLayout, previousRightSidebar, rightSidebar]);
+  });
 
-  useEffect(() => {
+  createEffect(() => {
     if (!isSplitForPiece || !isDraggingHandle) return;
-    const el = rightSidePanelRef.current;
+    const el = rightSidePanelRef;
     if (!el) return;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? 0;
@@ -126,7 +126,7 @@ const BuilderPage = () => {
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [isSplitForPiece, isDraggingHandle, setTestPanelView, setTestPanelOpen]);
+  });
   const { pieceModel, refetch: refetchPiece } =
     piecesHooks.usePieceModelForStepSettings({
       name: selectedStep?.settings.pieceName,
@@ -139,7 +139,7 @@ const BuilderPage = () => {
   flowCanvasHooks.useListenToExistingRun();
 
   const [hasCanvasBeenInitialised, setHasCanvasBeenInitialised] =
-    useState(false);
+    createSignal(false);
 
   return (
     <div className="flex h-full w-full flex-col relative max-h-[100vh]">
@@ -148,7 +148,10 @@ const BuilderPage = () => {
       </div>
       <ResizablePanelGroup orientation="horizontal">
         <ResizablePanel defaultSize="100%" id="flow-canvas">
-          <div ref={middlePanelRef} className="relative h-full w-full">
+          <div
+            ref={(el) => (middlePanelRef = el)}
+            className="relative h-full w-full"
+          >
             <CursorPositionProvider>
               <FlowCanvas
                 setHasCanvasBeenInitialised={setHasCanvasBeenInitialised}
@@ -156,15 +159,14 @@ const BuilderPage = () => {
             </CursorPositionProvider>
 
             <BuilderBanner />
-            {middlePanelRef.current &&
-              middlePanelRef.current.clientWidth > 0 && (
-                <CanvasControls
-                  canvasHeight={middlePanelRef.current?.clientHeight ?? 0}
-                  canvasWidth={middlePanelRef.current?.clientWidth ?? 0}
-                  hasCanvasBeenInitialised={hasCanvasBeenInitialised}
-                  selectedStep={selectedStepName}
-                ></CanvasControls>
-              )}
+            <Show when={middlePanelRef && middlePanelRef.clientWidth > 0()}>
+              <CanvasControls
+                canvasHeight={middlePanelRef?.clientHeight ?? 0}
+                canvasWidth={middlePanelRef?.clientWidth ?? 0}
+                hasCanvasBeenInitialised={hasCanvasBeenInitialised}
+                selectedStep={selectedStepName}
+              ></CanvasControls>
+            </Show>
 
             <ShowPoweredBy
               position="absolute"
@@ -183,9 +185,7 @@ const BuilderPage = () => {
           onPointerDown={() => setIsDraggingHandle(true)}
           onPointerUp={() => setIsDraggingHandle(false)}
           onPointerCancel={() => setIsDraggingHandle(false)}
-          className={
-            rightSidebar === RightSideBarType.NONE ? 'bg-transparent' : ''
-          }
+          class={rightSidebar === RightSideBarType.NONE ? 'bg-transparent' : ''}
         />
 
         <ResizablePanel
@@ -203,7 +203,7 @@ const BuilderPage = () => {
               ? '95%'
               : '60%'
           }
-          className={cn('min-w-0 bg-background z-30', {
+          class={cn('min-w-0 bg-background z-30', {
             [animateResizeClassName]: !isDraggingHandle,
           })}
           style={{
@@ -212,23 +212,31 @@ const BuilderPage = () => {
             }ms`,
           }}
         >
-          <div ref={rightSidePanelRef} className="h-full w-full">
-            {rightSidebar === RightSideBarType.PIECE_SETTINGS &&
-              selectedStep && (
-                <StepSettingsProvider
-                  pieceModel={pieceModel}
-                  selectedStep={selectedStep}
-                  key={constructContainerKey({
-                    flowVersionId: flowVersion.id,
-                    step: selectedStep,
-                    hasPieceModelLoaded: !!pieceModel,
-                  })}
-                >
-                  <StepSettingsContainer />
-                </StepSettingsProvider>
-              )}
-            {rightSidebar === RightSideBarType.RUNS && <RunsList />}
-            {rightSidebar === RightSideBarType.VERSIONS && <FlowVersionsList />}
+          <div ref={(el) => (rightSidePanelRef = el)} className="h-full w-full">
+            <Show
+              when={
+                rightSidebar === RightSideBarType.PIECE_SETTINGS &&
+                selectedStep()
+              }
+            >
+              <StepSettingsProvider
+                pieceModel={pieceModel}
+                selectedStep={selectedStep}
+                key={constructContainerKey({
+                  flowVersionId: flowVersion.id,
+                  step: selectedStep,
+                  hasPieceModelLoaded: !!pieceModel,
+                })}
+              >
+                <StepSettingsContainer />
+              </StepSettingsProvider>
+            </Show>
+            <Show when={rightSidebar === RightSideBarType.RUNS()}>
+              <RunsList />
+            </Show>
+            <Show when={rightSidebar === RightSideBarType.VERSIONS()}>
+              <FlowVersionsList />
+            </Show>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>

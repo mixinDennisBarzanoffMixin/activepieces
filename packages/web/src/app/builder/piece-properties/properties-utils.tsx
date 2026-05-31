@@ -5,8 +5,8 @@ import {
 } from '@activepieces/pieces-framework';
 import { isNil, PropertySettings } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ControllerRenderProps, UseFormReturn } from 'react-hook-form';
 
+import { BuilderField, BuilderForm } from '@/app/builder/builder-form';
 import { SecretInput } from '@/app/connections/secret-input';
 import { ColorPicker } from '@/components/custom/color-picker';
 import { DictionaryInput } from '@/components/custom/dictionary-input';
@@ -317,7 +317,7 @@ export const selectGenericFormComponentForProperty = ({
 };
 
 export type SelectGenericFormComponentForPropertyParams = {
-  field: ControllerRenderProps<Record<string, any>, string>;
+  field: BuilderField;
   hideLabel?: boolean;
   propertyName: string;
   inputName: string;
@@ -327,7 +327,7 @@ export type SelectGenericFormComponentForPropertyParams = {
   useMentionTextInput: boolean;
   disabled: boolean;
   dynamicInputModeToggled: boolean;
-  form: UseFormReturn;
+  form: BuilderForm;
   propertySettings: Record<string, PropertySettings> | null;
   enableMarkdownForInputWithMention?: boolean;
   dynamicPropsInfo:
@@ -345,7 +345,7 @@ export type SelectGenericFormComponentForPropertyParams = {
             updatePropertySettingsSchema: (
               schema: PiecePropertyMap,
               propertyName: string,
-              form: UseFormReturn,
+              form: BuilderForm,
             ) => void;
           }
         | {

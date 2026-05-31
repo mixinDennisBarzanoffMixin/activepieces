@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 
@@ -13,7 +14,7 @@ type BranchConditionToolbarProps = {
 const BranchConditionToolbar = (props: BranchConditionToolbarProps) => {
   return (
     <div className="flex gap-2 text-center justify-end">
-      {props.showAnd && (
+      <Show when={props.showAnd()}>
         <Button
           variant="basic"
           size="sm"
@@ -22,9 +23,9 @@ const BranchConditionToolbar = (props: BranchConditionToolbarProps) => {
         >
           {t('+ And')}
         </Button>
-      )}
+      </Show>
 
-      {props.showOr && (
+      <Show when={props.showOr()}>
         <Button
           variant="basic"
           size="sm"
@@ -33,7 +34,7 @@ const BranchConditionToolbar = (props: BranchConditionToolbarProps) => {
         >
           {t('+ Or')}
         </Button>
-      )}
+      </Show>
     </div>
   );
 };

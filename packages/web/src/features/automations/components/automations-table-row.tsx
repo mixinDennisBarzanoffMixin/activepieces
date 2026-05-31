@@ -1,3 +1,4 @@
+import { createSignal } from 'solid-js';
 import { FolderDto, PopulatedFlow, Table } from '@activepieces/shared';
 import { t } from 'i18next';
 import {
@@ -18,9 +19,8 @@ import {
   Table2,
   Trash2,
   Workflow,
-} from 'lucide-react';
-import { useState } from 'react';
-import { toast } from 'sonner';
+} from 'lucide-solid';
+import { toast } from 'solid-sonner';
 
 import { ApAvatar } from '@/components/custom/ap-avatar';
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
@@ -104,21 +104,21 @@ export const AutomationsTableRow = ({
   onLoadMore,
 }: AutomationsTableRowProps) => {
   const { embedState } = useEmbedding();
-  const [isMoveOpen, setIsMoveOpen] = useState(false);
-  const [moveFolderId, setMoveFolderId] = useState('');
-  const [isCreateTooltipOpen, setIsCreateTooltipOpen] = useState(false);
+  const [isMoveOpen, setIsMoveOpen] = createSignal(false);
+  const [moveFolderId, setMoveFolderId] = createSignal('');
+  const [isCreateTooltipOpen, setIsCreateTooltipOpen] = createSignal(false);
 
   if (item.type === 'load-more-folder') {
     return (
-      <div className="flex-1 flex items-center justify-center gap-2 text-primary font-medium py-2">
+      <div class="flex-1 flex items-center justify-center gap-2 text-primary font-medium py-2">
         <div
-          className="flex items-center gap-2 cursor-pointer hover:underline"
+          class="flex items-center gap-2 cursor-pointer hover:underline"
           onClick={(e) => {
             e.stopPropagation();
             onLoadMore?.();
           }}
         >
-          <ArrowDown className="h-4 w-4" />
+          <ArrowDown class="h-4 w-4" />
           <span>
             {t('Load {count} more items...', { count: item.loadMoreCount })}
           </span>
@@ -130,13 +130,13 @@ export const AutomationsTableRow = ({
   return (
     <>
       <div
-        className="w-10 shrink-0 pl-4 pr-1 flex items-center"
+        class="w-10 shrink-0 pl-4 pr-1 flex items-center"
         onClick={(e) => e.stopPropagation()}
       >
         <Checkbox checked={isSelected} onCheckedChange={onToggleSelection} />
       </div>
       <div
-        className={cn(
+        class={cn(
           'w-8 shrink-0 flex items-center justify-center mr-2',
           item.type === 'folder' && 'mr-3',
         )}
@@ -147,10 +147,10 @@ export const AutomationsTableRow = ({
             <TooltipTrigger asChild>
               <button
                 onClick={onTogglePin}
-                className="p-0.5 rounded hover:bg-muted transition-colors"
+                class="p-0.5 rounded hover:bg-muted transition-colors"
               >
                 <Star
-                  className={cn(
+                  class={cn(
                     'h-4 w-4',
                     isPinned
                       ? 'text-yellow-500 fill-yellow-500'
@@ -165,23 +165,23 @@ export const AutomationsTableRow = ({
           </Tooltip>
         )}
       </div>
-      <div className="flex-1 min-w-[200px] pl-2 pr-2 flex items-center">
+      <div class="flex-1 min-w-[200px] pl-2 pr-2 flex items-center">
         <div
-          className="relative flex items-center gap-2 min-w-0"
+          class="relative flex items-center gap-2 min-w-0"
           style={{ paddingLeft: item.depth * 24 }}
         >
           {item.type === 'folder' && (
-            <span className="absolute -left-5 flex items-center justify-center w-5">
+            <span class="absolute -left-5 flex items-center justify-center w-5">
               {isFolderLoading ? (
-                <Loader2 className="h-4 w-4 shrink-0 text-muted-foreground animate-spin" />
+                <Loader2 class="h-4 w-4 shrink-0 text-muted-foreground animate-spin" />
               ) : isExpanded ? (
-                <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <ChevronDown class="h-4 w-4 shrink-0 text-muted-foreground" />
               ) : (
-                <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
               )}
             </span>
           )}
-          <span className="shrink-0">
+          <span class="shrink-0">
             <RowItemIcon item={item} />
           </span>
           <TextWithTooltip tooltipMessage={item.name}>
@@ -189,24 +189,24 @@ export const AutomationsTableRow = ({
           </TextWithTooltip>
         </div>
       </div>
-      <div className="w-[230px] shrink-0 px-2 flex items-center">
+      <div class="w-[230px] shrink-0 px-2 flex items-center">
         <RowItemDetails item={item} />
       </div>
-      <div className="w-[200px] shrink-0 px-2 flex items-center">
+      <div class="w-[200px] shrink-0 px-2 flex items-center">
         {item.data && (
           <FormattedDate
             date={new Date(item.data.updated)}
-            className="text-left"
+            class="text-left"
           />
         )}
       </div>
       {!embedState.isEmbedded && (
-        <div className="w-[250px] shrink-0 px-2 flex items-center overflow-hidden">
+        <div class="w-[250px] shrink-0 px-2 flex items-center overflow-hidden">
           <RowItemOwner item={item} />
         </div>
       )}
       <div
-        className="w-[120px] shrink-0 px-2 flex items-center"
+        class="w-[120px] shrink-0 px-2 flex items-center"
         onClick={(e) => e.stopPropagation()}
       >
         {item.type === 'flow' && (
@@ -214,7 +214,7 @@ export const AutomationsTableRow = ({
         )}
       </div>
       <div
-        className="w-[80px] shrink-0 px-2 flex items-center justify-end gap-1"
+        class="w-[80px] shrink-0 px-2 flex items-center justify-end gap-1"
         onClick={(e) => e.stopPropagation()}
       >
         {item.type === 'folder' && onCreateInFolder && (
@@ -242,10 +242,10 @@ export const AutomationsTableRow = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+                  class="h-8 w-8 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
                   aria-label={t('Create inside folder')}
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus class="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
             </CreateNewMenu>
@@ -256,8 +256,8 @@ export const AutomationsTableRow = ({
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
+            <Button variant="ghost" size="icon" class="h-8 w-8">
+              <MoreHorizontal class="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -270,13 +270,13 @@ export const AutomationsTableRow = ({
                   toast.success(t('URL copied to clipboard'));
                 }}
               >
-                <Link className="h-4 w-4 mr-2" />
+                <Link class="h-4 w-4 mr-2" />
                 {t('Copy URL')}
               </DropdownMenuItem>
             )}
 
             <DropdownMenuItem onClick={onRename}>
-              <Pencil className="h-4 w-4 mr-2" />
+              <Pencil class="h-4 w-4 mr-2" />
               {t('Rename')}
             </DropdownMenuItem>
 
@@ -286,9 +286,9 @@ export const AutomationsTableRow = ({
                 disabled={isDuplicating}
               >
                 {isDuplicating ? (
-                  <LoadingSpinner className="mr-2" />
+                  <LoadingSpinner class="mr-2" />
                 ) : (
-                  <Copy className="h-4 w-4 mr-2" />
+                  <Copy class="h-4 w-4 mr-2" />
                 )}
                 {isDuplicating ? t('Duplicating...') : t('Duplicate')}
               </DropdownMenuItem>
@@ -302,7 +302,7 @@ export const AutomationsTableRow = ({
                     setIsMoveOpen(true);
                   }}
                 >
-                  <CornerUpLeft className="h-4 w-4 mr-2" />
+                  <CornerUpLeft class="h-4 w-4 mr-2" />
                   {t('Move To')}
                 </DropdownMenuItem>
               )}
@@ -311,7 +311,7 @@ export const AutomationsTableRow = ({
               <DropdownMenuItem
                 onClick={() => onExportFlow(item.data as PopulatedFlow)}
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download class="h-4 w-4 mr-2" />
                 {t('Export')}
               </DropdownMenuItem>
             )}
@@ -320,7 +320,7 @@ export const AutomationsTableRow = ({
               <DropdownMenuItem
                 onClick={() => onExportTable(item.data as Table)}
               >
-                <Download className="h-4 w-4 mr-2" />
+                <Download class="h-4 w-4 mr-2" />
                 {t('Export')}
               </DropdownMenuItem>
             )}
@@ -331,7 +331,7 @@ export const AutomationsTableRow = ({
                 flowVersionId={(item.data as PopulatedFlow).version.id}
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <Share2 className="h-4 w-4 mr-2" />
+                  <Share2 class="h-4 w-4 mr-2" />
                   {t('Share')}
                 </DropdownMenuItem>
               </ShareTemplateDialog>
@@ -349,9 +349,9 @@ export const AutomationsTableRow = ({
             >
               <DropdownMenuItem
                 onSelect={(e) => e.preventDefault()}
-                className="text-destructive focus:text-destructive"
+                class="text-destructive focus:text-destructive"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
+                <Trash2 class="h-4 w-4 mr-2" />
                 {t('Delete')}
               </DropdownMenuItem>
             </ConfirmationDeleteDialog>
@@ -378,11 +378,11 @@ export const AutomationsTableRow = ({
 const RowItemIcon = ({ item }: { item: TreeItem }) => {
   switch (item.type) {
     case 'folder':
-      return <Folder className="h-4 w-4 text-gray-400 fill-gray-400" />;
+      return <Folder class="h-4 w-4 text-gray-400 fill-gray-400" />;
     case 'flow':
-      return <Workflow className="h-4 w-4 text-primary" />;
+      return <Workflow class="h-4 w-4 text-primary" />;
     default:
-      return <Table2 className="h-4 w-4 text-emerald-500" />;
+      return <Table2 class="h-4 w-4 text-emerald-500" />;
   }
 };
 
@@ -390,7 +390,7 @@ const RowItemDetails = ({ item }: { item: TreeItem }) => {
   switch (item.type) {
     case 'folder':
       return (
-        <span className="text-muted-foreground">
+        <span class="text-muted-foreground">
           {item.childCount} {item.childCount === 1 ? t('file') : t('files')}
         </span>
       );
@@ -405,7 +405,7 @@ const RowItemDetails = ({ item }: { item: TreeItem }) => {
       );
     }
     default:
-      return <span className="text-muted-foreground">-</span>;
+      return <span class="text-muted-foreground">-</span>;
   }
 };
 
@@ -423,5 +423,5 @@ const RowItemOwner = ({ item }: { item: TreeItem }) => {
       );
     }
   }
-  return <span className="text-muted-foreground">-</span>;
+  return <span class="text-muted-foreground">-</span>;
 };

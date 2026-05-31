@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Goal } from 'lucide-react';
+import { Goal } from 'lucide-solid';
 
 import { cn } from '@/lib/utils';
 
@@ -14,7 +14,7 @@ const TriggerWidget = ({ isSelected }: { isSelected: boolean }) => {
         },
       )}
     >
-      <Goal className="w-[10px] h-[10px]"></Goal> {t('Trigger')}
+      <Goal class="w-[10px] h-[10px]"></Goal> {t('Trigger')}
     </div>
   );
 };

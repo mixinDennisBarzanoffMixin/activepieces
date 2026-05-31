@@ -1,7 +1,6 @@
 import type { Transition, Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { createSignal } from 'solid-js';
+import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -10,7 +9,7 @@ export interface HistoryIconHandle {
   stopAnimation: () => void;
 }
 
-interface HistoryIconProps extends HTMLAttributes<HTMLDivElement> {
+interface HistoryIconProps extends JSX.HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
@@ -45,93 +44,97 @@ const MINUTE_HAND_VARIANTS: Variants = {
   animate: { rotate: -45, originX: '0%', originY: '0%' },
 };
 
-const HistoryIcon = forwardRef<HistoryIconHandle, HistoryIconProps>(
-  ({ onMouseEnter, onMouseLeave, className, size = 16, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
+function HistoryIcon(props: HistoryIconProps & { ref?: HistoryIconHandle }) {
+  const ref = props.ref;
+  const {
+    onMouseEnter,
+    onMouseLeave,
+    class: className,
+    size = 16,
+    ...divProps
+  } = props;
+  const [controls, setControls] = createSignal('normal');
+  let isControlledRef = false;
 
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
+  if (ref) {
+    isControlledRef = true;
+    const handle = {
+      startAnimation: () => setControls('animate'),
+      stopAnimation: () => setControls('normal'),
+    };
+    if (typeof ref === 'function') {
+      ref(handle);
+    } else {
+      Object.assign(ref, handle);
+    }
+  }
 
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
+  const handleMouseEnter = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseEnter?.(e);
+    } else {
+      setControls('animate');
+    }
+  };
 
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
+  const handleMouseLeave = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseLeave?.(e);
+    } else {
+      setControls('normal');
+    }
+  };
 
-    return (
-      <div
-        className={cn(className)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        {...props}
+  return (
+    <div
+      className={cn(className)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...divProps}
+    >
+      <svg
+        fill="none"
+        height={size}
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        width={size}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg
-          fill="none"
-          height={size}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          width={size}
-          xmlns="http://www.w3.org/2000/svg"
+        <motion.g
+          animate={controls()}
+          transition={ARROW_TRANSITION}
+          variants={ARROW_VARIANTS}
         >
-          <motion.g
-            animate={controls}
-            transition={ARROW_TRANSITION}
-            variants={ARROW_VARIANTS}
-          >
-            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-            <path d="M3 3v5h5" />
-          </motion.g>
-          <motion.line
-            animate={controls}
-            initial="normal"
-            transition={HAND_TRANSITION}
-            variants={HAND_VARIANTS}
-            x1="12"
-            x2="12"
-            y1="12"
-            y2="7"
-          />
-          <motion.line
-            animate={controls}
-            initial="normal"
-            transition={MINUTE_HAND_TRANSITION}
-            variants={MINUTE_HAND_VARIANTS}
-            x1="12"
-            x2="16"
-            y1="12"
-            y2="14"
-          />
-        </svg>
-      </div>
-    );
-  },
-);
-
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+          <path d="M3 3v5h5" />
+        </motion.g>
+        <motion.line
+          animate={controls()}
+          initial="normal"
+          transition={HAND_TRANSITION}
+          variants={HAND_VARIANTS}
+          x1="12"
+          x2="12"
+          y1="12"
+          y2="7"
+        />
+        <motion.line
+          animate={controls()}
+          initial="normal"
+          transition={MINUTE_HAND_TRANSITION}
+          variants={MINUTE_HAND_VARIANTS}
+          x1="12"
+          x2="16"
+          y1="12"
+          y2="14"
+        />
+      </svg>
+    </div>
+  );
+}
 HistoryIcon.displayName = 'HistoryIcon';
 
 export { HistoryIcon };

@@ -7,11 +7,9 @@ import {
   ValidateAgentMcpToolResponse,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import { z } from 'zod';
+import { Loader2, CheckCircle2, AlertCircle } from 'lucide-solid';
+import { createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -26,83 +24,16 @@ import { useMcpToolDialogStore } from '../stores/mcp-tools';
 
 import { AddMcpToolForm } from './add-mcp-tool-form';
 
-const McpToolFormSchema = z.object({
-  toolName: z.string().min(1),
-  serverUrl: z.string().url(),
-  protocol: z.nativeEnum(McpProtocol),
-  authType: z.nativeEnum(McpAuthType),
-  accessToken: z.string().optional(),
-  apiKeyHeader: z.string().optional(),
-  apiKey: z.string().optional(),
-  headers: z
-    .array(
-      z.object({
-        key: z.string(),
-        value: z.string(),
-      }),
-    )
-    .optional(),
-});
-
-export type McpToolFormData = z.infer<typeof McpToolFormSchema>;
-
-type AgentToolsDialogProps = {
-  tools: AgentTool[];
-  onToolsUpdate: (tools: AgentTool[]) => void;
-};
-
-export type ValidationStep = 'form' | 'validating' | 'validated';
-
 export function AgentMcpDialog({
   tools,
   onToolsUpdate,
 }: AgentToolsDialogProps) {
   const { showAddMcpDialog, editingMcpTool, closeMcpDialog } =
     useMcpToolDialogStore();
-  const [step, setStep] = useState<ValidationStep>('form');
+  const [step, setStep] = createSignal<ValidationStep>('form');
   const [validationResult, setValidationResult] =
-    useState<ValidateAgentMcpToolResponse | null>(null);
-  const [pendingTool, setPendingTool] = useState<AgentMcpTool | null>(null);
-
-  const form = useForm<McpToolFormData>({
-    defaultValues: {
-      toolName: '',
-      serverUrl: '',
-      protocol: McpProtocol.STREAMABLE_HTTP,
-      authType: McpAuthType.NONE,
-      accessToken: '',
-      apiKey: '',
-      apiKeyHeader: 'X-API-Key',
-      headers: [{ key: '', value: '' }],
-    },
-    mode: 'onChange',
-  });
-
-  useEffect(() => {
-    if (editingMcpTool) {
-      form.reset({
-        toolName: editingMcpTool.toolName,
-        serverUrl: editingMcpTool.serverUrl,
-        protocol: editingMcpTool.protocol,
-        authType: editingMcpTool.auth.type,
-        ...(editingMcpTool.auth.type === McpAuthType.ACCESS_TOKEN && {
-          accessToken: editingMcpTool.auth.accessToken,
-        }),
-        ...(editingMcpTool.auth.type === McpAuthType.API_KEY && {
-          apiKey: editingMcpTool.auth.apiKey,
-          apiKeyHeader: editingMcpTool.auth.apiKeyHeader,
-        }),
-        ...(editingMcpTool.auth.type === McpAuthType.HEADERS && {
-          headers: Object.entries(editingMcpTool.auth.headers).map(
-            ([key, value]) => ({
-              key,
-              value,
-            }),
-          ),
-        }),
-      });
-    }
-  }, [editingMcpTool, form]);
+    createSignal<ValidateAgentMcpToolResponse | null>(null);
+  const [pendingTool, setPendingTool] = createSignal<AgentMcpTool | null>(null);
 
   const handleAddTool = () => {
     if (!pendingTool) return;
@@ -130,7 +61,6 @@ export function AgentMcpDialog({
   };
 
   const handleClose = () => {
-    form.reset();
     setStep('form');
     setValidationResult(null);
     setPendingTool(null);
@@ -139,7 +69,7 @@ export function AgentMcpDialog({
 
   return (
     <Dialog open={showAddMcpDialog} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent class="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         {step === 'form' && (
           <DialogHeader>
             <DialogTitle>
@@ -151,7 +81,7 @@ export function AgentMcpDialog({
         {step === 'form' && (
           <AddMcpToolForm
             tools={tools}
-            form={form}
+            initialData={getFormData(editingMcpTool)}
             handleClose={handleClose}
             setPendingTool={setPendingTool}
             setStep={setStep}
@@ -161,7 +91,7 @@ export function AgentMcpDialog({
 
         {step === 'validating' && (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
-            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <Loader2 class="w-12 h-12 animate-spin text-primary" />
             <div className="text-center space-y-2">
               <h3 className="text-lg font-semibold">
                 {t('Connecting to MCP Server')}
@@ -178,7 +108,7 @@ export function AgentMcpDialog({
             {validationResult.error ? (
               <div className="flex flex-col items-center justify-center py-8 space-y-4">
                 <div className="rounded-full bg-destructive/10 p-3">
-                  <AlertCircle className="w-8 h-8 text-destructive" />
+                  <AlertCircle class="w-8 h-8 text-destructive" />
                 </div>
                 <div className="text-center space-y-2">
                   <h3 className="text-lg font-semibold">
@@ -192,7 +122,7 @@ export function AgentMcpDialog({
             ) : (
               <div className="flex flex-col items-center justify-center py-8 space-y-4">
                 <div className="rounded-full bg-success-100 p-3">
-                  <CheckCircle2 className="w-8 h-8 text-success" />
+                  <CheckCircle2 class="w-8 h-8 text-success" />
                 </div>
                 <div className="text-center space-y-2">
                   <h3 className="text-lg font-semibold">
@@ -211,7 +141,7 @@ export function AgentMcpDialog({
                           key={index}
                           className="flex items-center gap-2 p-2 rounded bg-muted/50"
                         >
-                          <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                          <CheckCircle2 class="w-4 h-4 text-success shrink-0" />
                           <span className="text-sm font-medium">{tool}</span>
                         </div>
                       ))}
@@ -240,3 +170,59 @@ export function AgentMcpDialog({
     </Dialog>
   );
 }
+
+function getFormData(tool: AgentMcpTool | null): McpToolFormData {
+  if (!tool) {
+    return {
+      toolName: '',
+      serverUrl: '',
+      protocol: McpProtocol.STREAMABLE_HTTP,
+      authType: McpAuthType.NONE,
+      accessToken: '',
+      apiKey: '',
+      apiKeyHeader: 'X-API-Key',
+      headers: [{ key: '', value: '' }],
+    };
+  }
+
+  return {
+    toolName: tool.toolName,
+    serverUrl: tool.serverUrl,
+    protocol: tool.protocol,
+    authType: tool.auth.type,
+    accessToken:
+      tool.auth.type === McpAuthType.ACCESS_TOKEN ? tool.auth.accessToken : '',
+    apiKey: tool.auth.type === McpAuthType.API_KEY ? tool.auth.apiKey : '',
+    apiKeyHeader:
+      tool.auth.type === McpAuthType.API_KEY
+        ? tool.auth.apiKeyHeader
+        : 'X-API-Key',
+    headers:
+      tool.auth.type === McpAuthType.HEADERS
+        ? Object.entries(tool.auth.headers).map(([key, value]) => ({ key, value }))
+        : [{ key: '', value: '' }],
+  };
+}
+
+type AgentToolsDialogProps = {
+  tools: AgentTool[];
+  onToolsUpdate: (tools: AgentTool[]) => void;
+};
+
+type HeaderField = {
+  key: string;
+  value: string;
+};
+
+export type McpToolFormData = {
+  toolName: string;
+  serverUrl: string;
+  protocol: McpProtocol;
+  authType: McpAuthType;
+  accessToken: string;
+  apiKeyHeader: string;
+  apiKey: string;
+  headers: HeaderField[];
+};
+
+export type ValidationStep = 'form' | 'validating' | 'validated';

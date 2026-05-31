@@ -1,14 +1,15 @@
 import { PlatformWithoutSensitiveData } from '@activepieces/shared';
+import { useNavigate } from '@solidjs/router';
 import {
   QueryClient,
-  useMutation,
-  useSuspenseQuery,
-} from '@tanstack/react-query';
+  createMutation,
+  createQuery,
+} from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { platformApi } from '@/api/platforms-api';
+import { queryClient } from '@/app/query-client';
 import { authenticationSession } from '@/lib/authentication-session';
 
 import { flagsHooks } from './flags-hooks';
@@ -16,26 +17,32 @@ import { flagsHooks } from './flags-hooks';
 export const platformHooks = {
   useDeleteAccount: () => {
     const navigate = useNavigate();
-    return useMutation({
-      mutationFn: async () => {
-        await platformApi.deleteAccount();
-      },
-      onSuccess: () => {
-        toast.success(t('Account deleted successfully'));
-        navigate('/sign-in');
-      },
-      onError: () => {
-        toast.error(t('Failed to delete account. Please try again.'));
-      },
-    });
+    return createMutation(
+      () => ({
+        mutationFn: async () => {
+          await platformApi.deleteAccount();
+        },
+        onSuccess: () => {
+          toast.success(t('Account deleted successfully'));
+          navigate('/sign-in');
+        },
+        onError: () => {
+          toast.error(t('Failed to delete account. Please try again.'));
+        },
+      }),
+      () => queryClient,
+    );
   },
   useCurrentPlatform: () => {
     const currentPlatformId = authenticationSession.getPlatformId();
-    const query = useSuspenseQuery({
-      queryKey: ['platform', currentPlatformId],
-      queryFn: platformApi.getCurrentPlatform,
-      staleTime: Infinity,
-    });
+    const query = createQuery(
+      () => ({
+        queryKey: ['platform', currentPlatformId],
+        queryFn: platformApi.getCurrentPlatform,
+        staleTime: Infinity,
+      }),
+      () => queryClient,
+    );
     return {
       platform: query.data,
       refetch: async () => {
@@ -52,23 +59,26 @@ export const platformHooks = {
   useUpdateLisenceKey: (queryClient: QueryClient) => {
     const currentPlatformId = authenticationSession.getPlatformId();
 
-    return useMutation({
-      mutationFn: async (tempLicenseKey: string) => {
-        if (tempLicenseKey.trim() === '') return;
-        await platformApi.verifyLicenseKey(tempLicenseKey.trim());
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: ['platform', currentPlatformId],
-        });
-        queryClient.invalidateQueries({
-          queryKey: flagsHooks.queryKey,
-        });
-        toast.success(t('License activated successfully!'));
-      },
-      onError: () => {
-        toast.error(t('Activation failed, invalid license key'));
-      },
-    });
+    return createMutation(
+      () => ({
+        mutationFn: async (tempLicenseKey: string) => {
+          if (tempLicenseKey.trim() === '') return;
+          await platformApi.verifyLicenseKey(tempLicenseKey.trim());
+        },
+        onSuccess: () => {
+          queryClient.invalidateQueries({
+            queryKey: ['platform', currentPlatformId],
+          });
+          queryClient.invalidateQueries({
+            queryKey: flagsHooks.queryKey,
+          });
+          toast.success(t('License activated successfully!'));
+        },
+        onError: () => {
+          toast.error(t('Activation failed, invalid license key'));
+        },
+      }),
+      () => queryClient,
+    );
   },
 };

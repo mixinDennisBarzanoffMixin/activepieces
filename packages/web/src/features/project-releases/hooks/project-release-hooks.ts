@@ -1,5 +1,5 @@
 import { DiffReleaseRequest, ProjectSyncPlan } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 
 import { internalErrorToast } from '@/components/ui/sonner';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -13,20 +13,20 @@ export const projectReleaseKeys = {
 
 export const projectReleaseQueries = {
   useProjectReleases: () =>
-    useQuery({
+    createQuery(() => ({
       queryKey: projectReleaseKeys.all,
       queryFn: () =>
         projectReleaseApi.list({
           projectId: authenticationSession.getProjectId()!,
         }),
       meta: { showErrorDialog: true, loadSubsetOptions: {} },
-    }),
+    })),
   useProjectRelease: (releaseId: string, enabled: boolean) =>
-    useQuery({
+    createQuery(() => ({
       queryKey: projectReleaseKeys.detail(releaseId),
       queryFn: () => projectReleaseApi.get(releaseId),
       enabled,
-    }),
+    })),
 };
 
 export const projectReleaseMutations = {
@@ -37,7 +37,7 @@ export const projectReleaseMutations = {
     onSuccess: (plan: ProjectSyncPlan) => void;
     onError: () => void;
   }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (request: DiffReleaseRequest) =>
         projectReleaseApi.diff(request),
       onSuccess,
@@ -45,13 +45,13 @@ export const projectReleaseMutations = {
         onError();
         internalErrorToast();
       },
-    });
+    }));
   },
   useApplyRelease: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (request: Parameters<typeof projectReleaseApi.create>[0]) =>
         projectReleaseApi.create(request),
       onSuccess,
-    });
+    }));
   },
 };

@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { toast } from 'sonner';
+import { createEffect, createContext, useContext, onCleanup, JSX } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { API_BASE_URL } from '@/lib/api';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -12,35 +12,35 @@ const socket = io(API_BASE_URL, {
   reconnection: true,
 });
 
-const SocketContext = React.createContext<typeof socket>(socket);
+const SocketContext = createContext<typeof socket>(socket);
 
-export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
+export const SocketProvider = ({ children }: { children: JSX.Element }) => {
   const token = authenticationSession.getToken();
   const projectId = authenticationSession.getProjectId();
-  const toastIdRef = useRef<string | null>(null);
+  let toastId: string | null = null;
 
-  useEffect(() => {
+  createEffect(() => {
     if (token) {
       socket.auth = { token, projectId };
       if (!socket.connected) {
         socket.connect();
 
         socket.on('connect', () => {
-          if (toastIdRef.current) {
-            toast.dismiss(toastIdRef.current);
-            toastIdRef.current = null;
+          if (toastId) {
+            toast.dismiss(toastId);
+            toastId = null;
           }
           console.log('connected to socket');
         });
 
         socket.on('disconnect', (reason) => {
-          if (!toastIdRef.current) {
+          if (!toastId) {
             const id = toast('Connection Lost', {
               id: 'websocket-disconnected',
               description: 'We are trying to reconnect...',
               duration: Infinity,
             });
-            toastIdRef.current = id?.toString() ?? null;
+            toastId = id ? id.toString() : null;
           }
           if (reason === 'io server disconnect') {
             socket.connect();
@@ -50,16 +50,16 @@ export const SocketProvider = ({ children }: { children: React.ReactNode }) => {
     } else {
       socket.disconnect();
     }
-    return () => {
+    onCleanup(() => {
       socket.off('connect');
       socket.off('disconnect');
       socket.disconnect();
-    };
-  }, [token, projectId]);
+    });
+  });
 
   return (
     <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
   );
 };
 
-export const useSocket = () => React.useContext(SocketContext);
+export const useSocket = () => useContext(SocketContext);

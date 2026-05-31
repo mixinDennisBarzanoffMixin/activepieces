@@ -1,9 +1,8 @@
 import { isNil } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { createForm, zodForm } from '@modular-forms/solid';
 import { t } from 'i18next';
-import { Lock, Unlock } from 'lucide-react';
-import { useState, forwardRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { Lock, Unlock } from 'lucide-solid';
+import { createSignal, Show } from 'solid-js';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -28,6 +26,7 @@ type ConfigurePieceOAuth2DialogProps = {
   pieceName: string;
   onConfigurationDone: () => void;
   isEnabled: boolean;
+  ref?: HTMLButtonElement | ((el: HTMLButtonElement) => void);
 };
 
 const OAuth2FormValues = z.object({
@@ -36,13 +35,17 @@ const OAuth2FormValues = z.object({
 });
 type OAuth2FormValues = z.infer<typeof OAuth2FormValues>;
 
-export const ConfigurePieceOAuth2Dialog = forwardRef<
-  HTMLButtonElement,
-  ConfigurePieceOAuth2DialogProps
->(({ pieceName, onConfigurationDone, isEnabled }, ref) => {
-  const [open, setOpen] = useState(false);
-  const form = useForm<OAuth2FormValues>({
-    resolver: zodResolver(OAuth2FormValues),
+export function ConfigurePieceOAuth2Dialog(
+  props: ConfigurePieceOAuth2DialogProps,
+) {
+  const { pieceName, onConfigurationDone, isEnabled, ref } = props;
+  const [open, setOpen] = createSignal(false);
+  const [form, { Form, Field }] = createForm<OAuth2FormValues>({
+    initialValues: {
+      clientId: '',
+      clientSecret: '',
+    },
+    validate: zodForm(OAuth2FormValues),
   });
 
   const { oauth2App, refetch } =
@@ -55,12 +58,12 @@ export const ConfigurePieceOAuth2Dialog = forwardRef<
   return (
     <Dialog
       open={open}
-      onOpenChange={(open) => {
-        if (!open) {
-          form.reset();
-        }
-        setOpen(open);
-      }}
+        onOpenChange={(open) => {
+          if (!open) {
+          form.internal.reset();
+          }
+          setOpen(open);
+        }}
     >
       <DialogTrigger asChild>
         <Tooltip>
@@ -86,74 +89,75 @@ export const ConfigurePieceOAuth2Dialog = forwardRef<
                 e.stopPropagation();
               }}
             >
-              {isNil(oauth2App) ? (
-                <Unlock className="size-4" />
-              ) : (
-                <Lock className="size-4 text-destructive" />
-              )}
+              <Show
+                when={isNil(oauth2App)}
+                fallback={<Lock class="size-4 text-destructive" />}
+              >
+                <Unlock class="size-4" />
+              </Show>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            {isNil(oauth2App)
-              ? t('Configure OAuth2 App')
-              : t('Delete OAuth2 App')}
+            <Show when={isNil(oauth2App)} fallback={t('Delete OAuth2 App')}>
+              t('Configure OAuth2 App'
+            </Show>
           </TooltipContent>
         </Tooltip>
       </DialogTrigger>
       <DialogContent>
         <DialogTitle>{t('Configure OAuth2 App')}</DialogTitle>
 
-        <Form {...form}>
-          <form
-            className="grid space-y-4 mt-4"
-            onSubmit={form.handleSubmit((data) => {
+        <Form
+          class="grid space-y-4 mt-4"
+          onSubmit={(data) => {
               upsert({
                 clientId: data.clientId,
                 clientSecret: data.clientSecret,
                 pieceName,
               });
-            })}
-          >
-            <FormField
+          }}
+        >
+            <Field
               name="clientId"
-              render={({ field }) => (
-                <FormItem className="grid space-y-4">
-                  <Label htmlFor="clientId" showRequiredIndicator>
+            >
+              {(field, props) => (
+                <div class="grid space-y-4">
+                  <Label for="clientId" showRequiredIndicator>
                     {t('Client ID')}
                   </Label>
-                  <Input
-                    {...field}
-                    required
-                    id="clientId"
-                    className="rounded-sm"
-                  />
-                  <FormMessage />
-                </FormItem>
+                  <Input {...props} value={field.value ?? ''} required id="clientId" class="rounded-sm" />
+                  <Show when={field.error}>
+                    <p class="text-sm font-medium text-destructive wrap-break-word">
+                      {t(field.error)}
+                    </p>
+                  </Show>
+                </div>
               )}
-            />
-            <FormField
+            </Field>
+            <Field
               name="clientSecret"
-              render={({ field }) => (
-                <FormItem className="grid space-y-4">
-                  <Label htmlFor="clientSecret" showRequiredIndicator>
+            >
+              {(field, props) => (
+                <div class="grid space-y-4">
+                  <Label for="clientSecret" showRequiredIndicator>
                     {t('Client Secret')}
                   </Label>
                   <Input
-                    {...field}
+                    {...props}
+                    value={field.value ?? ''}
                     required
                     id="clientSecret"
-                    className="rounded-sm"
+                    class="rounded-sm"
                     type="password"
                   />
-                  <FormMessage />
-                </FormItem>
+                  <Show when={field.error}>
+                    <p class="text-sm font-medium text-destructive wrap-break-word">
+                      {t(field.error)}
+                    </p>
+                  </Show>
+                </div>
               )}
-            />
-            {form?.formState?.errors?.root?.serverError && (
-              <FormMessage>
-                {form.formState.errors.root.serverError.message}
-              </FormMessage>
-            )}
+            </Field>
 
             <DialogFooter>
               <Button variant="outline" onClick={() => setOpen(false)}>
@@ -161,17 +165,16 @@ export const ConfigurePieceOAuth2Dialog = forwardRef<
               </Button>
               <Button
                 loading={isUpserting}
-                disabled={!form.formState.isValid}
+                disabled={form.invalid}
                 type="submit"
               >
                 {t('Save')}
               </Button>
             </DialogFooter>
-          </form>
         </Form>
       </DialogContent>
     </Dialog>
   );
-});
+}
 
 ConfigurePieceOAuth2Dialog.displayName = 'ConfigurePieceOAuth2Dialog';

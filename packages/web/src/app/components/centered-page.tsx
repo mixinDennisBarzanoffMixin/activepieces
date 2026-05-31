@@ -1,4 +1,4 @@
-import React from 'react';
+import { Show } from 'solid-js';
 
 import { Separator } from '@/components/ui/separator';
 
@@ -9,9 +9,9 @@ export const CenteredPage = ({
   children,
 }: {
   title: string;
-  description: React.ReactNode;
-  actions?: React.ReactNode;
-  children: React.ReactNode;
+  description: JSX.Element;
+  actions?: JSX.Element;
+  children: JSX.Element;
 }) => {
   return (
     <div className="w-full max-w-[40rem] mx-auto py-6">
@@ -20,9 +20,13 @@ export const CenteredPage = ({
           <h1 className="text-xl font-medium">{title}</h1>
           <div className="text-sm text-muted-foreground">{description}</div>
         </div>
-        {actions && <div className="shrink-0">{actions}</div>}
+        {
+          <Show when={actions}>
+            <div className="shrink-0">{actions}</div>
+          </Show>
+        }
       </div>
-      <Separator className="my-4" />
+      <Separator class="my-4" />
       {children}
     </div>
   );

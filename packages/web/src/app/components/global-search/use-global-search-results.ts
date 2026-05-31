@@ -1,7 +1,9 @@
 import { PROJECT_COLOR_PALETTE } from '@activepieces/shared';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
+import { createMemo, type Accessor } from 'solid-js';
 
+import { queryClient } from '@/app/query-client';
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { flowsApi } from '@/features/flows';
 import { foldersApi } from '@/features/folders';
@@ -36,8 +38,12 @@ function getTimePeriod(
   return 'last-30-days';
 }
 
-export function useGlobalSearchResults(query: string, open: boolean) {
+export function useGlobalSearchResults(
+  query: Accessor<string>,
+  open: Accessor<boolean>,
+) {
   const projectId = authenticationSession.getProjectId() ?? '';
+  const isLoggedIn = authenticationSession.isLoggedIn();
   const isPlatformAdmin = useIsPlatformAdmin();
   const { embedState } = useEmbedding();
   const hideTables = embedState.hideTables;
@@ -46,75 +52,85 @@ export function useGlobalSearchResults(query: string, open: boolean) {
   const currentProjectName = currentProject
     ? getProjectName(currentProject)
     : null;
-  const hasQuery = query.length > 0;
+  const hasQuery = () => query().length > 0;
 
   const accessHistory = hideTables
     ? getAccessHistory().filter((h) => h.type !== 'table')
     : getAccessHistory();
   const hasHistory = accessHistory.length > 0;
   const needsSupplement =
-    !hasQuery && accessHistory.length < SUPPLEMENT_THRESHOLD;
+    !hasQuery() && accessHistory.length < SUPPLEMENT_THRESHOLD;
 
-  const searchEnabled = hasQuery && !!projectId;
-  const suggestionsEnabled =
-    !hasQuery && needsSupplement && open && !!projectId;
+  const searchEnabled = () => isLoggedIn && hasQuery() && !!projectId;
+  const suggestionsEnabled = () =>
+    isLoggedIn && !hasQuery() && needsSupplement && open() && !!projectId;
 
-  const foldersQuery = useQuery({
-    queryKey: ['global-search-folders', projectId],
-    queryFn: () => foldersApi.list(),
-    staleTime: 60_000,
-    enabled: !!projectId && open,
-  });
+  const foldersQuery = createQuery(
+    () => ({
+      queryKey: ['global-search-folders', projectId],
+      queryFn: () => foldersApi.list(),
+      staleTime: 60_000,
+      enabled: isLoggedIn && !!projectId && open(),
+    }),
+    () => queryClient,
+  );
 
   const folderMap = new Map(
     (foldersQuery.data ?? []).map((f) => [f.id, f.displayName]),
   );
 
-  const flowsQuery = useQuery({
-    queryKey: ['global-search-flows', projectId, query],
-    queryFn: () =>
-      flowsApi.list({
-        projectId,
-        ...(hasQuery ? { name: query } : {}),
-        limit: SEARCH_LIMIT,
-        cursor: undefined,
-      }),
-    enabled: searchEnabled || suggestionsEnabled,
-    staleTime: hasQuery ? 15_000 : 60_000,
-    placeholderData: keepPreviousData,
-  });
+  const flowsQuery = createQuery(
+    () => ({
+      queryKey: ['global-search-flows', projectId, query()],
+      queryFn: () =>
+        flowsApi.list({
+          projectId,
+          ...(hasQuery() ? { name: query() } : {}),
+          limit: SEARCH_LIMIT,
+          cursor: undefined,
+        }),
+      enabled: searchEnabled() || suggestionsEnabled(),
+      staleTime: hasQuery() ? 15_000 : 60_000,
+      placeholderData: keepPreviousData,
+    }),
+    () => queryClient,
+  );
 
-  const tablesQuery = useQuery({
-    queryKey: ['global-search-tables', projectId, query],
-    queryFn: () =>
-      tablesApi.list({
-        projectId,
-        ...(hasQuery ? { name: query } : {}),
-        limit: SEARCH_LIMIT,
-        cursor: undefined,
-      }),
-    enabled: (searchEnabled || suggestionsEnabled) && !hideTables,
-    staleTime: hasQuery ? 15_000 : 60_000,
-    placeholderData: keepPreviousData,
-  });
+  const tablesQuery = createQuery(
+    () => ({
+      queryKey: ['global-search-tables', projectId, query()],
+      queryFn: () =>
+        tablesApi.list({
+          projectId,
+          ...(hasQuery() ? { name: query() } : {}),
+          limit: SEARCH_LIMIT,
+          cursor: undefined,
+        }),
+      enabled: (searchEnabled() || suggestionsEnabled()) && !hideTables,
+      staleTime: hasQuery() ? 15_000 : 60_000,
+      placeholderData: keepPreviousData,
+    }),
+    () => queryClient,
+  );
 
   const matchedPages = STATIC_PAGES.filter(
     (p) =>
       (!p.requiresPlatformAdmin || isPlatformAdmin) &&
-      (!hasQuery || p.label.toLowerCase().includes(query.toLowerCase())),
+      (!hasQuery() || p.label.toLowerCase().includes(query().toLowerCase())),
   ).slice(0, SEARCH_LIMIT);
 
   const matchedProjects = allProjects
     .filter(
       (p) =>
-        !hasQuery || p.displayName.toLowerCase().includes(query.toLowerCase()),
+        !hasQuery() ||
+        p.displayName.toLowerCase().includes(query().toLowerCase()),
     )
     .slice(0, SEARCH_LIMIT);
 
   const allFolders = foldersQuery.data ?? [];
-  const matchedFolders = hasQuery
+  const matchedFolders = hasQuery()
     ? allFolders.filter((f) =>
-        f.displayName.toLowerCase().includes(query.toLowerCase()),
+        f.displayName.toLowerCase().includes(query().toLowerCase()),
       )
     : allFolders;
 
@@ -181,38 +197,39 @@ export function useGlobalSearchResults(query: string, open: boolean) {
     pageIcon: page.icon,
   }));
 
-  const isSearchLoading =
-    (flowsQuery.isLoading || tablesQuery.isLoading) && searchEnabled;
+  const isSearchLoading = () =>
+    (flowsQuery.isLoading || tablesQuery.isLoading) && searchEnabled();
 
-  if (!hasQuery) {
-    if (hasHistory) {
-      const historyIds = new Set(accessHistory.map((h) => h.id));
+  const groups = createMemo(() => {
+    if (!hasQuery()) {
+      if (hasHistory) {
+        const historyIds = new Set(accessHistory.map((h) => h.id));
 
-      type PoolItem = { item: SearchResultItem; timestamp: number };
+        type PoolItem = { item: SearchResultItem; timestamp: number };
 
-      const historyPool: PoolItem[] = accessHistory.map((h) => ({
-        timestamp: h.accessedAt,
-        item: {
-          id: h.id,
-          type: h.type,
-          label: h.label,
-          href: h.href,
-          status: h.status,
-          folderName: h.folderName,
-          projectName: h.projectName,
-          iconBgColor: h.iconBgColor,
-          iconTextColor: h.iconTextColor,
-          iconLetter: h.iconLetter,
-          pageIcon:
-            h.type === 'page'
-              ? STATIC_PAGES.find((p) => p.id === h.id)?.icon
-              : undefined,
-        },
-      }));
+        const historyPool: PoolItem[] = accessHistory.map((h) => ({
+          timestamp: h.accessedAt,
+          item: {
+            id: h.id,
+            type: h.type,
+            label: h.label,
+            href: h.href,
+            status: h.status,
+            folderName: h.folderName,
+            projectName: h.projectName,
+            iconBgColor: h.iconBgColor,
+            iconTextColor: h.iconTextColor,
+            iconLetter: h.iconLetter,
+            pageIcon:
+              h.type === 'page'
+                ? STATIC_PAGES.find((p) => p.id === h.id)?.icon
+                : undefined,
+          },
+        }));
 
-      const suggestedItems: SearchResultItem[] = [];
+        const suggestedItems: SearchResultItem[] = [];
 
-      if (needsSupplement) {
+        if (needsSupplement) {
         const remaining = SUPPLEMENT_THRESHOLD - accessHistory.length;
         const fillCandidates: PoolItem[] = [
           ...flowResults.map((r) => ({
@@ -232,30 +249,30 @@ export function useGlobalSearchResults(query: string, open: boolean) {
         );
       }
 
-      const buckets: Record<string, SearchResultItem[]> = {
+        const buckets: Record<string, SearchResultItem[]> = {
         today: [],
         yesterday: [],
         'last-week': [],
         'last-30-days': [],
       };
 
-      for (const { item, timestamp } of historyPool) {
-        buckets[getTimePeriod(timestamp)].push(item);
-      }
+        for (const { item, timestamp } of historyPool) {
+          buckets[getTimePeriod(timestamp)].push(item);
+        }
 
-      const periodDefs = [
+        const periodDefs = [
         { key: 'today', label: t('Today') },
         { key: 'yesterday', label: t('Yesterday') },
         { key: 'last-week', label: t('Last Week') },
         { key: 'last-30-days', label: t('Last 30 Days') },
       ];
 
-      const isFillLoading =
+        const isFillLoading =
         needsSupplement &&
         (flowsQuery.isLoading || tablesQuery.isLoading) &&
-        suggestionsEnabled;
+        suggestionsEnabled();
 
-      const groups: SearchResultGroup[] = periodDefs
+        const groups: SearchResultGroup[] = periodDefs
         .filter((p) => buckets[p.key].length > 0)
         .map((p) => ({
           type: `history-${p.key}`,
@@ -264,7 +281,7 @@ export function useGlobalSearchResults(query: string, open: boolean) {
           isLoading: false,
         }));
 
-      if (suggestedItems.length > 0) {
+        if (suggestedItems.length > 0) {
         groups.push({
           type: 'suggestions',
           heading: t('Suggested'),
@@ -273,7 +290,7 @@ export function useGlobalSearchResults(query: string, open: boolean) {
         });
       }
 
-      if (
+        if (
         isFillLoading &&
         historyPool.length + suggestedItems.length < SUPPLEMENT_THRESHOLD
       ) {
@@ -285,19 +302,18 @@ export function useGlobalSearchResults(query: string, open: boolean) {
         });
       }
 
-      return { groups, isLoading: false };
-    }
+        return groups;
+      }
 
-    const isFallbackLoading =
-      (flowsQuery.isLoading || tablesQuery.isLoading) && suggestionsEnabled;
-    const flatItems: SearchResultItem[] = [
-      ...flowResults.slice(0, 5),
-      ...tableResults.slice(0, 5),
-      ...projectResults.slice(0, 5),
-      ...pageResults.slice(0, 5),
-    ];
-    return {
-      groups:
+      const isFallbackLoading =
+        (flowsQuery.isLoading || tablesQuery.isLoading) && suggestionsEnabled();
+      const flatItems: SearchResultItem[] = [
+        ...flowResults.slice(0, 5),
+        ...tableResults.slice(0, 5),
+        ...projectResults.slice(0, 5),
+        ...pageResults.slice(0, 5),
+      ];
+      return (
         isFallbackLoading || flatItems.length > 0
           ? ([
               {
@@ -307,43 +323,43 @@ export function useGlobalSearchResults(query: string, open: boolean) {
                 isLoading: isFallbackLoading,
               },
             ] as SearchResultGroup[])
-          : [],
-      isLoading: isFallbackLoading,
-    };
-  }
+          : []
+      );
+    }
 
-  const groups: SearchResultGroup[] = [
-    {
-      type: 'flow',
-      heading: t('Flows'),
-      items: flowResults,
-      isLoading: flowsQuery.isLoading && searchEnabled,
-    },
-    {
-      type: 'table',
-      heading: t('Tables'),
-      items: tableResults,
-      isLoading: tablesQuery.isLoading && searchEnabled,
-    },
-    {
-      type: 'folder',
-      heading: t('Folders'),
-      items: folderResults,
-      isLoading: foldersQuery.isLoading && searchEnabled,
-    },
-    {
-      type: 'project',
-      heading: t('Projects'),
-      items: projectResults,
-      isLoading: false,
-    },
-    {
-      type: 'page',
-      heading: t('Pages'),
-      items: pageResults,
-      isLoading: false,
-    },
-  ].filter((g) => g.isLoading || g.items.length > 0);
+    return [
+      {
+        type: 'flow',
+        heading: t('Flows'),
+        items: flowResults,
+        isLoading: flowsQuery.isLoading && searchEnabled(),
+      },
+      {
+        type: 'table',
+        heading: t('Tables'),
+        items: tableResults,
+        isLoading: tablesQuery.isLoading && searchEnabled(),
+      },
+      {
+        type: 'folder',
+        heading: t('Folders'),
+        items: folderResults,
+        isLoading: foldersQuery.isLoading && searchEnabled(),
+      },
+      {
+        type: 'project',
+        heading: t('Projects'),
+        items: projectResults,
+        isLoading: false,
+      },
+      {
+        type: 'page',
+        heading: t('Pages'),
+        items: pageResults,
+        isLoading: false,
+      },
+    ].filter((g) => g.isLoading || g.items.length > 0);
+  });
 
   return { groups, isLoading: isSearchLoading };
 }

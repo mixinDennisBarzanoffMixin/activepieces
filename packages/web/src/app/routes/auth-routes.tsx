@@ -11,7 +11,7 @@ import { SignUpPage } from './sign-up';
 export const authRoutes = [
   {
     path: '/forget-password',
-    element: (
+    component: () => (
       <PageTitle title="Forget Password">
         <ResetPasswordPage />
       </PageTitle>
@@ -19,7 +19,7 @@ export const authRoutes = [
   },
   {
     path: '/reset-password',
-    element: (
+    component: () => (
       <PageTitle title="Reset Password">
         <ChangePasswordPage />
       </PageTitle>
@@ -27,7 +27,7 @@ export const authRoutes = [
   },
   {
     path: '/sign-in',
-    element: (
+    component: () => (
       <PageTitle title="Sign In">
         <SignInPage />
       </PageTitle>
@@ -35,7 +35,7 @@ export const authRoutes = [
   },
   {
     path: '/verify-email',
-    element: (
+    component: () => (
       <PageTitle title="Verify Email">
         <VerifyEmail />
       </PageTitle>
@@ -43,7 +43,7 @@ export const authRoutes = [
   },
   {
     path: '/sign-up',
-    element: (
+    component: () => (
       <PageTitle title="Sign Up">
         <SignUpPage />
       </PageTitle>
@@ -51,7 +51,7 @@ export const authRoutes = [
   },
   {
     path: '/create-platform',
-    element: (
+    component: () => (
       <PageTitle title="Create Platform">
         <CreatePlatformPage />
       </PageTitle>
@@ -59,7 +59,7 @@ export const authRoutes = [
   },
   {
     path: '/invitation',
-    element: (
+    component: () => (
       <PageTitle title="Accept Invitation">
         <AcceptInvitation />
       </PageTitle>

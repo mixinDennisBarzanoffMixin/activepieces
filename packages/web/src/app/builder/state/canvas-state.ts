@@ -1,5 +1,5 @@
 import { FlowTriggerType, isNil } from '@activepieces/shared';
-import { StoreApi } from 'zustand';
+import type { StoreApi } from 'zustand/vanilla';
 
 import { RightSideBarType } from '@/app/builder/types';
 import { flowRunUtils } from '@/features/flow-runs';

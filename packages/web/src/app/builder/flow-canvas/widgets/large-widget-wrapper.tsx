@@ -4,7 +4,7 @@ const LargeWidgetWrapper = ({
   children,
   containerClassName,
 }: {
-  children: React.ReactNode;
+  children: any;
   containerClassName?: string;
 }) => {
   return (

@@ -2,9 +2,8 @@
 import path from 'path';
 
 import tsconfigPaths from 'vite-tsconfig-paths';
-import react from '@vitejs/plugin-react';
+import solid from 'vite-plugin-solid';
 import { defineConfig } from 'vite';
-import checker from 'vite-plugin-checker';
 import tailwindcss from '@tailwindcss/vite';
 import customHtmlPlugin from './vite-plugins/html-plugin';
 
@@ -81,6 +80,10 @@ export default defineConfig(({ command, mode }) => {
       },
       port: 4200,
       host: '0.0.0.0',
+      hmr: {
+        host: 'localhost',
+        clientPort: 4200,
+      },
     },
 
     preview: {
@@ -98,38 +101,39 @@ export default defineConfig(({ command, mode }) => {
         '@': path.resolve(__dirname, './src'),
         '@activepieces/shared': path.resolve(
           __dirname,
-          '../../packages/shared/src',
+          '../../packages/shared/src'
         ),
         'ee-embed-sdk': path.resolve(
           __dirname,
-          '../../packages/ee/embed-sdk/src',
+          '../../packages/ee/embed-sdk/src'
         ),
         '@activepieces/pieces-framework': path.resolve(
           __dirname,
-          '../../packages/pieces/framework/src',
+          '../../packages/pieces/framework/src'
+        ),
+        'motion/react': path.resolve(
+          __dirname,
+          './src/lib/solid-motion-adapter.tsx'
+        ),
+        'boring-avatars-solid': path.resolve(
+          __dirname,
+          '../../node_modules/.bun/boring-avatars-solid@github+woqk+boring-avatars-solid+56c325e/node_modules/boring-avatars-solid/src/lib/Avatar.tsx'
         ),
       },
     },
     plugins: [
-      react(),
+      solid(),
       tailwindcss(),
       tsconfigPaths(),
       customHtmlPlugin({
         title: AP_TITLE,
         icon: AP_FAVICON,
       }),
-      ...(isDev
-        ? [
-            checker({
-              typescript: {
-                buildMode: true,
-                tsconfigPath: './tsconfig.json',
-                root: __dirname,
-              },
-            }),
-          ]
-        : []),
     ],
+
+    optimizeDeps: {
+      include: ['debug'],
+    },
 
     build: {
       outDir: '../../dist/packages/web',

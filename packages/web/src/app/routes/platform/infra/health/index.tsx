@@ -1,8 +1,8 @@
 import { ApFlagId } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Cpu, HardDrive, MemoryStick, Package } from 'lucide-react';
-import React from 'react';
+import { Cpu, HardDrive, MemoryStick, Package } from 'lucide-solid';
 import semver from 'semver';
+import { createMemo, For, Show } from 'solid-js';
 
 import { CenteredPage } from '@/app/components/centered-page';
 import { healthQueries } from '@/features/platform-admin';
@@ -19,10 +19,10 @@ export default function SettingsHealthPage() {
   );
   const { data: systemHealth, isPending } = healthQueries.useSystemHealth();
 
-  const isVersionUpToDate = React.useMemo(() => {
+  const isVersionUpToDate = createMemo(() => {
     if (!currentVersion || !latestVersion) return false;
     return semver.gte(currentVersion, latestVersion);
-  }, [currentVersion, latestVersion]);
+  });
 
   const technicalChecks = [
     {
@@ -41,7 +41,7 @@ export default function SettingsHealthPage() {
             </span>
           </div>
           <div className="mt-2 flex flex-col gap-1">
-            {!isVersionUpToDate ? (
+            <Show when={!isVersionUpToDate} fallback={null}>
               <>
                 <span>
                   {t(
@@ -61,7 +61,7 @@ export default function SettingsHealthPage() {
                   .
                 </span>
               </>
-            ) : null}
+            </Show>
           </div>
         </div>
       ),
@@ -74,13 +74,15 @@ export default function SettingsHealthPage() {
       isChecked: systemHealth?.disk,
       message: (
         <span>
-          {systemHealth?.disk
-            ? t(
-                'The server has sufficient disk space. At least 30GB of disk space is required for optimal operation.',
-              )
-            : t(
-                'Insufficient disk space. A minimum of 30GB is required for Activepieces to function properly.',
-              )}
+          <Show
+            when={systemHealth?.disk}
+            fallback={t(
+              'Insufficient disk space. A minimum of 30GB is required for Activepieces to function properly.',
+            )}
+          >
+            t( 'The server has sufficient disk space. At least 30GB of disk
+            space is required for optimal operation.',
+          </Show>
         </span>
       ),
       loading: isPending,
@@ -93,13 +95,15 @@ export default function SettingsHealthPage() {
       isChecked: systemHealth?.ram,
       message: (
         <span>
-          {systemHealth?.ram
-            ? t(
-                'The server meets the minimum RAM requirement. At least 4GB RAM is needed for stable performance.',
-              )
-            : t(
-                'Insufficient RAM. A minimum of 4GB RAM is required for optimal operation.',
-              )}
+          <Show
+            when={systemHealth?.ram}
+            fallback={t(
+              'Insufficient RAM. A minimum of 4GB RAM is required for optimal operation.',
+            )}
+          >
+            t( 'The server meets the minimum RAM requirement. At least 4GB RAM
+            is needed for stable performance.',
+          </Show>
         </span>
       ),
       link: 'https://www.activepieces.com/docs/install/configuration/hardware#technical-specifications',
@@ -112,13 +116,15 @@ export default function SettingsHealthPage() {
       isChecked: systemHealth?.cpu,
       message: (
         <span>
-          {systemHealth?.cpu
-            ? t(
-                'The server has enough CPU resources. At least 1 CPU core is required to run Activepieces.',
-              )
-            : t(
-                'Not enough CPU resources. At least 1 CPU core is necessary to operate Activepieces.',
-              )}
+          <Show
+            when={systemHealth?.cpu}
+            fallback={t(
+              'Not enough CPU resources. At least 1 CPU core is necessary to operate Activepieces.',
+            )}
+          >
+            t( 'The server has enough CPU resources. At least 1 CPU core is
+            required to run Activepieces.',
+          </Show>
         </span>
       ),
       link: 'https://www.activepieces.com/docs/install/configuration/hardware#technical-specifications',
@@ -132,18 +138,20 @@ export default function SettingsHealthPage() {
       description={t('Check the status of your platform and its components')}
     >
       <div className="flex flex-col gap-4">
-        {technicalChecks.map((check) => (
-          <CheckItem
-            key={check.id}
-            id={check.id}
-            title={check.title}
-            isChecked={check.isChecked ?? false}
-            message={check.message}
-            loading={check.loading ?? false}
-            link={check.link}
-            icon={check.icon}
-          />
-        ))}
+        <For each={technicalChecks}>
+          {(check) => (
+            <CheckItem
+              key={check.id}
+              id={check.id}
+              title={check.title}
+              isChecked={check.isChecked ?? false}
+              message={check.message}
+              loading={check.loading ?? false}
+              link={check.link}
+              icon={check.icon}
+            />
+          )}
+        </For>
       </div>
     </CenteredPage>
   );

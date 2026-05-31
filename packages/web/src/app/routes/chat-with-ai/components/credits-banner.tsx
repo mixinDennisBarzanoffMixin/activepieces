@@ -1,6 +1,7 @@
+import { A as Link } from '@solidjs/router';
 import { t } from 'i18next';
-import { AlertTriangle, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { AlertTriangle, X } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { CreditsWarning } from '@/features/chat/lib/chat-types';
@@ -45,26 +46,26 @@ export function CreditsBanner({
           : 'bg-warning/5 text-warning',
       )}
     >
-      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+      <AlertTriangle class="h-3.5 w-3.5 shrink-0" />
       <span className="flex-1">{message}</span>
-      {isPlatformAdmin && (
+      <Show when={isPlatformAdmin}>
         <Link
-          to="/platform/setup/billing"
-          className="shrink-0 text-sm font-medium underline"
+          href="/platform/setup/billing"
+          class="shrink-0 text-sm font-medium underline"
         >
           {t('Show Usage')}
         </Link>
-      )}
-      {!isError && (
+      </Show>
+      <Show when={!isError}>
         <Button
           variant="ghost"
           size="sm"
-          className="text-warning hover:text-warning shrink-0 h-6 w-6 p-0"
+          class="text-warning hover:text-warning shrink-0 h-6 w-6 p-0"
           onClick={onDismiss}
         >
-          <X className="h-3 w-3" />
+          <X class="h-3 w-3" />
         </Button>
-      )}
+      </Show>
     </div>
   );
 }

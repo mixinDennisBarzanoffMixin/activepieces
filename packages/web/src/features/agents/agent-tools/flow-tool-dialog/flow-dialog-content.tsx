@@ -4,10 +4,10 @@ import {
   mcpToolNameUtils,
   PopulatedFlow,
 } from '@activepieces/shared';
+import { useDebounce } from '@/lib/debounce';
 import { t } from 'i18next';
-import { Workflow } from 'lucide-react';
-import { useMemo } from 'react';
-import { useDebounce } from 'use-debounce';
+import { Workflow } from 'lucide-solid';
+import { createMemo } from 'solid-js';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import { PieceIconList } from '@/features/pieces/components/piece-icon-list';
@@ -32,14 +32,14 @@ export const FlowDialogContent = ({
 }: FlowDialogContentProps) => {
   const [debouncedQuery] = useDebounce(searchQuery, 300);
 
-  const filteredFlows = useMemo(() => {
+  const filteredFlows = createMemo(() => {
     if (!debouncedQuery) return flows;
 
     const query = debouncedQuery.toLowerCase();
     return flows.filter((flow) =>
       flow.version.displayName.toLowerCase().includes(query),
     );
-  }, [flows, debouncedQuery]);
+  });
 
   const isSelected = (flow: PopulatedFlow) =>
     selectedFlows.some((tool) => tool.externalFlowId === flow.externalId);
@@ -123,7 +123,7 @@ export const FlowDialogContent = ({
       {filteredFlows.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <div className="mb-5 flex size-14 items-center justify-center rounded-xl border bg-muted/40">
-            <Workflow className="size-7 text-muted-foreground" />
+            <Workflow class="size-7 text-muted-foreground" />
           </div>
 
           <div className="text-base font-semibold text-foreground">

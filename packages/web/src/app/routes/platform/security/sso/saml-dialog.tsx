@@ -7,13 +7,11 @@ import {
   SsoDomainVerificationStatus,
   UpdatePlatformRequestBody,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { CheckCircle, Loader2, TriangleAlert } from 'lucide-react';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { CheckCircle, Loader2, TriangleAlert } from 'lucide-solid';
+import { createMemo, createSignal, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 import { z } from 'zod';
 
 import { platformApi } from '@/api/platforms-api';
@@ -29,13 +27,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -49,7 +40,7 @@ export const ConfigureSamlDialog = ({
   connected,
   refetch,
 }: ConfigureSamlDialogProps) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = createSignal(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -59,15 +50,15 @@ export const ConfigureSamlDialog = ({
         </Button>
       </DialogTrigger>
       <DialogContent>
-        {open && (
+        <Show when={open()}>
           <SamlWizard
-            key={open ? 'open' : 'closed'}
+            key={open() ? 'open' : 'closed'}
             platform={platform}
             connected={connected}
             refetch={refetch}
             onClose={() => setOpen(false)}
           />
-        )}
+        </Show>
       </DialogContent>
     </Dialog>
   );
@@ -87,23 +78,25 @@ const SamlWizard = ({
   const domainVerified =
     platform.ssoDomainVerification?.status ===
     SsoDomainVerificationStatus.VERIFIED;
-  const [step, setStep] = useState<WizardStep>(
+  const [step, setStep] = createSignal<WizardStep>(
     connected || !domainVerified ? 'domain' : 'saml',
   );
 
-  const { mutate: disableSaml, isPending: isDisabling } = useMutation({
-    mutationFn: async () => {
-      await platformApi.update(
-        { federatedAuthProviders: { saml: null } },
-        platform.id,
-      );
-      await refetch();
-    },
-    onSuccess: () => {
-      toast.success(t('Single sign-on settings updated'), { duration: 3000 });
-      onClose();
-    },
-  });
+  const { mutate: disableSaml, isPending: isDisabling } = createMutation(
+    () => ({
+      mutationFn: async () => {
+        await platformApi.update(
+          { federatedAuthProviders: { saml: null } },
+          platform.id,
+        );
+        await refetch();
+      },
+      onSuccess: () => {
+        toast.success(t('Single sign-on settings updated'), { duration: 3000 });
+        onClose();
+      },
+    }),
+  );
 
   const disableAction = connected
     ? { onDisable: () => disableSaml(), isDisabling }
@@ -195,62 +188,62 @@ const DomainStep = ({
   canProceed: boolean;
   disableAction: DisableAction;
 }) => {
-  const form = useForm<SsoDomainFormValues>({
-    resolver: zodResolver(SsoDomainFormValues),
-    defaultValues: { ssoDomain: platform.ssoDomain ?? '' },
-    mode: 'onChange',
-  });
+  const [domain, setDomain] = createSignal(platform.ssoDomain ?? '');
+  const [error, setError] = createSignal('');
   const verification = platform.ssoDomainVerification ?? null;
-  const ssoDomainValue = form.watch('ssoDomain');
-  const isDirty =
-    ssoDomainValue.trim().toLowerCase() !== (platform.ssoDomain ?? '');
-  const [showUpdateWarning, setShowUpdateWarning] = useState(false);
+  const data = createMemo(() => ({ ssoDomain: domain() }));
+  const valid = createMemo(() => SsoDomainFormValues.safeParse(data()).success);
+  const isDirty = createMemo(
+    () => domain().trim().toLowerCase() !== (platform.ssoDomain ?? ''),
+  );
+  const [showUpdateWarning, setShowUpdateWarning] = createSignal(false);
 
-  const { mutate: saveDomain, isPending: isSaving } = useMutation({
+  const { mutate: saveDomain, isPending: isSaving } = createMutation(() => ({
     mutationFn: async (values: SsoDomainFormValues) => {
       await samlSsoApi.updateSsoDomain(values.ssoDomain.trim().toLowerCase());
       await refetch();
     },
     onSuccess: () => {
       toast.success(t('SSO domain saved'));
+      setError('');
       setShowUpdateWarning(false);
     },
     onError: (error) => {
-      form.setError('root.serverError', {
-        type: 'manual',
-        message: extractServerErrorMessage(error, t("Couldn't save domain")),
-      });
+      setError(extractServerErrorMessage(error, t("Couldn't save domain")));
       setShowUpdateWarning(false);
     },
-  });
+  }));
 
-  const { mutate: verifyDomain, isPending: isVerifying } = useMutation({
-    mutationFn: async () => {
-      const result = await samlSsoApi.verifySsoDomain();
-      await refetch();
-      return result;
-    },
-    onSuccess: (result) => {
-      if (
-        result.ssoDomainVerification?.status ===
-        SsoDomainVerificationStatus.VERIFIED
-      ) {
-        toast.success(t('Domain verified'));
-        onVerified();
-      } else {
-        toast.message(
-          t('TXT record not found yet — DNS can take a few minutes.'),
+  const { mutate: verifyDomain, isPending: isVerifying } = createMutation(
+    () => ({
+      mutationFn: async () => {
+        const result = await samlSsoApi.verifySsoDomain();
+        await refetch();
+        return result;
+      },
+      onSuccess: (result) => {
+        if (
+          result.ssoDomainVerification?.status ===
+          SsoDomainVerificationStatus.VERIFIED
+        ) {
+          toast.success(t('Domain verified'));
+          onVerified();
+        } else {
+          toast.message(
+            t('TXT record not found yet — DNS can take a few minutes.'),
+          );
+        }
+      },
+      onError: (error) => {
+        toast.error(
+          extractServerErrorMessage(error, t("Couldn't verify domain")),
         );
-      }
-    },
-    onError: (error) => {
-      toast.error(
-        extractServerErrorMessage(error, t("Couldn't verify domain")),
-      );
-    },
-  });
+      },
+    }),
+  );
 
   const handleSubmit = (values: SsoDomainFormValues) => {
+    setError('');
     if (platform.ssoDomain) {
       setShowUpdateWarning(true);
       return;
@@ -259,71 +252,77 @@ const DomainStep = ({
   };
 
   return (
-    <Form {...form}>
+    <>
       <form
         className="grid space-y-4"
-        onSubmit={form.handleSubmit(handleSubmit)}
+        onSubmit={(e) => {
+          e.preventDefault();
+          const result = SsoDomainFormValues.safeParse(data());
+          if (!result.success) {
+            setError(t('invalidSsoDomain'));
+            return;
+          }
+          handleSubmit(result.data);
+        }}
       >
-        <FormField
-          name="ssoDomain"
-          render={({ field }) => (
-            <FormItem className="grid space-y-2">
-              <Label htmlFor="ssoDomain">{t('Domain')}</Label>
-              <Input
-                {...field}
-                id="ssoDomain"
-                placeholder="acme.com"
-                className="rounded-sm"
-              />
-              <FormDescription>
-                {t(
-                  'When a user enters this domain on the sign-in page, they will be redirected to your SAML identity provider.',
-                )}
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div class="grid space-y-2">
+          <Label for="ssoDomain">{t('Domain')}</Label>
+          <Input
+            id="ssoDomain"
+            value={domain()}
+            onInput={(e) => setDomain(e.currentTarget.value)}
+            placeholder="acme.com"
+            class="rounded-sm"
+          />
+          <p class="text-sm text-muted-foreground">
+            {t(
+              'When a user enters this domain on the sign-in page, they will be redirected to your SAML identity provider.',
+            )}
+          </p>
+        </div>
 
-        {verification && !isDirty && (
+        <Show when={verification && !isDirty()}>
           <DomainVerificationPanel
             verification={verification}
             isVerifying={isVerifying}
             onVerify={() => verifyDomain()}
           />
-        )}
+        </Show>
 
-        {form.formState.errors.root?.serverError && (
-          <FormMessage>
-            {form.formState.errors.root.serverError.message}
-          </FormMessage>
-        )}
+        <Show when={error()}>
+          <p class="text-sm font-medium text-destructive wrap-break-word">
+            {error()}
+          </p>
+        </Show>
 
         <DialogFooter>
-          {disableAction && (
+          <Show when={disableAction}>
             <Button
               type="button"
               variant="basic"
-              className="text-destructive"
+              class="text-destructive"
               loading={disableAction.isDisabling}
               onClick={disableAction.onDisable}
             >
               {t('Disable')}
             </Button>
-          )}
-          {isDirty ? (
+          </Show>
+          <Show
+            when={isDirty()}
+            fallback={
+              <Button type="button" onClick={onNext} disabled={!canProceed}>
+                {t('Next')}
+              </Button>
+            }
+          >
             <Button
               type="submit"
               loading={isSaving}
-              disabled={!form.formState.isValid}
+              disabled={!valid()}
             >
               {platform.ssoDomain ? t('Update domain') : t('Save domain')}
             </Button>
-          ) : (
-            <Button type="button" onClick={onNext} disabled={!canProceed}>
-              {t('Next')}
-            </Button>
-          )}
+          </Show>
         </DialogFooter>
       </form>
       <Dialog open={showUpdateWarning} onOpenChange={setShowUpdateWarning}>
@@ -332,7 +331,7 @@ const DomainStep = ({
             <DialogTitle>{t('Update SSO domain?')}</DialogTitle>
           </DialogHeader>
           <Alert variant="warning">
-            <TriangleAlert className="size-4" />
+            <TriangleAlert class="size-4" />
             <AlertDescription>
               {t(
                 "Users won't be able to sign in via SSO until you verify the new domain.",
@@ -351,14 +350,14 @@ const DomainStep = ({
             <Button
               type="button"
               loading={isSaving}
-              onClick={() => saveDomain(form.getValues())}
+              onClick={() => saveDomain(data())}
             >
               {t('Update domain')}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Form>
+    </>
   );
 };
 
@@ -375,30 +374,40 @@ const SamlStep = ({
   onClose: () => void;
   disableAction: DisableAction;
 }) => {
-  const form = useForm<Saml2FormValues>({
-    resolver: zodResolver(Saml2FormValues),
-    defaultValues: { idpMetadata: '', idpCertificate: '' },
-    mode: 'onChange',
+  const [values, setValues] = createSignal<Saml2FormValues>({
+    idpMetadata: '',
+    idpCertificate: '',
   });
+  const [error, setError] = createSignal('');
+  const valid = createMemo(() => Saml2FormValues.safeParse(values()).success);
 
   const { data: samlAcs } = flagsHooks.useFlag<string>(
     ApFlagId.SAML_AUTH_ACS_URL,
   );
 
-  const { mutate, isPending } = useMutation({
+  const { mutate, isPending } = createMutation(() => ({
     mutationFn: async (request: UpdatePlatformRequestBody) => {
       await platformApi.update(request, platform.id);
       await refetch();
     },
     onSuccess: () => {
       toast.success(t('Single sign-on settings updated'), { duration: 3000 });
+      setError('');
       onClose();
     },
-  });
+    onError: (error) => {
+      setError(
+        extractServerErrorMessage(
+          error,
+          t("Couldn't save single sign-on settings"),
+        ),
+      );
+    },
+  }));
 
   return (
     <>
-      {samlAcs && (
+      <Show when={samlAcs}>
         <div className="mb-4">
           <ApMarkdown
             markdown={t(
@@ -419,82 +428,82 @@ Activepieces
             )}
           />
         </div>
-      )}
+      </Show>
 
-      <Form {...form}>
-        <form
-          className="grid space-y-4"
-          onSubmit={form.handleSubmit((data) => {
-            mutate({ federatedAuthProviders: { saml: data } });
-          })}
-        >
-          <FormField
-            name="idpMetadata"
-            render={({ field }) => (
-              <FormItem className="grid space-y-2">
-                <Label htmlFor="idpMetadata">{t('IDP Metadata')}</Label>
-                <Textarea
-                  {...field}
-                  required
-                  id="idpMetadata"
-                  rows={6}
-                  className="rounded-sm font-mono text-xs"
-                />
-                <FormDescription>
-                  {t(
-                    'Paste the metadata XML contents or the metadata URL provided by your identity provider.',
-                  )}
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
+      <form
+        className="grid space-y-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const result = Saml2FormValues.safeParse(values());
+          if (!result.success) {
+            setError(t('Please fill all required fields'));
+            return;
+          }
+          mutate({ federatedAuthProviders: { saml: result.data } });
+        }}
+      >
+        <div class="grid space-y-2">
+          <Label for="idpMetadata">{t('IDP Metadata')}</Label>
+          <Textarea
+            required
+            id="idpMetadata"
+            value={values().idpMetadata}
+            onInput={(e) =>
+              setValues((values) => ({
+                ...values,
+                idpMetadata: e.currentTarget.value,
+              }))
+            }
+            rows={6}
+            class="rounded-sm font-mono text-xs"
           />
-          <FormField
-            name="idpCertificate"
-            render={({ field }) => (
-              <FormItem className="grid space-y-4">
-                <Label htmlFor="idpCertificate">{t('IDP Certificate')}</Label>
-                <Textarea
-                  {...field}
-                  required
-                  id="idpCertificate"
-                  className="rounded-sm"
-                />
-                <FormMessage />
-              </FormItem>
+          <p class="text-sm text-muted-foreground">
+            {t(
+              'Paste the metadata XML contents or the metadata URL provided by your identity provider.',
             )}
+          </p>
+        </div>
+        <div class="grid space-y-4">
+          <Label for="idpCertificate">{t('IDP Certificate')}</Label>
+          <Textarea
+            required
+            id="idpCertificate"
+            value={values().idpCertificate}
+            onInput={(e) =>
+              setValues((values) => ({
+                ...values,
+                idpCertificate: e.currentTarget.value,
+              }))
+            }
+            class="rounded-sm"
           />
-          {form?.formState?.errors?.root?.serverError && (
-            <FormMessage>
-              {form.formState.errors.root.serverError.message}
-            </FormMessage>
-          )}
+        </div>
+        <Show when={error()}>
+          <p class="text-sm font-medium text-destructive wrap-break-word">
+            {error()}
+          </p>
+        </Show>
 
-          <DialogFooter>
-            {disableAction && (
-              <Button
-                type="button"
-                variant="basic"
-                className="text-destructive mr-auto"
-                loading={disableAction.isDisabling}
-                onClick={disableAction.onDisable}
-              >
-                {t('Disable')}
-              </Button>
-            )}
-            <Button variant="outline" type="button" onClick={onBack}>
-              {t('Back')}
-            </Button>
+        <DialogFooter>
+          <Show when={disableAction}>
             <Button
-              loading={isPending}
-              disabled={!form.formState.isValid}
-              type="submit"
+              type="button"
+              variant="basic"
+              class="text-destructive mr-auto"
+              loading={disableAction.isDisabling}
+              onClick={disableAction.onDisable}
             >
-              {t('Save')}
+              {t('Disable')}
             </Button>
-          </DialogFooter>
-        </form>
-      </Form>
+          </Show>
+          <Button variant="outline" type="button" onClick={onBack}>
+            {t('Back')}
+          </Button>
+          <Button loading={isPending} disabled={!valid()} type="submit">
+            {t('Save')}
+          </Button>
+        </DialogFooter>
+      </form>
     </>
   );
 };
@@ -512,7 +521,7 @@ const DomainVerificationPanel = ({
   return (
     <div className="flex flex-col gap-3">
       <VerificationStatusBadge status={verification.status} />
-      {!verified && (
+      <Show when={!verified}>
         <>
           <p className="text-xs text-muted-foreground">
             {t(
@@ -532,7 +541,7 @@ const DomainVerificationPanel = ({
             </Button>
           </div>
         </>
-      )}
+      </Show>
     </div>
   );
 };
@@ -545,14 +554,14 @@ const VerificationStatusBadge = ({
   if (status === SsoDomainVerificationStatus.VERIFIED) {
     return (
       <div className="flex items-center gap-2 text-sm text-success-600">
-        <CheckCircle className="size-4" />
+        <CheckCircle class="size-4" />
         {t('DNS verified — domain is ready')}
       </div>
     );
   }
   return (
     <div className="flex items-center gap-2 text-sm text-warning">
-      <Loader2 className="size-4 animate-spin" />
+      <Loader2 class="size-4 animate-spin" />
       {t('Waiting for DNS')}
     </div>
   );
@@ -571,11 +580,11 @@ const VerificationRecordRow = ({
     </div>
     <div className="grid grid-cols-2 gap-3">
       <div className="flex flex-col gap-1.5 min-w-0">
-        <Label className="text-xs text-muted-foreground">{t('Name')}</Label>
+        <Label class="text-xs text-muted-foreground">{t('Name')}</Label>
         <CopyToClipboardInput textToCopy={record.name} useInput={true} />
       </div>
       <div className="flex flex-col gap-1.5 min-w-0">
-        <Label className="text-xs text-muted-foreground">{t('Value')}</Label>
+        <Label class="text-xs text-muted-foreground">{t('Value')}</Label>
         <CopyToClipboardInput textToCopy={record.value} useInput={true} />
       </div>
     </div>

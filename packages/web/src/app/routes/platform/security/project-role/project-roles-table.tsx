@@ -8,8 +8,8 @@ import {
   ShieldCheck,
   Trash,
   Users,
-} from 'lucide-react';
-import { useState } from 'react';
+} from 'lucide-solid';
+import { createSignal, For, Show } from 'solid-js';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import {
@@ -55,8 +55,10 @@ export const ProjectRolesTable = ({
   refetch,
 }: ProjectRolesListProps) => {
   const { platform } = platformHooks.useCurrentPlatform();
-  const [selectedRole, setSelectedRole] = useState<ProjectRole | null>(null);
-  const [isUsersSheetOpen, setIsUsersSheetOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = createSignal<ProjectRole | null>(
+    null,
+  );
+  const [isUsersSheetOpen, setIsUsersSheetOpen] = createSignal(false);
 
   const { mutate: deleteProjectRole } =
     projectRoleMutations.useDeleteProjectRole({
@@ -64,7 +66,7 @@ export const ProjectRolesTable = ({
     });
 
   if (isLoading) {
-    return <SkeletonList numberOfItems={3} className="w-full h-[60px]" />;
+    return <SkeletonList numberOfItems={3} class="w-full h-[60px]" />;
   }
 
   const roles = projectRoles?.data ?? [];
@@ -72,7 +74,7 @@ export const ProjectRolesTable = ({
   if (roles.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
-        <Shield className="size-10" />
+        <Shield class="size-10" />
         <p className="text-sm">
           {t('No project roles yet. Create one to get started.')}
         </p>
@@ -82,74 +84,82 @@ export const ProjectRolesTable = ({
 
   return (
     <>
-      <ItemGroup className="gap-2">
-        {roles.map((role) => (
-          <Item key={role.id} variant="outline" size="sm">
-            <ItemMedia variant="icon">{getRoleIcon(role.name)}</ItemMedia>
-            <ItemContent>
-              <ItemTitle>{role.name}</ItemTitle>
-              <ItemDescription>
-                <Badge
-                  variant={
-                    role.type === RoleType.DEFAULT ? 'accent' : 'secondary'
-                  }
+      <ItemGroup class="gap-2">
+        <For each={roles}>
+          {(role) => (
+            <Item key={role.id} variant="outline" size="sm">
+              <ItemMedia variant="icon">{getRoleIcon(role.name)}</ItemMedia>
+              <ItemContent>
+                <ItemTitle>{role.name}</ItemTitle>
+                <ItemDescription>
+                  <Badge
+                    variant={
+                      role.type === RoleType.DEFAULT ? 'accent' : 'secondary'
+                    }
+                  >
+                    {role.type === RoleType.DEFAULT
+                      ? t('Default')
+                      : t('Custom')}
+                  </Badge>
+                </ItemDescription>
+              </ItemContent>
+              <ItemActions>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="flex items-center gap-1.5 px-2 h-8 text-muted-foreground"
+                  onClick={() => {
+                    setSelectedRole(role);
+                    setIsUsersSheetOpen(true);
+                  }}
                 >
-                  {role.type === RoleType.DEFAULT ? t('Default') : t('Custom')}
-                </Badge>
-              </ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="flex items-center gap-1.5 px-2 h-8 text-muted-foreground"
-                onClick={() => {
-                  setSelectedRole(role);
-                  setIsUsersSheetOpen(true);
-                }}
-              >
-                <Users className="size-4" />
-                <span className="text-xs">
-                  {role.userCount === 1
-                    ? t('1 user')
-                    : t(`${role.userCount} users`)}
-                </span>
-              </Button>
-              <ProjectRoleDialog
-                mode="edit"
-                projectRole={role}
-                platformId={platform.id}
-                onSave={() => refetch()}
-                disabled={role.type === RoleType.DEFAULT}
-              >
-                <Button variant="ghost" size="sm" className="size-8 p-0">
-                  {role.type === RoleType.DEFAULT ? (
-                    <Eye className="size-4" />
-                  ) : (
-                    <Pencil className="size-4" />
-                  )}
+                  <Users class="size-4" />
+                  <span className="text-xs">
+                    <Show
+                      when={role.userCount === 1}
+                      fallback={t(`${role.userCount} users`)}
+                    >
+                      t('1 user'
+                    </Show>
+                  </span>
                 </Button>
-              </ProjectRoleDialog>
-              {role.type !== RoleType.DEFAULT && (
-                <ConfirmationDeleteDialog
-                  isDanger={true}
-                  title={t('Delete Role')}
-                  message={t(
-                    'Deleting this role will remove {count} project member(s) and all associated invitations.',
-                    { count: role.userCount },
-                  )}
-                  entityName={`${t('Project Role')} ${role.name}`}
-                  buttonText={t('Delete Role')}
-                  mutationFn={async () => deleteProjectRole(role.name)}
+                <ProjectRoleDialog
+                  mode="edit"
+                  projectRole={role}
+                  platformId={platform.id}
+                  onSave={() => refetch()}
+                  disabled={role.type === RoleType.DEFAULT}
                 >
-                  <Button variant="ghost" size="sm" className="size-8 p-0">
-                    <Trash className="size-4 text-destructive" />
+                  <Button variant="ghost" size="sm" class="size-8 p-0">
+                    <Show
+                      when={role.type === RoleType.DEFAULT}
+                      fallback={<Pencil class="size-4" />}
+                    >
+                      <Eye class="size-4" />
+                    </Show>
                   </Button>
-                </ConfirmationDeleteDialog>
-              )}
-            </ItemActions>
-          </Item>
-        ))}
+                </ProjectRoleDialog>
+                <Show when={role.type !== RoleType.DEFAULT}>
+                  <ConfirmationDeleteDialog
+                    isDanger={true}
+                    title={t('Delete Role')}
+                    message={t(
+                      'Deleting this role will remove {count} project member(s) and all associated invitations.',
+                      { count: role.userCount },
+                    )}
+                    entityName={`${t('Project Role')} ${role.name}`}
+                    buttonText={t('Delete Role')}
+                    mutationFn={async () => deleteProjectRole(role.name)}
+                  >
+                    <Button variant="ghost" size="sm" class="size-8 p-0">
+                      <Trash class="size-4 text-destructive" />
+                    </Button>
+                  </ConfirmationDeleteDialog>
+                </Show>
+              </ItemActions>
+            </Item>
+          )}
+        </For>
       </ItemGroup>
       <ProjectRoleUsersSheet
         projectRole={selectedRole}

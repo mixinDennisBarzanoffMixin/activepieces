@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Download, FolderInput, Trash2, X } from 'lucide-react';
+import { Download, FolderInput, Trash2, X } from 'lucide-solid';
 import { AnimatePresence, motion } from 'motion/react';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
@@ -40,7 +40,7 @@ export const AutomationsSelectionBar = ({
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 80, opacity: 0 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+          class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
         >
           <div className="flex items-center gap-3 bg-background border rounded-lg shadow-lg p-2">
             {!embedState.hideFolders && (
@@ -50,7 +50,7 @@ export const AutomationsSelectionBar = ({
                 onClick={onMoveClick}
                 disabled={isMoving || !hasMovableOrExportableItems}
               >
-                <FolderInput className="h-4 w-4 mr-1" />
+                <FolderInput class="h-4 w-4 mr-1" />
                 {t('Move to')}
               </Button>
             )}
@@ -62,9 +62,9 @@ export const AutomationsSelectionBar = ({
                 disabled={isExporting || !hasMovableOrExportableItems}
               >
                 {isExporting ? (
-                  <LoadingSpinner className="size-4 mr-2" />
+                  <LoadingSpinner class="size-4 mr-2" />
                 ) : (
-                  <Download className="size-4 mr-2" />
+                  <Download class="size-4 mr-2" />
                 )}
                 {isExporting ? t('Exporting') : t('Export')}
               </Button>
@@ -82,10 +82,10 @@ export const AutomationsSelectionBar = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-destructive hover:text-destructive"
+                class="text-destructive hover:text-destructive"
                 disabled={isDeleting}
               >
-                <Trash2 className="h-4 w-4 mr-1" />
+                <Trash2 class="h-4 w-4 mr-1" />
                 {t('Delete')}
               </Button>
             </ConfirmationDeleteDialog>
@@ -96,10 +96,10 @@ export const AutomationsSelectionBar = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              class="h-8 w-8"
               onClick={onClearSelection}
             >
-              <X className="h-4 w-4" />
+              <X class="h-4 w-4" />
             </Button>
           </div>
         </motion.div>

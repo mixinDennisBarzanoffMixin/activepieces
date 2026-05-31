@@ -7,7 +7,7 @@ import {
   PlatformBillingInformation,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { CircleHelp, Zap } from 'lucide-react';
+import { CircleHelp, Zap } from 'lucide-solid';
 
 import {
   Item,
@@ -65,7 +65,7 @@ export function ActiveFlowAddon({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <CircleHelp className="size-4 text-muted-foreground" />
+                <CircleHelp class="size-4 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent side="bottom">
                 {t(

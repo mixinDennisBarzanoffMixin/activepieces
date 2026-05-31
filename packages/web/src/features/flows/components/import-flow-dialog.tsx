@@ -5,14 +5,14 @@ import {
   UncategorizedFolderId,
   Template,
 } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from '@solidjs/router';
+import { createMutation } from '@tanstack/solid-query';
 import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
 import JSZip from 'jszip';
-import { TriangleAlert } from 'lucide-react';
-import React, { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { TriangleAlert } from 'lucide-solid';
+import { createSignal, JSX } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { useEmbedding } from '@/components/providers/embed-provider';
@@ -73,17 +73,17 @@ const readTemplateJson = async (
 };
 
 const ImportFlowDialog = (
-  props: ImportFlowDialogProps & { children: React.ReactNode },
+  props: ImportFlowDialogProps & { children: JSX.Element },
 ) => {
   const { capture } = useTelemetry();
   const { embedState } = useEmbedding();
-  const [templates, setTemplates] = useState<Template[]>([]);
+  const [templates, setTemplates] = createSignal<Template[]>([]);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [failedFiles, setFailedFiles] = useState<string[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(
+  let fileInputRef: HTMLInputElement | undefined;
+  const [errorMessage, setErrorMessage] = createSignal('');
+  const [isDialogOpen, setIsDialogOpen] = createSignal(false);
+  const [failedFiles, setFailedFiles] = createSignal<string[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = createSignal<string | undefined>(
     props.insideBuilder ? undefined : props.folderId,
   );
 
@@ -91,7 +91,7 @@ const ImportFlowDialog = (
 
   const navigate = useNavigate();
 
-  const { mutate: importFlows, isPending } = useMutation<
+  const { mutate: importFlows, isPending } = createMutation<
     PopulatedFlow[],
     Error,
     Template[]
@@ -109,8 +109,8 @@ const ImportFlowDialog = (
       }
 
       const folder =
-        !isNil(selectedFolderId) && selectedFolderId !== UncategorizedFolderId
-          ? await foldersApi.get(selectedFolderId)
+        !isNil(selectedFolderId()) && selectedFolderId() !== UncategorizedFolderId
+          ? await foldersApi.get(selectedFolderId()!)
           : undefined;
 
       return flowHooks.importFlowsFromTemplates({
@@ -165,23 +165,21 @@ const ImportFlowDialog = (
   });
 
   const handleSubmit = async () => {
-    if (templates.length === 0) {
+    if (templates().length === 0) {
       setErrorMessage(
-        failedFiles.length
+        failedFiles().length
           ? t(
               'No valid templates found. The following files failed to import: ',
-            ) + failedFiles.join(', ')
+            ) + failedFiles().join(', ')
           : t('Please select a file first'),
       );
     } else {
       setErrorMessage('');
-      importFlows(templates);
+      importFlows(templates());
     }
   };
 
-  const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileChange = async (event: Event<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files?.[0]) return;
 
@@ -235,7 +233,7 @@ const ImportFlowDialog = (
       }}
     >
       <DialogTrigger asChild>{props.children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent class="sm:max-w-[500px]">
         <DialogHeader>
           <div className="flex flex-col gap-3">
             <DialogTitle>{t('Import Flow')}</DialogTitle>
@@ -244,7 +242,7 @@ const ImportFlowDialog = (
         <div className="flex flex-col gap-4">
           {props.insideBuilder && (
             <Alert variant="warning">
-              <TriangleAlert className="h-4 w-4" />
+              <TriangleAlert class="h-4 w-4" />
               <AlertDescription>
                 {t('Importing a flow will overwrite your current one.')}
               </AlertDescription>
@@ -274,11 +272,11 @@ const ImportFlowDialog = (
               ) : (
                 <Select
                   onValueChange={(value) => setSelectedFolderId(value)}
-                  defaultValue={selectedFolderId}
+                  defaultValue={selectedFolderId()}
                 >
                   <SelectTrigger>
                     <SelectValue
-                      defaultValue={selectedFolderId}
+                      defaultValue={selectedFolderId()}
                       placeholder={t('Select a folder')}
                     />
                   </SelectTrigger>
@@ -300,9 +298,9 @@ const ImportFlowDialog = (
             </div>
           )}
         </div>
-        {errorMessage && (
-          <FormError formMessageId="import-flow-error-message" className="mt-4">
-            {errorMessage}
+        {errorMessage() && (
+          <FormError formMessageId="import-flow-error-message" class="mt-4">
+            {errorMessage()}
           </FormError>
         )}
         <DialogFooter>

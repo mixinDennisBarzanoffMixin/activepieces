@@ -1,3 +1,4 @@
+import { useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
 import {
   Database,
@@ -6,9 +7,9 @@ import {
   ShieldCheck,
   Sparkles,
   Zap,
-} from 'lucide-react';
+} from 'lucide-solid';
 import { motion } from 'motion/react';
-import { useNavigate } from 'react-router-dom';
+import { For } from 'solid-js';
 
 import { PromptSuggestion } from '@/components/prompt-kit/prompt-suggestion';
 import { Button } from '@/components/ui/button';
@@ -21,12 +22,12 @@ export function EmptyState({ incognito }: { incognito: boolean }) {
 
   return (
     <motion.div
-      className="flex items-center gap-3"
+      class="flex items-center gap-3"
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-      <Sparkles className="h-7 w-7 text-primary shrink-0" />
+      <Sparkles class="h-7 w-7 text-primary shrink-0" />
       <h2
         className="text-[28px] font-bold leading-tight bg-[length:200%_100%] animate-[shimmer_3s_ease-in-out_infinite] bg-gradient-to-r from-foreground via-primary to-foreground bg-clip-text text-transparent"
         style={{ textWrap: 'balance' }}
@@ -51,19 +52,21 @@ export function SuggestionCards({
 
   return (
     <div className="flex flex-wrap justify-center gap-2 mt-3">
-      {suggestions.map((s, i) => (
-        <motion.div
-          key={s.text}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 + i * 0.08 }}
-        >
-          <PromptSuggestion onClick={() => onSend(s.text)}>
-            <s.icon className="h-3.5 w-3.5" />
-            {s.text}
-          </PromptSuggestion>
-        </motion.div>
-      ))}
+      <For each={suggestions}>
+        {(s, i) => (
+          <motion.div
+            key={s.text}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 + i * 0.08 }}
+          >
+            <PromptSuggestion onClick={() => onSend(s.text)}>
+              <s.icon class="h-3.5 w-3.5" />
+              {s.text}
+            </PromptSuggestion>
+          </motion.div>
+        )}
+      </For>
     </div>
   );
 }
@@ -74,7 +77,7 @@ export function SetupRequiredState() {
   return (
     <div className="flex flex-col items-center justify-center h-full text-center gap-4 py-20 flex-1 min-w-0">
       <div className="flex items-center justify-center h-16 w-16 rounded-2xl bg-muted">
-        <Settings className="h-8 w-8 text-muted-foreground" />
+        <Settings class="h-8 w-8 text-muted-foreground" />
       </div>
       <div className="space-y-2">
         <h2 className="text-xl font-semibold">
@@ -86,8 +89,8 @@ export function SetupRequiredState() {
           )}
         </p>
       </div>
-      <Button onClick={() => navigate('/platform/setup/ai')} className="gap-2">
-        <Settings className="h-4 w-4" />
+      <Button onClick={() => navigate('/platform/setup/ai')} class="gap-2">
+        <Settings class="h-4 w-4" />
         {t('Go to AI Settings')}
       </Button>
     </div>
@@ -98,12 +101,12 @@ export function MessageSkeletons() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300 py-4">
       <div className="flex justify-end">
-        <Skeleton className="h-10 w-48 rounded-2xl" />
+        <Skeleton class="h-10 w-48 rounded-2xl" />
       </div>
       <div className="space-y-2">
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-1/2" />
+        <Skeleton class="h-4 w-3/4" />
+        <Skeleton class="h-4 w-full" />
+        <Skeleton class="h-4 w-1/2" />
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { apId } from '@activepieces/shared';
-import { StoreApi } from 'zustand';
+import type { StoreApi } from 'zustand/vanilla';
 
 import { ChatDrawerSource } from '@/app/builder/types';
 import { Messages } from '@/features/chat';

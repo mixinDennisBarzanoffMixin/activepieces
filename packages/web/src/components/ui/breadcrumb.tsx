@@ -1,14 +1,13 @@
-import { ChevronRight, MoreHorizontal } from 'lucide-react';
-import { Slot } from 'radix-ui';
-import * as React from 'react';
+import { ChevronRight, MoreHorizontal } from 'lucide-solid';
 
+import { Slot } from '@/components/ui/slot';
 import { cn } from '@/lib/utils';
 
-function Breadcrumb({ ...props }: React.ComponentProps<'nav'>) {
+function Breadcrumb({ ...props }: JSX.IntrinsicElements['nav']) {
   return <nav aria-label="breadcrumb" data-slot="breadcrumb" {...props} />;
 }
 
-function BreadcrumbList({ className, ...props }: React.ComponentProps<'ol'>) {
+function BreadcrumbList({ className, ...props }: JSX.IntrinsicElements['ol']) {
   return (
     <ol
       data-slot="breadcrumb-list"
@@ -21,7 +20,7 @@ function BreadcrumbList({ className, ...props }: React.ComponentProps<'ol'>) {
   );
 }
 
-function BreadcrumbItem({ className, ...props }: React.ComponentProps<'li'>) {
+function BreadcrumbItem({ className, ...props }: JSX.IntrinsicElements['li']) {
   return (
     <li
       data-slot="breadcrumb-item"
@@ -35,7 +34,7 @@ function BreadcrumbLink({
   asChild,
   className,
   ...props
-}: React.ComponentProps<'a'> & {
+}: JSX.IntrinsicElements['a'] & {
   asChild?: boolean;
 }) {
   const Comp = asChild ? Slot.Root : 'a';
@@ -43,13 +42,16 @@ function BreadcrumbLink({
   return (
     <Comp
       data-slot="breadcrumb-link"
-      className={cn('transition-colors hover:text-foreground', className)}
+      class={cn('transition-colors hover:text-foreground', className)}
       {...props}
     />
   );
 }
 
-function BreadcrumbPage({ className, ...props }: React.ComponentProps<'span'>) {
+function BreadcrumbPage({
+  className,
+  ...props
+}: JSX.IntrinsicElements['span']) {
   return (
     <span
       data-slot="breadcrumb-page"
@@ -66,7 +68,7 @@ function BreadcrumbSeparator({
   children,
   className,
   ...props
-}: React.ComponentProps<'li'>) {
+}: JSX.IntrinsicElements['li']) {
   return (
     <li
       data-slot="breadcrumb-separator"
@@ -83,7 +85,7 @@ function BreadcrumbSeparator({
 function BreadcrumbEllipsis({
   className,
   ...props
-}: React.ComponentProps<'span'>) {
+}: JSX.IntrinsicElements['span']) {
   return (
     <span
       data-slot="breadcrumb-ellipsis"
@@ -92,7 +94,7 @@ function BreadcrumbEllipsis({
       className={cn('flex size-9 items-center justify-center', className)}
       {...props}
     >
-      <MoreHorizontal className="size-4" />
+      <MoreHorizontal class="size-4" />
       <span className="sr-only">More</span>
     </span>
   );

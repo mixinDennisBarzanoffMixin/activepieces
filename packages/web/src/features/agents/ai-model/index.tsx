@@ -1,7 +1,7 @@
 import { AIProviderName } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
-import * as React from 'react';
+import { Check, ChevronsUpDown, Loader2 } from 'lucide-solid';
+import { createSignal, createEffect, createMemo } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -53,12 +53,12 @@ export function AIModelSelector({
   disabled = false,
   onChange,
 }: AIModelSelectorProps) {
-  const [providerOpen, setProviderOpen] = React.useState(false);
-  const [modelOpen, setModelOpen] = React.useState(false);
-  const [selectedProvider, setSelectedProvider] = React.useState<
+  const [providerOpen, setProviderOpen] = createSignal(false);
+  const [modelOpen, setModelOpen] = createSignal(false);
+  const [selectedProvider, setSelectedProvider] = createSignal<
     AIProviderName | undefined
   >(defaultProvider);
-  const [selectedModel, setSelectedModel] = React.useState<string | undefined>(
+  const [selectedModel, setSelectedModel] = createSignal<string | undefined>(
     defaultModel,
   );
 
@@ -67,33 +67,29 @@ export function AIModelSelector({
   const { data: models = [], isLoading: modelsLoading } =
     aiModelHooks.useGetModelsForProvider(selectedProvider);
 
-  const getProviderLogo = React.useCallback((providerName: string) => {
+  const getProviderLogo = (providerName: string) => {
     return ALL_PROVIDERS.find((p) => p.provider === providerName)?.logoUrl;
-  }, []);
+  };
 
-  const getProviderName = React.useCallback(
-    (providerName: string) => {
-      return (
-        providers.find((p) => p.provider === providerName)?.name ?? providerName
-      );
-    },
-    [providers],
+  const getProviderName = (providerName: string) => {
+    return (
+      providers.find((p) => p.provider === providerName)?.name ?? providerName
+    );
+  };
+
+  const activepiecesProvider = createMemo(() =>
+    providers.find((p) => p.provider === AIProviderName.ACTIVEPIECES),
   );
 
-  const activepiecesProvider = React.useMemo(
-    () => providers.find((p) => p.provider === AIProviderName.ACTIVEPIECES),
-    [providers],
-  );
-
-  const sortedProviders = React.useMemo(() => {
+  const sortedProviders = createMemo(() => {
     return [...providers].sort((a, b) => {
       if (a.provider === AIProviderName.ACTIVEPIECES) return -1;
       if (b.provider === AIProviderName.ACTIVEPIECES) return 1;
       return 0;
     });
-  }, [providers]);
+  });
 
-  React.useEffect(() => {
+  createEffect(() => {
     if (!selectedProvider && !providersLoading && providers.length > 0) {
       const preferred =
         activepiecesProvider?.provider || providers[0]?.provider;
@@ -101,9 +97,9 @@ export function AIModelSelector({
         setSelectedProvider(preferred as AIProviderName);
       }
     }
-  }, [providers, providersLoading, selectedProvider, activepiecesProvider]);
+  });
 
-  React.useEffect(() => {
+  createEffect(() => {
     if (
       selectedProvider &&
       models.length > 0 &&
@@ -114,9 +110,9 @@ export function AIModelSelector({
       setSelectedModel(firstModel);
       onChange({ provider: selectedProvider, model: firstModel });
     }
-  }, [models, modelsLoading, selectedProvider, selectedModel, onChange]);
+  });
 
-  React.useEffect(() => {
+  createEffect(() => {
     if (
       selectedModel &&
       models.length > 0 &&
@@ -126,7 +122,7 @@ export function AIModelSelector({
       setSelectedModel(fallback);
       onChange({ provider: selectedProvider, model: fallback });
     }
-  }, [models, selectedModel, selectedProvider, onChange]);
+  });
 
   const handleProviderChange = (provider: AIProviderName) => {
     setSelectedProvider(provider);
@@ -152,12 +148,12 @@ export function AIModelSelector({
               variant="outline"
               role="combobox"
               aria-expanded={providerOpen}
-              className="flex-1 justify-between border-0 rounded-none focus-visible:ring-1 focus-visible:ring-offset-0 max-w-72 h-auto"
+              class="flex-1 justify-between border-0 rounded-none focus-visible:ring-1 focus-visible:ring-offset-0 max-w-72 h-auto"
               disabled={disabled || providersLoading || providers.length === 0}
             >
               {providersLoading ? (
                 <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 class="h-4 w-4 animate-spin" />
                   <span>{t('Loading...')}</span>
                 </div>
               ) : selectedProvider ? (
@@ -180,17 +176,17 @@ export function AIModelSelector({
                     : t('Select provider')}
                 </span>
               )}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="p-0 w-[var(--radix-popover-trigger-width)]"
+            class="p-0 w-[var(--radix-popover-trigger-width)]"
             align="start"
           >
             <Command>
               <CommandInput placeholder={t('Search providers...')} />
               <CommandEmpty>{t('No provider found.')}</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
+              <CommandGroup class="max-h-64 overflow-auto">
                 {sortedProviders.map((provider) => (
                   <CommandItem
                     key={provider.id}
@@ -198,7 +194,7 @@ export function AIModelSelector({
                     onSelect={() =>
                       handleProviderChange(provider.provider as AIProviderName)
                     }
-                    className="cursor-pointer"
+                    class="cursor-pointer"
                   >
                     <div className="flex items-center gap-2 flex-1">
                       {getProviderLogo(provider.provider) && (
@@ -211,7 +207,7 @@ export function AIModelSelector({
                       <span>{provider.name}</span>
                     </div>
                     <Check
-                      className={cn(
+                      class={cn(
                         'ml-auto h-4 w-4',
                         selectedProvider === provider.provider
                           ? 'opacity-100'
@@ -233,7 +229,7 @@ export function AIModelSelector({
               variant="outline"
               role="combobox"
               aria-expanded={modelOpen}
-              className="flex-1 justify-between border-0 rounded-none focus-visible:ring-1 focus-visible:ring-offset-0 min-w-32 h-auto"
+              class="flex-1 justify-between border-0 rounded-none focus-visible:ring-1 focus-visible:ring-offset-0 min-w-32 h-auto"
               disabled={
                 disabled ||
                 !selectedProvider ||
@@ -243,7 +239,7 @@ export function AIModelSelector({
             >
               {modelsLoading ? (
                 <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 class="h-4 w-4 animate-spin" />
                   <span>{t('Loading...')}</span>
                 </div>
               ) : selectedModel ? (
@@ -260,27 +256,27 @@ export function AIModelSelector({
                     : t('Select model')}
                 </span>
               )}
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
           <PopoverContent
-            className="p-0 w-[var(--radix-popover-trigger-width)]"
+            class="p-0 w-[var(--radix-popover-trigger-width)]"
             align="start"
           >
             <Command>
               <CommandInput placeholder={t('Search models...')} />
               <CommandEmpty>{t('No model found.')}</CommandEmpty>
-              <CommandGroup className="max-h-64 overflow-auto">
+              <CommandGroup class="max-h-64 overflow-auto">
                 {models.map((model) => (
                   <CommandItem
                     key={model.id}
                     value={model.id}
                     onSelect={() => handleModelChange(model.id)}
-                    className="cursor-pointer"
+                    class="cursor-pointer"
                   >
                     <span className="flex-1">{model.name}</span>
                     <Check
-                      className={cn(
+                      class={cn(
                         'ml-auto h-4 w-4',
                         selectedModel === model.id
                           ? 'opacity-100'

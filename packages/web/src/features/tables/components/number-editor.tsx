@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -6,20 +6,20 @@ import { useCellContext } from './cell-context';
 
 const NumberEditor = () => {
   const { value, handleCellChange, setIsEditing, isEditing } = useCellContext();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState(value);
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const inputRef = null;
+  const [inputValue, setInputValue] = createSignal(value);
+  const handleChange = (event: Event) => {
     const newValue = event.target.value;
     setInputValue(newValue);
   };
 
-  useEffect(() => {
+  createEffect(() => {
     if (isEditing) {
       inputRef.current?.focus();
     } else {
       setInputValue(value);
     }
-  }, [isEditing]);
+  });
 
   return (
     <div className="h-full relative w-full">

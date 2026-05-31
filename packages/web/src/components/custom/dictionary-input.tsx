@@ -1,6 +1,5 @@
 import { t } from 'i18next';
-import { Plus, TrashIcon } from 'lucide-react';
-import { useRef } from 'react';
+import { Plus, TrashIcon } from 'lucide-solid';
 
 import { TextWithIcon } from '@/components/custom/text-with-icon';
 import { Button } from '@/components/ui/button';
@@ -22,18 +21,18 @@ export const DictionaryInput = ({
   keyPlaceholder,
   valuePlaceholder,
 }: DictionaryInputProps) => {
-  const id = useRef(1);
+  let id = 1;
   const valuesArray = Object.entries(values ?? {}).map((el) => {
-    id.current++;
+    id++;
     return {
       key: el[0],
       value: el[1],
-      id: `${id.current}`,
+      id: `${id}`,
     };
   });
-  const valuesArrayRef = useRef(valuesArray);
+  let valuesArrayRef = valuesArray;
   // To allow keys that have the same prefix to be added in any order
-  const valuesArrayRefUnique = valuesArrayRef.current
+  const valuesArrayRefUnique = valuesArrayRef
     .toReversed()
     .filter(
       (el, index, self) => self.findIndex((t) => t.key === el.key) === index,
@@ -50,21 +49,18 @@ export const DictionaryInput = ({
     }, false);
 
   if (haveValuesChangedFromOutside) {
-    valuesArrayRef.current = valuesArray;
+    valuesArrayRef = valuesArray;
   }
 
   const remove = (index: number) => {
-    const newValues = valuesArrayRef.current.filter((_, i) => i !== index);
-    valuesArrayRef.current = newValues;
+    const newValues = valuesArrayRef.filter((_, i) => i !== index);
+    valuesArrayRef = newValues;
     updateValue(newValues);
   };
   const add = () => {
-    id.current++;
-    const newValues = [
-      ...valuesArrayRef.current,
-      { key: '', value: '', id: `${id.current}` },
-    ];
-    valuesArrayRef.current = newValues;
+    id++;
+    const newValues = [...valuesArrayRef, { key: '', value: '', id: `${id}` }];
+    valuesArrayRef = newValues;
     updateValue(newValues);
   };
 
@@ -73,14 +69,14 @@ export const DictionaryInput = ({
     value: string | undefined,
     key: string | undefined,
   ) => {
-    const newValues = [...valuesArrayRef.current];
+    const newValues = [...valuesArrayRef];
     if (value !== undefined) {
       newValues[index].value = value;
     }
     if (key !== undefined) {
       newValues[index].key = key;
     }
-    valuesArrayRef.current = newValues;
+    valuesArrayRef = newValues;
     updateValue(newValues);
   };
 
@@ -88,58 +84,59 @@ export const DictionaryInput = ({
     const value = items.reduce((acc, current) => {
       return { ...acc, [current.key]: current.value };
     }, {});
-    // Wrap in event-like object so RHF's field.onChange correctly extracts
-    // target.value instead of treating the record itself as an event.
-    // See: https://github.com/react-hook-form/react-hook-form/issues/13078
     onChange({ target: { value } } as unknown as Record<string, string>);
   };
 
   return (
     <div className={cn('flex w-full flex-col gap-2')}>
-      {valuesArrayRef.current.map(({ key, value, id }, index) => (
-        <div
-          key={'dictionary-input-' + id}
-          className="flex items-center gap-3 items-center"
-        >
-          <Input
-            value={key}
-            disabled={disabled}
-            placeholder={keyPlaceholder}
-            className={cn('basis-[50%] max-w-[50%]', keyInputClassName)}
-            onChange={(e) => onChangeValue(index, undefined, e.target.value)}
-          />
-          <div className="basis-[50%] max-w-[50%]">
-            {renderValueInput ? (
-              renderValueInput({
-                value,
-                onChange: (v) => onChangeValue(index, v, undefined),
-                disabled,
-              })
-            ) : (
-              <Input
-                value={value}
-                disabled={disabled}
-                placeholder={valuePlaceholder}
-                onChange={(e) =>
-                  onChangeValue(index, e.target.value, undefined)
-                }
-              />
-            )}
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="size-8 shrink-0"
-            disabled={disabled}
-            onClick={() => remove(index)}
+      <For each={valuesArrayRef}>
+        {({ key, value, id }, index) => (
+          <div
+            key={'dictionary-input-' + id}
+            className="flex items-center gap-3 items-center"
           >
-            <TrashIcon className="size-4 text-destructive" aria-hidden="true" />
-            <span className="sr-only">{t('Remove')}</span>
-          </Button>
-        </div>
-      ))}
+            <Input
+              value={key}
+              disabled={disabled}
+              placeholder={keyPlaceholder}
+              class={cn('basis-[50%] max-w-[50%]', keyInputClassName)}
+              onChange={(e) =>
+                onChangeValue(index(), undefined, e.target.value)
+              }
+            />
+            <div className="basis-[50%] max-w-[50%]">
+              {renderValueInput ? (
+                renderValueInput({
+                  value,
+                  onChange: (v) => onChangeValue(index(), v, undefined),
+                  disabled,
+                })
+              ) : (
+                <Input
+                  value={value}
+                  disabled={disabled}
+                  placeholder={valuePlaceholder}
+                  onChange={(e) =>
+                    onChangeValue(index(), e.target.value, undefined)
+                  }
+                />
+              )}
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              class="size-8 shrink-0"
+              disabled={disabled}
+              onClick={() => remove(index())}
+            >
+              <TrashIcon class="size-4 text-destructive" aria-hidden="true" />
+              <span className="sr-only">{t('Remove')}</span>
+            </Button>
+          </div>
+        )}
+      </For>
       <Button
         variant="outline"
         size="sm"
@@ -164,5 +161,5 @@ export type DictionaryInputProps = {
     value: string;
     onChange: (v: string) => void;
     disabled?: boolean;
-  }) => React.ReactNode;
+  }) => any;
 };

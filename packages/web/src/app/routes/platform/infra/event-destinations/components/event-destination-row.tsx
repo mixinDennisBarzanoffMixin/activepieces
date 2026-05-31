@@ -1,6 +1,7 @@
 import { EventDestination } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ExternalLink, Globe, Workflow } from 'lucide-react';
+import { ExternalLink, Globe, Workflow } from 'lucide-solid';
+import { For, Show } from 'solid-js';
 
 import {
   Item,
@@ -53,7 +54,9 @@ export const EventDestinationRow = ({
         <Tooltip>
           <TooltipTrigger asChild>
             <span tabIndex={0} className="inline-flex">
-              {isInternal ? <Workflow /> : <Globe />}
+              <Show when={isInternal} fallback={<Globe />}>
+                <Workflow />
+              </Show>
             </span>
           </TooltipTrigger>
           <TooltipContent>
@@ -61,23 +64,25 @@ export const EventDestinationRow = ({
           </TooltipContent>
         </Tooltip>
       </ItemMedia>
-      <ItemContent className="min-w-0">
+      <ItemContent class="min-w-0">
         <TextWithTooltip tooltipMessage={title}>
           <ItemTitle
-            className={isInternal ? 'truncate' : 'truncate font-mono text-xs'}
+            class={isInternal ? 'truncate' : 'truncate font-mono text-xs'}
           >
             {title}
           </ItemTitle>
         </TextWithTooltip>
-        <ItemDescription className="text-xs !flex flex-wrap items-center gap-x-1 gap-y-2 overflow-visible [text-wrap:unset] mt-1">
+        <ItemDescription class="text-xs !flex flex-wrap items-center gap-x-1 gap-y-2 overflow-visible [text-wrap:unset] mt-1">
           <span className="text-muted-foreground shrink-0 mr-1.5">
             {t('Events')}
           </span>
-          {destination.events.map((event) => (
-            <Badge key={event} variant="outline" className="text-xs">
-              {eventLabels[event]?.label ?? event}
-            </Badge>
-          ))}
+          <For each={destination.events}>
+            {(event) => (
+              <Badge key={event} variant="outline" class="text-xs">
+                {eventLabels[event]?.label ?? event}
+              </Badge>
+            )}
+          </For>
         </ItemDescription>
         <p className="text-xs text-muted-foreground mt-2">
           {t('Created')}{' '}
@@ -85,7 +90,7 @@ export const EventDestinationRow = ({
         </p>
       </ItemContent>
       <ItemActions>
-        {isInternal && flowId && (
+        <Show when={isInternal && flowId}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -99,12 +104,12 @@ export const EventDestinationRow = ({
                   )
                 }
               >
-                <ExternalLink className="size-4" />
+                <ExternalLink class="size-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>{t('View flow')}</TooltipContent>
           </Tooltip>
-        )}
+        </Show>
         <EventDestinationActions destination={destination} />
       </ItemActions>
     </Item>

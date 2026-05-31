@@ -1,9 +1,9 @@
 import { AgentTool, isNil, mcpToolNameUtils } from '@activepieces/shared';
+import { useDebounce } from '@/lib/debounce';
 import Fuse from 'fuse.js';
 import { t } from 'i18next';
-import { Search } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
-import { useDebounce } from 'use-debounce';
+import { Search } from 'lucide-solid';
+import React, { createMemo, createSignal } from 'solid-js';
 
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -14,19 +14,16 @@ interface PieceActionsDialogProps {
   tools: AgentTool[];
 }
 
-export const PieceActionsList: React.FC<PieceActionsDialogProps> = ({
-  tools,
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
+export const PieceActionsList = ({ tools }) => {
+  const [searchQuery, setSearchQuery] = createSignal('');
   const [debouncedQuery] = useDebounce(searchQuery, 200);
   const { handleActionSelect, selectedPiece } = usePieceToolsDialogStore();
 
-  const selectedActionNames = useMemo(
+  const selectedActionNames = createMemo(
     () => new Set(tools.map((tool) => tool.toolName)),
-    [tools],
   );
 
-  const fuse = useMemo(() => {
+  const fuse = createMemo(() => {
     if (isNil(selectedPiece) || isNil(selectedPiece.suggestedActions))
       return null;
 
@@ -38,29 +35,29 @@ export const PieceActionsList: React.FC<PieceActionsDialogProps> = ({
       threshold: 0.35,
       ignoreLocation: true,
     });
-  }, [selectedPiece?.suggestedActions]);
+  });
 
-  const filteredActions = useMemo(() => {
+  const filteredActions = createMemo(() => {
     if (!debouncedQuery.trim() || isNil(fuse))
       return selectedPiece?.suggestedActions || [];
 
     return fuse.search(debouncedQuery).map((r) => r.item);
-  }, [debouncedQuery, fuse, selectedPiece?.suggestedActions]);
+  });
 
   if (isNil(selectedPiece)) {
     return <p>{t('No app is selected')}</p>;
   }
 
   return (
-    <ScrollArea className="overflow-y-auto">
+    <ScrollArea class="overflow-y-auto">
       <div className="px-4 py-3 border-b">
         <div className="relative border rounded-sm">
-          <Search className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
+          <Search class="absolute left-2 top-2.5 size-4 text-muted-foreground" />
           <Input
             placeholder={t('Search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 shadow-none border-none"
+            class="pl-9 shadow-none border-none"
           />
         </div>
       </div>

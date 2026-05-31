@@ -1,10 +1,11 @@
 import { ApFlagId } from '@activepieces/shared';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Workflow } from 'lucide-react';
-import { useMemo } from 'react';
+import { Workflow } from 'lucide-solid';
+import { createMemo, For, Show } from 'solid-js';
 
 import { CenteredPage } from '@/app/components/centered-page';
+import { queryClient } from '@/app/query-client';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { ItemGroup } from '@/components/custom/item';
@@ -30,49 +31,46 @@ const EventDestinationsPage = () => {
   );
   const eventLabels = useEventLabels();
 
-  const parsedDestinations = useMemo(
-    () =>
-      destinations.map((destination) => ({
-        destination,
-        parsed: parseFlowIdFromUrl({
-          url: destination.url,
-          webhookPrefixUrl: webhookPrefixUrl ?? null,
-        }),
-      })),
-    [destinations, webhookPrefixUrl],
-  );
-
-  const flowIds = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          parsedDestinations
-            .map(({ parsed }) =>
-              parsed.kind === 'flow' ? parsed.flowId : null,
-            )
-            .filter((id): id is string => id !== null),
-        ),
-      ),
-    [parsedDestinations],
-  );
-
-  const flowQueries = useQueries({
-    queries: flowIds.map((flowId) => ({
-      queryKey: ['flow-display-name', flowId],
-      queryFn: () => flowsApi.get(flowId),
+  const parsedDestinations = createMemo(() =>
+    destinations.map((destination) => ({
+      destination,
+      parsed: parseFlowIdFromUrl({
+        url: destination.url,
+        webhookPrefixUrl: webhookPrefixUrl ?? null,
+      }),
     })),
-  });
+  );
 
-  const flowDisplayNameById = useMemo(() => {
+  const flowIds = createMemo(() =>
+    Array.from(
+      new Set(
+        parsedDestinations()
+          .map(({ parsed }) => (parsed.kind === 'flow' ? parsed.flowId : null))
+          .filter((id): id is string => id !== null),
+      ),
+    ),
+  );
+
+  const flowQueries = useQueries(
+    () => ({
+      queries: flowIds().map((flowId) => ({
+        queryKey: ['flow-display-name', flowId],
+        queryFn: () => flowsApi.get(flowId),
+      })),
+    }),
+    () => queryClient,
+  );
+
+  const flowDisplayNameById = createMemo(() => {
     const map = new Map<string, string>();
     flowQueries.forEach((query, index) => {
       const flow = query.data;
       if (flow) {
-        map.set(flowIds[index], flow.version.displayName);
+        map.set(flowIds()[index], flow.version.displayName);
       }
     });
     return map;
-  }, [flowQueries, flowIds]);
+  });
 
   return (
     <LockedFeatureGuard
@@ -96,36 +94,38 @@ const EventDestinationsPage = () => {
           </EventDestinationDialog>
         }
       >
-        {isLoading && (
-          <SkeletonList numberOfItems={3} className="w-full h-[72px]" />
-        )}
+        <Show when={isLoading}>
+          <SkeletonList numberOfItems={3} class="w-full h-[72px]" />
+        </Show>
 
-        {!isLoading && parsedDestinations.length === 0 && (
+        <Show when={!isLoading && parsedDestinations.length === 0}>
           <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
-            <Workflow className="size-10" />
+            <Workflow class="size-10" />
             <p className="text-sm">
               {t('No destinations yet. Create one to get started.')}
             </p>
           </div>
-        )}
+        </Show>
 
-        {!isLoading && parsedDestinations.length > 0 && (
-          <ItemGroup className="gap-2">
-            {parsedDestinations.map(({ destination, parsed }) => (
-              <EventDestinationRow
-                key={destination.id}
-                destination={destination}
-                parsed={parsed}
-                flowDisplayName={
-                  parsed.kind === 'flow'
-                    ? flowDisplayNameById.get(parsed.flowId)
-                    : undefined
-                }
-                eventLabels={eventLabels}
-              />
-            ))}
+        <Show when={!isLoading && parsedDestinations.length > 0}>
+          <ItemGroup class="gap-2">
+            <For each={parsedDestinations}>
+              {({ destination, parsed }) => (
+                <EventDestinationRow
+                  key={destination.id}
+                  destination={destination}
+                  parsed={parsed}
+                  flowDisplayName={
+                    parsed.kind === 'flow'
+                      ? flowDisplayNameById.get(parsed.flowId)
+                      : undefined
+                  }
+                  eventLabels={eventLabels}
+                />
+              )}
+            </For>
           </ItemGroup>
-        )}
+        </Show>
       </CenteredPage>
     </LockedFeatureGuard>
   );

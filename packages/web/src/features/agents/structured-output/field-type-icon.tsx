@@ -3,7 +3,7 @@ import {
   Type as TextIcon,
   Hash as NumberIcon,
   CheckSquare as BooleanIcon,
-} from 'lucide-react';
+} from 'lucide-solid';
 
 interface FieldTypeIconProps {
   type: AgentOutputFieldType;
@@ -16,11 +16,11 @@ export const FieldTypeIcon = ({
 }: FieldTypeIconProps) => {
   switch (type) {
     case AgentOutputFieldType.TEXT:
-      return <TextIcon className={className} />;
+      return <TextIcon class={className} />;
     case AgentOutputFieldType.NUMBER:
-      return <NumberIcon className={className} />;
+      return <NumberIcon class={className} />;
     case AgentOutputFieldType.BOOLEAN:
-      return <BooleanIcon className={className} />;
+      return <BooleanIcon class={className} />;
     default:
       return null;
   }

@@ -6,7 +6,7 @@ import {
   Permission,
   PushGitRepoRequest,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 
 import { useAuthorization } from '@/hooks/authorization-hooks';
 import { platformHooks } from '@/hooks/platform-hooks';
@@ -16,12 +16,12 @@ import { gitSyncApi } from '../api/git-sync-api';
 
 export const gitSyncHooks = {
   useGitSync: (projectId: string, enabled: boolean) => {
-    const query = useQuery({
+    const query = createQuery(() => ({
       queryKey: ['git-sync', projectId],
       queryFn: () => gitSyncApi.get(projectId),
       staleTime: Infinity,
       enabled: enabled,
-    });
+    }));
     return {
       gitSync: query.data,
       isLoading: query.isLoading,
@@ -48,7 +48,7 @@ export const gitSyncHooks = {
 
 export const gitSyncMutations = {
   usePushToGit: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async ({
         gitSyncId,
         request,
@@ -59,7 +59,7 @@ export const gitSyncMutations = {
         await gitSyncApi.push(gitSyncId, request);
       },
       onSuccess,
-    });
+    }));
   },
   useConfigureGitSync: ({
     onSuccess,
@@ -68,20 +68,20 @@ export const gitSyncMutations = {
     onSuccess: (repo: GitRepo) => void;
     onError: (error: unknown) => void;
   }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (request: ConfigureRepoRequest): Promise<GitRepo> => {
         return gitSyncApi.configure(request);
       },
       onSuccess,
       onError,
-    });
+    }));
   },
   useDisconnectGitSync: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (gitSyncId: string) => {
         return gitSyncApi.disconnect(gitSyncId);
       },
       onSuccess,
-    });
+    }));
   },
 };

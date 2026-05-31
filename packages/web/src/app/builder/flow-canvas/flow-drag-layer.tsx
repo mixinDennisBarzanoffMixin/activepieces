@@ -15,12 +15,11 @@ import {
   useSensor,
   useSensors,
   PointerSensorOptions,
-} from '@dnd-kit/core';
-import { ReactFlowInstance, useReactFlow } from '@xyflow/react';
+} from '@/lib/solid-dnd-kit';
+import { ReactFlowInstance, useReactFlow } from './solid-flow-adapter';
 import { t } from 'i18next';
-import type { PointerEvent } from 'react';
-import { useCallback, useRef, useState } from 'react';
-import { toast } from 'sonner';
+import { Show, createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { BuilderState, useBuilderStateContext } from '../builder-hooks';
 import { NoteDragOverlayMode } from '../state/notes-state';
@@ -30,13 +29,14 @@ import StepDragOverlay from './nodes/step-node/step-drag-overlay';
 import { flowCanvasConsts } from './utils/consts';
 import { ApButtonData } from './utils/types';
 
-const FlowDragLayer = ({ children }: { children: React.ReactNode }) => {
+const FlowDragLayer = ({ children }: { children: any }) => {
   const reactFlow = useReactFlow();
-  const previousViewPortRef = useRef({ x: 0, y: 0, zoom: 1 });
-  const [cursorPositionOnActivation, setCursorPositionOnActivation] = useState<{
-    x: number;
-    y: number;
-  }>({ x: 0, y: 0 });
+  let previousViewPortRef: any | undefined;
+  const [cursorPositionOnActivation, setCursorPositionOnActivation] =
+    createSignal<{
+      x: number;
+      y: number;
+    }>({ x: 0, y: 0 });
   const [
     setActiveDraggingStep,
     applyOperation,
@@ -55,37 +55,36 @@ const FlowDragLayer = ({ children }: { children: React.ReactNode }) => {
     state.moveNote,
   ]);
 
-  const fixCursorSnapOffset = useCallback(
-    (args: Parameters<typeof rectIntersection>[0]) => {
-      // Bail out if keyboard activated
-      if (!args.pointerCoordinates) {
-        return rectIntersection(args);
-      }
-      const { x, y } = args.pointerCoordinates;
-      const { width, height } = args.collisionRect;
-      const currentViewport = reactFlow.getViewport();
-      const previousViewPort = previousViewPortRef.current;
-      const deltaViewport = {
-        x: previousViewPort.x - currentViewport.x,
-        y: previousViewPort.y - currentViewport.y,
-      };
-      const updated = {
-        ...args,
-        // The collision rectangle is broken when using snapCenterToCursor. Reset
-        // the collision rectangle based on pointer location and overlay size.
-        collisionRect: {
-          width,
-          height,
-          bottom: y + height / 2 + deltaViewport.y,
-          left: x - width / 2 + deltaViewport.x,
-          right: x + width / 2 + deltaViewport.x,
-          top: y - height / 2 + deltaViewport.y,
-        },
-      };
-      return rectIntersection(updated);
-    },
-    [reactFlow],
-  );
+  const fixCursorSnapOffset = (
+    args: Parameters<typeof rectIntersection>[0],
+  ) => {
+    // Bail out if keyboard activated
+    if (!args.pointerCoordinates) {
+      return rectIntersection(args);
+    }
+    const { x, y } = args.pointerCoordinates;
+    const { width, height } = args.collisionRect;
+    const currentViewport = reactFlow.getViewport();
+    const previousViewPort = previousViewPortRef;
+    const deltaViewport = {
+      x: previousViewPort.x - currentViewport.x,
+      y: previousViewPort.y - currentViewport.y,
+    };
+    const updated = {
+      ...args,
+      // The collision rectangle is broken when using snapCenterToCursor. Reset
+      // the collision rectangle based on pointer location and overlay size.
+      collisionRect: {
+        width,
+        height,
+        bottom: y + height / 2 + deltaViewport.y,
+        left: x - width / 2 + deltaViewport.x,
+        right: x + width / 2 + deltaViewport.x,
+        top: y - height / 2 + deltaViewport.y,
+      },
+    };
+    return rectIntersection(updated);
+  };
   const draggedStep = activeDraggingStep
     ? flowStructureUtil.getStep(activeDraggingStep, flowVersion.trigger)
     : undefined;
@@ -108,13 +107,13 @@ const FlowDragLayer = ({ children }: { children: React.ReactNode }) => {
         setDraggedNote(draggedNote, NoteDragOverlayMode.MOVE, offset);
       }
     }
-    previousViewPortRef.current = reactFlow.getViewport();
+    previousViewPortRef = reactFlow.getViewport();
   };
 
-  const handleDragCancel = useCallback(() => {
+  const handleDragCancel = () => {
     setActiveDraggingStep(null);
     setDraggedNote(null, null);
-  }, [setActiveDraggingStep, setDraggedNote]);
+  };
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveDraggingStep(null);
@@ -149,7 +148,9 @@ const FlowDragLayer = ({ children }: { children: React.ReactNode }) => {
         <DragOverlay dropAnimation={{ duration: 0 }}></DragOverlay>
       </DndContext>
 
-      {draggedStep && <StepDragOverlay step={draggedStep}></StepDragOverlay>}
+      <Show when={draggedStep()}>
+        <StepDragOverlay step={draggedStep}></StepDragOverlay>
+      </Show>
       <NoteDragOverlay />
     </>
   );

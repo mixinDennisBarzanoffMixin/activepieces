@@ -5,10 +5,10 @@ import {
   isNil,
   HumanInputFormResultTypes,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { AxiosError } from 'axios';
 import { nanoid } from 'nanoid';
-import { useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal, Show } from 'solid-js';
 
 import { ChatDrawerSource } from '@/app/builder/types';
 import { LoadingScreen } from '@/components/custom/loading-screen';
@@ -52,14 +52,14 @@ export function FlowChat({
   onAddMessage,
   onSetSessionId,
 }: FlowChatProps) {
-  const messagesRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const messagesRef = null;
+  let chatInputRef = null;
 
   const {
     data: chatUI,
     isLoading,
     isError: isLoadingError,
-  } = useQuery<ChatUIResponse | null, Error>({
+  } = createQuery<ChatUIResponse | null, Error>({
     queryKey: ['chat', flowId],
     queryFn: () =>
       humanInputApi.getChatUI(
@@ -84,22 +84,24 @@ export function FlowChat({
   };
 
   // Initialize chat session ID if not set and we have the callback
-  useEffect(() => {
+  createEffect(() => {
     if (!chatSessionId && onSetSessionId) {
       onSetSessionId(nanoid());
     }
-  }, [chatSessionId, onSetSessionId]);
+  });
 
-  const previousInputRef = useRef('');
-  const previousFilesRef = useRef<File[]>([]);
-  const [sendingError, setSendingError] = useState<ApErrorParams | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  let previousInputRef = '';
+  let previousFilesRef = [];
+  const [sendingError, setSendingError] = createSignal<ApErrorParams | null>(
+    null,
+  );
+  const [selectedImage, setSelectedImage] = createSignal<string | null>(null);
+  const [imageDialogOpen, setImageDialogOpen] = createSignal(false);
 
   const botName =
     chatUI?.props.botName ?? `${chatUI?.platformName ?? 'Activepieces'} Bot`;
 
-  const { mutate: sendMessage, isPending: isSending } = useMutation({
+  const { mutate: sendMessage, isPending: isSending } = createMutation({
     mutationFn: async ({
       isRetrying,
       message,
@@ -110,14 +112,12 @@ export function FlowChat({
       if (!flowId || !chatSessionId) return null;
 
       const savedInput = isRetrying
-        ? previousInputRef.current
+        ? previousInputRef
         : message?.textContent || '';
-      const savedFiles = isRetrying
-        ? previousFilesRef.current
-        : message?.files || [];
+      const savedFiles = isRetrying ? previousFilesRef : message?.files || [];
 
-      previousInputRef.current = savedInput;
-      previousFilesRef.current = savedFiles;
+      previousInputRef = savedInput;
+      previousFilesRef = savedFiles;
 
       if (!isRetrying && message && onAddMessage) {
         onAddMessage({
@@ -194,8 +194,8 @@ export function FlowChat({
       scrollToBottom();
 
       setTimeout(() => {
-        if (chatInputRef.current) {
-          chatInputRef.current.focus();
+        if (chatInputRef) {
+          chatInputRef.focus();
         }
       }, 100);
     },
@@ -208,7 +208,7 @@ export function FlowChat({
     },
   });
 
-  useEffect(scrollToBottom, [messages, isSending]);
+  createEffect(scrollToBottom);
 
   const handleSendMessage = (message: ChatMessage) => {
     onSendingMessage?.(message);
@@ -234,7 +234,24 @@ export function FlowChat({
         className,
       )}
     >
-      {messages.length > 0 ? (
+      <Show
+        when={messages.length > 0}
+        fallback={
+          <>
+            <Show when={showWelcomeMessage}>
+              <ChatIntro chatUI={chatUI} botName={botName} />
+            </Show>
+            <div className="w-full px-4 max-w-3xl absolute bottom-6">
+              <ChatInput
+                ref={(el) => (chatInputRef = el)}
+                onSendMessage={handleSendMessage}
+                disabled={isSending}
+                placeholder="Type your message here..."
+              />
+            </div>
+          </>
+        }
+      >
         <>
           <ChatMessageList
             messagesRef={messagesRef}
@@ -248,28 +265,14 @@ export function FlowChat({
           />
           <div className="w-full px-4 max-w-3xl">
             <ChatInput
-              ref={chatInputRef}
+              ref={(el) => (chatInputRef = el)}
               onSendMessage={handleSendMessage}
               disabled={isSending}
               placeholder="Type your message here..."
             />
           </div>
         </>
-      ) : (
-        <>
-          {showWelcomeMessage && (
-            <ChatIntro chatUI={chatUI} botName={botName} />
-          )}
-          <div className="w-full px-4 max-w-3xl absolute bottom-6">
-            <ChatInput
-              ref={chatInputRef}
-              onSendMessage={handleSendMessage}
-              disabled={isSending}
-              placeholder="Type your message here..."
-            />
-          </div>
-        </>
-      )}
+      </Show>
       <ImageDialog
         open={imageDialogOpen}
         onOpenChange={(open) => {

@@ -4,7 +4,8 @@ import {
   ProjectType,
   ProjectWithLimits,
 } from '@activepieces/shared';
-import { User } from 'lucide-react';
+import { User } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Avatar } from '@/components/ui/avatar';
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar-shadcn';
@@ -31,7 +32,7 @@ const ProjectSideBarItem = ({
   const projectAvatar = isNil(project.icon) ? null : project.type ===
     ProjectType.TEAM ? (
     <Avatar
-      className="size-[18px] text-sm font-bold flex items-center justify-center rounded-[4px]"
+      class="size-[18px] text-sm font-bold flex items-center justify-center rounded-[4px]"
       style={{
         backgroundColor: PROJECT_COLOR_PALETTE[project.icon.color].color,
         color: PROJECT_COLOR_PALETTE[project.icon.color].textColor,
@@ -40,7 +41,7 @@ const ProjectSideBarItem = ({
       <span className="scale-75">{projectName.charAt(0).toUpperCase()}</span>
     </Avatar>
   ) : (
-    <User className="size-4 " />
+    <User class="size-4 " />
   );
 
   const shouldShowTooltip = projectName.length > MAX_LENGTH_TO_NOT_SHOW_TOOLTIP;
@@ -51,16 +52,20 @@ const ProjectSideBarItem = ({
   return (
     <SidebarMenuButton
       onClick={() => handleProjectSelect(project.id)}
-      className={cn('', {
+      class={cn('', {
         'bg-sidebar-accent! ': isCurrentProject,
       })}
     >
       {projectAvatar}
-      {!isCollapsed && (
-        <span className={cn('truncate', { 'font-semibold': isCurrentProject })}>
-          {displayText}
-        </span>
-      )}
+      {
+        <Show when={!isCollapsed}>
+          <span
+            className={cn('truncate', { 'font-semibold': isCurrentProject })}
+          >
+            {displayText}
+          </span>
+        </Show>
+      }
     </SidebarMenuButton>
   );
 };

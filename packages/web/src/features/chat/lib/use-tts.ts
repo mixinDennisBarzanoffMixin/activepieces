@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal } from 'solid-js';
 
 const isTtsSupported =
   typeof window !== 'undefined' && 'speechSynthesis' in window;
 
 function useTts() {
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const [isSpeaking, setIsSpeaking] = createSignal(false);
+  const utteranceRef = null;
 
-  const speak = useCallback((text: string) => {
+  const speak = (text: string) => {
     if (!isTtsSupported) return;
 
     window.speechSynthesis.cancel();
@@ -29,23 +29,23 @@ function useTts() {
     utteranceRef.current = utterance;
     setIsSpeaking(true);
     window.speechSynthesis.speak(utterance);
-  }, []);
+  };
 
-  const stop = useCallback(() => {
+  const stop = () => {
     if (isTtsSupported) {
       window.speechSynthesis.cancel();
     }
     setIsSpeaking(false);
     utteranceRef.current = null;
-  }, []);
+  };
 
-  useEffect(() => {
+  createEffect(() => {
     return () => {
       if (isTtsSupported) {
         window.speechSynthesis.cancel();
       }
     };
-  }, []);
+  });
 
   return { isSpeaking, isSupported: isTtsSupported, speak, stop };
 }

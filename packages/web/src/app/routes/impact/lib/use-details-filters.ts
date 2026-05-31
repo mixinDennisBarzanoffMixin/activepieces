@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { createMemo, createSignal } from 'solid-js';
 
 import { authenticationSession } from '@/lib/authentication-session';
 
@@ -29,18 +29,17 @@ export function useDetailsFilters(
   flowDetails: FlowDetailRow[] | undefined,
   uniqueOwners: Owner[],
 ) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showMyFlowsOnly, setShowMyFlowsOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = createSignal('');
+  const [showMyFlowsOnly, setShowMyFlowsOnly] = createSignal(false);
 
-  const [appliedTimeSaved, setAppliedTimeSaved] = useState<TimeSavedRangeState>(
+  const [appliedTimeSaved, setAppliedTimeSaved] =
+    createSignal<TimeSavedRangeState>(DEFAULT_TIME_SAVED_RANGE);
+  const [draftTimeSaved, setDraftTimeSaved] = createSignal<TimeSavedRangeState>(
     DEFAULT_TIME_SAVED_RANGE,
   );
-  const [draftTimeSaved, setDraftTimeSaved] = useState<TimeSavedRangeState>(
-    DEFAULT_TIME_SAVED_RANGE,
-  );
-  const [timeSavedPopoverOpen, setTimeSavedPopoverOpen] = useState(false);
+  const [timeSavedPopoverOpen, setTimeSavedPopoverOpen] = createSignal(false);
 
-  const [ownerFilter, setOwnerFilter] = useState<OwnerFilterState>({
+  const [ownerFilter, setOwnerFilter] = createSignal<OwnerFilterState>({
     selectedIds: [],
     searchQuery: '',
     popoverOpen: false,
@@ -98,7 +97,7 @@ export function useDetailsFilters(
     setTimeSavedPopoverOpen(false);
   };
 
-  const timeSavedLabel = useMemo(() => {
+  const timeSavedLabel = createMemo(() => {
     if (!appliedTimeSaved.min && !appliedTimeSaved.max) return null;
     const min = appliedTimeSaved.min
       ? `${appliedTimeSaved.min} ${appliedTimeSaved.unitMin}`
@@ -107,7 +106,7 @@ export function useDetailsFilters(
       ? `${appliedTimeSaved.max} ${appliedTimeSaved.unitMax}`
       : '∞';
     return `${min} – ${max}`;
-  }, [appliedTimeSaved]);
+  });
 
   const toggleOwner = (ownerId: string) => {
     setOwnerFilter((prev) => ({
@@ -118,15 +117,14 @@ export function useDetailsFilters(
     }));
   };
 
-  const filteredOwners = useMemo(() => {
+  const filteredOwners = createMemo(() => {
     if (!ownerFilter.searchQuery.trim()) return uniqueOwners;
     const query = ownerFilter.searchQuery.toLowerCase();
     return uniqueOwners.filter((o) => o.name.toLowerCase().includes(query));
-  }, [uniqueOwners, ownerFilter.searchQuery]);
+  });
 
-  const selectedOwners = useMemo(
-    () => uniqueOwners.filter((o) => ownerFilter.selectedIds.includes(o.id)),
-    [uniqueOwners, ownerFilter.selectedIds],
+  const selectedOwners = createMemo(() =>
+    uniqueOwners.filter((o) => ownerFilter.selectedIds.includes(o.id)),
   );
 
   const hasActiveFilters =
@@ -141,7 +139,7 @@ export function useDetailsFilters(
     updateOwnerFilter({ selectedIds: [] });
   };
 
-  const filteredData = useMemo(() => {
+  const filteredData = createMemo(() => {
     if (!flowDetails) return [];
 
     let filtered = flowDetails;
@@ -187,14 +185,7 @@ export function useDetailsFilters(
     }
 
     return filtered.sort((a, b) => b.minutesSaved - a.minutesSaved);
-  }, [
-    flowDetails,
-    searchQuery,
-    showMyFlowsOnly,
-    currentUserId,
-    ownerFilter.selectedIds,
-    appliedTimeSaved,
-  ]);
+  });
 
   return {
     searchQuery,

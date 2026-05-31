@@ -3,10 +3,10 @@ import {
   FlowActionType,
   TelemetryEventName,
 } from '@activepieces/shared';
+import { useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { For } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { useTelemetry } from '@/components/providers/telemetry-provider';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -38,7 +38,7 @@ const ACTION_ICON_MAP: Record<string, string> = {
     'https://cdn.activepieces.com/pieces/new-core/utility-ai.svg',
 };
 
-export const AIPieceActionsList: React.FC<AIPieceActionsListProps> = ({
+export const AIPieceActionsList: any = ({
   stepMetadataWithSuggestions,
   hidePieceIconAndDescription,
   operation,
@@ -58,57 +58,59 @@ export const AIPieceActionsList: React.FC<AIPieceActionsListProps> = ({
   );
 
   return (
-    <ScrollArea className="h-full" viewPortClassName="h-full">
+    <ScrollArea class="h-full" viewPortClassName="h-full">
       <div className="grid grid-cols-3 p-2 gap-3 min-w-[350px]">
-        {aiActions.map((item, index) => {
-          const actionIcon =
-            item.type === FlowActionType.PIECE
-              ? ACTION_ICON_MAP[item.actionOrTrigger.name]
-              : 'https://cdn.activepieces.com/pieces/new-core/image-ai.svg';
-          return (
-            <AIActionItem
-              key={index}
-              item={item}
-              hidePieceIconAndDescription={hidePieceIconAndDescription}
-              stepMetadataWithSuggestions={{
-                ...stepMetadataWithSuggestions,
-                logoUrl: actionIcon,
-              }}
-              onClick={() => {
-                if (!isAgentsConfigured) {
-                  toast('Connect to OpenAI', {
-                    description: t(
-                      "To create an agent, you'll first need to connect to OpenAI in platform settings.",
-                    ),
-                    action: {
-                      label: 'Set Up',
-                      onClick: () => {
-                        navigate('/platform/setup/ai');
+        <For each={aiActions}>
+          {(item, index) => {
+            const actionIcon =
+              item.type === FlowActionType.PIECE
+                ? ACTION_ICON_MAP[item.actionOrTrigger.name]
+                : 'https://cdn.activepieces.com/pieces/new-core/image-ai.svg';
+            return (
+              <AIActionItem
+                key={index}
+                item={item}
+                hidePieceIconAndDescription={hidePieceIconAndDescription}
+                stepMetadataWithSuggestions={{
+                  ...stepMetadataWithSuggestions,
+                  logoUrl: actionIcon,
+                }}
+                onClick={() => {
+                  if (!isAgentsConfigured) {
+                    toast('Connect to OpenAI', {
+                      description: t(
+                        "To create an agent, you'll first need to connect to OpenAI in platform settings.",
+                      ),
+                      action: {
+                        label: 'Set Up',
+                        onClick: () => {
+                          navigate('/platform/setup/ai');
+                        },
                       },
-                    },
-                  });
-                  return;
-                }
+                    });
+                    return;
+                  }
 
-                if (item.type === FlowActionType.PIECE) {
-                  capture({
-                    name: TelemetryEventName.PIECE_SELECTOR_SEARCH,
-                    payload: {
-                      search: searchQuery,
-                      isTrigger: false,
-                      selectedActionOrTriggerName: item.actionOrTrigger.name,
-                    },
+                  if (item.type === FlowActionType.PIECE) {
+                    capture({
+                      name: TelemetryEventName.PIECE_SELECTOR_SEARCH,
+                      payload: {
+                        search: searchQuery,
+                        isTrigger: false,
+                        selectedActionOrTriggerName: item.actionOrTrigger.name,
+                      },
+                    });
+                  }
+                  handleAddingOrUpdatingStep({
+                    pieceSelectorItem: item,
+                    operation,
+                    selectStepAfter: true,
                   });
-                }
-                handleAddingOrUpdatingStep({
-                  pieceSelectorItem: item,
-                  operation,
-                  selectStepAfter: true,
-                });
-              }}
-            />
-          );
-        })}
+                }}
+              />
+            );
+          }}
+        </For>
       </div>
     </ScrollArea>
   );

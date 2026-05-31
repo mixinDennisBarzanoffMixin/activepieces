@@ -5,8 +5,8 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Loader2, Play } from 'lucide-react';
-import React, { useState } from 'react';
+import { Loader2, Play } from 'lucide-solid';
+import { Show, createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,7 +28,7 @@ type TestSampleDataViewerProps = {
   sampleDataInput?: unknown | null;
   errorMessage: string | null;
   lastTestDate: string | undefined;
-  children?: React.ReactNode;
+  children?: any;
   consoleLogs: string | null;
 } & (
   | {
@@ -56,109 +56,113 @@ const isConsoleLogsValid = (value: unknown) => {
   return value !== '';
 };
 
-export const TestSampleDataViewer = React.memo(
-  (props: TestSampleDataViewerProps) => {
-    const {
-      isValid,
-      isTesting,
-      sampleData,
-      errorMessage,
-      lastTestDate,
-      currentStep,
-      children,
-      isSaving,
-      onRetest,
-      onCancelTesting,
-      hideCancel,
-      sampleDataInput,
-      consoleLogs,
-    } = props;
-    const [requestedTab, setActiveTab] = useState<ActiveTab>('Output');
-    const hasInput = !isNil(sampleDataInput);
-    const hasLogs = isConsoleLogsValid(consoleLogs);
-    const activeTab: ActiveTab =
-      (requestedTab === 'Input' && !hasInput) ||
-      (requestedTab === 'Logs' && !hasLogs)
-        ? 'Output'
-        : requestedTab;
+export const TestSampleDataViewer = (props: TestSampleDataViewerProps) => {
+  const {
+    isValid,
+    isTesting,
+    sampleData,
+    errorMessage,
+    lastTestDate,
+    currentStep,
+    children,
+    isSaving,
+    onRetest,
+    onCancelTesting,
+    hideCancel,
+    sampleDataInput,
+    consoleLogs,
+  } = props;
+  const [requestedTab, setActiveTab] = createSignal<ActiveTab>('Output');
+  const hasInput = !isNil(sampleDataInput);
+  const hasLogs = isConsoleLogsValid(consoleLogs);
+  const activeTab: ActiveTab =
+    (requestedTab === 'Input' && !hasInput) ||
+    (requestedTab === 'Logs' && !hasLogs)
+      ? 'Output'
+      : requestedTab;
 
-    const isFailed =
-      !isNil(errorMessage) ||
-      (isRunAgent(currentStep) &&
-        (sampleData as AgentResult | undefined)?.status ===
-          AgentTaskStatus.FAILED);
+  const isFailed =
+    !isNil(errorMessage) ||
+    (isRunAgent(currentStep) &&
+      (sampleData as AgentResult | undefined)?.status ===
+        AgentTaskStatus.FAILED);
 
-    const status: 'success' | 'failed' | 'testing' | 'idle' = isTesting
-      ? 'testing'
-      : isFailed
-      ? 'failed'
-      : 'success';
+  const status: 'success' | 'failed' | 'testing' | 'idle' = isTesting
+    ? 'testing'
+    : isFailed
+    ? 'failed'
+    : 'success';
 
-    const outputData = errorMessage ?? sampleData;
-    const activeData =
-      activeTab === 'Input'
-        ? sampleDataInput
-        : activeTab === 'Logs'
-        ? consoleLogs
-        : outputData;
+  const outputData = errorMessage ?? sampleData;
+  const activeData =
+    activeTab === 'Input'
+      ? sampleDataInput
+      : activeTab === 'Logs'
+      ? consoleLogs
+      : outputData;
 
-    const showAgentView = isRunAgent(currentStep) && !errorMessage;
+  const showAgentView = isRunAgent(currentStep) && !errorMessage;
 
-    return (
-      <div className="flex flex-col h-full w-full min-h-0">
-        <TestPanelHeader status={status} lastTestDate={lastTestDate} />
-        {!isTesting && children}
-        <div className="flex-1 flex flex-col w-full text-start min-h-0">
-          {errorMessage && !isTesting && (
-            <div className="px-3 pt-2 text-xs text-muted-foreground shrink-0">
-              {t('Errors are not saved on refresh')}
-            </div>
-          )}
-          {!showAgentView && (
-            <TestPanelToolbar
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              hasInput={hasInput}
-              hasLogs={hasLogs}
-              disabled={isTesting}
-            />
-          )}
-          <div className="flex-1 min-h-0 px-3 pb-3 overflow-auto">
-            {isTesting && !showAgentView ? (
-              <TestingPreviewContent data={activeData} />
-            ) : showAgentView ? (
-              <AgentTestStep
-                agentResult={getAgentResult(sampleData)}
-                errorMessage={errorMessage}
-              />
-            ) : (
-              <DataDisplayTabs
-                data={activeData}
-                title={t(activeTab)}
-                copyableData={activeData}
-                downloadFileName={`${
-                  currentStep?.name ?? 'output'
-                }-${activeTab.toLowerCase()}`}
-              />
-            )}
+  return (
+    <div className="flex flex-col h-full w-full min-h-0">
+      <TestPanelHeader status={status} lastTestDate={lastTestDate} />
+      <Show when={!isTesting()}>{children}</Show>
+      <div className="flex-1 flex flex-col w-full text-start min-h-0">
+        <Show when={errorMessage && !isTesting()}>
+          <div className="px-3 pt-2 text-xs text-muted-foreground shrink-0">
+            {t('Errors are not saved on refresh')}
           </div>
-        </div>
-        {isTesting ? (
-          <CancelTestingBar
-            onCancel={hideCancel ? undefined : onCancelTesting}
+        </Show>
+        <Show when={!showAgentView()}>
+          <TestPanelToolbar
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            hasInput={hasInput}
+            hasLogs={hasLogs}
+            disabled={isTesting}
           />
-        ) : (
+        </Show>
+        <div className="flex-1 min-h-0 px-3 pb-3 overflow-auto">
+          <Show
+            when={isTesting && !showAgentView()}
+            fallback={
+              showAgentView ? (
+                <AgentTestStep
+                  agentResult={getAgentResult(sampleData)}
+                  errorMessage={errorMessage}
+                />
+              ) : (
+                <DataDisplayTabs
+                  data={activeData}
+                  title={t(activeTab)}
+                  copyableData={activeData}
+                  downloadFileName={`${
+                    currentStep?.name ?? 'output'
+                  }-${activeTab.toLowerCase()}`}
+                />
+              )
+            }
+          >
+            <TestingPreviewContent data={activeData} />
+          </Show>
+        </div>
+      </div>
+      <Show
+        when={isTesting()}
+        fallback={
           <RetestActionBar
             onRetest={onRetest}
             disabled={!isValid || isSaving}
             isValid={isValid}
             isSaving={isSaving}
           />
-        )}
-      </div>
-    );
-  },
-);
+        }
+      >
+        <CancelTestingBar onCancel={hideCancel ? undefined : onCancelTesting} />
+      </Show>
+    </div>
+  );
+};
 
 type TestPanelToolbarProps = {
   activeTab: ActiveTab;
@@ -208,22 +212,22 @@ const SegmentedTabs = ({
       onClick={() => setActiveTab('Output')}
       disabled={disabled}
     />
-    {hasInput && (
+    <Show when={hasInput()}>
       <SegmentedTabsButton
         label={t('Input')}
         active={activeTab === 'Input'}
         onClick={() => setActiveTab('Input')}
         disabled={disabled}
       />
-    )}
-    {hasLogs && (
+    </Show>
+    <Show when={hasLogs()}>
       <SegmentedTabsButton
         label={t('Logs')}
         active={activeTab === 'Logs'}
         onClick={() => setActiveTab('Logs')}
         disabled={disabled}
       />
-    )}
+    </Show>
   </div>
 );
 
@@ -283,10 +287,10 @@ const RetestActionBar = ({
         disabled={disabled}
         keyboardShortcut="G"
         onKeyboardShortcut={onRetest}
-        className="w-full justify-center bg-primary/5 enabled:hover:bg-primary/15 enabled:hover:text-primary text-primary border-primary/20"
+        class="w-full justify-center bg-primary/5 enabled:hover:bg-primary/15 enabled:hover:text-primary text-primary border-primary/20"
         size="sm"
       >
-        <Play className="size-4 fill-current" />
+        <Play class="size-4 fill-current" />
         {t('Retest Step')}
       </Button>
     </TestButtonTooltip>
@@ -310,10 +314,10 @@ const CancelTestingBar = ({ onCancel }: CancelTestingBarProps) => (
       onClick={onCancel}
       disabled={!onCancel}
       variant="outline"
-      className="w-full justify-center bg-primary/5 hover:bg-primary/10 text-primary border-primary/20"
+      class="w-full justify-center bg-primary/5 hover:bg-primary/10 text-primary border-primary/20"
       size="sm"
     >
-      <Loader2 className="size-4 animate-spin" />
+      <Loader2 class="size-4 animate-spin" />
       {t('Cancel Testing')}
     </Button>
   </div>
@@ -336,20 +340,20 @@ const TestingPreviewContent = ({ data }: TestingPreviewContentProps) => {
 
 const JsonTreeSkeleton = () => (
   <div className="flex flex-col gap-3 py-3 animate-pulse">
-    <Skeleton className="h-3 w-24" />
+    <Skeleton class="h-3 w-24" />
     <div className="pl-4 flex flex-col gap-2.5">
-      <Skeleton className="h-3 w-32" />
+      <Skeleton class="h-3 w-32" />
       <div className="pl-4 flex flex-col gap-2.5">
-        <Skeleton className="h-3 w-48" />
-        <Skeleton className="h-3 w-40" />
-        <Skeleton className="h-3 w-44" />
+        <Skeleton class="h-3 w-48" />
+        <Skeleton class="h-3 w-40" />
+        <Skeleton class="h-3 w-44" />
       </div>
-      <Skeleton className="h-3 w-28" />
+      <Skeleton class="h-3 w-28" />
       <div className="pl-4 flex flex-col gap-2.5">
-        <Skeleton className="h-3 w-36" />
-        <Skeleton className="h-3 w-52" />
+        <Skeleton class="h-3 w-36" />
+        <Skeleton class="h-3 w-52" />
       </div>
-      <Skeleton className="h-3 w-32" />
+      <Skeleton class="h-3 w-32" />
     </div>
   </div>
 );

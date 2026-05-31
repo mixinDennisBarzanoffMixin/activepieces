@@ -1,7 +1,6 @@
 import { ApFlagId, isNil, Permission } from '@activepieces/shared';
-import { Plus } from 'lucide-react';
-import { ReactNode } from 'react';
-import { Column, RenderCellProps } from 'react-data-grid';
+import { Plus } from 'lucide-solid';
+import { JSX } from 'solid-js';
 
 import { useAuthorization } from '@/hooks/authorization-hooks';
 import { flagsHooks } from '@/hooks/flags-hooks';
@@ -14,6 +13,15 @@ import { useTableState } from './ap-table-state-provider';
 import { EditableCell } from './editable-cell';
 import { NewFieldPopup } from './new-field-popup';
 import { SelectCell, SelectHeaderCell } from './select-column';
+
+export type TableColumn = {
+  key: string;
+  name: string;
+  width?: number;
+  renderHeaderCell?: () => JSX.Element;
+  renderCell?: (props: { row: Row; column: { key: string; idx: number }; rowIdx: number }) => JSX.Element;
+  renderSummaryCell?: () => JSX.Element;
+};
 
 export function useTableColumns(createEmptyRecord: () => void) {
   const [fields, setSelectedAgentRunId] = useTableState((state) => [
@@ -33,7 +41,7 @@ export function useTableColumns(createEmptyRecord: () => void) {
   const isAllowedToCreateField =
     canEdit && maxFields && fields.length < maxFields;
 
-  const newFieldColumn: Column<Row, { id: string }> = {
+  const newFieldColumn: TableColumn = {
     key: 'new-field',
     minWidth: 67,
     maxWidth: 67,
@@ -43,7 +51,7 @@ export function useTableColumns(createEmptyRecord: () => void) {
     renderCell: () => <div className="empty-cell"></div>,
   };
 
-  const columns: Column<Row, { id: string }>[] = [
+  const columns: TableColumn[] = [
     {
       key: 'select-row',
       name: 'Select',
@@ -68,7 +76,7 @@ export function useTableColumns(createEmptyRecord: () => void) {
       renderSummaryCell: () => (
         <AddRecordButton
           handleClick={createEmptyRecord}
-          icon={<Plus className="size-4" />}
+          icon={<Plus class="size-4" />}
         />
       ),
     },
@@ -84,7 +92,7 @@ export function useTableColumns(createEmptyRecord: () => void) {
         row,
         column,
         rowIdx,
-      }: RenderCellProps<Row, { id: string }>) => (
+      }) => (
         <EditableCell
           key={row.id + '_' + field.uuid}
           field={field}
@@ -136,7 +144,7 @@ export function mapRecordsToRows(
 
 type AddRecordButtonProps = {
   handleClick: () => void;
-  icon?: ReactNode;
+  icon?: JSX.Element | string | number | null | undefined;
 };
 
 function AddRecordButton({ handleClick, icon }: AddRecordButtonProps) {
@@ -154,7 +162,7 @@ function AddFieldButton() {
   return (
     <NewFieldPopup>
       <div className="w-full h-full flex items-center justify-center cursor-pointer new-field">
-        <Plus className="h-4 w-4" />
+        <Plus class="h-4 w-4" />
       </div>
     </NewFieldPopup>
   );

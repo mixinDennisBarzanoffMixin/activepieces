@@ -3,7 +3,7 @@ import { ApEdition, ApFlagId } from '@activepieces/shared';
 import { flagsHooks } from '@/hooks/flags-hooks';
 
 type EditionGuardProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   allowedEditions: ApEdition[];
 };
 
@@ -15,6 +15,4 @@ const EditionGuard = ({ children, allowedEditions }: EditionGuardProps) => {
   }
   return children;
 };
-
-EditionGuard.displayName = 'EditionGuard';
 export { EditionGuard };

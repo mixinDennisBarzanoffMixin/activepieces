@@ -1,7 +1,7 @@
-import { QueryClient } from '@tanstack/react-query';
-import { createContext, useContext } from 'react';
+import { QueryClient } from '@tanstack/solid-query';
+import { createWithStore } from 'solid-zustand';
 import { Socket } from 'socket.io-client';
-import { create, useStore } from 'zustand';
+import { createContext, useContext } from 'solid-js';
 
 import { CanvasState, createCanvasState } from './state/canvas-state';
 import { ChatState, createChatState } from './state/chat-state';
@@ -22,7 +22,7 @@ export function useBuilderStateContext<T>(
   const store = useContext(BuilderStateContext);
   if (!store)
     throw new Error('Missing BuilderStateContext.Provider in the tree');
-  return useStore(store, selector);
+  return createWithStore(store)(selector);
 }
 
 export type BuilderState = FlowState &
@@ -48,7 +48,7 @@ export type BuilderInitialState = Pick<
 
 export type BuilderStore = ReturnType<typeof createBuilderStore>;
 export const createBuilderStore = (initialState: BuilderInitialState) =>
-  create<BuilderState>((set, get) => {
+  createWithStore<BuilderState>((set, get) => {
     const flowState = createFlowState(initialState, get, set);
     const pieceSelectorState = createPieceSelectorState(get, set);
     const runState = createRunState(initialState, get, set);

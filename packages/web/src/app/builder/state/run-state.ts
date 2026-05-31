@@ -14,7 +14,7 @@ import {
   WebsocketClientEvent,
 } from '@activepieces/shared';
 import { Socket } from 'socket.io-client';
-import { StoreApi } from 'zustand';
+import type { StoreApi } from 'zustand/vanilla';
 
 import { internalErrorToast } from '@/components/ui/sonner';
 import { flowRunUtils } from '@/features/flow-runs';

@@ -1,5 +1,7 @@
 import { StepLocationRelativeToParent } from '@activepieces/shared';
-import { BaseEdge, EdgeProps } from '@xyflow/react';
+import { BaseEdge } from '../solid-flow-adapter';
+import type { EdgeProps } from '../solid-flow-adapter';
+import { Show } from 'solid-js';
 
 import { flowCanvasConsts } from '../utils/consts';
 import { ApLoopStartEdge } from '../utils/types';
@@ -42,9 +44,9 @@ export const ApLoopStartLineCanvasEdge = ({
       <BaseEdge
         path={path}
         style={{ strokeWidth: `${flowCanvasConsts.LINE_WIDTH}px` }}
-        className="relative"
+        class="relative"
       ></BaseEdge>
-      {!data.isLoopEmpty && (
+      <Show when={!data.isLoopEmpty()}>
         <foreignObject
           x={buttonPosition.x}
           y={buttonPosition.y}
@@ -60,9 +62,9 @@ export const ApLoopStartLineCanvasEdge = ({
             parentStepName={source}
           ></ApAddButton>
         </foreignObject>
-      )}
+      </Show>
 
-      {showDebugForLineEndPoint && (
+      <Show when={showDebugForLineEndPoint()}>
         <foreignObject
           x={sourceX}
           y={startY}
@@ -70,7 +72,7 @@ export const ApLoopStartLineCanvasEdge = ({
         >
           <div className=" w-[20px] h-[20px] rounded-full bg-[red] flex items-center justify-center"></div>
         </foreignObject>
-      )}
+      </Show>
     </>
   );
 };

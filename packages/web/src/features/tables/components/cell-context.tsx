@@ -1,5 +1,5 @@
 import { FieldType } from '@activepieces/shared';
-import { createContext, useContext } from 'react';
+import { createContext, useContext } from 'solid-js';
 
 import { useTableState } from './ap-table-state-provider';
 
@@ -29,8 +29,8 @@ const CellContext = createContext<CellContextType>({
 });
 
 type CellProviderProps = CellContextType & {
-  children: React.ReactNode;
-  containerRef: React.RefObject<HTMLDivElement | null>;
+  children: any;
+  containerRef: any;
 };
 
 export const CellProvider = ({

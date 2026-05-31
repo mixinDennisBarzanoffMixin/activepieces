@@ -1,9 +1,6 @@
-import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from 'i18next';
-import { Pencil } from 'lucide-react';
-import { useState, forwardRef } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
+import { Pencil } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -27,12 +23,6 @@ import {
 
 import { appConnectionsMutations } from '../hooks/app-connections-hooks';
 
-const RenameConnectionSchema = z.object({
-  displayName: z.string(),
-});
-
-type RenameConnectionSchema = z.infer<typeof RenameConnectionSchema>;
-
 type RenameConnectionDialogProps = {
   connectionId: string;
   currentName: string;
@@ -40,25 +30,35 @@ type RenameConnectionDialogProps = {
   onRename: () => void;
 };
 
-const RenameConnectionDialog = forwardRef<
-  HTMLDivElement,
-  RenameConnectionDialogProps
->(({ connectionId, currentName, userHasPermissionToRename, onRename }, _) => {
-  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false);
-  const renameConnectionForm = useForm<RenameConnectionSchema>({
-    resolver: zodResolver(RenameConnectionSchema),
-    defaultValues: {
-      displayName: currentName,
-    },
-  });
+const RenameConnectionDialog = ({
+  connectionId,
+  currentName,
+  userHasPermissionToRename,
+  onRename,
+}: RenameConnectionDialogProps) => {
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = createSignal(false);
+  const [displayName, setDisplayName] = createSignal(currentName);
+  const [error, setError] = createSignal('');
 
   const { mutate: renameConnection, isPending } =
     appConnectionsMutations.useRenameAppConnection({
       currentName,
       setIsRenameDialogOpen,
-      renameConnectionForm,
+      renameConnectionForm: {
+        setError: (_field: string, err: { message?: string }) =>
+          setError(err.message || ''),
+      },
       refetch: onRename,
     });
+
+  const onSubmit = (e: SubmitEvent) => {
+    e.preventDefault();
+    setError('');
+    renameConnection({
+      connectionId,
+      displayName: displayName().trim(),
+    });
+  };
 
   return (
     <Tooltip>
@@ -79,7 +79,7 @@ const RenameConnectionDialog = forwardRef<
                   setIsRenameDialogOpen(true);
                 }}
               >
-                <Pencil className="h-4 w-4" />
+                <Pencil class="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -94,54 +94,33 @@ const RenameConnectionDialog = forwardRef<
               {t('Enter a new display name for this connection.')}
             </DialogDescription>
           </DialogHeader>
-          <Form {...renameConnectionForm}>
-            <form
-              className="grid space-y-4"
-              onSubmit={renameConnectionForm.handleSubmit((data) =>
-                renameConnection({
-                  connectionId,
-                  displayName: data.displayName,
-                }),
+            <form className="grid space-y-4" onSubmit={onSubmit}>
+              <div class="grid space-y-2">
+                <Label for="displayName">{t('Name')}</Label>
+                <Input
+                  id="displayName"
+                  value={displayName()}
+                  placeholder={t('New Connection Name')}
+                  class="rounded-sm"
+                  onInput={(e) => setDisplayName(e.currentTarget.value)}
+                />
+              </div>
+              {error() && (
+                <p class="text-sm font-medium text-destructive">{error()}</p>
               )}
-            >
-              <FormField
-                control={renameConnectionForm.control}
-                name="displayName"
-                render={({ field }) => (
-                  <FormItem className="grid space-y-2">
-                    <Label htmlFor="displayName">{t('Name')}</Label>
-                    <Input
-                      {...field}
-                      id="displayName"
-                      placeholder={t('New Connection Name')}
-                      className="rounded-sm"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {renameConnectionForm?.formState?.errors?.root?.serverError && (
-                <FormMessage>
-                  {
-                    renameConnectionForm.formState.errors.root.serverError
-                      .message
-                  }
-                </FormMessage>
-              )}
-              <DialogFooter className="justify-end">
+              <DialogFooter class="justify-end">
                 <DialogClose asChild>
-                  <Button variant={'outline'}>{t('Cancel')}</Button>
+                  <Button type="button" variant={'outline'}>{t('Cancel')}</Button>
                 </DialogClose>
 
-                <Button loading={isPending}>{t('Rename')}</Button>
+                <Button type="submit" loading={isPending}>{t('Rename')}</Button>
               </DialogFooter>
             </form>
-          </Form>
         </DialogContent>
       </Dialog>
     </Tooltip>
   );
-});
+};
 
 RenameConnectionDialog.displayName = 'RenameConnectionDialog';
 

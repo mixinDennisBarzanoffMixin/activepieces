@@ -5,12 +5,12 @@ interface Props {
   label?: string;
 }
 
-export const CircularIcon: React.FC<Props> = ({
+export const CircularIcon = ({
   value,
   size = 50,
   strokeWidth = 3.5,
   label,
-}) => {
+}: Props) => {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
@@ -57,9 +57,9 @@ export const CircularIcon: React.FC<Props> = ({
       </svg>
 
       {/* Label */}
-      {label && (
+      <Show when={label}>
         <div className="text-sm text-gray-700 dark:text-gray-400">{label}</div>
-      )}
+      </Show>
     </div>
   );
 };

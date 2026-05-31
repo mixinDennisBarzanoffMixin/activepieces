@@ -1,7 +1,7 @@
 import { CreateOtpRequestBody, OtpType } from '@activepieces/shared';
 import { t } from 'i18next';
-import { MailCheck } from 'lucide-react';
-import { toast } from 'sonner';
+import { MailCheck } from 'lucide-solid';
+import { toast } from 'solid-sonner';
 
 import { authMutations } from '../hooks/auth-hooks';
 
@@ -21,7 +21,7 @@ const CheckEmailNote = ({ email, type }: CreateOtpRequestBody) => {
   return (
     <div className="gap-2 w-full flex flex-col">
       <div className="gap-4 w-full flex flex-row items-center justify-center">
-        <MailCheck className="w-16 h-16" />
+        <MailCheck class="w-16 h-16" />
         <span className="text-left w-fit">
           {type === OtpType.EMAIL_VERIFICATION
             ? t('We sent you a link to complete your registration to')
@@ -46,6 +46,4 @@ const CheckEmailNote = ({ email, type }: CreateOtpRequestBody) => {
     </div>
   );
 };
-
-CheckEmailNote.displayName = 'CheckEmailNote';
 export { CheckEmailNote };

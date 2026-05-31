@@ -8,8 +8,8 @@ import {
   PlanStepUpdate,
   tryCatch,
 } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { createQuery } from '@tanstack/solid-query';
+import { createMemo, createSignal } from 'solid-js';
 
 import { api } from '@/lib/api';
 
@@ -108,39 +108,37 @@ export function useAgentChat({
 } = {}) {
   const store = useChatStoreApi();
 
-  const [conversationId, setConversationIdState] = useState<string | null>(
+  const [conversationId, setConversationIdState] = createSignal<string | null>(
     null,
   );
-  const [modelName, setModelNameState] = useState<string | null>(
+  const [modelName, setModelNameState] = createSignal<string | null>(
     DEFAULT_CHAT_TIER_ID,
   );
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
-  const [isPollingForAgentReply, setIsPollingForAgentReply] = useState(false);
-  const [sendStatus, setSendStatus] = useState<SendStatus>({ type: 'idle' });
-  const sendStatusRef = useRef<SendStatus>({ type: 'idle' });
-  const onCreditsExhaustedRef = useRef(onCreditsExhausted);
+  const [isLoadingHistory, setIsLoadingHistory] = createSignal(false);
+  const [isPollingForAgentReply, setIsPollingForAgentReply] = createSignal(false);
+  const [sendStatus, setSendStatus] = createSignal<SendStatus>({ type: 'idle' });
+  let sendStatusRef = { type: 'idle' };
+  let onCreditsExhaustedRef = onCreditsExhausted;
   onCreditsExhaustedRef.current = onCreditsExhausted;
 
-  const [persistedMessages, setPersistedMessages] = useState<ChatUIMessage[]>(
+  const [persistedMessages, setPersistedMessages] = createSignal<ChatUIMessage[]>(
     [],
   );
-  const persistedMessagesRef = useRef(persistedMessages);
+  let persistedMessagesRef = persistedMessages;
   persistedMessagesRef.current = persistedMessages;
   const [optimisticUserMessage, setOptimisticUserMessage] =
-    useState<ChatUIMessage | null>(null);
+    createSignal<ChatUIMessage | null>(null);
 
-  const pendingFilesRef = useRef<
-    { name: string; mimeType: ChatAllowedMimeType; data: string }[] | undefined
-  >(undefined);
-  const lastSentFileNamesRef = useRef<string[]>([]);
-  const conversationIdRef = useRef<string | null>(null);
-  const modelNameRef = useRef<string | null>(DEFAULT_CHAT_TIER_ID);
-  const onTitleUpdateRef = useRef(onTitleUpdate);
+  let pendingFilesRef = undefined;
+  let lastSentFileNamesRef = [];
+  let conversationIdRef = null;
+  let modelNameRef = DEFAULT_CHAT_TIER_ID;
+  let onTitleUpdateRef = onTitleUpdate;
   onTitleUpdateRef.current = onTitleUpdate;
-  const onConversationCreatedRef = useRef(onConversationCreated);
+  let onConversationCreatedRef = onConversationCreated;
   onConversationCreatedRef.current = onConversationCreated;
 
-  const handleDataPart = useCallback(
+  const handleDataPart = (
     (dataPart: DataPart) => {
       if (!isObject(dataPart.data)) return;
       const d = dataPart.data as Record<string, unknown>;
@@ -216,16 +214,14 @@ export function useAgentChat({
           }
           break;
       }
-    },
-    [store],
-  );
+    });
 
-  const updateSendStatus = useCallback((next: SendStatus) => {
+  const updateSendStatus = ((next: SendStatus) => {
     sendStatusRef.current = next;
     setSendStatus(next);
-  }, []);
+  });
 
-  const reconcile = useCallback(
+  const reconcile = (
     async (convId: string) => {
       if (conversationIdRef.current !== convId) return;
       const { data: result } = await tryCatch(() =>
@@ -241,9 +237,7 @@ export function useAgentChat({
         }
       }
       setOptimisticUserMessage(null);
-    },
-    [store],
-  );
+    });
 
   const {
     streamingMessage,
@@ -271,7 +265,7 @@ export function useAgentChat({
     sendStatusRef.current.type === 'submitting' ||
     isPollingForAgentReply;
 
-  const messages: ChatUIMessage[] = useMemo(() => {
+  const messages: ChatUIMessage[] = createMemo(() => {
     const base = [...persistedMessages];
     if (optimisticUserMessage) base.push(optimisticUserMessage);
     if (streamingMessage) base.push(streamingMessage);
@@ -279,7 +273,7 @@ export function useAgentChat({
       messages: base,
       fileNames: lastSentFileNamesRef.current,
     });
-  }, [persistedMessages, optimisticUserMessage, streamingMessage]);
+  });
 
   const error =
     sendStatus.type === 'error'
@@ -290,13 +284,13 @@ export function useAgentChat({
 
   const wasCancelled = sendStatus.type === 'cancelled';
 
-  const cancelStream = useCallback(() => {
+  const cancelStream = (() => {
     stopStream();
     updateSendStatus({ type: 'cancelled' });
     setOptimisticUserMessage(null);
-  }, [stopStream, updateSendStatus]);
+  });
 
-  const createConversation = useCallback(
+  const createConversation = (
     async ({
       title,
       modelName,
@@ -308,11 +302,9 @@ export function useAgentChat({
       conversationIdRef.current = conv.id;
       setConversationIdState(conv.id);
       return conv;
-    },
-    [],
-  );
+    });
 
-  const sendMessage = useCallback(
+  const sendMessage = (
     async (content: string, files?: File[]) => {
       updateSendStatus({ type: 'submitting' });
 
@@ -412,11 +404,9 @@ export function useAgentChat({
           });
         }
       }
-    },
-    [createConversation, startStream, stopStream, updateSendStatus, store],
-  );
+    });
 
-  const setConversationId = useCallback(
+  const setConversationId = (
     async (id: string) => {
       stopStream();
       setIsPollingForAgentReply(false);
@@ -459,11 +449,9 @@ export function useAgentChat({
         }
       }
       setIsLoadingHistory(false);
-    },
-    [stopStream, updateSendStatus, store],
-  );
+    });
 
-  useQuery({
+  createQuery(() => ({
     queryKey: ['chat-agent-poll', conversationId],
     queryFn: async () => {
       if (!conversationId || conversationIdRef.current !== conversationId)
@@ -493,9 +481,9 @@ export function useAgentChat({
     },
     enabled: isPollingForAgentReply && !isStreamActive,
     refetchInterval: AGENT_POLL_INTERVAL_MS,
-  });
+  }));
 
-  const setModelName = useCallback(async (newModelName: string) => {
+  const setModelName = (async (newModelName: string) => {
     modelNameRef.current = newModelName;
     setModelNameState(newModelName);
     const convId = conversationIdRef.current;
@@ -504,7 +492,7 @@ export function useAgentChat({
         .updateConversation(convId, { modelName: newModelName })
         .catch(() => undefined);
     }
-  }, []);
+  });
 
   return {
     conversationId,

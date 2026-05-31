@@ -1,6 +1,6 @@
 import { isNil } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useContext } from 'react';
+import { Show, useContext } from 'solid-js';
 
 import { Dot } from '@/components/custom/dot';
 import { Button } from '@/components/ui/button';
@@ -56,7 +56,7 @@ export const FirstTimeTestingSection = ({
           </Button>
         </TestButtonTooltip>
 
-        {!isNil(mockData) && JSON.stringify(mockData) !== '{}' && (
+        <Show when={!isNil(mockData) && JSON.stringify(mockData) !== '{}'()}>
           <>
             {t('Or')}
             <Button
@@ -68,7 +68,7 @@ export const FirstTimeTestingSection = ({
               {t('Use Mock Data')}
             </Button>
           </>
-        )}
+        </Show>
       </div>
     );
   }

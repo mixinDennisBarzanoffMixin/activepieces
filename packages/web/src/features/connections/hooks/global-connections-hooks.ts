@@ -2,10 +2,9 @@ import {
   AppConnectionWithoutSensitiveData,
   ListGlobalConnectionsRequestQuery,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { UseFormReturn } from 'react-hook-form';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { internalErrorToast } from '@/components/ui/sonner';
 import { platformHooks } from '@/hooks/platform-hooks';
@@ -39,7 +38,7 @@ export const globalConnectionsQueries = {
     showErrorDialog,
   }: UseGlobalConnectionsProps) => {
     const { platform } = platformHooks.useCurrentPlatform();
-    return useQuery({
+    return createQuery(() => ({
       queryKey: [GLOBAL_CONNECTIONS_QUERY_KEY, ...extraKeys],
       staleTime,
       gcTime,
@@ -50,13 +49,13 @@ export const globalConnectionsQueries = {
       queryFn: () => {
         return globalConnectionsApi.list(request);
       },
-    });
+    }));
   },
 };
 
 export const globalConnectionsMutations = {
   useBulkDeleteGlobalConnections: (refetch: () => void) =>
-    useMutation({
+    createMutation(() => ({
       mutationFn: async (ids: string[]) => {
         await Promise.all(ids.map((id) => globalConnectionsApi.delete(id)));
       },
@@ -66,17 +65,13 @@ export const globalConnectionsMutations = {
       onError: () => {
         internalErrorToast();
       },
-    }),
+    })),
   useUpdateGlobalConnection: (
     refetch: () => void,
     setIsOpen: (isOpen: boolean) => void,
-    editConnectionForm: UseFormReturn<{
-      displayName: string;
-      projectIds: string[];
-      preSelectForNewProjects: boolean;
-    }>,
+    editConnectionForm: EditConnectionForm,
   ) =>
-    useMutation<
+    createMutation<
       AppConnectionWithoutSensitiveData,
       Error,
       {
@@ -133,4 +128,11 @@ export const globalConnectionsMutations = {
         }
       },
     }),
+};
+
+type EditConnectionForm = {
+  setError: (
+    name: 'displayName' | 'projectIds',
+    error: { message: string },
+  ) => void;
 };

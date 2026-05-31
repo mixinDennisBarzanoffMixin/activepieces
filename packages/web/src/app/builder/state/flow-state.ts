@@ -11,8 +11,8 @@ import {
   FlowTriggerType,
   debounce,
 } from '@activepieces/shared';
-import { QueryClient } from '@tanstack/react-query';
-import { StoreApi } from 'zustand';
+import { QueryClient } from '@tanstack/solid-query';
+import type { StoreApi } from 'zustand/vanilla';
 
 import { RightSideBarType } from '@/app/builder/types';
 import { flowsApi, sampleDataHooks } from '@/features/flows';

@@ -3,7 +3,7 @@ import {
   FlowVersion,
   SampleDataFileType,
 } from '@activepieces/shared';
-import { useQuery, QueryClient } from '@tanstack/react-query';
+import { createQuery, QueryClient } from '@tanstack/solid-query';
 
 import { sampleDataApi } from '../api/sample-data-api';
 
@@ -12,7 +12,7 @@ export const sampleDataHooks = {
     flowVersion: FlowVersion | undefined,
     projectId: string | undefined,
   ) => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['sampleData', flowVersion?.id],
       enabled: !!flowVersion,
       staleTime: 0,
@@ -38,13 +38,13 @@ export const sampleDataHooks = {
         });
         return sampleData;
       },
-    });
+    }));
   },
   useSampleDataInputForFlow: (
     flowVersion: FlowVersion | undefined,
     projectId: string | undefined,
   ) => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['sampleDataInput', flowVersion?.id],
       enabled: !!flowVersion,
       staleTime: 0,
@@ -72,7 +72,7 @@ export const sampleDataHooks = {
         });
         return sampleDataInput;
       },
-    });
+    }));
   },
   invalidateSampleData: (flowVersionId: string, queryClient: QueryClient) => {
     queryClient.invalidateQueries({ queryKey: ['sampleData', flowVersionId] });

@@ -1,6 +1,6 @@
 import { PlatformAnalyticsReport } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Download } from 'lucide-react';
+import { Download } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 import { downloadFile } from '@/lib/dom-utils';
@@ -41,7 +41,7 @@ export function FlowDetailsHeader({ report }: FlowDetailsHeaderProps) {
         onClick={handleDownload}
         disabled={!report?.flows || report.flows.length === 0}
       >
-        <Download className="h-4 w-4 mr-2" />
+        <Download class="h-4 w-4 mr-2" />
         {t('Download')}
       </Button>
     </div>

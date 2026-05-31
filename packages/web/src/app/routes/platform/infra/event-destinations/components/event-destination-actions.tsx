@@ -1,7 +1,7 @@
 import { EventDestination } from '@activepieces/shared';
 import { t } from 'i18next';
-import { MoreVertical, Pencil, Trash } from 'lucide-react';
-import { useState } from 'react';
+import { MoreVertical, Pencil, Trash } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,7 @@ const EventDestinationActions = ({
 }: {
   destination: EventDestination;
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = createSignal(false);
 
   return (
     <div className="flex justify-end">
@@ -31,8 +31,8 @@ const EventDestinationActions = ({
         onOpenChange={setDropdownOpen}
       >
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-8 w-8 p-0">
-            <MoreVertical className="h-4 w-4" />
+          <Button variant="ghost" class="h-8 w-8 p-0">
+            <MoreVertical class="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
@@ -42,7 +42,7 @@ const EventDestinationActions = ({
                 e.preventDefault();
               }}
             >
-              <Pencil className="h-4 w-4 mr-2" />
+              <Pencil class="h-4 w-4 mr-2" />
               {t('Edit')}
             </DropdownMenuItem>
           </EventDestinationDialog>
@@ -68,7 +68,7 @@ const EventDestinationActions = ({
                 e.preventDefault();
               }}
             >
-              <Trash className="h-4 w-4 mr-2" />
+              <Trash class="h-4 w-4 mr-2" />
               {t('Delete')}
             </DropdownMenuItem>
           </ConfirmationDeleteDialog>

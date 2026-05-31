@@ -5,12 +5,16 @@ import {
   ProjectSyncPlan,
   TableOperationType,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { t } from 'i18next';
-import { PencilIcon, Plus, TrashIcon } from 'lucide-react';
-import { useState } from 'react';
-import { Resolver, useForm, UseFormReturn } from 'react-hook-form';
-import * as z from 'zod';
+import { PencilIcon, Plus, TrashIcon } from 'lucide-solid';
+import {
+  Accessor,
+  createEffect,
+  createSignal,
+  For,
+  Setter,
+  Show,
+} from 'solid-js';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { Button } from '@/components/ui/button';
@@ -41,15 +45,11 @@ type CreateReleaseDialogProps = {
   defaultName?: string;
 };
 
-const formSchema = z.object({
-  name: z.string().min(1, t('Name is required')),
-  description: z.string().optional(),
-});
-
-type FormData = z.infer<typeof formSchema>;
-
 type CreateReleaseDialogContentProps = {
-  form: UseFormReturn<FormData>;
+  name: Accessor<string>;
+  setName: Setter<string>;
+  description: Accessor<string>;
+  setDescription: Setter<string>;
   loading: boolean;
   diffRequest: DiffReleaseRequest;
   plan: ProjectSyncPlan;
@@ -61,7 +61,10 @@ const CreateReleaseDialogContent = ({
   loading,
   diffRequest,
   plan,
-  form,
+  name,
+  setName,
+  description,
+  setDescription,
   setOpen,
   refetch,
 }: CreateReleaseDialogContentProps) => {
@@ -76,10 +79,11 @@ const CreateReleaseDialogContent = ({
         setOpen(false);
       },
     });
-  const [selectedChanges, setSelectedChanges] = useState<Set<string>>(
+  const [selectedChanges, setSelectedChanges] = createSignal<Set<string>>(
     new Set(plan?.flows.map((op) => op.flow.id) || []),
   );
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = createSignal('');
+  const [nameError, setNameError] = createSignal('');
 
   const handleSelectAll = (checked: boolean) => {
     if (!plan) return;
@@ -90,89 +94,87 @@ const CreateReleaseDialogContent = ({
 
   return (
     <>
-      {loading && (
+      <Show when={loading}>
         <div className="flex items-center justify-center h-24">
           <LoadingSpinner />
         </div>
-      )}
+      </Show>
 
-      {!loading && isThereAnyChanges && (
+      <Show when={!loading && isThereAnyChanges}>
         <div className="space-y-4">
           <div className="flex flex-col gap-2">
-            <Label className="text-sm" htmlFor="name">
+            <Label class="text-sm" for="name">
               {t('Name')}
             </Label>
             <Input
               id="name"
-              {...form.register('name')}
-              onChange={(e) => {
-                if (e.target.value) {
-                  form.setError('name', { message: '' });
-                }
+              value={name()}
+              onInput={(event) => {
+                setName(event.currentTarget.value);
+                setNameError('');
               }}
               placeholder={t('Meeting Summary Flow')}
             />
-            {form.formState.errors.name && (
+            <Show when={nameError()}>
               <p className="text-sm text-destructive">
-                {form.formState.errors.name.message}
+                {nameError()}
               </p>
-            )}
+            </Show>
           </div>
           <div className="flex flex-col gap-2">
-            <Label className="text-sm" htmlFor="description">
+            <Label class="text-sm" for="description">
               {t('Description')}
             </Label>
             <Textarea
               id="description"
-              {...form.register('description')}
+              value={description()}
+              onInput={(event) => setDescription(event.currentTarget.value)}
               placeholder={t('Added new features and fixed bugs')}
             />
-            {form.formState.errors.description && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.description.message}
-              </p>
-            )}
           </div>
-          {plan?.flows && plan?.flows.length > 0 && (
+          <Show when={plan?.flows && plan.flows.length > 0}>
             <div className="space-y-2 ">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 py-2 border-b">
                   <Checkbox
-                    checked={selectedChanges.size === plan?.flows.length}
+                    checked={selectedChanges().size === plan?.flows.length}
                     onCheckedChange={handleSelectAll}
                   />
-                  <Label className="text-sm font-medium">
-                    {t('Flows Changes')} ({selectedChanges.size}/
+                  <Label class="text-sm font-medium">
+                    {t('Flows Changes')} ({selectedChanges().size}/
                     {plan?.flows.length || 0})
                   </Label>
                 </div>
               </div>
               <ScrollArea viewPortClassName="max-h-[15vh]">
-                {plan?.flows.map((operation) => (
-                  <OperationChange
-                    key={operation.flow.id}
-                    change={operation}
-                    selected={selectedChanges.has(operation.flow.id)}
-                    onSelect={(checked) => {
-                      const newSelectedChanges = new Set(selectedChanges);
-                      if (checked) {
-                        newSelectedChanges.add(operation.flow.id);
-                      } else {
-                        newSelectedChanges.delete(operation.flow.id);
-                      }
-                      setErrorMessage('');
-                      setSelectedChanges(newSelectedChanges);
-                    }}
-                  />
-                ))}
+                <For each={plan?.flows}>
+                  {(operation) => (
+                    <OperationChange
+                      key={operation.flow.id}
+                      change={operation}
+                      selected={selectedChanges().has(operation.flow.id)}
+                      onSelect={(checked) => {
+                        const next = new Set(selectedChanges());
+                        if (checked) {
+                          next.add(operation.flow.id);
+                        }
+                        if (!checked) {
+                          next.delete(operation.flow.id);
+                        }
+                        setErrorMessage('');
+                        setSelectedChanges(next);
+                      }}
+                    />
+                  )}
+                </For>
               </ScrollArea>
             </div>
-          )}
-          {plan?.connections && plan?.connections.length > 0 && (
+          </Show>
+          <Show when={plan?.connections && plan.connections.length > 0}>
             <div className="space-y-2">
               <div className="flex flex-col gap-2">
                 <div className="flex flex-col justify -center gap-1 py-2 border-b">
-                  <Label className="text-sm font-medium">
+                  <Label class="text-sm font-medium">
                     {t('Connections Changes')} ({plan?.connections?.length || 0}
                     )
                   </Label>
@@ -185,99 +187,117 @@ const CreateReleaseDialogContent = ({
                   </div>
                 </div>
                 <ScrollArea viewPortClassName="max-h-[10vh]">
-                  {plan?.connections.map((connection) => (
-                    <div
-                      key={connection.connectionState.externalId}
-                      className="flex items-center gap-2 text-sm py-1"
-                    >
-                      {connection.type ===
-                        ConnectionOperationType.UPDATE_CONNECTION && (
-                        <div className="flex items-center gap-2">
-                          <PencilIcon className="w-4 h-4 shrink-0" />
-                          <div className="flex items-center gap-1">
-                            <span>
+                  <For each={plan?.connections}>
+                    {(connection) => (
+                      <div
+                        key={connection.connectionState.externalId}
+                        className="flex items-center gap-2 text-sm py-1"
+                      >
+                        <Show
+                          when={
+                            connection.type ===
+                            ConnectionOperationType.UPDATE_CONNECTION
+                          }
+                        >
+                          <div className="flex items-center gap-2">
+                            <PencilIcon class="w-4 h-4 shrink-0" />
+                            <div className="flex items-center gap-1">
+                              <span>
+                                {connection.connectionState.displayName}
+                              </span>
+                              <span> {t('renamed to')} </span>
+                              <span>
+                                {connection.newConnectionState.displayName}
+                              </span>
+                            </div>
+                          </div>
+                        </Show>
+                        <Show
+                          when={
+                            connection.type ===
+                            ConnectionOperationType.CREATE_CONNECTION
+                          }
+                        >
+                          <div className="flex items-center gap-2">
+                            <Plus class="w-4 h-4 shrink-0 text-success" />
+                            <span className="text-success">
                               {connection.connectionState.displayName}
                             </span>
-                            <span> {t('renamed to')} </span>
-                            <span>
-                              {connection.newConnectionState.displayName}
-                            </span>
                           </div>
-                        </div>
-                      )}
-                      {connection.type ===
-                        ConnectionOperationType.CREATE_CONNECTION && (
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 shrink-0 text-success" />
-                          <span className="text-success">
-                            {connection.connectionState.displayName}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        </Show>
+                      </div>
+                    )}
+                  </For>
                 </ScrollArea>
               </div>
             </div>
-          )}
+          </Show>
 
-          {plan?.tables && plan?.tables.length > 0 && (
+          <Show when={plan?.tables && plan.tables.length > 0}>
             <div className="space-y-2">
               <div className="flex flex-col gap-2">
                 <div className="flex flex-col justify -center gap-1 py-2 border-b">
-                  <Label className="text-sm font-medium">
+                  <Label class="text-sm font-medium">
                     {t('Tables Changes')} ({plan?.tables?.length || 0})
                   </Label>
                 </div>
                 <ScrollArea viewPortClassName="max-h-[10vh]">
-                  {plan?.tables.map((table) => (
-                    <div
-                      key={table.tableState.externalId}
-                      className="flex items-center gap-2 text-sm py-1"
-                    >
-                      {table.type === TableOperationType.UPDATE_TABLE && (
-                        <div className="flex items-center gap-2">
-                          <PencilIcon className="w-4 h-4 shrink-0" />
-                          <div className="flex items-center gap-1">
-                            <span>{table.tableState.name}</span>
+                  <For each={plan?.tables}>
+                    {(table) => (
+                      <div
+                        key={table.tableState.externalId}
+                        className="flex items-center gap-2 text-sm py-1"
+                      >
+                        <Show
+                          when={table.type === TableOperationType.UPDATE_TABLE}
+                        >
+                          <div className="flex items-center gap-2">
+                            <PencilIcon class="w-4 h-4 shrink-0" />
+                            <div className="flex items-center gap-1">
+                              <span>{table.tableState.name}</span>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                      {table.type === TableOperationType.CREATE_TABLE && (
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4 shrink-0 text-success" />
-                          <span className="text-success">
-                            {table.tableState.name}
-                          </span>
-                        </div>
-                      )}
-                      {table.type === TableOperationType.DELETE_TABLE && (
-                        <div className="flex items-center gap-2">
-                          <TrashIcon className="w-4 h-4 shrink-0 text-destructive" />
-                          <span className="text-destructive">
-                            {table.tableState.name}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                        </Show>
+                        <Show
+                          when={table.type === TableOperationType.CREATE_TABLE}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Plus class="w-4 h-4 shrink-0 text-success" />
+                            <span className="text-success">
+                              {table.tableState.name}
+                            </span>
+                          </div>
+                        </Show>
+                        <Show
+                          when={table.type === TableOperationType.DELETE_TABLE}
+                        >
+                          <div className="flex items-center gap-2">
+                            <TrashIcon class="w-4 h-4 shrink-0 text-destructive" />
+                            <span className="text-destructive">
+                              {table.tableState.name}
+                            </span>
+                          </div>
+                        </Show>
+                      </div>
+                    )}
+                  </For>
                 </ScrollArea>
               </div>
             </div>
-          )}
-          {errorMessage && (
+          </Show>
+          <Show when={errorMessage}>
             <p className="text-sm text-destructive">{errorMessage}</p>
-          )}
+          </Show>
         </div>
-      )}
+      </Show>
 
       {loading ||
         (!loading && !isThereAnyChanges && (
           <div className="text-sm py-2">{t('No changes to apply')}</div>
         ))}
 
-      {!loading && isThereAnyChanges && (
-        <DialogFooter className=" items-end gap-1 ">
+      <Show when={!loading && isThereAnyChanges}>
+        <DialogFooter class=" items-end gap-1 ">
           <Button
             size={'sm'}
             variant={'outline'}
@@ -290,40 +310,38 @@ const CreateReleaseDialogContent = ({
             loading={isPending}
             disabled={isPending}
             onClick={() => {
-              let error = false;
-              if (form.getValues('name').trim() === '') {
-                form.setError('name', { message: 'Release name is required' });
-                error = true;
+              const invalid = name().trim() === '';
+              if (invalid) {
+                setNameError(t('Release name is required'));
               }
-              if (selectedChanges.size === 0 && plan.tables.length === 0) {
+              if (selectedChanges().size === 0 && plan.tables.length === 0) {
                 setErrorMessage(
-                  'Please select at least one change to include in the release',
+                  t('Please select at least one change to include in the release'),
                 );
-                error = true;
               }
-              if (error) {
+              if (invalid || (selectedChanges().size === 0 && plan.tables.length === 0)) {
                 return;
               }
-              const baseRequest = {
-                name: form.getValues('name'),
-                description: form.getValues('description'),
-                selectedFlowsIds: Array.from(selectedChanges),
+              const request = {
+                name: name(),
+                description: description(),
+                selectedFlowsIds: Array.from(selectedChanges()),
                 projectId: authenticationSession.getProjectId()!,
               };
               switch (diffRequest.type) {
                 case ProjectReleaseType.GIT:
-                  applyChanges({ ...baseRequest, type: diffRequest.type });
+                  applyChanges({ ...request, type: diffRequest.type });
                   break;
                 case ProjectReleaseType.PROJECT:
                   applyChanges({
-                    ...baseRequest,
+                    ...request,
                     targetProjectId: diffRequest.targetProjectId,
                     type: diffRequest.type,
                   });
                   break;
                 case ProjectReleaseType.ROLLBACK:
                   applyChanges({
-                    ...baseRequest,
+                    ...request,
                     projectReleaseId: diffRequest.projectReleaseId,
                     type: diffRequest.type,
                   });
@@ -334,7 +352,7 @@ const CreateReleaseDialogContent = ({
             {t('Apply Changes')}
           </Button>
         </DialogFooter>
-      )}
+      </Show>
     </>
   );
 };
@@ -348,36 +366,31 @@ const CreateReleaseDialog = ({
   defaultName = '',
   diffRequest,
 }: CreateReleaseDialogProps) => {
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema as never) as Resolver<FormData>,
-    defaultValues: {
-      name: defaultName,
-      description: '',
-    },
+  const [name, setName] = createSignal(defaultName);
+  const [description, setDescription] = createSignal('');
+
+  createEffect(() => {
+    if (!open) {
+      return;
+    }
+    setName(defaultName);
+    setDescription('');
   });
 
   return (
     <Dialog
       modal={true}
       open={open}
-      onOpenChange={(newOpenState: boolean) => {
-        if (newOpenState) {
-          form.reset({
-            name: defaultName,
-            description: '',
-          });
-        }
-        setOpen(newOpenState);
-      }}
+      onOpenChange={setOpen}
     >
-      <DialogContent className="min-h-[100px] max-h-[850px] flex flex-col">
-        <DialogHeader className="shrink-0">
+      <DialogContent class="min-h-[100px] max-h-[850px] flex flex-col">
+        <DialogHeader class="shrink-0">
           <DialogTitle>
             {diffRequest.type === ProjectReleaseType.GIT
               ? t('Create Git Release')
               : diffRequest.type === ProjectReleaseType.PROJECT
               ? t('Create Project Release')
-              : `${t('Create Rollback to')} ${form.getValues('name')}`}
+              : `${t('Create Rollback to')} ${name()}`}
           </DialogTitle>
         </DialogHeader>
 
@@ -386,7 +399,10 @@ const CreateReleaseDialog = ({
           loading={loading}
           diffRequest={diffRequest}
           plan={plan}
-          form={form}
+          name={name}
+          setName={setName}
+          description={description}
+          setDescription={setDescription}
           setOpen={setOpen}
           refetch={refetch}
         />

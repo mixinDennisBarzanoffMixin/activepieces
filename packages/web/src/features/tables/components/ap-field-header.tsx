@@ -1,6 +1,6 @@
 import { Permission } from '@activepieces/shared';
-import { ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { ChevronDown } from 'lucide-solid';
+import { createSignal, JSX } from 'solid-js';
 
 import {
   DropdownMenu,
@@ -28,8 +28,10 @@ type ApFieldHeaderProps = {
 };
 
 export function ApFieldHeader({ field }: ApFieldHeaderProps) {
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
-  const [popoverContent, setPopoverContent] = useState<React.ReactNode>(null);
+  const [isPopoverOpen, setIsPopoverOpen] = createSignal(false);
+  const [popoverContent, setPopoverContent] = createSignal<
+    JSX.Element | string | number | null | undefined
+  >(null);
   const lockedByOtherUser = useTableState((state) => state.lockedByOtherUser);
   const userHasTableWritePermission = useAuthorization().checkAccess(
     Permission.WRITE_TABLE,
@@ -61,9 +63,7 @@ export function ApFieldHeader({ field }: ApFieldHeaderProps) {
               {tablesUtils.getColumnIcon(field.type)}
               <span className="text-sm">{field.name}</span>
             </div>
-            {actions && actions.length > 0 && (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {actions && actions.length > 0 && <ChevronDown class="h-4 w-4" />}
           </div>
         </DropdownMenuTrigger>
         {actions && actions.length > 0 && (
@@ -71,7 +71,7 @@ export function ApFieldHeader({ field }: ApFieldHeaderProps) {
             noAnimationOnOut={true}
             onCloseAutoFocus={(e) => e.preventDefault()}
             align="start"
-            className="w-56 rounded-sm"
+            class="w-56 rounded-sm"
           >
             {actions.map((action, index) => (
               <div key={index}>
@@ -85,7 +85,7 @@ export function ApFieldHeader({ field }: ApFieldHeaderProps) {
         <PopoverTrigger asChild>
           <div className="w-full h-full -mt-[40px] pointer-events-none"></div>
         </PopoverTrigger>
-        <PopoverContent align="start" className="p-3">
+        <PopoverContent align="start" class="p-3">
           {popoverContent}
         </PopoverContent>
       </Popover>

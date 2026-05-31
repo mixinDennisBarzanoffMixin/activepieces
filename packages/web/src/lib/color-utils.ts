@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 import { FastAverageColor } from 'fast-average-color';
 
 const imageCache = new Map<string, Promise<HTMLImageElement>>();
@@ -114,7 +114,7 @@ export const colorsUtils = {
     imgUrl: string;
     transparency: number;
   }) => {
-    const { data } = useQuery({
+    const { data } = createQuery(() => ({
       queryKey: ['averageColorInImage', imgUrl, transparency],
       queryFn: async () => {
         const img = await loadImage(imgUrl);
@@ -127,7 +127,7 @@ export const colorsUtils = {
         }
         return `color-mix(in srgb, rgb(${r},${g},${b}) ${transparency}%, #fff 92%)`;
       },
-    });
+    }));
     return data;
   },
 };

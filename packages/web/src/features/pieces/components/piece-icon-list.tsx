@@ -1,3 +1,4 @@
+import { createMemo } from 'solid-js';
 import {
   FlowTrigger,
   FlowActionType,
@@ -6,7 +7,6 @@ import {
 } from '@activepieces/shared';
 import { cva } from 'class-variance-authority';
 import { t } from 'i18next';
-import { useMemo } from 'react';
 
 import {
   Tooltip,
@@ -52,7 +52,7 @@ export function PieceIconList({
 }) {
   const steps = flowStructureUtil.getAllSteps(trigger);
 
-  const { pieceNames, coreMetadata } = useMemo(
+  const { pieceNames, coreMetadata } = createMemo(
     () => extractPieceNamesAndCoreMetadata(steps, excludeCore),
     [steps, excludeCore],
   );
@@ -61,7 +61,7 @@ export function PieceIconList({
     names: pieceNames,
   });
 
-  const stepsMetadata: StepMetadata[] = useMemo(() => {
+  const stepsMetadata: StepMetadata[] = createMemo(() => {
     const pieceMetadata: StepMetadata[] = summaries
       .filter(
         (piece) =>
@@ -93,7 +93,7 @@ export function PieceIconList({
   const extraMetadata = uniqueMetadata.slice(maxNumberOfIconsToShow);
 
   return (
-    <div className={className || 'flex gap-0.5 '}>
+    <div class={className || 'flex gap-0.5 '}>
       {visibleMetadata.map((metadata) => (
         <PieceIcon
           logoUrl={metadata.logoUrl}
@@ -108,7 +108,7 @@ export function PieceIconList({
       {extraPieces > 0 && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <div className={extraIconVariants({ size: size ?? 'xs' })}>
+            <div class={extraIconVariants({ size: size ?? 'xs' })}>
               +{extraPieces}
             </div>
           </TooltipTrigger>

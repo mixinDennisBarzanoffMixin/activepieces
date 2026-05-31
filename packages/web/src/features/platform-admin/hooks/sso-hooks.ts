@@ -1,5 +1,5 @@
 import { UpdatePlatformRequestBody } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 
 import { platformApi } from '@/api/platforms-api';
 
@@ -13,7 +13,7 @@ export const ssoMutations = {
     refetch: () => Promise<void>;
     onSuccess?: () => void;
   }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async (request: UpdatePlatformRequestBody) => {
         await platformApi.update(request, platformId);
         await refetch();
@@ -23,6 +23,6 @@ export const ssoMutations = {
           onSuccess();
         }
       },
-    });
+    }));
   },
 };

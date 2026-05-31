@@ -1,7 +1,6 @@
 import { AgentOutputFieldType, AgentOutputField } from '@activepieces/shared';
 import { t } from 'i18next';
-import { X } from 'lucide-react';
-import { ControllerRenderProps } from 'react-hook-form';
+import { X } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,7 +12,7 @@ export const AgentStructuredOutput = ({
   structuredOutputField,
   disabled,
 }: {
-  structuredOutputField: ControllerRenderProps;
+  structuredOutputField: StructuredOutputField;
   disabled: boolean;
 }) => {
   const value = structuredOutputField.value;
@@ -44,7 +43,7 @@ export const AgentStructuredOutput = ({
       <div className="flex flex-col gap-2 mt-4">
         {outputFields.length > 0 ? (
           <Card>
-            <CardContent className="px-2 py-2">
+            <CardContent class="px-2 py-2">
               <div className="flex flex-col gap-3">
                 {outputFields.map((field, idx) => (
                   <div
@@ -53,7 +52,7 @@ export const AgentStructuredOutput = ({
                   >
                     <div className="grid grid-cols-12 gap-2 w-full items-center">
                       <div className="col-span-1 flex items-center justify-center h-full">
-                        <FieldTypeIcon type={field.type} className="h-4 w-4" />
+                        <FieldTypeIcon type={field.type} class="h-4 w-4" />
                       </div>
                       <div className="col-span-10 flex flex-col justify-center">
                         <span className="font-medium text-sm">
@@ -72,7 +71,7 @@ export const AgentStructuredOutput = ({
                           onClick={() => handleRemoveField(field.displayName)}
                           disabled={disabled}
                         >
-                          <X className="h-4 w-4" />
+                          <X class="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
@@ -90,4 +89,9 @@ export const AgentStructuredOutput = ({
       </div>
     </div>
   );
+};
+
+type StructuredOutputField = {
+  value: unknown;
+  onChange: (value: AgentOutputField[]) => void;
 };

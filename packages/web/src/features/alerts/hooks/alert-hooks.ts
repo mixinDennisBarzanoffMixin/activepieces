@@ -4,11 +4,14 @@ import {
   ErrorCode,
   ProjectWithLimits,
 } from '@activepieces/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/solid-query';
 import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
-import { UseFormReturn } from 'react-hook-form';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { internalErrorToast } from '@/components/ui/sonner';
 import { api } from '@/lib/api';
@@ -20,7 +23,7 @@ export const alertMutations = {
   useCreateAlert: (params?: CreateAlertParams) => {
     const queryClient = useQueryClient();
     const projectId = authenticationSession.getProjectId()!;
-    return useMutation<Alert, Error, { email: string }>({
+    return createMutation<Alert, Error, { email: string }>({
       mutationFn: async (params) =>
         alertsApi.create({
           receiver: params.email,
@@ -40,9 +43,7 @@ export const alertMutations = {
         if (api.isError(error)) {
           switch (error.response?.status) {
             case HttpStatusCode.Conflict:
-              params?.form?.setError('root.serverError', {
-                message: t('The email is already added.'),
-              });
+              params?.onError?.(t('The email is already added.'));
               break;
             default: {
               internalErrorToast();
@@ -56,7 +57,7 @@ export const alertMutations = {
   useDeleteAlert: () => {
     const queryClient = useQueryClient();
     const projectId = authenticationSession.getProjectId()!;
-    return useMutation<void, Error, Alert>({
+    return createMutation<void, Error, Alert>({
       mutationFn: (alert) => alertsApi.delete(alert.id),
       onSuccess: () => {
         queryClient.invalidateQueries({
@@ -69,7 +70,7 @@ export const alertMutations = {
     });
   },
   useBulkSubscribeAlerts: () => {
-    return useMutation<
+    return createMutation<
       SubscribeSummary,
       Error,
       BulkAlertParams,
@@ -112,7 +113,7 @@ export const alertMutations = {
     });
   },
   useBulkUnsubscribeAlerts: () => {
-    return useMutation<
+    return createMutation<
       UnsubscribeSummary,
       Error,
       BulkAlertParams,
@@ -158,7 +159,7 @@ export const alertMutations = {
 export const alertQueries = {
   useAlertsEmailList: () => {
     const projectId = authenticationSession.getProjectId()!;
-    return useQuery<Alert[], Error, Alert[]>({
+    return createQuery<Alert[], Error, Alert[]>({
       queryKey: createAlertQueryKey(projectId),
       queryFn: async () => {
         const page = await alertsApi.list({
@@ -229,7 +230,7 @@ const ALERTS_LIST_LIMIT = 100;
 
 type CreateAlertParams = {
   onSuccess?: () => void;
-  form?: UseFormReturn<any>;
+  onError?: (message: string) => void;
 };
 
 type BulkAlertParams = {

@@ -5,8 +5,8 @@ import {
 } from '@activepieces/shared';
 import dayjs from 'dayjs';
 import { t } from 'i18next';
-import { Zap, Info, Loader2 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Zap, Info, Loader2 } from 'lucide-solid';
+import { createSignal, createEffect } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -34,7 +34,7 @@ export function PurchaseExtraFlowsDialog() {
   const activeFlowsLimit = platformPlanInfo?.plan.activeFlowsLimit ?? 0;
   const platformPlan = platformPlanInfo?.plan as PlatformPlan;
 
-  const [selectedLimit, setSelectedLimit] = useState(activeFlowsLimit);
+  const [selectedLimit, setSelectedLimit] = createSignal(activeFlowsLimit);
 
   const flowPrice = PRICE_PER_EXTRA_ACTIVE_FLOWS;
   const maxFlows = 100;
@@ -66,7 +66,7 @@ export function PurchaseExtraFlowsDialog() {
     isPending: isCreatingSubscriptionPending,
   } = billingMutations.useCreateSubscription(() => closeDialog());
 
-  useEffect(() => {
+  createEffect(() => {
     setSelectedLimit(activeFlowsLimit);
   }, [isOpen]);
 
@@ -95,12 +95,12 @@ export function PurchaseExtraFlowsDialog() {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && closeDialog()}>
       <DialogContent
-        className={cn(
+        class={cn(
           'max-w-[480px] transition-all  border duration-300 ease-in-out',
         )}
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-lg">
+          <DialogTitle class="flex items-center gap-2 text-lg">
             {t('Purchase Extra Active Flows')}
           </DialogTitle>
           <DialogDescription>
@@ -219,7 +219,7 @@ export function PurchaseExtraFlowsDialog() {
             {isDowngrade && (
               <div className="space-y-3 animate-in fade-in duration-300">
                 <div className="flex items-start text-sm gap-2">
-                  <Info className="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
+                  <Info class="w-4 h-4 mt-0.5 text-amber-500 shrink-0" />
                   <div className="space-y-2">
                     <p className="font-medium">
                       {t(
@@ -240,7 +240,7 @@ export function PurchaseExtraFlowsDialog() {
             {isSame && (
               <div className="space-y-3 animate-in fade-in duration-300">
                 <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <Info className="w-4 h-4 mt-0.5 shrink-0" />
+                  <Info class="w-4 h-4 mt-0.5 shrink-0" />
                   <div>
                     <p className="font-medium text-foreground mb-1">
                       {t('No changes')}
@@ -271,13 +271,13 @@ export function PurchaseExtraFlowsDialog() {
           </Button>
           <Button
             onClick={handlePurchase}
-            className="gap-2"
+            class="gap-2"
             disabled={isSame || isLoading}
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 class="w-4 h-4 animate-spin" />
             ) : (
-              <Zap className="w-4 h-4" />
+              <Zap class="w-4 h-4" />
             )}
             {isLoading
               ? t('Processing...')

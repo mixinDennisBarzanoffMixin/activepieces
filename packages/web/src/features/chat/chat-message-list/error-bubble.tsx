@@ -1,6 +1,5 @@
 import { ApErrorParams, ChatUIResponse, ErrorCode } from '@activepieces/shared';
-import { BotIcon, CircleX, RotateCcw } from 'lucide-react';
-import React from 'react';
+import { BotIcon, CircleX, RotateCcw } from 'lucide-solid';
 
 import {
   ChatBubble,
@@ -64,24 +63,24 @@ export const ErrorBubble = ({
   sendingError,
   sendMessage,
 }: ErrorBubbleProps) => (
-  <ChatBubble variant="received" className="pb-8">
+  <ChatBubble variant="received" class="pb-8">
     <div className="relative">
       <ChatBubbleAvatar
         src={chatUI?.platformLogoUrl}
-        fallback={<BotIcon className="size-5" />}
+        fallback={<BotIcon class="size-5" />}
       />
       <div className="absolute -bottom-[2px] -right-[2px]">
-        <CircleX className="size-4 text-destructive" strokeWidth={3} />
+        <CircleX class="size-4 text-destructive" strokeWidth={3} />
       </div>
     </div>
-    <ChatBubbleMessage className="text-destructive">
+    <ChatBubbleMessage class="text-destructive">
       {formatError(chatUI?.projectId, flowId, sendingError)}
     </ChatBubbleMessage>
     <div className="flex gap-1">
       <ChatBubbleAction
         variant="outline"
-        className="size-5 mt-2"
-        icon={<RotateCcw className="size-3" />}
+        class="size-5 mt-2"
+        icon={<RotateCcw class="size-3" />}
         onClick={() => {
           sendMessage({ isRetrying: true });
         }}

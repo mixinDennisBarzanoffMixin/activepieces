@@ -1,6 +1,6 @@
-import { useCallback, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useDebouncedCallback } from 'use-debounce';
+import { createMemo, createSignal } from 'solid-js';
+import { useDebouncedCallback } from '@/lib/debounce';
+import { useSearchParams } from '@solidjs/router';
 
 import { AutomationsFilters } from '../lib/types';
 import { hasActiveFilters } from '../lib/utils';
@@ -24,116 +24,92 @@ const FILTER_PARAMS = [
 export function useAutomationsFilters() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [searchInput, setSearchInput] = useState(
-    () => searchParams.get(SEARCH_PARAM) ?? '',
+  const [searchInput, setSearchInput] = createSignal(
+    searchParams.get(SEARCH_PARAM) ?? '',
   );
-  const [searchTerm, setSearchTerm] = useState(
-    () => searchParams.get(SEARCH_PARAM) ?? '',
+  const [searchTerm, setSearchTerm] = createSignal(
+    searchParams.get(SEARCH_PARAM) ?? '',
   );
-  const [typeFilter, setTypeFilterState] = useState<string[]>(() =>
+  const [typeFilter, setTypeFilterState] = createSignal<string[]>(
     searchParams.getAll(TYPE_PARAM),
   );
-  const [statusFilter, setStatusFilterState] = useState<string[]>(() =>
+  const [statusFilter, setStatusFilterState] = createSignal<string[]>(
     searchParams.getAll(STATUS_PARAM),
   );
-  const [connectionFilter, setConnectionFilterState] = useState<string[]>(() =>
+  const [connectionFilter, setConnectionFilterState] = createSignal<string[]>(
     searchParams.getAll(CONNECTION_PARAM),
   );
-  const [ownerFilter, setOwnerFilterState] = useState<string[]>(() =>
+  const [ownerFilter, setOwnerFilterState] = createSignal<string[]>(
     searchParams.getAll(OWNER_PARAM),
   );
   const folderParamStr = searchParams.getAll(FOLDER_PARAM).join('\0');
-  const folderFilter = useMemo(
-    () => searchParams.getAll(FOLDER_PARAM),
-    [folderParamStr],
-  );
+  const folderFilter = createMemo(() => searchParams.getAll(FOLDER_PARAM));
 
-  const updateParams = useCallback(
-    (updates: Record<string, string | string[] | null>) => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          for (const [key, value] of Object.entries(updates)) {
-            next.delete(key);
-            if (value === null || value === '') continue;
-            if (Array.isArray(value)) {
-              value.forEach((v) => next.append(key, v));
-            } else {
-              next.set(key, value);
-            }
+  const updateParams = (updates: Record<string, string | string[] | null>) => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(updates)) {
+          next.delete(key);
+          if (value === null || value === '') continue;
+          if (Array.isArray(value)) {
+            value.forEach((v) => next.append(key, v));
+          } else {
+            next.set(key, value);
           }
-          return next;
-        },
-        { replace: true },
-      );
-    },
-    [setSearchParams],
-  );
+        }
+        return next;
+      },
+      { replace: true },
+    );
+  };
 
   const debouncedSetSearch = useDebouncedCallback((value: string) => {
     setSearchTerm(value);
     updateParams({ [SEARCH_PARAM]: value || null });
   }, 300);
 
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchInput(value);
-      debouncedSetSearch(value);
-    },
-    [debouncedSetSearch],
-  );
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
+    debouncedSetSearch(value);
+  };
 
-  const setTypeFilter = useCallback(
-    (value: string[]) => {
-      setTypeFilterState(value);
-      updateParams({ [TYPE_PARAM]: value.length > 0 ? value : null });
-    },
-    [updateParams],
-  );
+  const setTypeFilter = (value: string[]) => {
+    setTypeFilterState(value);
+    updateParams({ [TYPE_PARAM]: value.length > 0 ? value : null });
+  };
 
-  const setStatusFilter = useCallback(
-    (value: string[]) => {
-      setStatusFilterState(value);
-      updateParams({ [STATUS_PARAM]: value.length > 0 ? value : null });
-    },
-    [updateParams],
-  );
+  const setStatusFilter = (value: string[]) => {
+    setStatusFilterState(value);
+    updateParams({ [STATUS_PARAM]: value.length > 0 ? value : null });
+  };
 
-  const setConnectionFilter = useCallback(
-    (value: string[]) => {
-      setConnectionFilterState(value);
-      updateParams({ [CONNECTION_PARAM]: value.length > 0 ? value : null });
-    },
-    [updateParams],
-  );
+  const setConnectionFilter = (value: string[]) => {
+    setConnectionFilterState(value);
+    updateParams({ [CONNECTION_PARAM]: value.length > 0 ? value : null });
+  };
 
-  const setOwnerFilter = useCallback(
-    (value: string[]) => {
-      setOwnerFilterState(value);
-      updateParams({ [OWNER_PARAM]: value.length > 0 ? value : null });
-    },
-    [updateParams],
-  );
+  const setOwnerFilter = (value: string[]) => {
+    setOwnerFilterState(value);
+    updateParams({ [OWNER_PARAM]: value.length > 0 ? value : null });
+  };
 
-  const setFolderFilter = useCallback(
-    (value: string[]) => {
-      updateParams({ [FOLDER_PARAM]: value.length > 0 ? value : null });
-    },
-    [updateParams],
-  );
+  const setFolderFilter = (value: string[]) => {
+    updateParams({ [FOLDER_PARAM]: value.length > 0 ? value : null });
+  };
 
   const filters: AutomationsFilters = {
-    searchTerm,
-    typeFilter,
-    statusFilter,
-    connectionFilter,
-    ownerFilter,
-    folderFilter,
+    searchTerm: searchTerm(),
+    typeFilter: typeFilter(),
+    statusFilter: statusFilter(),
+    connectionFilter: connectionFilter(),
+    ownerFilter: ownerFilter(),
+    folderFilter: folderFilter(),
   };
 
   const filtersActive = hasActiveFilters(filters);
 
-  const clearAllFilters = useCallback(() => {
+  const clearAllFilters = () => {
     setSearchInput('');
     setSearchTerm('');
     setTypeFilterState([]);
@@ -141,20 +117,20 @@ export function useAutomationsFilters() {
     setConnectionFilterState([]);
     setOwnerFilterState([]);
     updateParams(Object.fromEntries(FILTER_PARAMS.map((key) => [key, null])));
-  }, [updateParams]);
+  };
 
   return {
-    searchInput,
+    searchInput: searchInput(),
     handleSearchChange,
-    typeFilter,
+    typeFilter: typeFilter(),
     setTypeFilter,
-    statusFilter,
+    statusFilter: statusFilter(),
     setStatusFilter,
-    connectionFilter,
+    connectionFilter: connectionFilter(),
     setConnectionFilter,
-    ownerFilter,
+    ownerFilter: ownerFilter(),
     setOwnerFilter,
-    folderFilter,
+    folderFilter: folderFilter(),
     setFolderFilter,
     filters,
     filtersActive,

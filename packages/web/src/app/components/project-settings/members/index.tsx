@@ -5,8 +5,8 @@ import {
   UserStatus,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Users } from 'lucide-react';
-import { useCallback, useMemo, useState } from 'react';
+import { Users } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { DataTable } from '@/components/custom/data-table';
@@ -37,20 +37,20 @@ export const MembersSettings = () => {
   const { data: platformUsersData, isLoading: platformUsersIsPending } =
     platformUserHooks.useUsers();
 
-  const [filterValue, setFilterValue] = useState('');
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [filterValue, setFilterValue] = createSignal('');
+  const [inviteOpen, setInviteOpen] = createSignal(false);
 
   const { checkAccess } = useAuthorization();
   const userHasPermissionToInviteUser = checkAccess(
     Permission.WRITE_INVITATION,
   );
 
-  const refetch = useCallback(() => {
+  const refetch = () => {
     refetchProjectMembers();
     refetchInvitations();
-  }, [refetchProjectMembers, refetchInvitations]);
+  };
 
-  const combinedData: MemberRowData[] = useMemo(() => {
+  const combinedData: MemberRowData[] = createMemo(() => {
     const currentProjectId = authenticationSession.getProjectId();
 
     const members: MemberRowData[] =
@@ -95,9 +95,9 @@ export const MembersSettings = () => {
         })) ?? [];
 
     return [...members, ...platformAdminsAndOperators, ...pendingInvitations];
-  }, [projectMembers, invitations, platformUsersData]);
+  });
 
-  const filteredData = useMemo(() => {
+  const filteredData = createMemo(() => {
     if (!filterValue) {
       return combinedData;
     }
@@ -118,14 +118,12 @@ export const MembersSettings = () => {
         return email.includes(searchValue);
       }
     });
-  }, [combinedData, filterValue]);
+  });
 
-  const columns = useMemo(
-    () =>
-      membersTableColumns({
-        refetch,
-      }),
-    [refetch],
+  const columns = createMemo(() =>
+    membersTableColumns({
+      refetch,
+    }),
   );
 
   return (
@@ -136,15 +134,17 @@ export const MembersSettings = () => {
           filterValue={filterValue}
           handleFilterChange={setFilterValue}
         />
-        {userHasPermissionToInviteUser && (
-          <AnimatedIconButton
-            icon={UserRoundPlusIcon}
-            iconSize={16}
-            onClick={() => setInviteOpen(true)}
-          >
-            {t('Add Members')}
-          </AnimatedIconButton>
-        )}
+        {
+          <Show when={userHasPermissionToInviteUser}>
+            <AnimatedIconButton
+              icon={UserRoundPlusIcon}
+              iconSize={16}
+              onClick={() => setInviteOpen(true)}
+            >
+              {t('Add Members')}
+            </AnimatedIconButton>
+          </Show>
+        }
       </div>
       <DataTable
         columns={columns}
@@ -163,7 +163,7 @@ export const MembersSettings = () => {
         emptyStateTextDescription={t(
           'Start by inviting team members to collaborate.',
         )}
-        emptyStateIcon={<Users className="size-14" />}
+        emptyStateIcon={<Users class="size-14" />}
       />
       <InviteUserDialog open={inviteOpen} setOpen={setInviteOpen} />
     </div>

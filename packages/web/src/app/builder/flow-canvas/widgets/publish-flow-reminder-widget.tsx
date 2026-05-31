@@ -6,9 +6,10 @@ import {
   Permission,
   PopulatedFlow,
 } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Info } from 'lucide-react';
+import { Info } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { RightSideBarType } from '@/app/builder/types';
 import { LoadingSpinner } from '@/components/custom/spinner';
@@ -55,8 +56,8 @@ const PublishFlowReminderWidget = () => {
     run,
     isSaving,
   });
-  const { mutate: discardChange, isPending: isDiscardingChanges } = useMutation(
-    {
+  const { mutate: discardChange, isPending: isDiscardingChanges } =
+    createMutation(() => ({
       mutationFn: async () => {
         if (!flow.publishedVersionId) {
           return;
@@ -67,8 +68,7 @@ const PublishFlowReminderWidget = () => {
         });
         await publish();
       },
-    },
-  );
+    }));
   const { mutateAsync: publish } = flowHooks.useChangeFlowStatus({
     flowId: flow.id,
     change: 'publish',
@@ -98,48 +98,57 @@ const PublishFlowReminderWidget = () => {
   return (
     <LargeWidgetWrapper>
       <div className="flex items-center gap-2">
-        <Info className="size-5" />
-        {showLoading ? loadingText : t('You have unpublished changes')}
+        <Info class="size-5" />
+        <Show when={showLoading()} fallback={t('You have unpublished changes')}>
+          {loadingText}
+        </Show>
       </div>
-      {showLoading ? (
-        <LoadingSpinner className="size-5 stroke-foreground" />
-      ) : (
-        <div className="flex items-center gap-2">
-          {!isNil(flow.publishedVersionId) && !isSaving && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="hover:bg-gray-300/10 text-foreground"
-              onClick={() => discardChange()}
-            >
-              {t('Discard changes')}
-            </Button>
-          )}
+      <Show
+        when={showLoading()}
+        fallback={
+          <div className="flex items-center gap-2">
+            <Show when={!isNil(flow.publishedVersionId) && !isSaving()}>
+              <Button
+                size="sm"
+                variant="ghost"
+                class="hover:bg-gray-300/10 text-foreground"
+                onClick={() => discardChange()}
+              >
+                {t('Discard changes')}
+              </Button>
+            </Show>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="tooltip-wrapper">
-                <Button
-                  size="sm"
-                  variant="default"
-                  className="z-50"
-                  loading={isSaving}
-                  //for e2e tests
-                  name="Publish"
-                  onClick={() => publish()}
-                  disabled={!isValid}
-                >
-                  {t('Publish')}
-                </Button>
-              </div>
-            </TooltipTrigger>
-            {isSaving && <TooltipContent>{t('Saving...')}</TooltipContent>}
-            {!isValid && (
-              <TooltipContent>{t('You have incomplete steps')}</TooltipContent>
-            )}
-          </Tooltip>
-        </div>
-      )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="tooltip-wrapper">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    class="z-50"
+                    loading={isSaving}
+                    //for e2e tests
+                    name="Publish"
+                    onClick={() => publish()}
+                    disabled={!isValid}
+                  >
+                    {t('Publish')}
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              <Show when={isSaving()}>
+                <TooltipContent>{t('Saving...')}</TooltipContent>
+              </Show>
+              <Show when={!isValid()}>
+                <TooltipContent>
+                  {t('You have incomplete steps')}
+                </TooltipContent>
+              </Show>
+            </Tooltip>
+          </div>
+        }
+      >
+        <LoadingSpinner class="size-5 stroke-foreground" />
+      </Show>
     </LargeWidgetWrapper>
   );
 };

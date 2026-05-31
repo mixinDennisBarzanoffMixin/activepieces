@@ -1,7 +1,7 @@
 import { t } from 'i18next';
-import { Paperclip } from 'lucide-react';
+import { Paperclip } from 'lucide-solid';
 import { motion } from 'motion/react';
-import { memo } from 'react';
+import { For, Show } from 'solid-js';
 
 import {
   Message,
@@ -16,7 +16,7 @@ import { getTextFromParts } from '../lib/message-parsers';
 
 import { CopyIconButton } from './copy-icon-button';
 
-export const UserMessage = memo(function UserMessage({
+export function UserMessage({
   message,
   isLastMessage = false,
 }: {
@@ -42,34 +42,36 @@ export const UserMessage = memo(function UserMessage({
 
   return (
     <motion.div
-      className="flex justify-end py-3 group/msg"
+      class="flex justify-end py-3 group/msg"
       initial={isFromHistory ? false : { opacity: 0, x: 16 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.25 }}
     >
       <div className="max-w-[80%]">
-        <Message className="flex-row-reverse">
+        <Message class="flex-row-reverse">
           <div className="bg-muted rounded-2xl rounded-br-md px-2.5 py-1 text-sm">
-            {fileNames.length > 0 && (
+            <Show when={fileNames.length > 0}>
               <div className="flex flex-wrap gap-1.5 mb-1.5">
-                {fileNames.map((name, i) => (
-                  <span
-                    key={i}
-                    className="inline-flex items-center gap-1 rounded-md bg-background/60 px-2 py-0.5 text-xs text-muted-foreground"
-                  >
-                    <Paperclip className="size-3" />
-                    <span className="max-w-[150px] truncate">{name}</span>
-                  </span>
-                ))}
+                <For each={fileNames}>
+                  {(name, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 rounded-md bg-background/60 px-2 py-0.5 text-xs text-muted-foreground"
+                    >
+                      <Paperclip class="size-3" />
+                      <span className="max-w-[150px] truncate">{name}</span>
+                    </span>
+                  )}
+                </For>
               </div>
-            )}
-            <PromptKitMessageContent markdown className="prose-sm">
+            </Show>
+            <PromptKitMessageContent markdown class="prose-sm">
               {content}
             </PromptKitMessageContent>
           </div>
         </Message>
         <MessageActions
-          className={cn(
+          class={cn(
             'justify-end mt-1 transition-opacity',
             isLastMessage
               ? 'opacity-100'
@@ -77,10 +79,10 @@ export const UserMessage = memo(function UserMessage({
           )}
         >
           <MessageAction tooltip={t('Copy')}>
-            <CopyIconButton textToCopy={content} className="h-6 w-6" />
+            <CopyIconButton textToCopy={content} class="h-6 w-6" />
           </MessageAction>
         </MessageActions>
       </div>
     </motion.div>
   );
-});
+}

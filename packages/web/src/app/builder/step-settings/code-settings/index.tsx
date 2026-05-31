@@ -1,7 +1,6 @@
 import { CodeAction, MarkdownVariant } from '@activepieces/shared';
 import { t } from 'i18next';
-import React from 'react';
-import { useFormContext } from 'react-hook-form';
+import { useFormContext } from '@/app/builder/builder-form';
 
 import { DictionaryInput } from '@/components/custom/dictionary-input';
 import { ApMarkdown } from '@/components/custom/markdown';
@@ -17,9 +16,9 @@ import { TextInputWithMentions } from '../../piece-properties/text-input-with-me
 import { CodeEditor } from './code-editor';
 
 const markdown = `
-To use data from previous steps in your code, include them as pairs of keys and values below. 
+To use data from previous steps in your code, include them as pairs of keys and values below.
 
-You can access these inputs in your code using \`inputs.key\`, where \`key\` is the name you assigned below.  
+You can access these inputs in your code using \`inputs.key\`, where \`key\` is the name you assigned below.
 `;
 
 const warningMarkdown = `
@@ -30,7 +29,7 @@ type CodeSettingsProps = {
   readonly: boolean;
 };
 
-const CodeSettings = React.memo(({ readonly }: CodeSettingsProps) => {
+const CodeSettings = ({ readonly }: CodeSettingsProps) => {
   const form = useFormContext<CodeAction>();
 
   return (
@@ -87,6 +86,6 @@ const CodeSettings = React.memo(({ readonly }: CodeSettingsProps) => {
       />
     </div>
   );
-});
+};
 CodeSettings.displayName = 'CodeSettings';
 export { CodeSettings };

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { createSignal } from 'solid-js';
 
 import { SelectedItemsMap, TreeItem } from '../lib/types';
 
@@ -13,35 +13,35 @@ export function useAutomationsDialogs({
   mutations,
   selectedItems,
 }: DialogsDeps) {
-  const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
-  const [isImportFlowDialogOpen, setIsImportFlowDialogOpen] = useState(false);
-  const [isImportTableDialogOpen, setIsImportTableDialogOpen] = useState(false);
-  const [importTargetFolderId, setImportTargetFolderId] = useState<
+  const [isFolderDialogOpen, setIsFolderDialogOpen] = createSignal(false);
+  const [isImportFlowDialogOpen, setIsImportFlowDialogOpen] = createSignal(false);
+  const [isImportTableDialogOpen, setIsImportTableDialogOpen] = createSignal(false);
+  const [importTargetFolderId, setImportTargetFolderId] = createSignal<
     string | undefined
   >(undefined);
-  const [moveToDialogOpen, setMoveToDialogOpen] = useState(false);
-  const [moveToFolderId, setMoveToFolderId] = useState<string>('');
-  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [itemToRename, setItemToRename] = useState<TreeItem | null>(null);
+  const [moveToDialogOpen, setMoveToDialogOpen] = createSignal(false);
+  const [moveToFolderId, setMoveToFolderId] = createSignal<string>('');
+  const [renameDialogOpen, setRenameDialogOpen] = createSignal(false);
+  const [newName, setNewName] = createSignal('');
+  const [itemToRename, setItemToRename] = createSignal<TreeItem | null>(null);
 
-  const openRenameDialog = useCallback((item: TreeItem) => {
+  const openRenameDialog = (item: TreeItem) => {
     setItemToRename(item);
     setNewName(item.name);
     setRenameDialogOpen(true);
-  }, []);
+  };
 
-  const handleRename = useCallback(async () => {
-    if (!itemToRename || !newName.trim()) return;
-    await mutations.handleRename(itemToRename, newName);
+  const handleRename = async () => {
+    if (!itemToRename() || !newName().trim()) return;
+    await mutations.handleRename(itemToRename()!, newName());
     setRenameDialogOpen(false);
     setItemToRename(null);
-  }, [itemToRename, newName, mutations]);
+  };
 
-  const handleBulkMoveTo = useCallback(async () => {
-    await mutations.handleBulkMoveTo(selectedItems, moveToFolderId);
+  const handleBulkMoveTo = async () => {
+    await mutations.handleBulkMoveTo(selectedItems, moveToFolderId());
     setMoveToDialogOpen(false);
-  }, [selectedItems, moveToFolderId, mutations]);
+  };
 
   return {
     isFolderDialogOpen,

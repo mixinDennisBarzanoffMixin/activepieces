@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from 'lucide-solid';
 
 import { Alert, AlertDescription } from '../ui/alert';
 export const DefaultTag = () => {
@@ -13,7 +13,7 @@ export const DefaultTag = () => {
 export const GlobalConnectionWarning = () => {
   return (
     <Alert variant="warning">
-      <TriangleAlert className="h-4 w-4" />
+      <TriangleAlert class="h-4 w-4" />
       <AlertDescription>
         {t(
           'Deselecting a global connection from a project that has a flow using it, will break the flow.',

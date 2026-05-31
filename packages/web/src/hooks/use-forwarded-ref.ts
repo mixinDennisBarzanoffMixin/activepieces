@@ -1,16 +1,22 @@
-import { useEffect, useRef } from 'react';
+import { createEffect } from 'solid-js';
 
-export function useForwardedRef<T>(ref: React.ForwardedRef<T>) {
-  const innerRef = useRef<T>(null);
+type ForwardedRef<T> = ((value: T | undefined) => void) | { current: T | undefined } | undefined;
 
-  useEffect(() => {
+export function useForwardedRef<T>(ref: ForwardedRef<T>) {
+  let node: T | undefined;
+
+  const set = (value: T | undefined) => {
+    node = value;
+  };
+
+  createEffect(() => {
     if (!ref) return;
     if (typeof ref === 'function') {
-      ref(innerRef.current);
-    } else {
-      ref.current = innerRef.current;
+      ref(node);
+      return;
     }
+    ref.current = node;
   });
 
-  return innerRef;
+  return set;
 }

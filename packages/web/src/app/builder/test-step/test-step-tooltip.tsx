@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { useContext } from 'react';
+import { Show, useContext } from 'solid-js';
 
 import {
   Tooltip,
@@ -11,7 +11,7 @@ import {
 import { DynamicPropertiesContext } from '../piece-properties/dynamic-properties-context';
 
 type TestButtonTooltipProps = {
-  children: React.ReactNode;
+  children: any;
   invalid: boolean;
   saving: boolean;
 };
@@ -25,18 +25,23 @@ const TestButtonTooltip = ({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild className="disabled:pointer-events-auto">
+        <TooltipTrigger asChild class="disabled:pointer-events-auto">
           {children}
         </TooltipTrigger>
-        {(invalid || isLoadingDynamicProperties || saving) && (
+        <Show when={(invalid || isLoadingDynamicProperties || saving)()}>
           <TooltipContent side="bottom">
-            {invalid
-              ? t('Fill in the required fields first')
-              : isLoadingDynamicProperties
-              ? t('Please wait until all inputs are loaded')
-              : t('Saving...')}
+            <Show
+              when={invalid()}
+              fallback={
+                isLoadingDynamicProperties
+                  ? t('Please wait until all inputs are loaded')
+                  : t('Saving...')
+              }
+            >
+              {t('Fill in the required fields first')}
+            </Show>
           </TooltipContent>
-        )}
+        </Show>
       </Tooltip>
     </TooltipProvider>
   );

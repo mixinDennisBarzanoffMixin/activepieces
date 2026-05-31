@@ -16,7 +16,7 @@ export const LoadingScreen = ({
       })}
     >
       <LoadingSpinner
-        className={cn({
+        class={cn({
           'stroke-background!': brightSpinner,
         })}
         isLarge={true}

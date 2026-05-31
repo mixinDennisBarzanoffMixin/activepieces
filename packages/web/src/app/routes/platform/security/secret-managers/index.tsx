@@ -3,7 +3,7 @@ import {
   SecretManagerConnectionScope,
   SecretManagerConnectionWithStatus,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   KeyRound,
@@ -13,7 +13,7 @@ import {
   Globe,
   Activity,
   XIcon,
-} from 'lucide-react';
+} from 'lucide-solid';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -98,13 +98,13 @@ const SecretManagersPage = () => {
         const connection = row.original;
         if (connection.scope === SecretManagerConnectionScope.PLATFORM) {
           return (
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" class="text-xs">
               {t('Platform')}
             </Badge>
           );
         }
         return (
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" class="text-xs">
             {t('Project')}
           </Badge>
         );
@@ -124,7 +124,7 @@ const SecretManagersPage = () => {
         const { configured, connected } = row.original.connection;
         if (!configured) {
           return (
-            <Badge variant="outline" className="text-xs text-muted-foreground">
+            <Badge variant="outline" class="text-xs text-muted-foreground">
               {t('Not configured')}
             </Badge>
           );
@@ -155,7 +155,7 @@ const SecretManagersPage = () => {
           <div className="flex items-center gap-1 justify-end">
             <AddEditSecretManagerConnectionDialog connection={connection}>
               <Button variant="ghost" size="sm">
-                <Pencil className="size-4" />
+                <Pencil class="size-4" />
               </Button>
             </AddEditSecretManagerConnectionDialog>
             <SecretManagerClearCacheButton connection={connection} />
@@ -174,7 +174,7 @@ const SecretManagersPage = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="sm">
-                      <Trash className="size-4 text-destructive" />
+                      <Trash class="size-4 text-destructive" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>{t('Delete')}</TooltipContent>
@@ -210,7 +210,7 @@ const SecretManagersPage = () => {
           emptyStateTextDescription={t(
             'Add a secret manager connection to manage your secrets',
           )}
-          emptyStateIcon={<KeyRound className="size-14" />}
+          emptyStateIcon={<KeyRound class="size-14" />}
           columns={columns}
           page={page}
           isLoading={isLoading}
@@ -239,7 +239,7 @@ const SecretManagerClearCacheButton = ({
           loading={isClearingCache}
           onClick={() => clearCache(connection.id)}
         >
-          <RefreshCcw className="size-4" />
+          <RefreshCcw class="size-4" />
         </Button>
       </TooltipTrigger>
       <TooltipContent>{t('Clear Cache')}</TooltipContent>

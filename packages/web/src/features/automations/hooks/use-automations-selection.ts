@@ -1,14 +1,13 @@
-import { useCallback, useMemo, useState } from 'react';
-
+import { createMemo, createSignal } from 'solid-js';
 import { SelectableItemType, SelectedItemsMap, TreeItem } from '../lib/types';
 import { getItemKey } from '../lib/utils';
 
 export function useAutomationsSelection(treeItems: TreeItem[]) {
-  const [selectedItems, setSelectedItems] = useState<SelectedItemsMap>(
+  const [selectedItems, setSelectedItems] = createSignal<SelectedItemsMap>(
     new Map(),
   );
 
-  const childrenByFolder = useMemo(() => {
+  const childrenByFolder = createMemo(() => {
     return treeItems.reduce((map, item) => {
       if (item.folderId && item.type !== 'load-more-folder') {
         const list = map.get(item.folderId) ?? [];
@@ -19,88 +18,82 @@ export function useAutomationsSelection(treeItems: TreeItem[]) {
     }, new Map<string, TreeItem[]>());
   }, [treeItems]);
 
-  const toggleItemSelection = useCallback(
-    (item: TreeItem) => {
-      const key = getItemKey(item);
-      setSelectedItems((prev) => {
-        const next = new Map(prev);
+  const toggleItemSelection = (item: TreeItem) => {
+    const key = getItemKey(item);
+    setSelectedItems((prev) => {
+      const next = new Map(prev);
 
-        if (item.type === 'folder') {
-          const children = childrenByFolder.get(item.id) ?? [];
-          if (next.has(key)) {
-            next.delete(key);
-            children.forEach((child) => next.delete(getItemKey(child)));
-          } else {
-            next.set(key, 'folder');
-            children.forEach((child) =>
-              next.set(getItemKey(child), child.type as SelectableItemType),
+      if (item.type === 'folder') {
+        const children = childrenByFolder().get(item.id) ?? [];
+        if (next.has(key)) {
+          next.delete(key);
+          children.forEach((child) => next.delete(getItemKey(child)));
+        } else {
+          next.set(key, 'folder');
+          children.forEach((child) =>
+            next.set(getItemKey(child), child.type as SelectableItemType),
+          );
+        }
+      } else {
+        const itemType = item.type as SelectableItemType;
+        if (next.has(key)) {
+          next.delete(key);
+          if (item.folderId) {
+            next.delete(
+              getItemKey({ type: 'folder', id: item.folderId } as TreeItem),
             );
           }
         } else {
-          const itemType = item.type as SelectableItemType;
-          if (next.has(key)) {
-            next.delete(key);
-            if (item.folderId) {
-              next.delete(
+          next.set(key, itemType);
+          if (item.folderId) {
+            const siblings = childrenByFolder().get(item.folderId) ?? [];
+            const allSelected = siblings.every(
+              (s) => getItemKey(s) === key || next.has(getItemKey(s)),
+            );
+            if (allSelected) {
+              next.set(
                 getItemKey({ type: 'folder', id: item.folderId } as TreeItem),
+                'folder',
               );
-            }
-          } else {
-            next.set(key, itemType);
-            if (item.folderId) {
-              const siblings = childrenByFolder.get(item.folderId) ?? [];
-              const allSelected = siblings.every(
-                (s) => getItemKey(s) === key || next.has(getItemKey(s)),
-              );
-              if (allSelected) {
-                next.set(
-                  getItemKey({ type: 'folder', id: item.folderId } as TreeItem),
-                  'folder',
-                );
-              }
             }
           }
         }
+      }
 
-        return next;
-      });
-    },
-    [childrenByFolder],
-  );
+      return next;
+    });
+  };
 
-  const selectableItems = useMemo(
+  const selectableItems = createMemo(
     () => treeItems.filter((item) => item.type !== 'load-more-folder'),
     [treeItems],
   );
 
-  const toggleAllSelection = useCallback(() => {
+  const toggleAllSelection = () => {
     if (
-      selectedItems.size === selectableItems.length &&
-      selectableItems.length > 0
+      selectedItems().size === selectableItems().length &&
+      selectableItems().length > 0
     ) {
       setSelectedItems(new Map());
     } else {
       setSelectedItems(
         new Map(
-          selectableItems.map((item) => [
+          selectableItems().map((item) => [
             getItemKey(item),
             item.type as SelectableItemType,
           ]),
         ),
       );
     }
-  }, [selectableItems, selectedItems.size]);
+  };
 
-  const clearSelection = useCallback(() => {
+  const clearSelection = () => {
     setSelectedItems(new Map());
-  }, []);
+  };
 
-  const isItemSelected = useCallback(
-    (item: TreeItem): boolean => {
-      return selectedItems.has(getItemKey(item));
-    },
-    [selectedItems],
-  );
+  const isItemSelected = (item: TreeItem): boolean => {
+    return selectedItems().has(getItemKey(item));
+  };
 
   return {
     selectedItems,

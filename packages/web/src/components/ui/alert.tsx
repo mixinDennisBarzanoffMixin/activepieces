@@ -1,5 +1,4 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import * as React from 'react';
 
 import { cn } from '@/lib/utils';
 
@@ -29,7 +28,7 @@ function Alert({
   className,
   variant,
   ...props
-}: React.ComponentProps<'div'> & VariantProps<typeof alertVariants>) {
+}: JSX.IntrinsicElements['div'] & VariantProps<typeof alertVariants>) {
   return (
     <div
       data-slot="alert"
@@ -40,7 +39,7 @@ function Alert({
   );
 }
 
-function AlertTitle({ className, ...props }: React.ComponentProps<'div'>) {
+function AlertTitle({ className, ...props }: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="alert-title"
@@ -56,7 +55,7 @@ function AlertTitle({ className, ...props }: React.ComponentProps<'div'>) {
 function AlertDescription({
   className,
   ...props
-}: React.ComponentProps<'div'>) {
+}: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="alert-description"
@@ -69,7 +68,7 @@ function AlertDescription({
   );
 }
 
-function AlertAction({ className, ...props }: React.ComponentProps<'div'>) {
+function AlertAction({ className, ...props }: JSX.IntrinsicElements['div']) {
   return (
     <div
       data-slot="alert-action"

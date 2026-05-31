@@ -1,6 +1,5 @@
 import { FlowVersionState } from '@activepieces/shared';
 import { t } from 'i18next';
-import React from 'react';
 
 import {
   Tooltip,
@@ -29,7 +28,7 @@ const findVersionStateName: (
   }
   return 'Locked';
 };
-const FlowVersionStateDot = React.memo((state: FlowVersionStateProps) => {
+const FlowVersionStateDot = (state: FlowVersionStateProps) => {
   const stateName = findVersionStateName(state);
   if (stateName === 'Locked') {
     return null;
@@ -52,7 +51,7 @@ const FlowVersionStateDot = React.memo((state: FlowVersionStateProps) => {
       </TooltipContent>
     </Tooltip>
   );
-});
+};
 
 FlowVersionStateDot.displayName = 'FlowVersionStateDot';
 export { FlowVersionStateDot };

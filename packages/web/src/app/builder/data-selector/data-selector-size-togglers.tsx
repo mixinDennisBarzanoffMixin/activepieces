@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { ExpandIcon, MinusIcon, PanelRightDashedIcon } from 'lucide-react';
+import { ExpandIcon, MinusIcon, PanelRightDashedIcon } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -41,11 +41,11 @@ export const DataSelectorSizeTogglers = ({
         <TooltipTrigger asChild>
           <Button
             size="icon"
-            className={buttonClassName(DataSelectorSizeState.EXPANDED)}
+            class={buttonClassName(DataSelectorSizeState.EXPANDED)}
             onClick={() => handleClick(DataSelectorSizeState.EXPANDED)}
             variant="basic"
           >
-            <ExpandIcon className="size-5"></ExpandIcon>
+            <ExpandIcon class="size-5"></ExpandIcon>
           </Button>
         </TooltipTrigger>
         <TooltipContent>{t('Expand')}</TooltipContent>
@@ -54,11 +54,11 @@ export const DataSelectorSizeTogglers = ({
         <TooltipTrigger asChild>
           <Button
             size="icon"
-            className={buttonClassName(DataSelectorSizeState.DOCKED)}
+            class={buttonClassName(DataSelectorSizeState.DOCKED)}
             onClick={() => handleClick(DataSelectorSizeState.DOCKED)}
             variant="basic"
           >
-            <PanelRightDashedIcon className="size-5"></PanelRightDashedIcon>
+            <PanelRightDashedIcon class="size-5"></PanelRightDashedIcon>
           </Button>
         </TooltipTrigger>
         <TooltipContent>{t('Dock')}</TooltipContent>
@@ -67,11 +67,11 @@ export const DataSelectorSizeTogglers = ({
         <TooltipTrigger asChild>
           <Button
             size="icon"
-            className={buttonClassName(DataSelectorSizeState.COLLAPSED)}
+            class={buttonClassName(DataSelectorSizeState.COLLAPSED)}
             onClick={() => handleClick(DataSelectorSizeState.COLLAPSED)}
             variant="basic"
           >
-            <MinusIcon className="size-5"></MinusIcon>
+            <MinusIcon class="size-5"></MinusIcon>
           </Button>
         </TooltipTrigger>
         <TooltipContent>{t('Minimize')}</TooltipContent>

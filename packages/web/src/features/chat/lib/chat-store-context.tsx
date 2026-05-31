@@ -1,12 +1,12 @@
-import { createContext, useContext, useRef } from 'react';
-import { useStore } from 'zustand';
+import { createWithStore } from 'solid-zustand';
+import { createContext, useContext } from 'solid-js';
 
 import { ChatStore, ChatStoreState, createChatStore } from './chat-store';
 
 const ChatStoreContext = createContext<ChatStore | null>(null);
 
-export function ChatStoreProvider({ children }: { children: React.ReactNode }) {
-  const storeRef = useRef<ChatStore>(null);
+export function ChatStoreProvider({ children }: { children: any }) {
+  const storeRef = null;
   if (!storeRef.current) {
     storeRef.current = createChatStore();
   }
@@ -25,7 +25,7 @@ export function useChatStoreContext<T>(
     throw new Error(
       'useChatStoreContext must be used within ChatStoreProvider',
     );
-  return useStore(store, selector);
+  return createWithStore(store)(selector);
 }
 
 export function useChatStoreApi(): ChatStore {

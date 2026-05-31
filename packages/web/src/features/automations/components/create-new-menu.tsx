@@ -1,3 +1,4 @@
+import { createSignal } from 'solid-js';
 import { t } from 'i18next';
 import {
   FolderPlus,
@@ -6,8 +7,7 @@ import {
   Table2,
   Upload,
   Workflow,
-} from 'lucide-react';
-import { useState } from 'react';
+} from 'lucide-solid';
 
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
 import { useEmbedding } from '@/components/providers/embed-provider';
@@ -37,7 +37,7 @@ export const CreateNewMenu = ({
   onOpenChange,
 }: CreateNewMenuProps) => {
   const { embedState } = useEmbedding();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = createSignal(false);
 
   const showFolder = scope === 'root' && !embedState.hideFolders;
   const showTemplate = scope === 'root';
@@ -53,7 +53,7 @@ export const CreateNewMenu = ({
       }}
     >
       <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent align={align} className="w-48">
+      <DropdownMenuContent align={align} class="w-48">
         <PermissionNeededTooltip hasPermission={userHasPermissionToWriteFlow}>
           <DropdownMenuItem
             disabled={!userHasPermissionToWriteFlow || busy}
@@ -61,12 +61,12 @@ export const CreateNewMenu = ({
               e.preventDefault();
               onCreateFlow();
             }}
-            className="cursor-pointer"
+            class="cursor-pointer"
           >
             {isCreatingFlow ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 class="h-4 w-4 mr-2 animate-spin" />
             ) : (
-              <Workflow className="h-4 w-4 mr-2" />
+              <Workflow class="h-4 w-4 mr-2" />
             )}
             {isCreatingFlow ? t('Creating...') : t('New Flow')}
           </DropdownMenuItem>
@@ -77,9 +77,9 @@ export const CreateNewMenu = ({
             <DropdownMenuItem
               disabled={!userHasPermissionToWriteFlow || busy}
               onSelect={() => onSelectTemplate()}
-              className="cursor-pointer"
+              class="cursor-pointer"
             >
-              <Sparkles className="h-4 w-4 mr-2" />
+              <Sparkles class="h-4 w-4 mr-2" />
               {t('Start from Template')}
             </DropdownMenuItem>
           </PermissionNeededTooltip>
@@ -95,12 +95,12 @@ export const CreateNewMenu = ({
                 e.preventDefault();
                 onCreateTable();
               }}
-              className="cursor-pointer"
+              class="cursor-pointer"
             >
               {isCreatingTable ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 class="h-4 w-4 mr-2 animate-spin" />
               ) : (
-                <Table2 className="h-4 w-4 mr-2" />
+                <Table2 class="h-4 w-4 mr-2" />
               )}
               {isCreatingTable ? t('Creating...') : t('New Table')}
             </DropdownMenuItem>
@@ -118,9 +118,9 @@ export const CreateNewMenu = ({
                   <DropdownMenuItem
                     disabled={!userHasPermissionToWriteFlow}
                     onClick={onImportFlow}
-                    className="cursor-pointer"
+                    class="cursor-pointer"
                   >
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload class="h-4 w-4 mr-2" />
                     {t('Import Flow')}
                   </DropdownMenuItem>
                 </PermissionNeededTooltip>
@@ -132,9 +132,9 @@ export const CreateNewMenu = ({
                   <DropdownMenuItem
                     disabled={!userHasPermissionToWriteTable}
                     onClick={onImportTable}
-                    className="cursor-pointer"
+                    class="cursor-pointer"
                   >
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload class="h-4 w-4 mr-2" />
                     {t('Import Table')}
                   </DropdownMenuItem>
                 </PermissionNeededTooltip>
@@ -151,9 +151,9 @@ export const CreateNewMenu = ({
               <DropdownMenuItem
                 disabled={!userHasPermissionToWriteFolder || busy}
                 onClick={onCreateFolder}
-                className="cursor-pointer"
+                class="cursor-pointer"
               >
-                <FolderPlus className="h-4 w-4 mr-2" />
+                <FolderPlus class="h-4 w-4 mr-2" />
                 {t('New Folder')}
               </DropdownMenuItem>
             </PermissionNeededTooltip>
@@ -165,7 +165,7 @@ export const CreateNewMenu = ({
 };
 
 type CreateNewMenuProps = {
-  children: React.ReactNode;
+  children;
   scope?: 'root' | 'folder';
   align?: 'start' | 'end' | 'center';
   userHasPermissionToWriteFlow: boolean;

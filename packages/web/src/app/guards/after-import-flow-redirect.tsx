@@ -1,6 +1,6 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from '@solidjs/router';
+import { useQueryClient } from '@tanstack/solid-query';
+import { createEffect } from 'solid-js';
 
 import { flowHooks } from '@/features/flows';
 
@@ -8,7 +8,7 @@ export const AfterImportFlowRedirect = () => {
   const { flowId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  useEffect(() => {
+  createEffect(() => {
     if (flowId) {
       queryClient.removeQueries({
         queryKey: flowHooks.createFlowQueryKeys({

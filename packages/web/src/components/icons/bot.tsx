@@ -1,9 +1,6 @@
-'use client';
-
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { createSignal } from 'solid-js';
+import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -12,7 +9,7 @@ export interface BotIconHandle {
   stopAnimation: () => void;
 }
 
-interface BotIconProps extends HTMLAttributes<HTMLDivElement> {
+interface BotIconProps extends JSX.HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
@@ -32,80 +29,83 @@ const antennaVariants: Variants = {
   },
 };
 
-const BotIcon = forwardRef<BotIconHandle, BotIconProps>(
-  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
+function BotIcon(props: BotIconProps & { ref?: BotIconHandle }) {
+  const ref = props.ref;
+  const {
+    onMouseEnter,
+    onMouseLeave,
+    class: className,
+    size = 28,
+    ...divProps
+  } = props;
+  const [controls, setControls] = createSignal('normal');
+  let isControlledRef = false;
 
-    useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
+  if (ref) {
+    isControlledRef = true;
+    const handle = {
+      startAnimation: () => setControls('animate'),
+      stopAnimation: () => setControls('normal'),
+    };
+    if (typeof ref === 'function') {
+      ref(handle);
+    } else {
+      Object.assign(ref, handle);
+    }
+  }
 
-      return {
-        startAnimation: () => controls.start('animate'),
-        stopAnimation: () => controls.start('normal'),
-      };
-    });
+  const handleMouseEnter = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseEnter?.(e);
+    } else {
+      setControls('animate');
+    }
+  };
 
-    const handleMouseEnter = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseEnter?.(e);
-        } else {
-          controls.start('animate');
-        }
-      },
-      [controls, onMouseEnter],
-    );
+  const handleMouseLeave = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseLeave?.(e);
+    } else {
+      setControls('normal');
+    }
+  };
 
-    const handleMouseLeave = useCallback(
-      (e: React.MouseEvent<HTMLDivElement>) => {
-        if (isControlledRef.current) {
-          onMouseLeave?.(e);
-        } else {
-          controls.start('normal');
-        }
-      },
-      [controls, onMouseLeave],
-    );
-
-    return (
-      <div
-        className={cn(className)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        {...props}
+  return (
+    <div
+      className={cn(className)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      {...divProps}
+    >
+      <svg
+        fill="none"
+        height={size}
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        viewBox="0 0 24 24"
+        width={size}
+        xmlns="http://www.w3.org/2000/svg"
       >
-        <svg
-          fill="none"
-          height={size}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          viewBox="0 0 24 24"
-          width={size}
-          xmlns="http://www.w3.org/2000/svg"
+        <motion.g
+          animate={controls()}
+          variants={antennaVariants}
+          style={{ originX: '12px', originY: '8px' }}
         >
-          <motion.g
-            animate={controls}
-            variants={antennaVariants}
-            style={{ originX: '12px', originY: '8px' }}
-          >
-            <path d="M12 8V4H8" />
-          </motion.g>
-          <motion.g animate={controls} variants={bodyVariants}>
-            <rect height="12" rx="2" width="16" x="4" y="8" />
-            <path d="M2 14h2" />
-            <path d="M20 14h2" />
-            <line x1={9} y1={13} x2={9} y2={15} />
-            <line x1={15} y1={13} x2={15} y2={15} />
-          </motion.g>
-        </svg>
-      </div>
-    );
-  },
-);
-
+          <path d="M12 8V4H8" />
+        </motion.g>
+        <motion.g animate={controls()} variants={bodyVariants}>
+          <rect height="12" rx="2" width="16" x="4" y="8" />
+          <path d="M2 14h2" />
+          <path d="M20 14h2" />
+          <line x1={9} y1={13} x2={9} y2={15} />
+          <line x1={15} y1={13} x2={15} y2={15} />
+        </motion.g>
+      </svg>
+    </div>
+  );
+}
 BotIcon.displayName = 'BotIcon';
 
 export { BotIcon };

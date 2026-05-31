@@ -2,11 +2,11 @@ import {
   AppConnectionStatus,
   AppConnectionWithoutSensitiveData,
 } from '@activepieces/shared';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Check, Plus, RefreshCw } from 'lucide-react';
+import { Check, Plus, RefreshCw } from 'lucide-solid';
 import { motion } from 'motion/react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { createEffect, createMemo, createSignal, For, Show } from 'solid-js';
 
 import { CreateOrEditConnectionDialog } from '@/app/connections/create-edit-connection-dialog';
 import { Button } from '@/components/ui/button';
@@ -41,7 +41,7 @@ function SelectedState({
 }) {
   return (
     <motion.div
-      className="rounded-xl border bg-background overflow-hidden my-2"
+      class="rounded-xl border bg-background overflow-hidden my-2"
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.2 }}
@@ -55,7 +55,7 @@ function SelectedState({
             showTooltip={false}
           />
           <div className="absolute -bottom-0.5 -right-0.5 bg-green-500 rounded-full p-0.5">
-            <Check className="h-2 w-2 text-white" />
+            <Check class="h-2 w-2 text-white" />
           </div>
         </div>
         <div className="flex-1 min-w-0">
@@ -82,20 +82,17 @@ function useLiveConnections({
   fullConnections: Record<string, AppConnectionWithoutSensitiveData>;
   isLoading: boolean;
 } {
-  const [statuses, setStatuses] = useState<Record<string, AppConnectionStatus>>(
-    {},
-  );
-  const [isLoading, setIsLoading] = useState(false);
-  const fullConnectionsRef = useRef<
-    Record<string, AppConnectionWithoutSensitiveData>
+  const [statuses, setStatuses] = createSignal<
+    Record<string, AppConnectionStatus>
   >({});
+  const [isLoading, setIsLoading] = createSignal(false);
+  let fullConnectionsRef = {};
 
-  const projectIdsKey = useMemo(
-    () => [...new Set(connections.map((c) => c.projectId))].sort().join(','),
-    [connections],
+  const projectIdsKey = createMemo(() =>
+    [...new Set(connections.map((c) => c.projectId))].sort().join(','),
   );
 
-  useEffect(() => {
+  createEffect(() => {
     if (!enabled || !projectIdsKey) return;
     let cancelled = false;
     setIsLoading(true);
@@ -125,7 +122,7 @@ function useLiveConnections({
             connMap[conn.externalId] = conn;
           }
         }
-        fullConnectionsRef.current = connMap;
+        fullConnectionsRef = connMap;
         setStatuses(statusMap);
         setIsLoading(false);
       })
@@ -136,9 +133,9 @@ function useLiveConnections({
     return () => {
       cancelled = true;
     };
-  }, [projectIdsKey, pieceName, enabled]);
+  });
 
-  return { statuses, fullConnections: fullConnectionsRef.current, isLoading };
+  return { statuses, fullConnections: fullConnectionsRef, isLoading };
 }
 
 export function ConnectionPickerCard({
@@ -149,20 +146,20 @@ export function ConnectionPickerCard({
 }: ConnectionPickerCardProps) {
   const queryClient = useQueryClient();
   const pieceName = normalizePieceName(picker.piece);
-  const filteredPicker = useMemo(() => {
+  const filteredPicker = createMemo(() => {
     if (!selectedProjectId) return picker;
     const filtered = picker.connections.filter(
       (c) => c.projectId === selectedProjectId,
     );
     return { ...picker, connections: filtered };
-  }, [picker, selectedProjectId]);
+  });
   const { pieceModel, isLoading: isPieceLoading } = piecesHooks.usePiece({
     name: pieceName,
   });
-  const [connectDialogOpen, setConnectDialogOpen] = useState(false);
+  const [connectDialogOpen, setConnectDialogOpen] = createSignal(false);
   const [reconnectConnection, setReconnectConnection] =
-    useState<AppConnectionWithoutSensitiveData | null>(null);
-  const [selectedConnection, setSelectedConnection] = useState<
+    createSignal<AppConnectionWithoutSensitiveData | null>(null);
+  const [selectedConnection, setSelectedConnection] = createSignal<
     ConnectionPickerData['connections'][number] | null
   >(null);
 
@@ -201,7 +198,7 @@ export function ConnectionPickerCard({
   if (!isInteractive) {
     return (
       <motion.div
-        className="rounded-xl border bg-background overflow-hidden my-2"
+        class="rounded-xl border bg-background overflow-hidden my-2"
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.2 }}
@@ -215,7 +212,7 @@ export function ConnectionPickerCard({
               showTooltip={false}
             />
             <div className="absolute -bottom-0.5 -right-0.5 bg-green-500 rounded-full p-0.5">
-              <Check className="h-2 w-2 text-white" />
+              <Check class="h-2 w-2 text-white" />
             </div>
           </div>
           <div className="flex-1 min-w-0">
@@ -236,7 +233,7 @@ export function ConnectionPickerCard({
   return (
     <>
       <motion.div
-        className="rounded-xl border bg-background overflow-hidden my-2"
+        class="rounded-xl border bg-background overflow-hidden my-2"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
@@ -255,70 +252,85 @@ export function ConnectionPickerCard({
         </div>
 
         <div className="max-h-64 overflow-auto">
-          {filteredPicker.connections.map((conn) => {
-            const status = liveStatuses[conn.externalId] ?? conn.status;
-            const healthy = isConnectionHealthy(status);
-            return (
-              <div
-                key={conn.externalId}
-                className="flex items-center gap-3 px-4 py-3 border-t"
-              >
-                <PieceIconWithPieceName
-                  pieceName={pieceName}
-                  size="sm"
-                  border={false}
-                  showTooltip={false}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium truncate">
-                    {conn.label}
+          <For each={filteredPicker.connections}>
+            {(conn) => {
+              const status = liveStatuses[conn.externalId] ?? conn.status;
+              const healthy = isConnectionHealthy(status);
+              return (
+                <div
+                  key={conn.externalId}
+                  className="flex items-center gap-3 px-4 py-3 border-t"
+                >
+                  <PieceIconWithPieceName
+                    pieceName={pieceName}
+                    size="sm"
+                    border={false}
+                    showTooltip={false}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">
+                      {conn.label}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <Show
+                        when={healthy}
+                        fallback={`${conn.project} · ${connectionStatusLabel(
+                          status,
+                        )}`}
+                      >
+                        conn.project
+                      </Show>
+                    </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {healthy
-                      ? conn.project
-                      : `${conn.project} · ${connectionStatusLabel(status)}`}
-                  </div>
+                  <Show
+                    when={healthy}
+                    fallback={
+                      <Show
+                        when={status === AppConnectionStatus.MISSING}
+                        fallback={
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            class="shrink-0 gap-1.5"
+                            disabled={isPieceLoading || isLoadingStatuses}
+                            onClick={() => handleReconnect(conn.externalId)}
+                          >
+                            <RefreshCw class="h-3 w-3" />
+                            {t('Reconnect & Use')}
+                          </Button>
+                        }
+                      >
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          class="shrink-0 gap-1.5"
+                          disabled={isPieceLoading}
+                          onClick={handleNewConnection}
+                        >
+                          <Plus class="h-3 w-3" />
+                          {t('Connect')}
+                        </Button>
+                      </Show>
+                    }
+                  >
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      class="shrink-0"
+                      onClick={() => {
+                        setSelectedConnection(conn);
+                        onSelect(
+                          `Use "${conn.label}" from ${conn.project} (${conn.externalId}).`,
+                        );
+                      }}
+                    >
+                      {t('Use')}
+                    </Button>
+                  </Show>
                 </div>
-                {healthy ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0"
-                    onClick={() => {
-                      setSelectedConnection(conn);
-                      onSelect(
-                        `Use "${conn.label}" from ${conn.project} (${conn.externalId}).`,
-                      );
-                    }}
-                  >
-                    {t('Use')}
-                  </Button>
-                ) : status === AppConnectionStatus.MISSING ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0 gap-1.5"
-                    disabled={isPieceLoading}
-                    onClick={handleNewConnection}
-                  >
-                    <Plus className="h-3 w-3" />
-                    {t('Connect')}
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="shrink-0 gap-1.5"
-                    disabled={isPieceLoading || isLoadingStatuses}
-                    onClick={() => handleReconnect(conn.externalId)}
-                  >
-                    <RefreshCw className="h-3 w-3" />
-                    {t('Reconnect & Use')}
-                  </Button>
-                )}
-              </div>
-            );
-          })}
+              );
+            }}
+          </For>
         </div>
 
         <div className="flex items-center gap-3 px-4 py-3 border-t bg-muted/30">
@@ -334,17 +346,17 @@ export function ConnectionPickerCard({
           </div>
           <Button
             size="sm"
-            className="shrink-0 gap-1.5"
+            class="shrink-0 gap-1.5"
             disabled={isPieceLoading}
             onClick={handleNewConnection}
           >
-            <Plus className="h-3.5 w-3.5" />
+            <Plus class="h-3.5 w-3.5" />
             {t('Connect')}
           </Button>
         </div>
       </motion.div>
 
-      {pieceModel && (
+      <Show when={pieceModel}>
         <CreateOrEditConnectionDialog
           piece={pieceModel}
           open={connectDialogOpen}
@@ -368,7 +380,7 @@ export function ConnectionPickerCard({
           reconnectConnection={reconnectConnection}
           isGlobalConnection={false}
         />
-      )}
+      </Show>
     </>
   );
 }

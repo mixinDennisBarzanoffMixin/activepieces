@@ -5,7 +5,6 @@ import {
   assertNotNullOrUndefined,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useRef } from 'react';
 
 import { EditFlowOrViewDraftButton } from '@/app/builder/builder-header/flow-status/view-draft-or-edit-flow-button';
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
@@ -34,8 +33,8 @@ const TestFlowWidget = () => {
     state.setRun,
     state.flow.publishedVersionId,
   ]);
-  const runRef = useRef(run);
-  runRef.current = run;
+  let runRef: any | undefined;
+  runRef = run;
 
   const triggerHasSampleData =
     flowVersion.trigger.type === FlowTriggerType.PIECE &&
@@ -56,9 +55,8 @@ const TestFlowWidget = () => {
       isForManualTrigger: isManualTrigger,
       onUpdateRun: (response: UpdateRunProgressRequest) => {
         assertNotNullOrUndefined(response.flowRun, 'flowRun');
-        const steps = runRef.current?.steps ?? {};
-        const startTime =
-          response.flowRun.startTime ?? runRef.current?.startTime;
+        const steps = runRef?.steps ?? {};
+        const startTime = response.flowRun.startTime ?? runRef?.startTime;
         if (!isNil(response.step)) {
           const updatedSteps = flowRunUtils.updateRunSteps(
             steps,

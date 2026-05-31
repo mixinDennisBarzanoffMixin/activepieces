@@ -1,5 +1,5 @@
 import { FlowActionType, FlowTriggerType } from '@activepieces/shared';
-import React from 'react';
+import { Show } from 'solid-js';
 
 import { TestActionSection } from './test-action-section';
 import { TestTriggerSection } from './test-trigger-section';
@@ -12,34 +12,35 @@ type TestStepContainerProps = {
   projectId: string;
 };
 
-const TestStepContainer = React.memo(
-  ({
-    flowVersionId,
-    isSaving,
-    type,
-    flowId,
-    projectId,
-  }: TestStepContainerProps) => {
-    return (
-      <div className="flex flex-col h-full">
-        {type === FlowTriggerType.PIECE ? (
-          <TestTriggerSection
-            flowId={flowId}
-            isSaving={isSaving}
-            flowVersionId={flowVersionId}
-            projectId={projectId}
-          ></TestTriggerSection>
-        ) : (
+const TestStepContainer = ({
+  flowVersionId,
+  isSaving,
+  type,
+  flowId,
+  projectId,
+}: TestStepContainerProps) => {
+  return (
+    <div className="flex flex-col h-full">
+      <Show
+        when={type === FlowTriggerType.PIECE()}
+        fallback={
           <TestActionSection
             flowVersionId={flowVersionId}
             isSaving={isSaving}
             projectId={projectId}
           ></TestActionSection>
-        )}
-      </div>
-    );
-  },
-);
+        }
+      >
+        <TestTriggerSection
+          flowId={flowId}
+          isSaving={isSaving}
+          flowVersionId={flowVersionId}
+          projectId={projectId}
+        ></TestTriggerSection>
+      </Show>
+    </div>
+  );
+};
 TestStepContainer.displayName = 'TestStepContainer';
 
 export { TestStepContainer };

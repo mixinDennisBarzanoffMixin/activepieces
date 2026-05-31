@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { Show } from 'solid-js';
 
 import { CardListItem } from '@/components/custom/card-list';
 import {
@@ -30,14 +30,14 @@ const PieceCardListItem = ({
 }: PieceCardListItemProps) => {
   const isMobile = useIsMobile();
   const showSuggestions = searchQuery.length > 0 || isMobile;
-  const isMouseOver = useRef(false);
+  let isMouseOver: any | undefined;
   const selectPieceMetatdata = async () => {
     if (isTemporaryDisabledUntilNextCursorMove || showSuggestions) {
       return;
     }
-    isMouseOver.current = true;
+    isMouseOver = true;
     await wait(250);
-    if (isMouseOver.current) {
+    if (isMouseOver) {
       setSelectedPieceMetadataInPieceSelector(pieceMetadata);
     }
   };
@@ -52,7 +52,7 @@ const PieceCardListItem = ({
   return (
     <>
       <CardListItem
-        className={cn('flex-col p-3 gap-1 items-start truncate', {
+        class={cn('flex-col p-3 gap-1 items-start truncate', {
           'hover:bg-transparent!': isTemporaryDisabledUntilNextCursorMove,
         })}
         style={{ height: `${itemHeight}px`, maxHeight: `${itemHeight}px` }}
@@ -69,7 +69,7 @@ const PieceCardListItem = ({
           }
         }}
         onMouseLeave={() => {
-          isMouseOver.current = false;
+          isMouseOver = false;
         }}
         id={pieceMetadata.displayName}
         data-testid={pieceMetadata.displayName}
@@ -87,7 +87,7 @@ const PieceCardListItem = ({
         </div>
       </CardListItem>
 
-      {showSuggestions && (
+      <Show when={showSuggestions()}>
         <div>
           <PieceActionsOrTriggersList
             stepMetadataWithSuggestions={pieceMetadata}
@@ -95,7 +95,7 @@ const PieceCardListItem = ({
             operation={operation}
           />
         </div>
-      )}
+      </Show>
     </>
   );
 };

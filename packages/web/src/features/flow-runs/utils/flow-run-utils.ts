@@ -17,7 +17,7 @@ import {
   PauseIcon,
   Play,
   Timer,
-} from 'lucide-react';
+} from 'lucide-solid';
 
 import { cn } from '@/lib/utils';
 

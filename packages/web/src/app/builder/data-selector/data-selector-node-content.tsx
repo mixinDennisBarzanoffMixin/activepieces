@@ -4,7 +4,8 @@ import {
   flowStructureUtil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { TextWithTooltip } from '@/components/custom/text-with-tooltip';
 import { useApRipple } from '@/components/providers/theme-provider';
@@ -26,7 +27,7 @@ type DataSelectorNodeContentProps = {
   node: DataSelectorTreeNode;
 };
 
-const handleKeyPress = (event: React.KeyboardEvent<HTMLDivElement>) => {
+const handleKeyPress = (event: KeyboardEvent) => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
     if (event.target) {
@@ -68,7 +69,7 @@ const DataSelectorNodeContent = ({
       : null;
   const showArrayCount = isExpandable && arrayValue !== null;
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: MouseEvent) => {
     if (isExpandable) {
       rippleEvent(e);
       setExpanded(!expanded);
@@ -105,22 +106,24 @@ const DataSelectorNodeContent = ({
         )}
         style={{ paddingLeft: depth * INDENT_PER_DEPTH + 12 }}
       >
-        {!isStepRoot && isExpandable && (
+        <Show when={!isStepRoot && isExpandable()}>
           <ChevronRight
-            className={cn(
+            class={cn(
               'size-3.5 shrink-0 text-muted-foreground transition-transform',
               expanded && 'rotate-90',
             )}
           />
-        )}
-        {!isStepRoot && !isExpandable && (
+        </Show>
+        <Show when={!isStepRoot && !isExpandable()}>
           <div className="size-3.5 shrink-0" aria-hidden />
-        )}
+        </Show>
 
-        {isStepRoot && stepForRoot && <StepRootIcon step={stepForRoot} />}
+        <Show when={isStepRoot && stepForRoot()}>
+          <StepRootIcon step={stepForRoot} />
+        </Show>
 
         <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          {node.data.type !== 'test' && (
+          <Show when={node.data.type !== 'test'()}>
             <span
               className={cn(
                 'truncate min-w-0 shrink-0 max-w-[40%]',
@@ -131,17 +134,17 @@ const DataSelectorNodeContent = ({
             >
               {node.data.displayName}
             </span>
-          )}
+          </Show>
 
-          {showArrayCount && (
+          <Show when={showArrayCount()}>
             <span className="shrink-0 text-xs text-muted-foreground">
               {t('{count, plural, =1 {1 item} other {# items}}', {
                 count: arrayValue?.length ?? 0,
               })}
             </span>
-          )}
+          </Show>
 
-          {showValuePreview && valuePreview !== '' && (
+          <Show when={showValuePreview && valuePreview !== ''()}>
             <>
               <span className="shrink-0 text-muted-foreground">:</span>
               <TextWithTooltip tooltipMessage={String(valuePreview)}>
@@ -150,10 +153,10 @@ const DataSelectorNodeContent = ({
                 </span>
               </TextWithTooltip>
             </>
-          )}
+          </Show>
         </div>
 
-        {showInsertButton && (
+        <Show when={showInsertButton()}>
           <Button
             variant="basic"
             size="sm"
@@ -164,23 +167,23 @@ const DataSelectorNodeContent = ({
                 insertMention(node.data.propertyPath);
               }
             }}
-            className={cn(
+            class={cn(
               'h-6 px-2 text-xs text-primary shrink-0 opacity-0 transition-opacity',
               'group-hover:opacity-100 focus-visible:opacity-100',
             )}
           >
             {t('Insert')}
           </Button>
-        )}
+        </Show>
 
-        {isStepRoot && isExpandable && (
+        <Show when={isStepRoot && isExpandable()}>
           <ChevronDown
-            className={cn(
+            class={cn(
               'size-4 shrink-0 text-muted-foreground transition-transform',
               !expanded && '-rotate-90',
             )}
           />
-        )}
+        </Show>
       </div>
     </div>
   );

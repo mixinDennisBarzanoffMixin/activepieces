@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { For, Show, createEffect, createSignal } from 'solid-js';
 
 import {
   Collapsible,
@@ -22,15 +22,15 @@ const DataSelectorNode = ({
   depth,
   searchTerm,
 }: DataSelectorNodeProps) => {
-  const [expanded, setExpanded] = useState(depth === 0);
+  const [expanded, setExpanded] = createSignal(depth === 0);
 
-  useEffect(() => {
+  createEffect(() => {
     if (searchTerm) {
       setExpanded(true);
     } else {
       setExpanded(depth === 0);
     }
-  }, [searchTerm, depth]);
+  });
 
   const isTestStepNode = dataSelectorUtils.isTestStepNode(node);
   if (isTestStepNode) {
@@ -38,9 +38,9 @@ const DataSelectorNode = ({
   }
 
   return (
-    <Collapsible className="w-full" open={expanded} onOpenChange={setExpanded}>
+    <Collapsible class="w-full" open={expanded} onOpenChange={setExpanded}>
       <>
-        <CollapsibleTrigger asChild={true} className="w-full relative">
+        <CollapsibleTrigger asChild={true} class="w-full relative">
           <DataSelectorNodeContent
             node={node}
             expanded={expanded}
@@ -48,19 +48,21 @@ const DataSelectorNode = ({
             depth={depth}
           ></DataSelectorNodeContent>
         </CollapsibleTrigger>
-        <CollapsibleContent className="w-full">
-          {node.children && node.children.length > 0 && (
+        <CollapsibleContent class="w-full">
+          <Show when={node.children && node.children.length > 0()}>
             <div className="flex flex-col ">
-              {node.children.map((node) => (
-                <DataSelectorNode
-                  depth={depth + 1}
-                  node={node}
-                  key={node.key}
-                  searchTerm={searchTerm}
-                ></DataSelectorNode>
-              ))}
+              <For each={node.children}>
+                {(node) => (
+                  <DataSelectorNode
+                    depth={depth + 1}
+                    node={node}
+                    key={node.key}
+                    searchTerm={searchTerm}
+                  ></DataSelectorNode>
+                )}
+              </For>
             </div>
-          )}
+          </Show>
         </CollapsibleContent>
       </>
     </Collapsible>

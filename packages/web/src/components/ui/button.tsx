@@ -1,9 +1,10 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import { Slot } from 'radix-ui';
-import * as React from 'react';
+import { createEffect, onCleanup } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
 import { Shortcut } from '@/components/custom/shortcut';
 import { LoadingSpinner } from '@/components/custom/spinner';
+import { Slot } from '@/components/ui/slot';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
@@ -57,7 +58,7 @@ function useKeyboardShortcut(
   disabled: boolean | undefined,
   onKeyboardShortcut: (() => void) | undefined,
 ) {
-  React.useEffect(() => {
+  createEffect(() => {
     if (!keyboardShortcut) return;
 
     const isMac = /(Mac)/i.test(navigator.userAgent);
@@ -79,22 +80,22 @@ function useKeyboardShortcut(
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => {
+    onCleanup(() => {
       document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [keyboardShortcut, disabled, onKeyboardShortcut]);
+    });
+  });
 }
 
 function renderButtonContent(
   loading: boolean,
   variant: ButtonProps['variant'],
   keyboardShortcut: string | undefined,
-  children: React.ReactNode,
+  children: JSX.Element,
 ) {
   if (loading) {
     return (
       <LoadingSpinner
-        className={cn('size-5', {
+        class={cn('size-5', {
           'stroke-background': variant === 'default' || variant === 'secondary',
           'stroke-foreground': variant !== 'default' && variant !== 'secondary',
         })}
@@ -131,14 +132,15 @@ function Button({
   useKeyboardShortcut(keyboardShortcut, disabled, onKeyboardShortcut);
 
   return (
-    <Comp
+    <Dynamic
+      component={Comp}
       data-slot="button"
       data-variant={variant}
       data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
+      class={cn(buttonVariants({ variant, size, className }))}
       disabled={disabled || loading}
       {...props}
-      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+      onClick={(e: MouseEvent) => {
         if (loading) {
           e.stopPropagation();
         } else if (props.onClick) {
@@ -147,14 +149,14 @@ function Button({
       }}
     >
       {renderButtonContent(loading, variant, keyboardShortcut, children)}
-    </Comp>
+    </Dynamic>
   );
 }
 
 export { Button, buttonVariants };
 export type { ButtonProps };
 
-type ButtonProps = React.ComponentProps<'button'> &
+type ButtonProps = JSX.IntrinsicElements['button'] &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
     loading?: boolean;

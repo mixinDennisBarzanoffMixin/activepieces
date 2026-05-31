@@ -4,10 +4,10 @@ import {
   UserInvitation,
   UserWithMetaInformation,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
-import { Info, Trash2, User, Shield, ChevronDown } from 'lucide-react';
-import { toast } from 'sonner';
+import { Info, Trash2, User, Shield, ChevronDown } from 'lucide-solid';
+import { toast } from 'solid-sonner';
 
 import { RowDataWithActions } from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
@@ -122,7 +122,7 @@ const RoleCell = ({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-4 w-4 text-orange-700 absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6" />
+              <Info class="h-4 w-4 text-orange-700 absolute left-0 top-1/2 -translate-y-1/2 -translate-x-6" />
             </TooltipTrigger>
             <TooltipContent>
               <p>{t('Pending Invitation')}</p>
@@ -131,11 +131,11 @@ const RoleCell = ({
         </TooltipProvider>
         <Button
           variant="outline"
-          className="w-[150px] justify-between cursor-not-allowed"
+          class="w-[150px] justify-between cursor-not-allowed"
           disabled={true}
         >
           <span>{roleName}</span>
-          <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+          <ChevronDown class="ml-2 h-4 w-4 opacity-50" />
         </Button>
       </div>
     );
@@ -218,9 +218,9 @@ const ActionsCell = ({
           variant="ghost"
           size="sm"
           disabled={!userHasPermissionToDelete}
-          className="h-8 w-8 p-0"
+          class="h-8 w-8 p-0"
         >
-          <Trash2 className="h-4 w-4 text-destructive" />
+          <Trash2 class="h-4 w-4 text-destructive" />
         </Button>
       </ConfirmationDeleteDialog>
     </PermissionNeededTooltip>

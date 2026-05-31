@@ -1,3 +1,4 @@
+import { createSignal } from 'solid-js';
 import {
   OtpType,
   ApEdition,
@@ -7,18 +8,13 @@ import {
   isNil,
   SignInRequest,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from "@tanstack/solid-query";
 import { t } from 'i18next';
-import { Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { z } from 'zod';
+import { Eye, EyeOff } from "lucide-solid";
 
 import { authenticationApi } from '@/api/authentication-api';
+import { queryClient } from '@/app/query-client';
 import { Button } from '@/components/ui/button';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { flagsHooks } from '@/hooks/flags-hooks';
@@ -29,202 +25,158 @@ import { useRedirectAfterLogin } from '@/lib/navigation-utils';
 
 import { CheckEmailNote } from './check-email-note';
 
-const SignInSchema = z.object({
-  email: z.string().regex(formatUtils.emailRegex, t('Email is invalid')),
-  password: z.string().min(1, t('Password is required')),
-});
-
-type SignInSchema = z.infer<typeof SignInSchema>;
-
-const SignInForm: React.FC = () => {
-  const [showCheckYourEmailNote, setShowCheckYourEmailNote] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const form = useForm<SignInSchema>({
-    resolver: zodResolver(SignInSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-    mode: 'onChange',
-  });
+const SignInForm = () => {
+  const [showCheckYourEmailNote, setShowCheckYourEmailNote] = createSignal(false);
+  const [showPassword, setShowPassword] = createSignal(false);
+  const [email, setEmail] = createSignal('');
+  const [password, setPassword] = createSignal('');
+  const [error, setError] = createSignal('');
 
   const { data: edition } = flagsHooks.useFlag(ApFlagId.EDITION);
 
-  const { data: userCreated } = flagsHooks.useFlag(ApFlagId.USER_CREATED);
   const redirectAfterLogin = useRedirectAfterLogin();
-  const navigate = useNavigate();
 
-  const { mutate, isPending } = useMutation<
+  const { mutate, isPending } = createMutation<
     AuthenticationResponse,
     HttpError,
     SignInRequest
-  >({
-    mutationFn: authenticationApi.signIn,
-    onSuccess: (data) => {
-      authenticationSession.saveResponse(data, false);
+  >(
+    () => ({
+      mutationFn: authenticationApi.signIn,
+      onSuccess: (data) => {
+        authenticationSession.saveResponse(data, false);
 
-      if (isNil(data.projectId)) {
-        navigate('/create-platform');
-        return;
-      }
-      redirectAfterLogin();
-    },
-    onError: (error) => {
-      if (api.isError(error)) {
-        const errorCode: ErrorCode | undefined = (
-          error.response?.data as { code: ErrorCode }
-        )?.code;
-        if (isNil(errorCode)) {
-          form.setError('root.serverError', {
-            message: t('Something went wrong, please try again later'),
-          });
+        if (isNil(data.projectId)) {
+          window.location.assign('/create-platform');
           return;
         }
-        switch (errorCode) {
-          case ErrorCode.INVALID_CREDENTIALS: {
-            form.setError('root.serverError', {
-              message: t('Invalid email or password'),
-            });
-            break;
-          }
-          case ErrorCode.USER_IS_INACTIVE: {
-            form.setError('root.serverError', {
-              message: t('User has been deactivated'),
-            });
-            break;
-          }
-          case ErrorCode.EMAIL_IS_NOT_VERIFIED: {
-            setShowCheckYourEmailNote(true);
-            break;
-          }
-          case ErrorCode.DOMAIN_NOT_ALLOWED: {
-            form.setError('root.serverError', {
-              message: t(`Email domain is disallowed`),
-            });
-            break;
-          }
-          case ErrorCode.EMAIL_AUTH_DISABLED: {
-            form.setError('root.serverError', {
-              message: t(`Email authentication has been disabled`),
-            });
-            break;
-          }
-          default: {
-            form.setError('root.serverError', {
-              message: t('Something went wrong, please try again later'),
-            });
-          }
+        redirectAfterLogin();
+      },
+      onError: (err) => {
+        if (!api.isError(err)) {
+          return;
         }
-      }
-    },
-  });
+        const code = (err.response?.data as { code: ErrorCode } | undefined)?.code;
+        if (isNil(code)) {
+          setError(t('Something went wrong, please try again later'));
+          return;
+        }
+        if (code === ErrorCode.INVALID_CREDENTIALS) {
+          setError(t('Invalid email or password'));
+          return;
+        }
+        if (code === ErrorCode.USER_IS_INACTIVE) {
+          setError(t('User has been deactivated'));
+          return;
+        }
+        if (code === ErrorCode.EMAIL_IS_NOT_VERIFIED) {
+          setShowCheckYourEmailNote(true);
+          return;
+        }
+        if (code === ErrorCode.DOMAIN_NOT_ALLOWED) {
+          setError(t(`Email domain is disallowed`));
+          return;
+        }
+        if (code === ErrorCode.EMAIL_AUTH_DISABLED) {
+          setError(t(`Email authentication has been disabled`));
+          return;
+        }
+        setError(t('Something went wrong, please try again later'));
+      },
+    }),
+    () => queryClient,
+  );
 
-  const onSubmit: SubmitHandler<SignInRequest> = (data) => {
-    form.setError('root.serverError', {
-      message: undefined,
-    });
-    mutate(data);
+  const onSubmit = (e: SubmitEvent) => {
+    e.preventDefault();
+    setError('');
+    if (!formatUtils.emailRegex.test(email())) {
+      setError(t('Email is invalid'));
+      return;
+    }
+    if (!password()) {
+      setError(t('Password is required'));
+      return;
+    }
+    mutate({ email: email(), password: password() } satisfies SignInRequest);
   };
-
-  if (!userCreated) {
-    return <Navigate to="/sign-up" />;
-  }
 
   return (
     <>
-      <Form {...form}>
-        <form className="grid space-y-4">
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem className="grid space-y-2">
-                <Label htmlFor="email">{t('Email')}</Label>
-                <Input
-                  {...field}
-                  required
-                  id="email"
-                  type="text"
-                  placeholder={'email@example.com'}
-                  className="rounded-sm"
-                  tabIndex={1}
-                  data-testid="sign-in-email"
-                  onChange={(e) => {
-                    field.onChange(e);
-                    setShowCheckYourEmailNote(false);
-                  }}
-                />
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem className="grid space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">{t('Password')}</Label>
-                  {edition !== ApEdition.COMMUNITY && (
-                    <Link
-                      to="/forget-password"
-                      className="text-muted-foreground text-xs hover:text-primary transition-all duration-200"
-                    >
-                      {t('Forgot your password?')}
-                    </Link>
-                  )}
-                </div>
-                <div className="relative">
-                  <Input
-                    {...field}
-                    required
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder={'********'}
-                    className="rounded-sm pr-10"
-                    tabIndex={2}
-                    data-testid="sign-in-password"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    tabIndex={-1}
-                    onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          {form?.formState?.errors?.root?.serverError && (
-            <FormMessage>
-              {form.formState.errors.root.serverError.message}
-            </FormMessage>
+        <form class="grid space-y-4" onSubmit={onSubmit}>
+          <div class="grid space-y-2">
+            <Label for="email">{t('Email')}</Label>
+            <Input
+              required
+              id="email"
+              value={email()}
+              type="text"
+              placeholder={'email@example.com'}
+              class="rounded-sm"
+              tabIndex={1}
+              data-testid="sign-in-email"
+              onInput={(e) => {
+                setEmail(e.currentTarget.value);
+                setShowCheckYourEmailNote(false);
+              }}
+            />
+          </div>
+          <div class="grid space-y-2">
+            <div class="flex items-center justify-between">
+              <Label for="password">{t('Password')}</Label>
+              {edition !== ApEdition.COMMUNITY && (
+                <a href="/forget-password"
+                  class="text-muted-foreground text-xs hover:text-primary transition-all duration-200"
+                >
+                  {t('Forgot your password?')}
+                </a>
+              )}
+            </div>
+            <div class="relative">
+              <Input
+                required
+                id="password"
+                value={password()}
+                type={showPassword() ? 'text' : 'password'}
+                placeholder={'********'}
+                class="rounded-sm pr-10"
+                tabIndex={2}
+                data-testid="sign-in-password"
+                onInput={(e) => setPassword(e.currentTarget.value)}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                tabIndex={-1}
+                onClick={() => setShowPassword((v) => !v)}
+                class="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              >
+                {showPassword() ? (
+                  <EyeOff class="w-4 h-4" />
+                ) : (
+                  <Eye class="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+          {error() && (
+            <p class="text-sm font-medium text-destructive">{error()}</p>
           )}
           <Button
+            type="submit"
             loading={isPending}
-            onClick={(e) => form.handleSubmit(onSubmit)(e)}
             tabIndex={3}
             data-testid="sign-in-button"
           >
             {t('Sign in')}
           </Button>
         </form>
-      </Form>
 
-      {showCheckYourEmailNote && (
-        <div className="mt-4">
+      {showCheckYourEmailNote() && (
+        <div class="mt-4">
           <CheckEmailNote
-            email={form.getValues().email}
+            email={email()}
             type={OtpType.EMAIL_VERIFICATION}
           />
         </div>
@@ -232,7 +184,5 @@ const SignInForm: React.FC = () => {
     </>
   );
 };
-
-SignInForm.displayName = 'SignIn';
 
 export { SignInForm };

@@ -1,13 +1,14 @@
 import { t } from 'i18next';
-import { X } from 'lucide-react';
+import { X } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 
 type SidebarHeaderProps = {
-  children: React.ReactNode;
+  children: any;
   onClose: () => void;
-  leadingIcon?: React.ReactNode;
-  actions?: React.ReactNode;
+  leadingIcon?: any;
+  actions?: any;
 };
 const SidebarHeader = ({
   children,
@@ -17,7 +18,9 @@ const SidebarHeader = ({
 }: SidebarHeaderProps) => {
   return (
     <div className="flex px-3 py-2 w-full gap-2 text-base items-center min-h-[44px]">
-      {leadingIcon && <div className="shrink-0">{leadingIcon}</div>}
+      <Show when={leadingIcon()}>
+        <div className="shrink-0">{leadingIcon}</div>
+      </Show>
       <div className="flex items-center gap-2 min-w-0 grow">{children}</div>
       {actions}
       <Button

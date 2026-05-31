@@ -1,10 +1,10 @@
-import { Suspense } from 'react';
+import { Suspense, JSX } from 'solid-js';
 
 import { LoadingScreen } from '@/components/custom/loading-screen';
 import { useEmbedding } from '@/components/providers/embed-provider';
 
 type InitialDataGuardProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
 };
 export const InitialDataGuard = ({ children }: InitialDataGuardProps) => {
   const { embedState } = useEmbedding();

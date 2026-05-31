@@ -1,8 +1,8 @@
 import { isNil, PlatformWithoutSensitiveData } from '@activepieces/shared';
 import dayjs from 'dayjs';
 import { t } from 'i18next';
-import { Shield, AlertTriangle, Check, ExternalLink } from 'lucide-react';
-import { useState } from 'react';
+import { Shield, AlertTriangle, Check, ExternalLink } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import {
@@ -28,7 +28,7 @@ export const LicenseKey = ({
   platform: PlatformWithoutSensitiveData;
 }) => {
   const [isActivateLicenseKeyDialogOpen, setIsActivateLicenseKeyDialogOpen] =
-    useState(false);
+    createSignal(false);
 
   const expired =
     !isNil(platform?.plan?.licenseExpiresAt) &&
@@ -55,7 +55,7 @@ export const LicenseKey = ({
           </ItemTitle>
           {description && <ItemDescription>{description}</ItemDescription>}
         </ItemContent>
-        <ItemActions className="gap-4">
+        <ItemActions class="gap-4">
           <Button variant="ghost" size="sm" asChild>
             <a
               href="https://www.activepieces.com/pricing"
@@ -63,7 +63,7 @@ export const LicenseKey = ({
               rel="noopener noreferrer"
             >
               {t('View Plans')}
-              <ExternalLink className="size-3" />
+              <ExternalLink class="size-3" />
             </a>
           </Button>
           <AnimatedIconButton

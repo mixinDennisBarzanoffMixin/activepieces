@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal, onCleanup, onMount } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -221,7 +221,7 @@ function FlowNode({
   borderColor = 'border-gray-200',
   iconBg = 'bg-gray-50',
 }: {
-  icon: React.ReactNode;
+  icon;
   label: string;
   subtitle: string;
   borderColor?: string;
@@ -253,27 +253,21 @@ function FlowNode({
 
 // ── Agent Card (the single element that morphs between scenes) ──
 
-function AgentCard({
-  activeIndex,
-  position,
-  isMorphing,
-  typedPrompt,
-  isTyping,
-}: {
+function AgentCard(props: {
   activeIndex: SceneIndex;
   position: AgentPosition;
   isMorphing: boolean;
   typedPrompt: string;
   isTyping: boolean;
 }) {
-  const isLarge = activeIndex === 0 || activeIndex === 1;
-  const isCollapsed = activeIndex === 3;
-  const showInstructions = activeIndex === 0;
-  const showToolsHighlight = activeIndex === 1;
+  const isLarge = () => props.activeIndex === 0 || props.activeIndex === 1;
+  const isCollapsed = () => props.activeIndex === 3;
+  const showInstructions = () => props.activeIndex === 0;
+  const showToolsHighlight = () => props.activeIndex === 1;
 
-  const title = isLarge
+  const title = () => isLarge()
     ? 'Lead Qualifier'
-    : activeIndex === 2
+    : props.activeIndex === 2
     ? '2. Qualify Lead'
     : 'Qualify Lead';
 
@@ -281,20 +275,20 @@ function AgentCard({
     <div
       className={cn(
         'auth-anim-agent absolute',
-        activeIndex === 1 ? 'z-20' : 'z-30',
+        props.activeIndex === 1 ? 'z-20' : 'z-30',
       )}
       style={{
-        top: `${position.top}px`,
-        left: `${position.left}px`,
-        width: `${position.width}px`,
-        height: `${position.height}px`,
+        top: `${props.position.top}px`,
+        left: `${props.position.left}px`,
+        width: `${props.position.width}px`,
+        height: `${props.position.height}px`,
       }}
     >
       {/* Animated gradient border wrapper */}
       <div
         className={cn(
           'auth-anim-gradient-border rounded-xl h-full p-[2px] relative',
-          isMorphing && 'auth-anim-gradient-morphing',
+          props.isMorphing && 'auth-anim-gradient-morphing',
         )}
       >
         {/* Full agent card (scenes 0, 1, 2, 4) */}
@@ -302,9 +296,9 @@ function AgentCard({
           className="bg-white rounded-[10px] overflow-hidden h-full"
           style={{
             transition: 'opacity 300ms ease, visibility 300ms ease',
-            transitionDelay: isCollapsed ? '0ms' : '200ms',
-            opacity: isCollapsed ? 0 : 1,
-            visibility: isCollapsed ? 'hidden' : 'visible',
+            transitionDelay: isCollapsed() ? '0ms' : '200ms',
+            opacity: isCollapsed() ? 0 : 1,
+            visibility: isCollapsed() ? 'hidden' : 'visible',
           }}
         >
           {/* Header */}
@@ -312,13 +306,13 @@ function AgentCard({
             <div
               className={cn(
                 'flex-shrink-0 rounded-lg flex items-center justify-center bg-gradient-to-br from-violet-100 to-fuchsia-100 transition-all duration-500',
-                isLarge ? 'w-10 h-10' : 'w-8 h-8',
+                isLarge() ? 'w-10 h-10' : 'w-8 h-8',
               )}
             >
               <span
                 className={cn(
                   'transition-all duration-300',
-                  isLarge ? 'text-sm' : 'text-xs',
+                  isLarge() ? 'text-sm' : 'text-xs',
                 )}
               >
                 {'🤖'}
@@ -326,7 +320,7 @@ function AgentCard({
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-medium text-gray-900 truncate leading-tight text-sm">
-                {title}
+                {title()}
               </div>
               <div className="text-gray-500 truncate leading-tight text-xs">
                 AI Agent
@@ -339,8 +333,8 @@ function AgentCard({
             className="transition-all duration-500 ease-out overflow-hidden border-t border-gray-100"
             style={{
               maxHeight:
-                activeIndex === 0 || activeIndex === 1 ? '400px' : '0px',
-              opacity: activeIndex === 0 || activeIndex === 1 ? 1 : 0,
+                props.activeIndex === 0 || props.activeIndex === 1 ? '400px' : '0px',
+              opacity: props.activeIndex === 0 || props.activeIndex === 1 ? 1 : 0,
             }}
           >
             <div className="p-4 space-y-3">
@@ -349,11 +343,11 @@ function AgentCard({
                 <label className="text-xs font-bold text-gray-400 uppercase mb-1.5 block">
                   Instructions
                 </label>
-                {showInstructions ? (
+                {showInstructions() ? (
                   <div className="p-3 rounded-lg bg-violet-50 border border-violet-200 min-h-[60px]">
                     <p className="text-sm text-gray-700 leading-relaxed">
-                      {typedPrompt}
-                      {isTyping && (
+                      {props.typedPrompt}
+                      {props.isTyping && (
                         <span className="inline-block w-0.5 h-4 bg-violet-500 ml-0.5 animate-pulse" />
                       )}
                     </p>
@@ -372,7 +366,7 @@ function AgentCard({
                   <p className="text-xs font-bold text-gray-400 uppercase mb-2">
                     Trigger
                   </p>
-                  {showInstructions ? (
+                  {showInstructions() ? (
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-md bg-white border border-gray-200 flex items-center justify-center flex-shrink-0">
                         <img
@@ -396,7 +390,7 @@ function AgentCard({
                 <div
                   className={cn(
                     'p-3 rounded-lg',
-                    showToolsHighlight
+                    showToolsHighlight()
                       ? 'bg-violet-50 border border-violet-200'
                       : 'bg-gray-50 border border-gray-100',
                   )}
@@ -404,12 +398,12 @@ function AgentCard({
                   <p
                     className={cn(
                       'text-xs font-bold uppercase mb-2',
-                      showToolsHighlight ? 'text-violet-500' : 'text-gray-400',
+                      showToolsHighlight() ? 'text-violet-500' : 'text-gray-400',
                     )}
                   >
                     Tools
                   </p>
-                  {showInstructions ? (
+                  {showInstructions() ? (
                     <div className="flex items-center gap-1">
                       {BASE_TOOLS.map((piece) => (
                         <div
@@ -436,7 +430,7 @@ function AgentCard({
                       <div
                         className={cn(
                           'w-7 h-7 rounded-md bg-violet-200 border-2 border-violet-400 flex items-center justify-center flex-shrink-0',
-                          showToolsHighlight && 'animate-pulse',
+                          showToolsHighlight() && 'animate-pulse',
                         )}
                       >
                         <span className="text-xs font-bold text-violet-600">
@@ -456,9 +450,9 @@ function AgentCard({
           className="absolute inset-[2px] rounded-[10px] bg-gradient-to-br from-violet-100 to-fuchsia-100 flex items-center justify-center text-sm"
           style={{
             transition: 'opacity 300ms ease, visibility 300ms ease',
-            transitionDelay: isCollapsed ? '200ms' : '0ms',
-            opacity: isCollapsed ? 1 : 0,
-            visibility: isCollapsed ? 'visible' : 'hidden',
+            transitionDelay: isCollapsed() ? '200ms' : '0ms',
+            opacity: isCollapsed() ? 1 : 0,
+            visibility: isCollapsed() ? 'visible' : 'hidden',
           }}
         >
           {'🤖'}
@@ -473,7 +467,7 @@ function AgentCard({
 function Scene0Slot({
   slotRef,
 }: {
-  slotRef: React.RefObject<HTMLDivElement | null>;
+  slotRef: (el: HTMLDivElement) => void;
 }) {
   return (
     <div className="absolute inset-0 flex items-center justify-center p-8">
@@ -484,25 +478,22 @@ function Scene0Slot({
 
 // ── Scene 1: Integrations Popup ──
 
-function Scene1({
-  visible,
-  slotRef,
-}: {
+function Scene1(props: {
   visible: boolean;
-  slotRef: React.RefObject<HTMLDivElement | null>;
+  slotRef: (el: HTMLDivElement) => void;
 }) {
   return (
     <div
       className="absolute inset-0 flex items-center justify-center p-6 z-40"
       style={{
         transition: 'opacity 500ms cubic-bezier(0.16,1,0.3,1)',
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'auto' : 'none',
+        opacity: props.visible ? 1 : 0,
+        pointerEvents: props.visible ? 'auto' : 'none',
       }}
     >
       <div className="flex items-start">
         {/* Agent slot */}
-        <div ref={slotRef} className="w-[340px] h-[320px] relative mt-12" />
+        <div ref={props.slotRef} className="w-[340px] h-[320px] relative mt-12" />
 
         {/* Overlapping popup */}
         <div className="w-64 -ml-16 relative z-50">
@@ -547,20 +538,17 @@ function Scene1({
 
 // ── Scene 2: Flow View (Custom Logic) ──
 
-function Scene2({
-  visible,
-  slotRef,
-}: {
+function Scene2(props: {
   visible: boolean;
-  slotRef: React.RefObject<HTMLDivElement | null>;
+  slotRef: (el: HTMLDivElement) => void;
 }) {
   return (
     <div
       className="absolute inset-0 flex items-center justify-center"
       style={{
         transition: 'opacity 500ms ease',
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'auto' : 'none',
+        opacity: props.visible ? 1 : 0,
+        pointerEvents: props.visible ? 'auto' : 'none',
         paddingTop: '60px',
       }}
     >
@@ -646,7 +634,7 @@ function Scene2({
 
         {/* Node 2: Agent slot (y=87) */}
         <div
-          ref={slotRef}
+          ref={props.slotRef}
           className="absolute"
           style={{
             left: '115px',
@@ -747,20 +735,17 @@ function Scene2({
 
 // ── Scene 3: Slack Message (Human Approval) ──
 
-function Scene3({
-  visible,
-  slotRef,
-}: {
+function Scene3(props: {
   visible: boolean;
-  slotRef: React.RefObject<HTMLDivElement | null>;
+  slotRef: (el: HTMLDivElement) => void;
 }) {
   return (
     <div
       className="absolute inset-0 flex items-center justify-center p-8"
       style={{
         transition: 'opacity 500ms ease',
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'auto' : 'none',
+        opacity: props.visible ? 1 : 0,
+        pointerEvents: props.visible ? 'auto' : 'none',
       }}
     >
       <div className="w-full max-w-sm">
@@ -775,7 +760,7 @@ function Scene3({
           <div className="p-4">
             <div className="flex gap-3">
               {/* Slot for agent avatar */}
-              <div ref={slotRef} className="w-8 h-8 flex-shrink-0 mt-0.5" />
+              <div ref={props.slotRef} className="w-8 h-8 flex-shrink-0 mt-0.5" />
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-baseline gap-2 mb-1">
@@ -816,25 +801,22 @@ function Scene3({
 
 // ── Scene 4: Tables (Agent Data) ──
 
-function Scene4({
-  visible,
-  slotRef,
-}: {
+function Scene4(props: {
   visible: boolean;
-  slotRef: React.RefObject<HTMLDivElement | null>;
+  slotRef: (el: HTMLDivElement) => void;
 }) {
   return (
     <div
       className="absolute inset-0 flex flex-col items-center justify-end"
       style={{
         transition: 'opacity 500ms ease',
-        opacity: visible ? 1 : 0,
-        pointerEvents: visible ? 'auto' : 'none',
+        opacity: props.visible ? 1 : 0,
+        pointerEvents: props.visible ? 'auto' : 'none',
       }}
     >
       {/* TOP: Agent card */}
       <div className="relative flex-shrink-0 mt-32">
-        <div ref={slotRef} className="w-[200px] h-[60px]" />
+        <div ref={props.slotRef} className="w-[200px] h-[60px]" />
       </div>
 
       {/* Vertical lines */}
@@ -1027,163 +1009,158 @@ function measureSlotPosition(
 // ── Main Component ──
 
 function AuthAnimation() {
-  const [activeIndex, setActiveIndex] = useState<SceneIndex>(0);
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const [isMorphing, setIsMorphing] = useState(false);
-  const [typedPrompt, setTypedPrompt] = useState('');
-  const [isTypingAnim, setIsTypingAnim] = useState(false);
-  const [agentPos, setAgentPos] = useState<AgentPosition>({
+  const [activeIndex, setActiveIndex] = createSignal<SceneIndex>(0);
+  const [isPlaying, setIsPlaying] = createSignal(true);
+  const [progress, setProgress] = createSignal(0);
+  const [isMorphing, setIsMorphing] = createSignal(false);
+  const [typedPrompt, setTypedPrompt] = createSignal('');
+  const [isTypingAnim, setIsTypingAnim] = createSignal(false);
+  const [agentPos, setAgentPos] = createSignal<AgentPosition>({
     top: 0,
     left: 0,
     width: 340,
     height: 320,
   });
 
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const slot0Ref = useRef<HTMLDivElement>(null);
-  const slot1Ref = useRef<HTMLDivElement>(null);
-  const slot2Ref = useRef<HTMLDivElement>(null);
-  const slot3Ref = useRef<HTMLDivElement>(null);
-  const slot4Ref = useRef<HTMLDivElement>(null);
+  let canvasRef: HTMLDivElement | undefined;
+  let wrapperRef: HTMLDivElement | undefined;
+  let slot0Ref: HTMLDivElement | undefined;
+  let slot1Ref: HTMLDivElement | undefined;
+  let slot2Ref: HTMLDivElement | undefined;
+  let slot3Ref: HTMLDivElement | undefined;
+  let slot4Ref: HTMLDivElement | undefined;
 
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const morphTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const typingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  let intervalRef: ReturnType<typeof setInterval> | undefined;
+  let morphTimeoutRef: ReturnType<typeof setTimeout> | undefined;
+  let typingIntervalRef: ReturnType<typeof setInterval> | undefined;
 
-  // We need a ref that tracks the latest activeIndex for use in measureSlot
-  const activeIndexRef = useRef<SceneIndex>(activeIndex);
-  activeIndexRef.current = activeIndex;
+  const getSlotRef = (index: SceneIndex) => {
+    const refs = [slot0Ref, slot1Ref, slot2Ref, slot3Ref, slot4Ref];
+    return refs[index];
+  };
 
-  const getSlotRef = useCallback(
-    (index: SceneIndex): React.RefObject<HTMLDivElement | null> => {
-      const refs = [slot0Ref, slot1Ref, slot2Ref, slot3Ref, slot4Ref];
-      return refs[index];
-    },
-    [],
-  );
-
-  const measureSlot = useCallback(() => {
-    const canvas = canvasRef.current;
-    const slotRef = getSlotRef(activeIndexRef.current);
-    const slot = slotRef.current;
+  const measureSlot = () => {
+    const canvas = canvasRef;
+    const slot = getSlotRef(activeIndex());
     if (!canvas || !slot) return;
     setAgentPos(measureSlotPosition(canvas, slot));
-  }, [getSlotRef]);
+  };
+
+  const bindSlot = (index: SceneIndex, el: HTMLDivElement) => {
+    if (index === 0) slot0Ref = el;
+    if (index === 1) slot1Ref = el;
+    if (index === 2) slot2Ref = el;
+    if (index === 3) slot3Ref = el;
+    if (index === 4) slot4Ref = el;
+    queueMicrotask(measureSlot);
+  };
 
   // Start typing animation for scene 0
-  const startTyping = useCallback(() => {
-    if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+  const startTyping = () => {
+    if (typingIntervalRef) clearInterval(typingIntervalRef);
     setTypedPrompt('');
     setIsTypingAnim(true);
     let i = 0;
-    typingIntervalRef.current = setInterval(() => {
+    typingIntervalRef = setInterval(() => {
       if (i < FULL_PROMPT.length) {
         setTypedPrompt(FULL_PROMPT.slice(0, i + 1));
         i++;
       } else {
-        if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
+        if (typingIntervalRef) clearInterval(typingIntervalRef);
         setIsTypingAnim(false);
       }
     }, TYPING_INTERVAL_MS);
-  }, []);
+  };
 
   // Handle scene change
-  const handleSceneChange = useCallback(
-    (nextScene: SceneIndex) => {
-      setActiveIndex(nextScene);
-      setIsMorphing(true);
-      if (morphTimeoutRef.current) clearTimeout(morphTimeoutRef.current);
-      morphTimeoutRef.current = setTimeout(() => {
-        setIsMorphing(false);
-      }, MORPHING_DURATION_MS);
+  const handleSceneChange = (nextScene: SceneIndex) => {
+    setActiveIndex(nextScene);
+    setIsMorphing(true);
+    if (morphTimeoutRef) clearTimeout(morphTimeoutRef);
+    morphTimeoutRef = setTimeout(() => {
+      setIsMorphing(false);
+    }, MORPHING_DURATION_MS);
 
-      if (nextScene === 0) {
-        startTyping();
-      }
+    if (nextScene === 0) {
+      startTyping();
+    }
 
-      // Measure after DOM update
-      requestAnimationFrame(() => {
-        setTimeout(measureSlot, 50);
-      });
-    },
-    [measureSlot, startTyping],
-  );
+    requestAnimationFrame(() => {
+      setTimeout(measureSlot, 50);
+    });
+  };
 
   // Auto-play timer
-  const stopAuto = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
+  const stopAuto = () => {
+    if (intervalRef) {
+      clearInterval(intervalRef);
+      intervalRef = undefined;
     }
-  }, []);
+  };
 
-  const startAuto = useCallback(() => {
+  const startAuto = () => {
     stopAuto();
     let localProgress = 0;
-    intervalRef.current = setInterval(() => {
+    intervalRef = setInterval(() => {
       localProgress += 100 / TICKS_PER_SCENE;
       if (localProgress >= 100) {
         localProgress = 0;
-        const next = ((activeIndexRef.current + 1) % SCENE_COUNT) as SceneIndex;
+        const next = ((activeIndex() + 1) % SCENE_COUNT) as SceneIndex;
         handleSceneChange(next);
       }
       setProgress(localProgress);
     }, TICK_INTERVAL_MS);
-  }, [stopAuto, handleSceneChange]);
+  };
 
   // Play/pause effect
-  useEffect(() => {
-    if (isPlaying) {
+  createEffect(() => {
+    if (isPlaying()) {
       startAuto();
     } else {
       stopAuto();
     }
-    return stopAuto;
-  }, [isPlaying, startAuto, stopAuto]);
+  });
+  onCleanup(stopAuto);
 
-  // Initial setup: measure + start typing
-  useEffect(() => {
+  // Initial setup: DOM refs are available after mount.
+  onMount(() => {
     const timer = setTimeout(() => {
       measureSlot();
     }, 100);
     startTyping();
-    return () => clearTimeout(timer);
-  }, [measureSlot, startTyping]);
+    onCleanup(() => clearTimeout(timer));
+  });
 
   // ResizeObserver for canvas scaling
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
+  onMount(() => {
+    const wrapper = wrapperRef;
     if (!wrapper) return;
 
     const observer = new ResizeObserver(() => {
       measureSlot();
     });
     observer.observe(wrapper);
-    return () => observer.disconnect();
-  }, [measureSlot]);
+    onCleanup(() => observer.disconnect());
+  });
 
   // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (typingIntervalRef.current) clearInterval(typingIntervalRef.current);
-      if (morphTimeoutRef.current) clearTimeout(morphTimeoutRef.current);
-    };
-  }, []);
+  onCleanup(() => {
+    if (typingIntervalRef) clearInterval(typingIntervalRef);
+    if (morphTimeoutRef) clearTimeout(morphTimeoutRef);
+  });
 
-  const handleTogglePlay = useCallback(() => {
+  const handleTogglePlay = () => {
     setIsPlaying((prev) => !prev);
-  }, []);
+  };
 
   return (
     <div
-      ref={wrapperRef}
+      ref={(el) => (wrapperRef = el)}
       className="auth-anim-scale-wrapper relative overflow-hidden rounded-2xl w-full h-full"
     >
       {/* Canvas - always renders at full 520px, CSS-scaled to fit */}
       <div
-        ref={canvasRef}
+        ref={(el) => (canvasRef = el)}
         className={cn(
           'auth-anim-canvas relative overflow-hidden origin-top-left group',
           'bg-cover bg-center bg-no-repeat',
@@ -1195,13 +1172,13 @@ function AuthAnimation() {
         }}
       >
         {/* Scene Title - top center */}
-        <div className="absolute top-24 left-0 right-0 z-50 flex justify-center">
+        <div className="absolute top-16 left-0 right-0 z-50 flex justify-center">
           <span
-            key={activeIndex}
+            key={activeIndex()}
             className="text-[24px] font-bold text-black animate-[blur-in_0.6s_ease-out]"
             style={{ fontFamily: "'Sentient', serif" }}
           >
-            {SCENE_LABELS[activeIndex]}
+            {SCENE_LABELS[activeIndex()]}
           </span>
         </div>
 
@@ -1229,48 +1206,46 @@ function AuthAnimation() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeDasharray={2 * Math.PI * 13}
-                strokeDashoffset={2 * Math.PI * 13 * (1 - progress / 100)}
+                strokeDashoffset={2 * Math.PI * 13 * (1 - progress() / 100)}
                 style={{ transition: 'stroke-dashoffset 100ms linear' }}
               />
             </svg>
-            {isPlaying ? <PauseIcon /> : <PlayIcon />}
+            {isPlaying() ? <PauseIcon /> : <PlayIcon />}
           </button>
         </div>
 
         {/* The Agent - positioned via measured slots */}
         <AgentCard
-          activeIndex={activeIndex}
-          position={agentPos}
-          isMorphing={isMorphing}
-          typedPrompt={typedPrompt}
-          isTyping={isTypingAnim}
+          activeIndex={activeIndex()}
+          position={agentPos()}
+          isMorphing={isMorphing()}
+          typedPrompt={typedPrompt()}
+          isTyping={isTypingAnim()}
         />
 
         {/* Scene 0: Natural Language - always rendered, just holds the slot */}
         <div
           style={{
-            display: activeIndex === 0 ? 'block' : 'none',
+            display: activeIndex() === 0 ? 'block' : 'none',
           }}
         >
-          <Scene0Slot slotRef={slot0Ref} />
+          <Scene0Slot slotRef={(el) => bindSlot(0, el)} />
         </div>
 
         {/* Scene 1: Integrations */}
-        <Scene1 visible={activeIndex === 1} slotRef={slot1Ref} />
+        <Scene1 visible={activeIndex() === 1} slotRef={(el) => bindSlot(1, el)} />
 
         {/* Scene 2: Custom Logic (Flow View) */}
-        <Scene2 visible={activeIndex === 2} slotRef={slot2Ref} />
+        <Scene2 visible={activeIndex() === 2} slotRef={(el) => bindSlot(2, el)} />
 
         {/* Scene 3: Human Approval (Slack) */}
-        <Scene3 visible={activeIndex === 3} slotRef={slot3Ref} />
+        <Scene3 visible={activeIndex() === 3} slotRef={(el) => bindSlot(3, el)} />
 
         {/* Scene 4: Agent Data (Tables) */}
-        <Scene4 visible={activeIndex === 4} slotRef={slot4Ref} />
+        <Scene4 visible={activeIndex() === 4} slotRef={(el) => bindSlot(4, el)} />
       </div>
     </div>
   );
 }
-
-AuthAnimation.displayName = 'AuthAnimation';
 
 export { AuthAnimation };

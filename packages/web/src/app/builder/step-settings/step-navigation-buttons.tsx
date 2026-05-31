@@ -4,8 +4,8 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useMemo } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-solid';
+import { createMemo } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { Button } from '@/components/ui/button';
@@ -21,15 +21,14 @@ const StepNavigationButtons = () => {
     (state) => [state.selectedStep, state.flowVersion, state.selectStepByName],
   );
 
-  const orderedSteps = useMemo(
-    () => flowStructureUtil.getAllSteps(flowVersion.trigger),
-    [flowVersion.trigger],
+  const orderedSteps = createMemo(() =>
+    flowStructureUtil.getAllSteps(flowVersion.trigger),
   );
 
-  const currentIndex = useMemo(() => {
+  const currentIndex = createMemo(() => {
     if (isNil(selectedStep)) return -1;
     return orderedSteps.findIndex((step) => step.name === selectedStep);
-  }, [selectedStep, orderedSteps]);
+  });
 
   if (currentIndex === -1) {
     return null;
@@ -58,7 +57,7 @@ const StepNavigationButtons = () => {
               }
               aria-label={t('Previous step')}
             >
-              <ChevronLeft className="size-4" />
+              <ChevronLeft class="size-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">{t('Previous step')}</TooltipContent>
@@ -74,7 +73,7 @@ const StepNavigationButtons = () => {
               }
               aria-label={t('Next step')}
             >
-              <ChevronRight className="size-4" />
+              <ChevronRight class="size-4" />
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">{t('Next step')}</TooltipContent>

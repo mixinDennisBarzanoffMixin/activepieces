@@ -8,11 +8,10 @@ import {
   flowStructureUtil,
   isNil,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
 import deepEqual from 'deep-equal';
-import { useEffect, useRef, useState } from 'react';
-import { useForm, Resolver } from 'react-hook-form';
+import { Show, createEffect, createSignal } from 'solid-js';
 
+import { createForm, zodResolver } from '@/app/builder/builder-form';
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { Form } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -77,11 +76,11 @@ const StepSettingsContainer = () => {
     step: selectedStep,
   });
 
-  const selectedStepRef = useRef(selectedStep);
-  selectedStepRef.current = selectedStep;
+  let selectedStepRef: any | undefined;
+  selectedStepRef = selectedStep;
 
-  const currentValuesRef = useRef<FlowAction | FlowTrigger>(selectedStep);
-  const form = useForm<FlowAction | FlowTrigger>({
+  let currentValuesRef: FlowAction | FlowTrigger | undefined;
+  const form = createForm<FlowAction | FlowTrigger>({
     mode: 'all',
     disabled: readonly,
     reValidateMode: 'onChange',
@@ -92,13 +91,12 @@ const StepSettingsContainer = () => {
     },
     resolver: async (values, context, options) => {
       const result = await (
-        zodResolver(formSchema) as unknown as Resolver<FlowAction | FlowTrigger>
+        zodResolver(formSchema) as unknown as BuilderResolver
       )(values, context, options);
 
       const cleanedNewValues = formUtils.removeUndefinedFromInput(values);
-      const cleanedCurrentValues = formUtils.removeUndefinedFromInput(
-        currentValuesRef.current,
-      );
+      const cleanedCurrentValues =
+        formUtils.removeUndefinedFromInput(currentValuesRef);
       const valid = Object.keys(result.errors).length === 0;
       cleanedNewValues.valid = valid;
       if (
@@ -118,7 +116,7 @@ const StepSettingsContainer = () => {
         return result;
       }
       //We need to copy the object because the form is using the same object reference
-      currentValuesRef.current = JSON.parse(JSON.stringify(cleanedNewValues));
+      currentValuesRef = JSON.parse(JSON.stringify(cleanedNewValues));
       if (cleanedNewValues.type === FlowTriggerType.PIECE) {
         applyOperation({
           type: FlowOperationType.UPDATE_TRIGGER,
@@ -140,7 +138,7 @@ const StepSettingsContainer = () => {
     },
   });
 
-  const sidebarHeaderContainerRef = useRef<HTMLDivElement>(null);
+  let sidebarHeaderContainerRef: HTMLDivElement | undefined;
   const modifiedStep = form.getValues();
   const isManualTrigger =
     modifiedStep.type === FlowTriggerType.PIECE &&
@@ -155,7 +153,7 @@ const StepSettingsContainer = () => {
     !isNil(run) && !isManualTrigger && !isEmptyTrigger;
 
   const [isEditingStepOrBranchName, setIsEditingStepOrBranchName] =
-    useState(false);
+    createSignal(false);
   const showActionErrorHandlingForm =
     [FlowActionType.CODE, FlowActionType.PIECE].includes(
       modifiedStep.type as FlowActionType,
@@ -165,56 +163,68 @@ const StepSettingsContainer = () => {
     modifiedStep.settings.pieceName === '@activepieces/piece-ai' &&
     modifiedStep.settings.actionName === 'run_agent';
 
-  useEffect(() => {
+  createEffect(() => {
     //RHF doesn't automatically trigger validation when the form is rendered, so we need to trigger it manually
     form.trigger();
-  }, []);
+  });
 
   const showTestPanel = showGenerateSampleData || showStepInputOutFromRun;
 
   const settingsForm = (
-    <ScrollArea className="h-full">
+    <ScrollArea class="h-full">
       <div
         className={cn(
           'flex flex-col px-4 pb-6 pt-3',
           GAP_SIZE_FOR_STEP_SETTINGS,
         )}
       >
-        {modifiedStep.type === FlowActionType.LOOP_ON_ITEMS && (
+        <Show when={modifiedStep.type === FlowActionType.LOOP_ON_ITEMS()}>
           <LoopsSettings readonly={readonly}></LoopsSettings>
-        )}
-        {modifiedStep.type === FlowActionType.CODE && (
+        </Show>
+        <Show when={modifiedStep.type === FlowActionType.CODE()}>
           <CodeSettings readonly={readonly}></CodeSettings>
-        )}
-        {modifiedStep.type === FlowActionType.PIECE &&
-          runAgentStep &&
-          modifiedStep && (
-            <AgentSettings
-              step={modifiedStep}
-              flowId={flowVersion.flowId}
-              readonly={readonly}
-            />
-          )}
-        {modifiedStep.type === FlowActionType.PIECE &&
-          !runAgentStep &&
-          modifiedStep && (
-            <PieceSettings
-              step={modifiedStep}
-              flowId={flowVersion.flowId}
-              readonly={readonly}
-            ></PieceSettings>
-          )}
-        {modifiedStep.type === FlowActionType.ROUTER && modifiedStep && (
-          <RouterSettings readonly={readonly}></RouterSettings>
-        )}
-        {modifiedStep.type === FlowTriggerType.PIECE && modifiedStep && (
+        </Show>
+        <Show
+          when={
+            modifiedStep.type === FlowActionType.PIECE &&
+            runAgentStep &&
+            modifiedStep()
+          }
+        >
+          <AgentSettings
+            step={modifiedStep}
+            flowId={flowVersion.flowId}
+            readonly={readonly}
+          />
+        </Show>
+        <Show
+          when={
+            modifiedStep.type === FlowActionType.PIECE &&
+            !runAgentStep &&
+            modifiedStep()
+          }
+        >
           <PieceSettings
             step={modifiedStep}
             flowId={flowVersion.flowId}
             readonly={readonly}
           ></PieceSettings>
-        )}
-        {showActionErrorHandlingForm && (
+        </Show>
+        <Show
+          when={modifiedStep.type === FlowActionType.ROUTER && modifiedStep()}
+        >
+          <RouterSettings readonly={readonly}></RouterSettings>
+        </Show>
+        <Show
+          when={modifiedStep.type === FlowTriggerType.PIECE && modifiedStep()}
+        >
+          <PieceSettings
+            step={modifiedStep}
+            flowId={flowVersion.flowId}
+            readonly={readonly}
+          ></PieceSettings>
+        </Show>
+        <Show when={showActionErrorHandlingForm()}>
           <ActionErrorHandlingForm
             hideContinueOnFailure={
               stepMetadata.type === FlowActionType.PIECE
@@ -228,7 +238,7 @@ const StepSettingsContainer = () => {
                 : false
             }
           ></ActionErrorHandlingForm>
-        )}
+        </Show>
       </div>
     </ScrollArea>
   );
@@ -241,7 +251,7 @@ const StepSettingsContainer = () => {
         className="w-full h-full flex flex-col"
       >
         <div
-          ref={sidebarHeaderContainerRef}
+          ref={(el) => (sidebarHeaderContainerRef = el)}
           className="relative z-10 bg-background"
         >
           <SidebarHeader
@@ -259,16 +269,22 @@ const StepSettingsContainer = () => {
             }
             actions={
               <div className="flex items-center gap-1">
-                {isPieceMetadata(stepMetadata) &&
-                  stepMetadata.pieceVersion &&
-                  (modifiedStep.type === FlowActionType.PIECE ||
-                    modifiedStep.type === FlowTriggerType.PIECE) && (
-                    <PieceVersionInHeader
-                      step={modifiedStep}
-                      pieceVersion={stepMetadata.pieceVersion}
-                      readonly={readonly}
-                    />
-                  )}
+                <Show
+                  when={
+                    isPieceMetadata(stepMetadata) &&
+                    stepMetadata.pieceVersion &&
+                    (
+                      modifiedStep.type === FlowActionType.PIECE ||
+                      modifiedStep.type === FlowTriggerType.PIECE
+                    )()
+                  }
+                >
+                  <PieceVersionInHeader
+                    step={modifiedStep}
+                    pieceVersion={stepMetadata.pieceVersion}
+                    readonly={readonly}
+                  />
+                </Show>
                 <StepNavigationButtons />
               </div>
             }
@@ -366,8 +382,8 @@ type StepSettingsLayoutProps = {
   isSplit: boolean;
   showTestPanel: boolean;
   isTestPanelOpen: boolean;
-  settingsForm: React.ReactNode;
-  testPanelHost: React.ReactNode;
+  settingsForm: any;
+  testPanelHost: any;
 };
 
 const StepSettingsLayout = ({
@@ -381,11 +397,11 @@ const StepSettingsLayout = ({
     return (
       <div className="relative flex-1 min-h-0 flex flex-row">
         <div className="w-1/2 min-w-0 min-h-0 h-full">{settingsForm}</div>
-        {testPanelHost && (
+        <Show when={testPanelHost()}>
           <div className="w-1/2 min-w-0 min-h-0 h-full pt-2 pl-1">
             {testPanelHost}
           </div>
-        )}
+        </Show>
       </div>
     );
   }
@@ -393,16 +409,16 @@ const StepSettingsLayout = ({
   return (
     <div className="relative flex-1 min-h-0 flex flex-col w-full">
       <div className="flex-1 min-h-0">{settingsForm}</div>
-      {showTestPanel && !isTestPanelOpen && (
+      <Show when={showTestPanel && !isTestPanelOpen()}>
         <div className="shrink-0">
           <TestStepCTAButton />
         </div>
-      )}
-      {testPanelHost && isTestPanelOpen && (
+      </Show>
+      <Show when={testPanelHost && isTestPanelOpen()}>
         <div className="absolute bottom-0 left-0 right-0 h-[60%] z-50">
           {testPanelHost}
         </div>
-      )}
+      </Show>
     </div>
   );
 };
@@ -425,9 +441,9 @@ const PieceVersionInHeader = ({
   return (
     <div className="flex items-center gap-1 shrink-0">
       <span className="text-xs text-muted-foreground">v{exactVersion}</span>
-      {showSwitcher && (
+      <Show when={showSwitcher()}>
         <UpdatePieceVersionDialog step={step} currentVersion={exactVersion} />
-      )}
+      </Show>
     </div>
   );
 };
@@ -440,7 +456,7 @@ const StepTestRunnerProvider = ({
   children,
 }: {
   step: FlowAction | FlowTrigger;
-  children: React.ReactNode;
+  children: any;
 }) => {
   if (isFlowActionStep(step)) {
     return (
@@ -468,3 +484,9 @@ const isPieceMetadata = (
 ): metadata is PieceStepMetadata =>
   metadata?.type === FlowActionType.PIECE ||
   metadata?.type === FlowTriggerType.PIECE;
+
+type BuilderResolver = (
+  values: FlowAction | FlowTrigger,
+  context: unknown,
+  options: unknown,
+) => Promise<{ errors: Record<string, unknown> }>;

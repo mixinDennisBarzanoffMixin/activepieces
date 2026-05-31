@@ -3,7 +3,7 @@ import {
   ColorName,
   UserWithBadges,
 } from '@activepieces/shared';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries } from '@tanstack/solid-query';
 import dayjs from 'dayjs';
 import { t } from 'i18next';
 import {
@@ -16,9 +16,9 @@ import {
   RefreshCcw,
   Users,
   X,
-} from 'lucide-react';
-import { useContext, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+} from 'lucide-solid';
+import { useContext, createMemo, createSignal, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { userApi } from '@/api/user-api';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -100,7 +100,7 @@ function applyTimeSavedFilter<T extends { minutesSaved: number }>(
 
 export default function LeaderboardPage() {
   const { platform } = platformHooks.useCurrentPlatform();
-  const [timePeriod, setTimePeriod] = useState<AnalyticsTimePeriod>(
+  const [timePeriod, setTimePeriod] = createSignal<AnalyticsTimePeriod>(
     AnalyticsTimePeriod.LAST_WEEK,
   );
   const { data: analyticsData, isLoading: isAnalyticsLoading } =
@@ -111,7 +111,7 @@ export default function LeaderboardPage() {
     platformAnalyticsHooks.useProjectLeaderboard(timePeriod);
   const { data: allProjects } = projectCollectionUtils.useAllPlatformProjects();
 
-  const projectIconMap = useMemo(() => {
+  const projectIconMap = createMemo(() => {
     const map = new Map<string, ColorName>();
     allProjects?.forEach((p) => {
       if (p.icon) {
@@ -119,33 +119,32 @@ export default function LeaderboardPage() {
       }
     });
     return map;
-  }, [allProjects]);
-  const [activeTab, setActiveTab] = useState('creators');
-  const [searchQuery, setSearchQuery] = useState('');
+  });
+  const [activeTab, setActiveTab] = createSignal('creators');
+  const [searchQuery, setSearchQuery] = createSignal('');
 
   const [peopleTimeSaved, setPeopleTimeSaved] =
-    useState<TimeSavedFilter>(emptyFilter);
+    createSignal<TimeSavedFilter>(emptyFilter);
   const [projectsTimeSaved, setProjectsTimeSaved] =
-    useState<TimeSavedFilter>(emptyFilter);
+    createSignal<TimeSavedFilter>(emptyFilter);
 
   const appliedFilter =
     activeTab === 'creators' ? peopleTimeSaved : projectsTimeSaved;
   const setAppliedFilter =
     activeTab === 'creators' ? setPeopleTimeSaved : setProjectsTimeSaved;
 
-  const [draftTimeSavedMin, setDraftTimeSavedMin] = useState('');
-  const [draftTimeSavedMax, setDraftTimeSavedMax] = useState('');
-  const [draftTimeUnitMin, setDraftTimeUnitMin] = useState<TimeUnit>('Sec');
-  const [draftTimeUnitMax, setDraftTimeUnitMax] = useState<TimeUnit>('Sec');
-  const [timeSavedPopoverOpen, setTimeSavedPopoverOpen] = useState(false);
+  const [draftTimeSavedMin, setDraftTimeSavedMin] = createSignal('');
+  const [draftTimeSavedMax, setDraftTimeSavedMax] = createSignal('');
+  const [draftTimeUnitMin, setDraftTimeUnitMin] = createSignal<TimeUnit>('Sec');
+  const [draftTimeUnitMax, setDraftTimeUnitMax] = createSignal<TimeUnit>('Sec');
+  const [timeSavedPopoverOpen, setTimeSavedPopoverOpen] = createSignal(false);
 
   const { mutate: refreshAnalytics } =
     platformAnalyticsHooks.useRefreshAnalytics();
   const { isRefreshing } = useContext(RefreshAnalyticsContext);
 
-  const userIds = useMemo(
+  const userIds = createMemo(
     () => usersLeaderboardData?.map((u) => u.userId) ?? [],
-    [usersLeaderboardData],
   );
 
   const badgeQueries = useQueries({
@@ -157,7 +156,7 @@ export default function LeaderboardPage() {
     })),
   });
 
-  const badgesMap = useMemo(() => {
+  const badgesMap = createMemo(() => {
     const map = new Map<string, UserWithBadges['badges']>();
     badgeQueries.forEach((q) => {
       if (q.data) {
@@ -165,7 +164,7 @@ export default function LeaderboardPage() {
       }
     });
     return map;
-  }, [badgeQueries]);
+  });
 
   const isLoading = isAnalyticsLoading || isUsersLoading || isProjectsLoading;
 
@@ -207,7 +206,7 @@ export default function LeaderboardPage() {
     setAppliedFilter(emptyFilter);
   };
 
-  const timeSavedLabel = useMemo(() => {
+  const timeSavedLabel = createMemo(() => {
     if (!appliedFilter.min && !appliedFilter.max) return null;
     const min = appliedFilter.min
       ? `${appliedFilter.min} ${appliedFilter.unitMin}`
@@ -216,9 +215,9 @@ export default function LeaderboardPage() {
       ? `${appliedFilter.max} ${appliedFilter.unitMax}`
       : '∞';
     return `${min} – ${max}`;
-  }, [appliedFilter]);
+  });
 
-  const peopleData = useMemo((): UserStats[] => {
+  const peopleData = createMemo((): UserStats[] => {
     if (isLoading || !analyticsData?.users || !usersLeaderboardData) {
       return [];
     }
@@ -243,9 +242,9 @@ export default function LeaderboardPage() {
       }, [])
       .sort((a, b) => b.minutesSaved - a.minutesSaved)
       .map((item, index) => ({ ...item, rank: index + 1 }));
-  }, [analyticsData?.users, usersLeaderboardData, isLoading, badgesMap]);
+  });
 
-  const projectsData = useMemo((): ProjectStats[] => {
+  const projectsData = createMemo((): ProjectStats[] => {
     if (isLoading || !projectsLeaderboardData) {
       return [];
     }
@@ -261,9 +260,9 @@ export default function LeaderboardPage() {
       }))
       .sort((a, b) => b.minutesSaved - a.minutesSaved)
       .map((item, index) => ({ ...item, rank: index + 1 }));
-  }, [projectsLeaderboardData, isLoading, projectIconMap]);
+  });
 
-  const filteredPeopleData = useMemo(() => {
+  const filteredPeopleData = createMemo(() => {
     let data = peopleData;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -274,16 +273,16 @@ export default function LeaderboardPage() {
       );
     }
     return applyTimeSavedFilter(data, peopleTimeSaved);
-  }, [peopleData, searchQuery, peopleTimeSaved]);
+  });
 
-  const filteredProjectsData = useMemo(() => {
+  const filteredProjectsData = createMemo(() => {
     let data = projectsData;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       data = data.filter((p) => p.projectName.toLowerCase().includes(q));
     }
     return applyTimeSavedFilter(data, projectsTimeSaved);
-  }, [projectsData, searchQuery, projectsTimeSaved]);
+  });
 
   const handleDownload = () => {
     if (activeTab === 'creators') {
@@ -357,7 +356,7 @@ export default function LeaderboardPage() {
                 <span className="text-sm font-medium">{t('Leaderboard')}</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-4 w-4 text-muted-foreground cursor-help" />
+                    <Info class="h-4 w-4 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
                     {t('See top performers by flows created and time saved')}
@@ -379,7 +378,7 @@ export default function LeaderboardPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6"
+                        class="h-6 w-6"
                         onClick={() =>
                           refreshAnalytics(undefined, {
                             onSuccess: () =>
@@ -389,7 +388,7 @@ export default function LeaderboardPage() {
                         disabled={isRefreshing}
                       >
                         <RefreshCcw
-                          className={`h-3.5 w-3.5 ${
+                          class={`h-3.5 w-3.5 ${
                             isRefreshing ? 'animate-spin' : ''
                           }`}
                         />
@@ -405,8 +404,8 @@ export default function LeaderboardPage() {
                     setTimePeriod(value as AnalyticsTimePeriod)
                   }
                 >
-                  <SelectTrigger className="w-auto gap-2 h-8">
-                    <Calendar className="h-4 w-4" />
+                  <SelectTrigger class="w-auto gap-2 h-8">
+                    <Calendar class="h-4 w-4" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent side="bottom" align="end">
@@ -429,24 +428,24 @@ export default function LeaderboardPage() {
                 </Select>
               </div>
             }
-            className="min-w-full"
+            class="min-w-full"
           />
 
           <Tabs
             defaultValue="creators"
-            className="w-full mt-2"
+            class="w-full mt-2"
             onValueChange={handleTabChange}
           >
             <TabsList
               variant="outline"
-              className={cn('border-b w-full', DASHBOARD_CONTENT_PADDING_X)}
+              class={cn('border-b w-full', DASHBOARD_CONTENT_PADDING_X)}
             >
               <TabsTrigger variant="outline" value="creators">
-                <Users className="w-4 h-4 mr-1.5" />
+                <Users class="w-4 h-4 mr-1.5" />
                 {t('People')}
               </TabsTrigger>
               <TabsTrigger variant="outline" value="projects">
-                <LayoutGrid className="w-4 h-4 mr-1.5" />
+                <LayoutGrid class="w-4 h-4 mr-1.5" />
                 {t('Projects')}
               </TabsTrigger>
             </TabsList>
@@ -466,7 +465,7 @@ export default function LeaderboardPage() {
                       ? t('Search users')
                       : t('Search projects')
                   }
-                  className="w-[200px]"
+                  class="w-[200px]"
                 />
                 <Popover
                   open={timeSavedPopoverOpen}
@@ -475,19 +474,19 @@ export default function LeaderboardPage() {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className="gap-2 font-normal border-dashed"
+                      class="gap-2 font-normal border-dashed"
                     >
-                      <Clock className="h-4 w-4" />
+                      <Clock class="h-4 w-4" />
                       <span>{t('Time Saved')}</span>
-                      {timeSavedLabel && (
+                      <Show when={timeSavedLabel}>
                         <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-medium">
                           {timeSavedLabel}
                         </span>
-                      )}
-                      <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Show>
+                      <ChevronDown class="h-4 w-4 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[200px] p-4" align="start">
+                  <PopoverContent class="w-[200px] p-4" align="start">
                     <TimeSavedFilterContent
                       draftMin={draftTimeSavedMin}
                       onMinChange={setDraftTimeSavedMin}
@@ -501,12 +500,12 @@ export default function LeaderboardPage() {
                     />
                   </PopoverContent>
                 </Popover>
-                {hasActiveFilters && (
+                <Show when={hasActiveFilters}>
                   <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                    <X className="h-4 w-4" />
+                    <X class="h-4 w-4" />
                     {t('Clear')}
                   </Button>
-                )}
+                </Show>
               </div>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -516,7 +515,7 @@ export default function LeaderboardPage() {
                     onClick={handleDownload}
                     disabled={isDownloadDisabled}
                   >
-                    <Download className="h-4 w-4 mr-2" />
+                    <Download class="h-4 w-4 mr-2" />
                     {t('Download')}
                   </Button>
                 </TooltipTrigger>

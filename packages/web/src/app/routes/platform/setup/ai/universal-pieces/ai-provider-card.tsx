@@ -1,6 +1,7 @@
 import { AIProviderWithoutSensitiveData } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Pencil, Trash } from 'lucide-react';
+import { Pencil, Trash } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import {
@@ -28,18 +29,20 @@ const AIProviderCard = ({
 
   return (
     <Item variant="outline">
-      {logoUrl && <ItemMediaImage src={logoUrl} alt={providerInfo.name} />}
+      <Show when={logoUrl}>
+        <ItemMediaImage src={logoUrl} alt={providerInfo.name} />
+      </Show>
       <ItemContent>
         <ItemTitle>{displayName}</ItemTitle>
-        {allowWrite && (
+        <Show when={allowWrite}>
           <ItemDescription>
             {t('Configure credentials for {providerName} AI provider.', {
               providerName: providerInfo.name,
             })}
           </ItemDescription>
-        )}
+        </Show>
       </ItemContent>
-      {allowWrite && (
+      <Show when={allowWrite}>
         <ItemActions>
           <UpsertAIProviderDialog
             key={providerConfig?.id ?? providerInfo.provider}
@@ -49,17 +52,20 @@ const AIProviderCard = ({
             defaultDisplayName={displayName}
             onSave={onSave}
           >
-            {providerConfig ? (
+            <Show
+              when={providerConfig}
+              fallback={
+                <Button variant={'basic'} size={'sm'}>
+                  {t('Enable')}
+                </Button>
+              }
+            >
               <Button variant={'ghost'} size={'sm'}>
-                <Pencil className="size-4" />
+                <Pencil class="size-4" />
               </Button>
-            ) : (
-              <Button variant={'basic'} size={'sm'}>
-                {t('Enable')}
-              </Button>
-            )}
+            </Show>
           </UpsertAIProviderDialog>
-          {providerConfig && (
+          <Show when={providerConfig}>
             <ConfirmationDeleteDialog
               title={t('Delete AI Provider')}
               message={t('Are you sure you want to delete {providerName}?', {
@@ -72,12 +78,12 @@ const AIProviderCard = ({
               mutationFn={() => onDelete(providerConfig.id)}
             >
               <Button variant={'ghost'} size={'sm'}>
-                <Trash className="size-4 text-destructive" />
+                <Trash class="size-4 text-destructive" />
               </Button>
             </ConfirmationDeleteDialog>
-          )}
+          </Show>
         </ItemActions>
-      )}
+      </Show>
     </Item>
   );
 };

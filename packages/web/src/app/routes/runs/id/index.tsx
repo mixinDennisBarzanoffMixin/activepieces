@@ -1,7 +1,7 @@
 import { FlowRun, PopulatedFlow } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
-import { ReactFlowProvider } from '@xyflow/react';
-import { useParams } from 'react-router-dom';
+import { useParams } from '@solidjs/router';
+import { createQuery } from '@tanstack/solid-query';
+import { ReactFlowProvider } from '../../../builder/flow-canvas/solid-flow-adapter';
 
 import { BuilderPage } from '@/app/builder';
 import { BuilderStateProvider } from '@/app/builder/state/builder-state-provider';
@@ -11,7 +11,7 @@ import { flowsApi, sampleDataHooks } from '@/features/flows';
 
 const FlowRunPage = () => {
   const { runId, projectId } = useParams();
-  const { data, isLoading } = useQuery<
+  const { data, isLoading } = createQuery<
     {
       run: FlowRun;
       flow: PopulatedFlow;

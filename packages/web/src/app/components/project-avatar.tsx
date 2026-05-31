@@ -3,6 +3,7 @@ import {
   PROJECT_COLOR_PALETTE,
   ProjectType,
 } from '@activepieces/shared';
+import { Show } from 'solid-js';
 
 import { Avatar } from '@/components/ui/avatar';
 
@@ -58,7 +59,7 @@ export const ProjectAvatar = ({
         }}
       >
         <Avatar
-          className={`${
+          class={`${
             currentSize.avatar
           } flex items-center justify-center rounded-full ${
             showDetails ? 'mb-3' : ''
@@ -72,23 +73,27 @@ export const ProjectAvatar = ({
             {displayName.charAt(0).toUpperCase()}
           </span>
         </Avatar>
-        {showDetails && (
-          <div className="px-4 text-center">
-            <div className="font-semibold text-sm text-black">
-              {displayName}
-            </div>
-            {createdDate && (
-              <div className="text-xs text-muted-foreground mt-1">
-                Created on{' '}
-                {new Intl.DateTimeFormat('en-US', {
-                  month: 'numeric',
-                  day: 'numeric',
-                  year: 'numeric',
-                }).format(createdDate)}
+        {
+          <Show when={showDetails}>
+            <div className="px-4 text-center">
+              <div className="font-semibold text-sm text-black">
+                {displayName}
               </div>
-            )}
-          </div>
-        )}
+              {
+                <Show when={createdDate}>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Created on{' '}
+                    {new Intl.DateTimeFormat('en-US', {
+                      month: 'numeric',
+                      day: 'numeric',
+                      year: 'numeric',
+                    }).format(createdDate)}
+                  </div>
+                </Show>
+              }
+            </div>
+          </Show>
+        }
       </div>
     );
   }
@@ -107,7 +112,7 @@ export const ProjectAvatar = ({
       }}
     >
       <Avatar
-        className={`${
+        class={`${
           currentSize.avatar
         } flex items-center justify-center rounded-sm ${
           showDetails ? 'mb-3' : ''
@@ -121,21 +126,27 @@ export const ProjectAvatar = ({
           {displayName.charAt(0).toUpperCase()}
         </span>
       </Avatar>
-      {showDetails && (
-        <div className="px-4 text-center">
-          <div className="font-semibold text-sm text-black">{displayName}</div>
-          {createdDate && (
-            <div className="text-xs text-muted-foreground mt-1">
-              Created on{' '}
-              {new Intl.DateTimeFormat('en-US', {
-                month: 'numeric',
-                day: 'numeric',
-                year: 'numeric',
-              }).format(createdDate)}
+      {
+        <Show when={showDetails}>
+          <div className="px-4 text-center">
+            <div className="font-semibold text-sm text-black">
+              {displayName}
             </div>
-          )}
-        </div>
-      )}
+            {
+              <Show when={createdDate}>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Created on{' '}
+                  {new Intl.DateTimeFormat('en-US', {
+                    month: 'numeric',
+                    day: 'numeric',
+                    year: 'numeric',
+                  }).format(createdDate)}
+                </div>
+              </Show>
+            }
+          </div>
+        </Show>
+      }
     </div>
   );
 };

@@ -1,15 +1,19 @@
 import { Template, TemplateType } from '@activepieces/shared';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useDebounce } from '@/lib/debounce';
+import { useSearchParams } from '@solidjs/router';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useSearchParams } from 'react-router-dom';
-import { toast } from 'sonner';
-import { useDebounce } from 'use-debounce';
+import { toast } from 'solid-sonner';
 
 import { templatesApi } from '../api/templates-api';
 
 export const templatesHooks = {
   useTemplateCategories: () => {
-    return useQuery<string[], Error>({
+    return createQuery<string[], Error>({
       queryKey: ['template', 'categories'],
       queryFn: async () => {
         const result = await templatesApi.getCategories();
@@ -20,14 +24,14 @@ export const templatesHooks = {
   },
 
   useTemplate: (id: string) => {
-    return useQuery<Template, Error>({
+    return createQuery<Template, Error>({
       queryKey: ['template', id],
       queryFn: () => templatesApi.getTemplate(id),
     });
   },
 
   useAllOfficialTemplates: () => {
-    return useQuery<Template[], Error>({
+    return createQuery<Template[], Error>({
       queryKey: ['templates', 'all'],
       queryFn: async () => {
         const result = await templatesApi.list({
@@ -47,7 +51,7 @@ export const templatesHooks = {
 
     const [debouncedSearch] = useDebounce(search, 300);
 
-    const { data: templates, isLoading } = useQuery<Template[], Error>({
+    const { data: templates, isLoading } = createQuery<Template[], Error>({
       queryKey: ['templates', debouncedSearch, category],
       queryFn: async () => {
         const templates = await templatesApi.list({
@@ -109,7 +113,7 @@ export const templatesMutations = {
     onError?: (error: Error) => void;
   }) => {
     const queryClient = useQueryClient();
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: (request: Parameters<typeof templatesApi.create>[0]) =>
         templatesApi.create(request),
       onSuccess: () => {
@@ -118,7 +122,7 @@ export const templatesMutations = {
         onDone();
       },
       onError,
-    });
+    }));
   },
   useUpdateTemplate: ({
     onDone,
@@ -128,7 +132,7 @@ export const templatesMutations = {
     onError?: (error: Error) => void;
   }) => {
     const queryClient = useQueryClient();
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: ({
         templateId,
         request,
@@ -142,11 +146,11 @@ export const templatesMutations = {
         onDone();
       },
       onError,
-    });
+    }));
   },
   useBulkDeleteTemplates: ({ onSuccess }: { onSuccess: () => void }) => {
     const queryClient = useQueryClient();
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async (templateIds: string[]) => {
         await Promise.all(templateIds.map((id) => templatesApi.delete(id)));
       },
@@ -154,6 +158,6 @@ export const templatesMutations = {
         queryClient.invalidateQueries({ queryKey: templateKeys.custom });
         onSuccess();
       },
-    });
+    }));
   },
 };

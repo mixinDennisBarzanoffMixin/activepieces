@@ -1,13 +1,13 @@
 import { ProjectType, ProjectWithLimits, SeekPage } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useDebouncedCallback } from '@/lib/debounce';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { jwtDecode } from 'jwt-decode';
-import { CheckCircle, FolderKanban, Lock, Plug, Workflow } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
-import { useDebouncedCallback } from 'use-debounce';
+import { CheckCircle, FolderKanban, Lock, Plug, Workflow } from 'lucide-solid';
+import { createMemo, createSignal, Show } from 'solid-js';
 
 import { FullLogo } from '@/components/custom/full-logo';
+import { queryClient } from '@/app/query-client';
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -24,15 +24,15 @@ import { api } from '@/lib/api';
 import { authenticationSession } from '@/lib/authentication-session';
 
 function McpAuthorizePage() {
-  const [searchParams] = useSearchParams();
+  const searchParams = new URLSearchParams(window.location.search);
   const authRequestId = searchParams.get('authRequestId');
   const { clientName, isPlatformScoped } = decodeJwtPayload(authRequestId);
-  const [selectedProjectId, setSelectedProjectId] = useState<
+  const [selectedProjectId, setSelectedProjectId] = createSignal<
     string | undefined
   >(undefined);
-  const [searchValue, setSearchValue] = useState('');
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
-  const [authorized, setAuthorized] = useState(false);
+  const [searchValue, setSearchValue] = createSignal('');
+  const [selectedTypes, setSelectedTypes] = createSignal<string[]>([]);
+  const [authorized, setAuthorized] = createSignal(false);
   const debouncedSetSearchValue = useDebouncedCallback(setSearchValue, 300);
   const isLoggedIn = authenticationSession.isLoggedIn();
   const projectTypeOptions = [
@@ -40,42 +40,50 @@ function McpAuthorizePage() {
     { value: ProjectType.PERSONAL, label: t('Personal') },
   ];
 
-  const { data: projectsPage, isLoading: projectsLoading } = useQuery({
-    queryKey: ['mcp-authorize-projects', searchValue, selectedTypes],
-    queryFn: () =>
-      api.get<SeekPage<ProjectWithLimits>>('/v1/projects', {
-        limit: 1000,
-        ...(searchValue && { displayName: searchValue }),
-        ...(selectedTypes.length > 0 && { types: selectedTypes }),
+  const { data: projectsPage, isLoading: projectsLoading } = createQuery(
+    () => ({
+      queryKey: ['mcp-authorize-projects', searchValue, selectedTypes],
+      queryFn: () =>
+        api.get<SeekPage<ProjectWithLimits>>('/v1/projects', {
+          limit: 1000,
+          ...(searchValue && { displayName: searchValue }),
+          ...(selectedTypes.length > 0 && { types: selectedTypes }),
       }),
-    enabled: isLoggedIn && !!authRequestId && !isPlatformScoped,
-  });
+      enabled: isLoggedIn && !!authRequestId && !isPlatformScoped,
+    }),
+    () => queryClient,
+  );
 
-  const approveMutation = useMutation({
-    mutationFn: (body: { authRequestId: string; projectId?: string }) =>
-      api.post<{ redirectUrl: string }>('/v1/mcp-oauth/approve', body),
-    onSuccess: (data) => {
-      window.location.href = data.redirectUrl;
-      setAuthorized(true);
-    },
-  });
+  const approveMutation = createMutation(
+    () => ({
+      mutationFn: (body: { authRequestId: string; projectId?: string }) =>
+        api.post<{ redirectUrl: string }>('/v1/mcp-oauth/approve', body),
+      onSuccess: (data) => {
+        window.location.href = data.redirectUrl;
+        setAuthorized(true);
+      },
+    }),
+    () => queryClient,
+  );
 
-  const { projectsMap, options } = useMemo(() => {
+  const { projectsMap, options } = createMemo(() => {
     const list = projectsPage?.data ?? [];
     return {
       projectsMap: new Map(list.map((p) => [p.id, p])),
       options: list.map((p) => ({ value: p.id, label: p.displayName })),
     };
-  }, [projectsPage?.data]);
+  });
 
   if (!authRequestId) {
-    return <Navigate to="/404" replace />;
+    window.location.replace('/404');
+    return null;
   }
 
   if (!isLoggedIn) {
     const returnUrl = `/mcp-authorize?${searchParams.toString()}`;
     const loginParams = new URLSearchParams({ from: returnUrl });
-    return <Navigate to={`/sign-in?${loginParams.toString()}`} replace />;
+    window.location.replace(`/sign-in?${loginParams.toString()}`);
+    return null;
   }
 
   const handleAuthorize = () => {
@@ -90,20 +98,23 @@ function McpAuthorizePage() {
     return (
       <div className="flex h-screen flex-col items-center justify-center px-4">
         <FullLogo />
-        <Card className="mt-4 w-full max-w-md rounded-sm drop-shadow-xl">
-          <CardContent className="flex flex-col items-center gap-5 pt-8 pb-8">
+        <Card class="mt-4 w-full max-w-md rounded-sm drop-shadow-xl">
+          <CardContent class="flex flex-col items-center gap-5 pt-8 pb-8">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success-100">
-              <CheckCircle className="h-7 w-7 text-success" />
+              <CheckCircle class="h-7 w-7 text-success" />
             </div>
             <div className="flex flex-col items-center gap-2 text-center">
-              <CardTitle className="text-2xl">{t('Connected')}</CardTitle>
+              <CardTitle class="text-2xl">{t('Connected')}</CardTitle>
               <CardDescription>
                 <span className="font-medium text-foreground">
                   {clientName}
                 </span>{' '}
-                {isPlatformScoped
-                  ? t('is now connected to your platform.')
-                  : t('is now connected to your project.')}
+                <Show
+                  when={isPlatformScoped}
+                  fallback={t('is now connected to your project.')}
+                >
+                  t('is now connected to your platform.'
+                </Show>
               </CardDescription>
             </div>
             <Separator />
@@ -119,35 +130,33 @@ function McpAuthorizePage() {
   return (
     <div className="flex h-screen flex-col items-center justify-center px-4">
       <FullLogo />
-      <Card className="mt-4 w-full max-w-md rounded-sm drop-shadow-xl">
-        <CardHeader className="text-center">
+      <Card class="mt-4 w-full max-w-md rounded-sm drop-shadow-xl">
+        <CardHeader class="text-center">
           <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Plug className="h-5 w-5 text-primary" />
+            <Plug class="h-5 w-5 text-primary" />
           </div>
-          <CardTitle className="text-2xl">
-            {t('Authorize Application')}
-          </CardTitle>
+          <CardTitle class="text-2xl">{t('Authorize Application')}</CardTitle>
           <CardDescription>
             <span className="font-semibold text-foreground">{clientName}</span>{' '}
             {t('wants to connect to your Activepieces account')}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="flex flex-col gap-5">
+        <CardContent class="flex flex-col gap-5">
           <div className="flex flex-col gap-3">
             <PermissionItem
-              icon={<Workflow className="h-4 w-4 text-primary" />}
+              icon={<Workflow class="h-4 w-4 text-primary" />}
               text={t('Build, test, and manage automations')}
             />
             <PermissionItem
-              icon={<Lock className="h-4 w-4 text-primary" />}
+              icon={<Lock class="h-4 w-4 text-primary" />}
               text={t('Use connections and execute flows')}
             />
           </div>
 
           <Separator />
 
-          {!isPlatformScoped && (
+          <Show when={!isPlatformScoped}>
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">
@@ -155,7 +164,7 @@ function McpAuthorizePage() {
                 </label>
                 <MultiSelectFilter
                   label={t('Type')}
-                  icon={<FolderKanban className="size-4" />}
+                  icon={<FolderKanban class="size-4" />}
                   options={projectTypeOptions}
                   selectedValues={selectedTypes}
                   onChange={setSelectedTypes}
@@ -175,36 +184,39 @@ function McpAuthorizePage() {
                   return (
                     <div className="flex w-full items-center justify-between gap-2">
                       <span className="truncate">{project.displayName}</span>
-                      <Badge variant="outline" className="shrink-0 text-[10px]">
-                        {project.type === ProjectType.PERSONAL
-                          ? t('Personal')
-                          : t('Team')}
+                      <Badge variant="outline" class="shrink-0 text-[10px]">
+                        <Show
+                          when={project.type === ProjectType.PERSONAL}
+                          fallback={t('Team')}
+                        >
+                          t('Personal'
+                        </Show>
                       </Badge>
                     </div>
                   );
                 }}
               />
             </div>
-          )}
+          </Show>
 
-          {approveMutation.isError && (
+          <Show when={approveMutation.isError}>
             <div className="rounded-md border border-destructive/50 bg-destructive-100 p-3 text-sm text-destructive">
               {t('Authorization failed. Please try again.')}
             </div>
-          )}
+          </Show>
 
           <div className="flex gap-3">
             <Button
               type="button"
               variant="outline"
-              className="flex-1"
+              class="flex-1"
               onClick={() => window.history.back()}
             >
               {t('Deny')}
             </Button>
             <Button
               type="button"
-              className="flex-1"
+              class="flex-1"
               loading={approveMutation.isPending}
               disabled={!isPlatformScoped && !selectedProjectId}
               onClick={handleAuthorize}
@@ -218,13 +230,7 @@ function McpAuthorizePage() {
   );
 }
 
-function PermissionItem({
-  icon,
-  text,
-}: {
-  icon: React.ReactNode;
-  text: string;
-}) {
+function PermissionItem({ icon, text }: { icon: JSX.Element; text: string }) {
   return (
     <div className="flex items-center gap-3 rounded-md border bg-accent/50 px-3 py-2.5 text-sm">
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">

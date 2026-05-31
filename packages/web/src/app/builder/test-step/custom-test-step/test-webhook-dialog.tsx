@@ -1,10 +1,10 @@
 import { FlowAction, ApFlagId, FlowTrigger } from '@activepieces/shared';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useState } from 'react';
-import { ControllerRenderProps, useForm } from 'react-hook-form';
+import { Show, createSignal } from 'solid-js';
 import { z } from 'zod';
 
+import { BuilderField, createForm } from '@/app/builder/builder-form';
 import { DictionaryInput } from '@/components/custom/dictionary-input';
 import { JsonEditor } from '@/components/custom/json-editor';
 import { SearchableSelect } from '@/components/custom/searchable-select';
@@ -45,7 +45,7 @@ const BodyFormInput = ({
   field,
 }: {
   bodyType: BodyType;
-  field: ControllerRenderProps<any>;
+  field: BuilderField;
 }) => {
   switch (bodyType) {
     case BodyType.JSON:
@@ -95,12 +95,12 @@ const TestTriggerWebhookDialog = ({
     ApFlagId.WEBHOOK_URL_PREFIX,
   );
   const flowId = useBuilderStateContext((state) => state.flow.id);
-  const [isLoading, setIsLoading] = useState(false);
-  const { mutate: sendRequest } = useMutation<
+  const [isLoading, setIsLoading] = createSignal(false);
+  const { mutate: sendRequest } = createMutation<
     unknown,
     Error,
     z.infer<typeof WebhookRequest>
-  >({
+  >(() => ({
     mutationFn: async (data: z.infer<typeof WebhookRequest>) => {
       setIsLoading(true);
 
@@ -111,7 +111,7 @@ const TestTriggerWebhookDialog = ({
         params: data.queryParams,
       });
     },
-  });
+  }));
 
   return (
     <Dialog
@@ -177,7 +177,7 @@ const TestWebhookFunctionalityForm = (
   req: TestingWebhookFunctionalityFormProps,
 ) => {
   const { showMethodDropdown, onSubmit, isLoading } = req;
-  const form = useForm<z.infer<typeof WebhookRequest>>({
+  const form = createForm<z.infer<typeof WebhookRequest>>({
     defaultValues: {
       bodyType: BodyType.JSON,
       body: {},
@@ -190,7 +190,7 @@ const TestWebhookFunctionalityForm = (
   return (
     <Form {...form}>
       <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-        {showMethodDropdown && (
+        <Show when={showMethodDropdown()}>
           <FormField
             control={form.control}
             name="method"
@@ -214,9 +214,9 @@ const TestWebhookFunctionalityForm = (
               );
             }}
           />
-        )}
+        </Show>
         <Tabs defaultValue="queryParams">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList class="grid w-full grid-cols-3">
             <TabsTrigger value="queryParams">{t('Query Params')}</TabsTrigger>
 
             <TabsTrigger value="headers">{t('Headers')}</TabsTrigger>
@@ -311,7 +311,7 @@ const TestWebhookFunctionalityForm = (
                 name="body"
                 render={({ field }) => {
                   return (
-                    <FormItem className="mt-4">
+                    <FormItem class="mt-4">
                       <FormLabel>{t('Body')}</FormLabel>
                       <BodyFormInput
                         bodyType={form.getValues('bodyType')}

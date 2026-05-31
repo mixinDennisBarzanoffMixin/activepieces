@@ -8,9 +8,9 @@ import {
   UserStatus,
   UserWithMetaInformation,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { toast } from 'sonner';
+import { toast } from 'solid-sonner';
 
 import { platformUserApi } from '@/api/platform-user-api';
 import { userInvitationApi } from '@/features/members/api/user-invitation';
@@ -29,7 +29,7 @@ export const platformUserHooks = {
     const hasInvitePermission = checkAccess(Permission.WRITE_INVITATION);
     const canListUsers =
       !isNil(currentUser) && hasInvitePermission && !isFetchingProjectRole;
-    return useQuery<SeekPage<UserWithMetaInformation>, Error>({
+    return createQuery<SeekPage<UserWithMetaInformation>, Error>({
       queryKey: platformUserKeys.users,
       queryFn: async () => {
         const results = await platformUserApi.list({
@@ -41,7 +41,7 @@ export const platformUserHooks = {
     });
   },
   usePlatformInvitations: () => {
-    return useQuery({
+    return createQuery(() => ({
       queryFn: () => {
         return userInvitationApi
           .list({
@@ -55,13 +55,13 @@ export const platformUserHooks = {
       queryKey: platformUserKeys.invitations,
       staleTime: 0,
       meta: { showErrorDialog: true, loadSubsetOptions: {} },
-    });
+    }));
   },
 };
 
 export const platformUserMutations = {
   useDeleteUser: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationKey: ['delete-user'],
       mutationFn: async (userId: string) => {
         await platformUserApi.delete(userId);
@@ -70,10 +70,10 @@ export const platformUserMutations = {
         onSuccess();
         toast.success(t('User deleted successfully'), { duration: 3000 });
       },
-    });
+    }));
   },
   useDeleteInvitation: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationKey: ['delete-invitation'],
       mutationFn: async (invitationId: string) => {
         await userInvitationApi.delete(invitationId);
@@ -82,10 +82,10 @@ export const platformUserMutations = {
         onSuccess();
         toast.success(t('Invitation deleted successfully'), { duration: 3000 });
       },
-    });
+    }));
   },
   useUpdateUserStatus: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async (data: { userId: string; status: UserStatus }) => {
         await platformUserApi.update(data.userId, { status: data.status });
         return data;
@@ -99,7 +99,7 @@ export const platformUserMutations = {
           { duration: 3000 },
         );
       },
-    });
+    }));
   },
   useUpdateUser: ({
     userId,
@@ -108,7 +108,7 @@ export const platformUserMutations = {
     userId: string;
     onSuccess: (user: User) => void;
   }) => {
-    return useMutation<User, Error, UpdateUserRequestBody>({
+    return createMutation<User, Error, UpdateUserRequestBody>({
       mutationKey: ['update-user'],
       mutationFn: (request) => platformUserApi.update(userId, request),
       onSuccess,

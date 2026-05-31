@@ -2,7 +2,7 @@ import { PopulatedFlow, FlowTriggerType } from '@activepieces/shared';
 import cronstrue from 'cronstrue/i18n';
 import { t } from 'i18next';
 import JSZip from 'jszip';
-import { TimerReset, TriangleAlert, Zap } from 'lucide-react';
+import { TimerReset, TriangleAlert, Zap } from 'lucide-solid';
 
 import { downloadFile } from '@/lib/dom-utils';
 
@@ -58,9 +58,9 @@ export const flowsUtils = {
       case FlowTriggerType.PIECE: {
         const cronExpression = flow.triggerSource?.schedule?.cronExpression;
         if (cronExpression) {
-          return <TimerReset className="h-4 w-4 text-foreground" />;
+          return <TimerReset class="h-4 w-4 text-foreground" />;
         } else {
-          return <Zap className="h-4 w-4 text-foreground fill-foreground" />;
+          return <Zap class="h-4 w-4 text-foreground fill-foreground" />;
         }
       }
       case FlowTriggerType.EMPTY: {
@@ -69,7 +69,7 @@ export const flowsUtils = {
             name: flow.version.displayName,
           }),
         );
-        return <TriangleAlert className="h-4 w-4 text-destructive" />;
+        return <TriangleAlert class="h-4 w-4 text-destructive" />;
       }
     }
   },

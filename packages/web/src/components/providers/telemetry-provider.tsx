@@ -6,22 +6,21 @@ import {
 } from '@activepieces/shared';
 import { AnalyticsBrowser } from '@segment/analytics-next';
 import posthog from 'posthog-js';
-import React, { useEffect, useState, useRef } from 'react';
-import { useDeepCompareEffect } from 'react-use';
+import { createEffect, createContext, useContext, JSX, createSignal } from 'solid-js';
 
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { userHooks } from '@/hooks/user-hooks';
 
 interface TelemetryProviderProps {
-  children: React.ReactNode;
+  children: JSX.Element;
 }
 
 const TelemetryProvider = ({ children }: TelemetryProviderProps) => {
   const { data: currentUser } = userHooks.useCurrentUser();
-  const [analytics, setAnalytics] = useState<AnalyticsBrowser | null>(null);
-  const initializedUserEmail = useRef<string | null>(null);
+  const [analytics, setAnalytics] = createSignal<AnalyticsBrowser | null>(null);
+  let initializedUserEmail: string | null = null;
 
-  const [user, setUser] = useState<UserWithMetaInformation | null>(
+  const [user, setUser] = createSignal<UserWithMetaInformation | null>(
     currentUser ?? null,
   );
   const { data: telemetryEnabled } = flagsHooks.useFlag<boolean>(
@@ -34,7 +33,7 @@ const TelemetryProvider = ({ children }: TelemetryProviderProps) => {
     ApFlagId.ENVIRONMENT,
   );
 
-  useEffect(() => {
+  createEffect(() => {
     const handleStorageChange = (_event: StorageEvent) => {
       setUser(currentUser ?? null);
     };
@@ -46,18 +45,19 @@ const TelemetryProvider = ({ children }: TelemetryProviderProps) => {
     };
   }, []);
 
-  useDeepCompareEffect(() => {
-    if (isNil(user)) {
+  createEffect(() => {
+    if (isNil(user())) {
       return;
     }
 
-    if (telemetryEnabled && user?.email !== initializedUserEmail.current) {
+    if (telemetryEnabled && user()?.email !== initializedUserEmail) {
       initTelemetry();
     }
-  }, [telemetryEnabled, user]);
+  });
 
   const initTelemetry = () => {
-    if (isNil(user)) {
+    const current = user();
+    if (isNil(current)) {
       return;
     }
     console.log('Telemetry enabled');
@@ -77,10 +77,10 @@ const TelemetryProvider = ({ children }: TelemetryProviderProps) => {
     const currentVersion = flagCurrentVersion || '0.0.0';
     const environment = flagEnvironment || '0.0.0';
 
-    newAnalytics.identify(user.id, {
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
+    newAnalytics.identify(current.id, {
+      email: current.email,
+      firstName: current.firstName,
+      lastName: current.lastName,
       activepiecesVersion: currentVersion,
       activepiecesEnvironment: environment,
       ui: 'react',
@@ -94,30 +94,30 @@ const TelemetryProvider = ({ children }: TelemetryProviderProps) => {
         loaded: () => newAnalytics.page(),
       });
 
-      posthog.identify(user.id, {
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+      posthog.identify(current.id, {
+        email: current.email,
+        firstName: current.firstName,
+        lastName: current.lastName,
         activepiecesVersion: currentVersion,
         activepiecesEnvironment: environment,
       });
     });
     setAnalytics(newAnalytics);
-    initializedUserEmail.current = user.email;
+    initializedUserEmail = current.email;
   };
 
   const reset = () => {
-    if (analytics) {
-      analytics.reset();
+    if (analytics()) {
+      analytics()?.reset();
     }
     posthog.reset();
     console.log('Telemetry removed');
-    initializedUserEmail.current = null;
+    initializedUserEmail = null;
   };
 
   const capture = (event: TelemetryEvent) => {
-    if (telemetryEnabled && analytics) {
-      analytics.track(event.name, event.payload);
+    if (telemetryEnabled && analytics()) {
+      analytics()?.track(event.name, event.payload);
     }
   };
 
@@ -133,11 +133,11 @@ interface TelemetryContextType {
   reset: () => void;
 }
 
-const TelemetryContext = React.createContext<TelemetryContextType>({
+const TelemetryContext = createContext<TelemetryContextType>({
   capture: () => {},
   reset: () => {},
 });
 
-export const useTelemetry = () => React.useContext(TelemetryContext);
+export const useTelemetry = () => useContext(TelemetryContext);
 
 export default TelemetryProvider;

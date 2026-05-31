@@ -1,5 +1,5 @@
 import { Permission, VariableWithoutSensitiveData } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   Link2,
@@ -8,9 +8,9 @@ import {
   Search,
   Trash2,
   Variable,
-} from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { toast } from 'sonner';
+} from 'lucide-solid';
+import { createMemo, createSignal, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { VariableDialog } from '@/app/variables/variable-dialog';
 import {
@@ -54,17 +54,17 @@ function VariablesPage() {
   const { checkAccess } = useAuthorization();
   const canWrite = checkAccess(Permission.WRITE_VARIABLE);
 
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editing, setEditing] = useState<
+  const [createOpen, setCreateOpen] = createSignal(false);
+  const [editing, setEditing] = createSignal<
     VariableWithoutSensitiveData | undefined
   >(undefined);
-  const [deleting, setDeleting] = useState<
+  const [deleting, setDeleting] = createSignal<
     VariableWithoutSensitiveData | undefined
   >(undefined);
-  const [selectedRows, setSelectedRows] = useState<
+  const [selectedRows, setSelectedRows] = createSignal<
     VariableWithoutSensitiveData[]
   >([]);
-  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
+  const [showBulkDeleteDialog, setShowBulkDeleteDialog] = createSignal(false);
 
   const { cursor, limit, name, ownerEmails } =
     variablesQueries.useListSearchParams();
@@ -95,7 +95,7 @@ function VariablesPage() {
 
   const { data: owners } = variablesQueries.useVariableOwners(projectId);
 
-  const filteredData = useMemo(() => {
+  const filteredData = createMemo(() => {
     if (!variables?.data) return undefined;
     if (ownerEmails.length === 0) return variables;
     return {
@@ -105,7 +105,7 @@ function VariablesPage() {
       next: variables.next,
       previous: variables.previous,
     };
-  }, [variables, ownerEmails]);
+  });
 
   const filters: DataTableFilters<keyof VariableWithoutSensitiveData>[] =
     ownerColumnHooks.useOwnerColumnFilter<VariableWithoutSensitiveData>(
@@ -139,7 +139,7 @@ function VariablesPage() {
         cell: ({ row }) => (
           <div className="flex items-center gap-2 min-w-0">
             <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-primary/10 text-primary">
-              <Variable className="w-4 h-4" />
+              <Variable class="w-4 h-4" />
             </div>
             <span className="font-mono text-sm truncate">
               {row.original.name}
@@ -170,10 +170,10 @@ function VariablesPage() {
                   aria-label={t('Open menu')}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <MoreVertical className="h-4 w-4" />
+                  <MoreVertical class="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" class="w-48">
                 <DropdownMenuItem
                   disabled={!canWrite}
                   onSelect={(e) => {
@@ -181,7 +181,7 @@ function VariablesPage() {
                     setEditing(row.original);
                   }}
                 >
-                  <Pencil className="h-4 w-4 mr-2" />
+                  <Pencil class="h-4 w-4 mr-2" />
                   {t('Edit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -190,19 +190,19 @@ function VariablesPage() {
                     void copyReferenceToClipboard(row.original.name);
                   }}
                 >
-                  <Link2 className="h-4 w-4 mr-2" />
+                  <Link2 class="h-4 w-4 mr-2" />
                   {t('Copy reference')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   disabled={!canWrite}
-                  className="text-destructive focus:text-destructive"
+                  class="text-destructive focus:text-destructive"
                   onSelect={(e) => {
                     e.preventDefault();
                     setDeleting(row.original);
                   }}
                 >
-                  <Trash2 className="h-4 w-4 mr-2" />
+                  <Trash2 class="h-4 w-4 mr-2" />
                   {t('Delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -214,12 +214,12 @@ function VariablesPage() {
     2,
   );
 
-  const bulkActions: BulkAction<VariableWithoutSensitiveData>[] = useMemo(
+  const bulkActions: BulkAction<VariableWithoutSensitiveData>[] = createMemo(
     () => [
       {
         render: (_rows, resetSelection) => (
           <>
-            {selectedRows.length > 0 && (
+            <Show when={selectedRows.length > 0}>
               <ConfirmationDeleteDialog
                 title={t('Delete variables')}
                 message={t(
@@ -240,20 +240,19 @@ function VariablesPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-destructive hover:text-destructive"
+                  class="text-destructive hover:text-destructive"
                   disabled={!canWrite}
                   onClick={() => setShowBulkDeleteDialog(true)}
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
+                  <Trash2 class="h-4 w-4 mr-1" />
                   {t('Delete')} ({selectedRows.length})
                 </Button>
               </ConfirmationDeleteDialog>
-            )}
+            </Show>
           </>
         ),
       },
     ],
-    [selectedRows, showBulkDeleteDialog, canWrite, deleteVariable],
   );
 
   const toolbarButtons = [
@@ -263,7 +262,7 @@ function VariablesPage() {
         size="sm"
         onClick={() => setCreateOpen(true)}
       >
-        <PlusIcon size={16} className="mr-1" />
+        <PlusIcon size={16} class="mr-1" />
         {t('New variable')}
       </Button>
     </PermissionNeededTooltip>,
@@ -276,7 +275,7 @@ function VariablesPage() {
         emptyStateTextDescription={t(
           'Create one to reference a value from any step input.',
         )}
-        emptyStateIcon={<Variable className="size-14" />}
+        emptyStateIcon={<Variable class="size-14" />}
         columns={columns}
         page={filteredData}
         isLoading={isLoading}

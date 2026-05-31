@@ -1,7 +1,7 @@
 import { flowStructureUtil, isNil } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Database, SearchXIcon, Variable } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Database, SearchXIcon, Variable } from 'lucide-solid';
+import { For, Show, createEffect, createMemo, createSignal } from 'solid-js';
 
 import { textMentionUtils } from '@/app/builder/piece-properties/text-input-with-mentions/text-input-utils';
 import { SearchInput } from '@/components/custom/search-input';
@@ -73,32 +73,30 @@ const doesElementHaveAnInputThatUsesMentions = (
 };
 
 const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  let containerRef: HTMLDivElement | undefined;
   const [DataSelectorSize, setDataSelectorSize] =
-    useState<DataSelectorSizeState>(DataSelectorSizeState.DOCKED);
-  const [searchTerm, setSearchTerm] = useState('');
+    createSignal<DataSelectorSizeState>(DataSelectorSizeState.DOCKED);
+  const [searchTerm, setSearchTerm] = createSignal('');
   const dataSelectorStructure = useBuilderStateContext(
     buildDataSelectorStructure,
   );
-  const filteredNodes = useMemo(
-    () => dataSelectorUtils.filterBy(dataSelectorStructure, searchTerm),
-    [dataSelectorStructure, searchTerm],
+  const filteredNodes = createMemo(() =>
+    dataSelectorUtils.filterBy(dataSelectorStructure, searchTerm),
   );
-  const [showDataSelector, setShowDataSelector] = useState(false);
+  const [showDataSelector, setShowDataSelector] = createSignal(false);
   const isTriggerSelected = useBuilderStateContext(
     (state) => state.selectedStep === 'trigger',
   );
   const defaultTab = isTriggerSelected ? 'variables' : 'data';
 
-  const checkFocus = useCallback(() => {
+  const checkFocus = () => {
     const isTextMentionInputFocused =
-      (!isNil(containerRef.current) &&
-        containerRef.current.contains(document.activeElement)) ||
+      (!isNil(containerRef) && containerRef.contains(document.activeElement)) ||
       doesElementHaveAnInputThatUsesMentions(document.activeElement);
     setShowDataSelector(isTextMentionInputFocused);
-  }, []);
+  };
 
-  useEffect(() => {
+  createEffect(() => {
     document.addEventListener('focusin', checkFocus);
     document.addEventListener('focusout', checkFocus);
 
@@ -106,11 +104,11 @@ const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
       document.removeEventListener('focusin', checkFocus);
       document.removeEventListener('focusout', checkFocus);
     };
-  }, [checkFocus]);
+  });
 
   return (
     <div
-      ref={containerRef}
+      ref={(el) => (containerRef = el)}
       tabIndex={0}
       className={cn(
         'absolute bottom-0 mr-5 mb-5 right-0 z-50 transition-all  border border-solid border-outline overflow-x-hidden bg-background shadow-lg rounded-md',
@@ -145,33 +143,33 @@ const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
         <Tabs
           key={defaultTab}
           defaultValue={defaultTab}
-          className="h-full flex flex-col gap-0"
+          class="h-full flex flex-col gap-0"
         >
           <TabsList
             variant="outline"
-            className="px-3 shrink-0 gap-1 border-b border-border w-full justify-start"
+            class="px-3 shrink-0 gap-1 border-b border-border w-full justify-start"
           >
             <TabsTrigger
               value="data"
               variant="outline"
-              className="gap-2 px-3 py-2 hover:text-foreground rounded-none"
+              class="gap-2 px-3 py-2 hover:text-foreground rounded-none"
             >
-              <Database className="w-4 h-4" />
+              <Database class="w-4 h-4" />
               {t('Data')}
             </TabsTrigger>
             <TabsTrigger
               value="variables"
               variant="outline"
-              className="gap-2 px-3 py-2 hover:text-foreground rounded-none"
+              class="gap-2 px-3 py-2 hover:text-foreground rounded-none"
             >
-              <Variable className="w-4 h-4" />
+              <Variable class="w-4 h-4" />
               {t('Variables')}
             </TabsTrigger>
           </TabsList>
 
           <TabsContent
             value="data"
-            className="flex-1 min-h-0 flex flex-col gap-2 mt-2"
+            class="flex-1 min-h-0 flex flex-col gap-2 mt-2"
           >
             <div className="flex items-center gap-2 px-5">
               <SearchInput
@@ -179,19 +177,22 @@ const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
                 value={searchTerm}
               ></SearchInput>
             </div>
-            <ScrollArea className="transition-all flex-1 w-full ">
-              {filteredNodes &&
-                filteredNodes.map((node) => (
-                  <DataSelectorNode
-                    depth={0}
-                    key={node.key}
-                    node={node}
-                    searchTerm={searchTerm}
-                  ></DataSelectorNode>
-                ))}
-              {filteredNodes.length === 0 && (
+            <ScrollArea class="transition-all flex-1 w-full ">
+              <Show when={filteredNodes()}>
+                <For each={filteredNodes}>
+                  {(node) => (
+                    <DataSelectorNode
+                      depth={0}
+                      key={node.key}
+                      node={node}
+                      searchTerm={searchTerm}
+                    ></DataSelectorNode>
+                  )}
+                </For>
+              </Show>
+              <Show when={filteredNodes.length === 0()}>
                 <div className="flex items-center justify-center gap-2 mt-5  flex-col">
-                  <SearchXIcon className="w-[35px] h-[35px]"></SearchXIcon>
+                  <SearchXIcon class="w-[35px] h-[35px]"></SearchXIcon>
                   <div className="text-center font-semibold text-md">
                     {t('No matching data')}
                   </div>
@@ -199,11 +200,11 @@ const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
                     {t('Try adjusting your search')}
                   </div>
                 </div>
-              )}
+              </Show>
             </ScrollArea>
           </TabsContent>
 
-          <TabsContent value="variables" className="flex-1 min-h-0 mt-2">
+          <TabsContent value="variables" class="flex-1 min-h-0 mt-2">
             <VariablesTab />
           </TabsContent>
         </Tabs>

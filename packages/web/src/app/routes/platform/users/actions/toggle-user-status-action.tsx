@@ -1,6 +1,7 @@
 import { PlatformRole, UserStatus } from '@activepieces/shared';
 import { t } from 'i18next';
-import { CircleMinus, RotateCcw } from 'lucide-react';
+import { CircleMinus, RotateCcw } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -36,17 +37,15 @@ export const ToggleUserStatusAction = ({
           <Button
             disabled={isUpdatingStatus || isAdmin}
             variant="ghost"
-            className="size-8 p-0"
+            class="size-8 p-0"
             loading={isUpdatingStatus}
             onClick={() => {
               onToggleStatus(row.data.id, row.data.status);
             }}
           >
-            {isActive ? (
-              <CircleMinus className="size-4" />
-            ) : (
-              <RotateCcw className="size-4" />
-            )}
+            <Show when={isActive} fallback={<RotateCcw class="size-4" />}>
+              <CircleMinus class="size-4" />
+            </Show>
           </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">

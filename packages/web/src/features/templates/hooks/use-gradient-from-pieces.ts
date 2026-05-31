@@ -4,8 +4,8 @@ import {
   flowStructureUtil,
   PieceCategory,
 } from '@activepieces/shared';
-import { useQueries } from '@tanstack/react-query';
-import { useMemo } from 'react';
+import { useQueries } from '@tanstack/solid-query';
+import { createMemo } from 'solid-js';
 
 import { piecesHooks } from '@/features/pieces/hooks/pieces-hooks';
 import { StepMetadata } from '@/features/pieces/types';
@@ -139,12 +139,12 @@ export const useGradientFromPieces = (
   trigger: FlowTrigger | undefined,
   excludeCore = false,
 ) => {
-  const steps = useMemo(
+  const steps = createMemo(
     () => (trigger ? flowStructureUtil.getAllSteps(trigger) : []),
     [trigger],
   );
 
-  const { pieceNames, coreMetadata } = useMemo(
+  const { pieceNames, coreMetadata } = createMemo(
     () => extractPieceNamesAndCoreMetadata(steps, excludeCore),
     [steps, excludeCore],
   );
@@ -153,7 +153,7 @@ export const useGradientFromPieces = (
     names: pieceNames,
   });
 
-  const uniqueMetadata: StepMetadata[] = useMemo(() => {
+  const uniqueMetadata: StepMetadata[] = createMemo(() => {
     const pieceMetadata: StepMetadata[] = summaries
       .filter(
         (piece) =>
@@ -181,7 +181,7 @@ export const useGradientFromPieces = (
     );
   }, [summaries, coreMetadata, excludeCore]);
 
-  const logosToProcess = useMemo(
+  const logosToProcess = createMemo(
     () =>
       uniqueMetadata
         .slice(0, 4)
@@ -200,7 +200,7 @@ export const useGradientFromPieces = (
     })),
   });
 
-  const gradient = useMemo(() => {
+  const gradient = createMemo(() => {
     if (logosToProcess.length === 0) {
       return '';
     }

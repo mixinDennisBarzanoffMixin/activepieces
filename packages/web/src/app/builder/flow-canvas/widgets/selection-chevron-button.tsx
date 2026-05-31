@@ -1,6 +1,6 @@
-import { ChevronDown } from 'lucide-react';
-import { useEffect } from 'react';
-import { createRoot } from 'react-dom/client';
+import { ChevronDown } from 'lucide-solid';
+import { createEffect } from 'solid-js';
+import { render } from 'solid-js/web';
 
 import { Button } from '@/components/ui/button';
 
@@ -9,12 +9,11 @@ import { flowCanvasConsts } from '../utils/consts';
 const showChevronNextToSelection = (targetDiv: HTMLElement) => {
   const container = document.createElement('div');
   targetDiv.appendChild(container);
-  const root = createRoot(container);
-  root.render(
+  const dispose = render(() => (
     <Button
       variant="outline"
       size="icon"
-      className="absolute top-[10px] -left-10 z-50"
+      class="absolute top-[10px] -left-10 z-50"
       {...{
         [`data-${flowCanvasConsts.SELECTION_RECT_CHEVRON_ATTRIBUTE}`]: true,
       }}
@@ -30,15 +29,15 @@ const showChevronNextToSelection = (targetDiv: HTMLElement) => {
         e.target.dispatchEvent(rightClickEvent);
       }}
     >
-      <ChevronDown className="w-4 h-4" />
-    </Button>,
-  );
-  return root;
+      <ChevronDown class="w-4 h-4" />
+    </Button>
+  ), container);
+  return dispose;
 };
 
 export const useShowChevronNextToSelection = () => {
-  useEffect(() => {
-    let root: ReturnType<typeof createRoot> | null = null;
+  createEffect(() => {
+    let dispose: VoidFunction | null = null;
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         mutation.addedNodes.forEach((node) => {
@@ -49,7 +48,7 @@ export const useShowChevronNextToSelection = () => {
               flowCanvasConsts.NODE_SELECTION_RECT_CLASS_NAME,
             )
           ) {
-            root = showChevronNextToSelection(node.children[0] as HTMLElement);
+            dispose = showChevronNextToSelection(node.children[0] as HTMLElement);
           }
         });
         // Handle removed nodes
@@ -61,9 +60,9 @@ export const useShowChevronNextToSelection = () => {
               flowCanvasConsts.NODE_SELECTION_RECT_CLASS_NAME,
             )
           ) {
-            if (root) {
-              root.unmount();
-              root = null;
+            if (dispose) {
+              dispose();
+              dispose = null;
             }
           }
         });
@@ -79,9 +78,9 @@ export const useShowChevronNextToSelection = () => {
     return () => {
       observer.disconnect();
       // Unmount all roots on cleanup
-      if (root) {
-        root.unmount();
+      if (dispose) {
+        dispose();
       }
     };
-  }, []);
+  });
 };

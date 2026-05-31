@@ -1,6 +1,8 @@
 'use client';
 
 import { apId, isNil, SeekPage } from '@activepieces/shared';
+import { useSearchParams } from '@solidjs/router';
+import { createVirtualizer } from '@tanstack/solid-virtual';
 import {
   ColumnDef as TanstackColumnDef,
   flexRender,
@@ -8,14 +10,11 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   SortingState,
-  useReactTable,
-} from '@tanstack/react-table';
-import { useVirtualizer } from '@tanstack/react-virtual';
+  createSolidTable,
+} from '@tanstack/solid-table';
 import { t } from 'i18next';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import React, { useRef, useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useDeepCompareEffect } from 'react-use';
+import { ChevronLeft, ChevronRight } from 'lucide-solid';
+import { For, Show, createSignal, createEffect, createMemo } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -55,7 +54,7 @@ export const LIMIT_QUERY_PARAM = 'limit';
 
 type DataTableAction<TData extends DataWithId> = (
   row: RowDataWithActions<TData>,
-) => React.ReactNode;
+) => any;
 
 type ColumnDef<TData, TValue> = TanstackColumnDef<TData, TValue> & {
   notClickable?: boolean;
@@ -71,19 +70,19 @@ interface DataTableProps<
   onRowClick?: (
     row: RowDataWithActions<TData>,
     newWindow: boolean,
-    e: React.MouseEvent<HTMLTableRowElement, MouseEvent>,
+    e: MouseEvent,
   ) => void;
   isLoading: boolean;
   filters?: DataTableFilters<Keys>[];
-  customFilters?: React.ReactNode[];
+  customFilters?: any[];
   onSelectedRowsChange?: (rows: RowDataWithActions<TData>[]) => void;
   actions?: DataTableAction<TData>[];
   hidePagination?: boolean;
   bulkActions?: BulkAction<TData>[];
-  toolbarButtons?: React.ReactNode[];
+  toolbarButtons?: any[];
   emptyStateTextTitle: string;
   emptyStateTextDescription: string;
-  emptyStateIcon: React.ReactNode;
+  emptyStateIcon: any;
   selectColumn?: boolean;
   initialSorting?: SortingState;
   clientPagination?: boolean;
@@ -99,7 +98,7 @@ export type BulkAction<TData extends DataWithId> = {
   render: (
     selectedRows: RowDataWithActions<TData>[],
     resetSelection: () => void,
-  ) => React.ReactNode;
+  ) => any;
 };
 
 export function DataTable<
@@ -170,13 +169,9 @@ export function DataTable<
             cell: ({ row }) => {
               return (
                 <div className="flex justify-end gap-4">
-                  {actions.map((action, index) => {
-                    return (
-                      <React.Fragment key={index}>
-                        {action(row.original)}
-                      </React.Fragment>
-                    );
-                  })}
+                  <For each={actions}>
+                    {(action, index) => <>{action(row.original)}</>}
+                  </For>
                 </div>
               );
             },
@@ -192,15 +187,15 @@ export function DataTable<
   }, {} as Record<string, boolean>);
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const startingCursor = searchParams.get('cursor') || undefined;
-  const startingLimit = searchParams.get('limit') || '10';
-  const [currentCursor, setCurrentCursor] = useState<string | undefined>(
+  const startingCursor = searchParams.cursor || undefined;
+  const startingLimit = searchParams.limit || '10';
+  const [currentCursor, setCurrentCursor] = createSignal<string | undefined>(
     startingCursor,
   );
-  const [nextPageCursor, setNextPageCursor] = useState<string | undefined>(
+  const [nextPageCursor, setNextPageCursor] = createSignal<string | undefined>(
     page?.next ?? undefined,
   );
-  const [previousPageCursor, setPreviousPageCursor] = useState<
+  const [previousPageCursor, setPreviousPageCursor] = createSignal<
     string | undefined
   >(page?.previous ?? undefined);
 
@@ -220,19 +215,19 @@ export function DataTable<
     }));
   };
 
-  const [deletedRows, setDeletedRows] = useState<TData[]>([]);
-  const [tableData, setTableData] = useState<RowDataWithActions<TData>[]>(
+  const [deletedRows, setDeletedRows] = createSignal<TData[]>([]);
+  const [tableData, setTableData] = createSignal<RowDataWithActions<TData>[]>(
     enrichPageData(page?.data ?? []),
   );
 
-  useDeepCompareEffect(() => {
+  createEffect(() => {
     setNextPageCursor(page?.next ?? undefined);
     setPreviousPageCursor(page?.previous ?? undefined);
     setTableData(enrichPageData(page?.data ?? []));
-  }, [page?.data]);
+  });
 
-  const table = useReactTable({
-    data: tableData,
+  const table = createSolidTable({
+    data: tableData(),
     columns,
     manualPagination: virtualizeRows ? false : !clientPagination,
     getCoreRowModel: getCoreRowModel(),
@@ -244,7 +239,7 @@ export function DataTable<
     initialState: {
       pagination: {
         pageSize: virtualizeRows
-          ? tableData.length || 1000
+          ? tableData().length || 1000
           : parseInt(startingLimit),
       },
       columnVisibility,
@@ -252,65 +247,55 @@ export function DataTable<
     },
   });
 
-  useEffect(() => {
+  createEffect(() => {
     filters?.forEach((filter) => {
       const column = table.getColumn(filter.accessorKey);
-      const values = searchParams.getAll(filter.accessorKey);
+      const values = searchParams[filter.accessorKey];
       if (column && values) {
         column.setFilterValue(values);
       }
     });
-  }, []);
+  });
 
   const rowSelection = table.getState().rowSelection;
-  const selectedRowOriginals = React.useMemo(
-    () => table.getSelectedRowModel().rows.map((row) => row.original),
-    [rowSelection],
+  const selectedRowOriginals = createMemo(() =>
+    table.getSelectedRowModel().rows.map((row) => row.original),
   );
-  useEffect(() => {
-    onSelectedRowsChange?.(selectedRowOriginals);
-  }, [selectedRowOriginals]);
+  createEffect(() => {
+    onSelectedRowsChange?.(selectedRowOriginals());
+  });
 
-  useEffect(() => {
+  createEffect(() => {
     if (hidePagination) {
       return;
     }
     setSearchParams(
-      (prev) => {
-        const newParams = new URLSearchParams(prev);
-
-        if (!isNil(currentCursor) && currentCursor !== '') {
-          newParams.set('cursor', currentCursor);
-        } else {
-          newParams.delete('cursor');
-        }
-        const pageSize = table.getState().pagination.pageSize;
-        if (pageSize) {
-          newParams.set('limit', `${pageSize}`);
-        }
-        return newParams;
+      {
+        ...searchParams,
+        cursor: currentCursor() || undefined,
+        limit: `${table.getState().pagination.pageSize}`,
       },
       { replace: true },
     );
-  }, [currentCursor, table.getState().pagination.pageSize, hidePagination]);
+  });
 
-  useEffect(() => {
+  createEffect(() => {
     setTableData(
-      tableData.filter(
-        (row) => !deletedRows.some((deletedRow) => deletedRow.id === row.id),
+      tableData().filter(
+        (row) => !deletedRows().some((deletedRow) => deletedRow.id === row.id),
       ),
     );
-  }, [deletedRows]);
+  });
 
   const resetSelection = () => {
     table.toggleAllRowsSelected(false);
   };
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  let scrollContainerRef: HTMLDivElement | undefined;
   const rows = table.getRowModel().rows;
-  const virtualizer = useVirtualizer({
+  const virtualizer = createVirtualizer({
     count: rows.length,
-    getScrollElement: () => scrollContainerRef.current,
+    getScrollElement: () => scrollContainerRef,
     estimateSize: () => 53,
     overscan: 15,
     enabled: virtualizeRows,
@@ -322,296 +307,328 @@ export function DataTable<
         virtualizeRows ? 'flex flex-col flex-1 min-h-0' : undefined,
       )}
     >
-      {((filters && filters.length > 0) ||
-        (customFilters && customFilters.length > 0) ||
-        (toolbarButtons && toolbarButtons.length > 0)) && (
+      <Show
+        when={
+          (filters && filters.length > 0) ||
+          (customFilters && customFilters.length > 0) ||
+          (toolbarButtons && toolbarButtons.length > 0)
+        }
+      >
         <DataTableToolbar>
           <div className="w-full flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              {filters &&
-                filters.map((filter) => (
-                  <DataTableFilter
-                    key={filter.accessorKey}
-                    column={table.getColumn(filter.accessorKey)}
-                    {...filter}
-                  />
-                ))}
-              {customFilters &&
-                customFilters.map((filter, idx) => (
-                  <React.Fragment key={idx}>{filter}</React.Fragment>
-                ))}
+              <Show when={filters && filters.length > 0}>
+                <For each={filters}>
+                  {(filter) => (
+                    <DataTableFilter
+                      column={table.getColumn(filter.accessorKey)}
+                      {...filter}
+                    />
+                  )}
+                </For>
+              </Show>
+              <Show when={customFilters && customFilters.length > 0}>
+                <For each={customFilters}>{(filter) => <>{filter}</>}</For>
+              </Show>
             </div>
-            {toolbarButtons && toolbarButtons.length > 0 && (
+            <Show when={toolbarButtons && toolbarButtons.length > 0}>
               <div className="flex items-center gap-2">
-                {toolbarButtons.map((button, idx) => (
-                  <React.Fragment key={idx}>{button}</React.Fragment>
-                ))}
+                <For each={toolbarButtons}>{(button) => <>{button}</>}</For>
               </div>
-            )}
+            </Show>
           </div>
         </DataTableToolbar>
-      )}
+      </Show>
 
       <div
-        ref={scrollContainerRef}
+        ref={(el) => (scrollContainerRef = el)}
         className={cn('mt-0', {
           'overflow-hidden': !virtualizeRows,
           'flex-1 min-h-0 overflow-auto': virtualizeRows,
         })}
       >
-        <Table className="table-fixed">
+        <Table class="table-fixed">
           <TableHeader
-            className={cn(virtualizeRows ? 'sticky top-0 z-10' : undefined)}
+            class={cn(virtualizeRows ? 'sticky top-0 z-10' : undefined)}
           >
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                {headerGroup.headers.map((header) => {
-                  const size = header.column.columnDef.size;
-                  return (
-                    <TableHead
-                      key={header.id}
-                      style={
-                        size
-                          ? { width: size, minWidth: size, maxWidth: size }
-                          : undefined
-                      }
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow className="hover:bg-background">
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  <DataTableSkeleton />
-                </TableCell>
-              </TableRow>
-            ) : rows.length ? (
-              virtualizeRows ? (
-                <>
-                  {virtualizer.getVirtualItems().length > 0 && (
-                    <tr>
-                      <td
-                        colSpan={columns.length}
-                        style={{
-                          height: virtualizer.getVirtualItems()[0].start,
-                        }}
-                      />
-                    </tr>
-                  )}
-                  {virtualizer.getVirtualItems().map((virtualRow) => {
-                    const row = rows[virtualRow.index];
-                    const rowIndex = virtualRow.index;
-                    return (
-                      <TableRow
-                        key={row.id}
-                        data-index={virtualRow.index}
-                        className={cn(
-                          'cursor-pointer',
-                          {
-                            'hover:bg-background cursor-default':
-                              isNil(onRowClick),
-                          },
-                          getRowClassName?.(row.original, rowIndex),
-                        )}
-                        onClick={(e) => {
-                          const clickedCellIndex = (
-                            e.target as HTMLElement
-                          ).closest('td')?.cellIndex;
-                          if (
-                            clickedCellIndex !== undefined &&
-                            columns[clickedCellIndex]?.notClickable
-                          ) {
-                            return;
-                          }
-                          onRowClick?.(row.original, e.ctrlKey, e);
-                        }}
-                        onAuxClick={(e) => {
-                          const clickedCellIndex = (
-                            e.target as HTMLElement
-                          ).closest('td')?.cellIndex;
-                          if (
-                            clickedCellIndex !== undefined &&
-                            columns[clickedCellIndex]?.notClickable
-                          ) {
-                            return;
-                          }
-                          onRowClick?.(row.original, true, e);
-                        }}
-                        data-state={row.getIsSelected() && 'selected'}
-                      >
-                        {row.getVisibleCells().map((cell) => {
-                          const size = cell.column.columnDef.size;
-                          return (
-                            <TableCell
-                              key={cell.id}
-                              style={
-                                size
-                                  ? {
-                                      width: size,
-                                      minWidth: size,
-                                      maxWidth: size,
-                                    }
-                                  : undefined
-                              }
-                            >
-                              <div
-                                className={cn('flex w-full items-center', {
-                                  'justify-end': cell.column.id === 'actions',
-                                  'justify-start': cell.column.id !== 'actions',
-                                })}
-                              >
-                                <div
-                                  className="w-full"
-                                  onClick={(e) => {
-                                    if (cell.column.id === 'select') {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      return;
-                                    }
-                                  }}
-                                >
-                                  {flexRender(
-                                    cell.column.columnDef.cell,
-                                    cell.getContext(),
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    );
-                  })}
-                  {virtualizer.getVirtualItems().length > 0 && (
-                    <tr>
-                      <td
-                        colSpan={columns.length}
-                        style={{
-                          height:
-                            virtualizer.getTotalSize() -
-                            (virtualizer.getVirtualItems().at(-1)?.end ?? 0),
-                        }}
-                      />
-                    </tr>
-                  )}
-                </>
-              ) : (
-                rows.map((row, rowIndex) => (
-                  <TableRow
-                    className={cn(
-                      'cursor-pointer',
-                      {
-                        'hover:bg-background cursor-default': isNil(onRowClick),
-                      },
-                      getRowClassName?.(row.original, rowIndex),
-                    )}
-                    onClick={(e) => {
-                      const clickedCellIndex = (
-                        e.target as HTMLElement
-                      ).closest('td')?.cellIndex;
-                      if (
-                        clickedCellIndex !== undefined &&
-                        columns[clickedCellIndex]?.notClickable
-                      ) {
-                        return;
-                      }
-                      onRowClick?.(row.original, e.ctrlKey, e);
-                    }}
-                    onAuxClick={(e) => {
-                      const clickedCellIndex = (
-                        e.target as HTMLElement
-                      ).closest('td')?.cellIndex;
-                      if (
-                        clickedCellIndex !== undefined &&
-                        columns[clickedCellIndex]?.notClickable
-                      ) {
-                        return;
-                      }
-                      onRowClick?.(row.original, true, e);
-                    }}
-                    key={row.id}
-                    data-state={row.getIsSelected() && 'selected'}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      const size = cell.column.columnDef.size;
+            <For each={table.getHeaderGroups()}>
+              {(headerGroup) => (
+                <TableRow class="hover:bg-transparent">
+                  <For each={headerGroup.headers}>
+                    {(header) => {
+                      const size = header.column.columnDef.size;
                       return (
-                        <TableCell
-                          key={cell.id}
+                        <TableHead
                           style={
                             size
-                              ? {
-                                  width: size,
-                                  minWidth: size,
-                                  maxWidth: size,
-                                }
+                              ? { width: size, minWidth: size, maxWidth: size }
                               : undefined
                           }
                         >
-                          <div
-                            className={cn('flex w-full items-center', {
-                              'justify-end': cell.column.id === 'actions',
-                              'justify-start': cell.column.id !== 'actions',
-                            })}
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext(),
+                              )}
+                        </TableHead>
+                      );
+                    }}
+                  </For>
+                </TableRow>
+              )}
+            </For>
+          </TableHeader>
+          <TableBody>
+            <Show
+              when={isLoading}
+              fallback={
+                <Show
+                  when={rows.length > 0}
+                  fallback={
+                    <TableRow class="hover:bg-background">
+                      <TableCell
+                        colSpan={columns.length}
+                        class="h-[350px] text-center"
+                      >
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Show when={emptyStateIcon} fallback={<></>}>
+                            {emptyStateIcon}
+                          </Show>
+                          <p className="text-lg font-semibold">
+                            {emptyStateTextTitle}
+                          </p>
+                          <Show when={emptyStateTextDescription}>
+                            <p className="text-sm text-muted-foreground ">
+                              {emptyStateTextDescription}
+                            </p>
+                          </Show>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  }
+                >
+                  <Show
+                    when={virtualizeRows}
+                    fallback={
+                      <For each={rows}>
+                        {(row, rowIndex) => (
+                          <TableRow
+                            class={cn(
+                              'cursor-pointer',
+                              {
+                                'hover:bg-background cursor-default':
+                                  isNil(onRowClick),
+                              },
+                              getRowClassName?.(row.original, rowIndex()),
+                            )}
+                            onClick={(e) => {
+                              const clickedCellIndex = (
+                                e.target as HTMLElement
+                              ).closest('td')?.cellIndex;
+                              if (
+                                clickedCellIndex !== undefined &&
+                                columns[clickedCellIndex]?.notClickable
+                              ) {
+                                return;
+                              }
+                              onRowClick?.(row.original, e.ctrlKey, e);
+                            }}
+                            onAuxClick={(e) => {
+                              const clickedCellIndex = (
+                                e.target as HTMLElement
+                              ).closest('td')?.cellIndex;
+                              if (
+                                clickedCellIndex !== undefined &&
+                                columns[clickedCellIndex]?.notClickable
+                              ) {
+                                return;
+                              }
+                              onRowClick?.(row.original, true, e);
+                            }}
+                            data-state={row.getIsSelected() && 'selected'}
                           >
-                            <div
-                              className="w-full"
+                            <For each={row.getVisibleCells()}>
+                              {(cell) => {
+                                const size = cell.column.columnDef.size;
+                                return (
+                                  <TableCell
+                                    style={
+                                      size
+                                        ? {
+                                            width: size,
+                                            minWidth: size,
+                                            maxWidth: size,
+                                          }
+                                        : undefined
+                                    }
+                                  >
+                                    <div
+                                      className={cn(
+                                        'flex w-full items-center',
+                                        {
+                                          'justify-end':
+                                            cell.column.id === 'actions',
+                                          'justify-start':
+                                            cell.column.id !== 'actions',
+                                        },
+                                      )}
+                                    >
+                                      <div
+                                        className="w-full"
+                                        onClick={(e) => {
+                                          if (cell.column.id === 'select') {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            return;
+                                          }
+                                        }}
+                                      >
+                                        {flexRender(
+                                          cell.column.columnDef.cell,
+                                          cell.getContext(),
+                                        )}
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                );
+                              }}
+                            </For>
+                          </TableRow>
+                        )}
+                      </For>
+                    }
+                  >
+                    <>
+                      <Show when={virtualizer.getVirtualItems().length > 0}>
+                        <tr>
+                          <td
+                            colSpan={columns.length}
+                            style={{
+                              height: virtualizer.getVirtualItems()[0].start,
+                            }}
+                          />
+                        </tr>
+                      </Show>
+                      <For each={virtualizer.getVirtualItems()}>
+                        {(virtualRow) => {
+                          const row = rows[virtualRow.index];
+                          const rowIndex = virtualRow.index;
+                          return (
+                            <TableRow
+                              data-index={virtualRow.index}
+                              class={cn(
+                                'cursor-pointer',
+                                {
+                                  'hover:bg-background cursor-default':
+                                    isNil(onRowClick),
+                                },
+                                getRowClassName?.(row.original, rowIndex),
+                              )}
                               onClick={(e) => {
-                                if (cell.column.id === 'select') {
-                                  e.preventDefault();
-                                  e.stopPropagation();
+                                const clickedCellIndex = (
+                                  e.target as HTMLElement
+                                ).closest('td')?.cellIndex;
+                                if (
+                                  clickedCellIndex !== undefined &&
+                                  columns[clickedCellIndex]?.notClickable
+                                ) {
                                   return;
                                 }
+                                onRowClick?.(row.original, e.ctrlKey, e);
                               }}
+                              onAuxClick={(e) => {
+                                const clickedCellIndex = (
+                                  e.target as HTMLElement
+                                ).closest('td')?.cellIndex;
+                                if (
+                                  clickedCellIndex !== undefined &&
+                                  columns[clickedCellIndex]?.notClickable
+                                ) {
+                                  return;
+                                }
+                                onRowClick?.(row.original, true, e);
+                              }}
+                              data-state={row.getIsSelected() && 'selected'}
                             >
-                              {flexRender(
-                                cell.column.columnDef.cell,
-                                cell.getContext(),
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                ))
-              )
-            ) : (
-              <TableRow className="hover:bg-background">
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-[350px] text-center"
-                >
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    {emptyStateIcon ? emptyStateIcon : <></>}
-                    <p className="text-lg font-semibold">
-                      {emptyStateTextTitle}
-                    </p>
-                    {emptyStateTextDescription && (
-                      <p className="text-sm text-muted-foreground ">
-                        {emptyStateTextDescription}
-                      </p>
-                    )}
-                  </div>
+                              <For each={row.getVisibleCells()}>
+                                {(cell) => {
+                                  const size = cell.column.columnDef.size;
+                                  return (
+                                    <TableCell
+                                      style={
+                                        size
+                                          ? {
+                                              width: size,
+                                              minWidth: size,
+                                              maxWidth: size,
+                                            }
+                                          : undefined
+                                      }
+                                    >
+                                      <div
+                                        className={cn(
+                                          'flex w-full items-center',
+                                          {
+                                            'justify-end':
+                                              cell.column.id === 'actions',
+                                            'justify-start':
+                                              cell.column.id !== 'actions',
+                                          },
+                                        )}
+                                      >
+                                        <div
+                                          className="w-full"
+                                          onClick={(e) => {
+                                            if (cell.column.id === 'select') {
+                                              e.preventDefault();
+                                              e.stopPropagation();
+                                              return;
+                                            }
+                                          }}
+                                        >
+                                          {flexRender(
+                                            cell.column.columnDef.cell,
+                                            cell.getContext(),
+                                          )}
+                                        </div>
+                                      </div>
+                                    </TableCell>
+                                  );
+                                }}
+                              </For>
+                            </TableRow>
+                          );
+                        }}
+                      </For>
+                      <Show when={virtualizer.getVirtualItems().length > 0}>
+                        <tr>
+                          <td
+                            colSpan={columns.length}
+                            style={{
+                              height:
+                                virtualizer.getTotalSize() -
+                                (virtualizer.getVirtualItems().at(-1)?.end ??
+                                  0),
+                            }}
+                          />
+                        </tr>
+                      </Show>
+                    </>
+                  </Show>
+                </Show>
+              }
+            >
+              <TableRow class="hover:bg-background">
+                <TableCell colSpan={columns.length} class="h-24 text-center">
+                  <DataTableSkeleton />
                 </TableCell>
               </TableRow>
-            )}
+            </Show>
           </TableBody>
         </Table>
       </div>
-      {!hidePagination && !virtualizeRows && (
+      <Show when={!hidePagination && !virtualizeRows}>
         <div className="flex items-center justify-end gap-4 px-2 py-4 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground">{t('Rows per page')}</span>
@@ -624,67 +641,67 @@ export function DataTable<
                 }
               }}
             >
-              <SelectTrigger className="h-8 w-[70px]">
+              <SelectTrigger class="h-8 w-[70px]">
                 <SelectValue
                   placeholder={table.getState().pagination.pageSize}
                 />
               </SelectTrigger>
               <SelectContent side="top">
-                {[10, 30, 50].map((pageSize) => (
-                  <SelectItem key={pageSize} value={`${pageSize}`}>
-                    {pageSize}
-                  </SelectItem>
-                ))}
+                <For each={[10, 30, 50]}>
+                  {(pageSize) => (
+                    <SelectItem value={`${pageSize}`}>{pageSize}</SelectItem>
+                  )}
+                </For>
               </SelectContent>
             </Select>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1"
+            class="gap-1"
             onClick={() => {
               if (clientPagination) {
                 table.previousPage();
               } else {
-                setCurrentCursor(previousPageCursor);
+                setCurrentCursor(previousPageCursor());
               }
             }}
             disabled={
               clientPagination
                 ? !table.getCanPreviousPage()
-                : !previousPageCursor
+                : !previousPageCursor()
             }
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft class="h-4 w-4" />
             {t('Previous')}
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1"
+            class="gap-1"
             onClick={() => {
               if (clientPagination) {
                 table.nextPage();
               } else {
-                setCurrentCursor(nextPageCursor);
+                setCurrentCursor(nextPageCursor());
               }
             }}
             disabled={
-              clientPagination ? !table.getCanNextPage() : !nextPageCursor
+              clientPagination ? !table.getCanNextPage() : !nextPageCursor()
             }
           >
             {t('Next')}
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight class="h-4 w-4" />
           </Button>
         </div>
-      )}
-      {bulkActions.length > 0 && (
+      </Show>
+      <Show when={bulkActions.length > 0}>
         <DataTableBulkActions
-          selectedRows={selectedRowOriginals}
+          selectedRows={selectedRowOriginals()}
           actions={bulkActions}
           resetSelection={resetSelection}
         />
-      )}
+      </Show>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { AgentMcpTool } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-solid';
 
 import { McpSvg } from '@/assets/img/custom/mcp';
 import {
@@ -31,17 +31,17 @@ export const AgentMcpToolComponent = ({
   const { setShowAddMcpDialog } = useMcpToolDialogStore();
 
   return (
-    <AccordionItem value="mcp" className="border-b last:border-0">
-      <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-accent transition-all">
+    <AccordionItem value="mcp" class="border-b last:border-0">
+      <AccordionTrigger class="px-4 py-3 hover:no-underline hover:bg-accent transition-all">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center">
-            <McpSvg className="size-3.5" />
+            <McpSvg class="size-3.5" />
           </div>
           <span className="text-sm font-medium">{t('MCP Servers')}</span>
         </div>
       </AccordionTrigger>
 
-      <AccordionContent className="px-4 py-2">
+      <AccordionContent class="px-4 py-2">
         <div className="flex flex-wrap gap-2">
           {tools.map((tool) => (
             <div
@@ -67,7 +67,7 @@ export const AgentMcpToolComponent = ({
                     }}
                     variant="ghost"
                     size="icon"
-                    className="
+                    class="
                       size-5 p-0.5
                       text-muted-foreground
                       hover:text-destructive
@@ -75,7 +75,7 @@ export const AgentMcpToolComponent = ({
                       transition
                     "
                   >
-                    <X className="h-3 w-3" />
+                    <X class="h-3 w-3" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>{t('Remove MCP server')}</TooltipContent>
@@ -86,11 +86,11 @@ export const AgentMcpToolComponent = ({
 
         <Button
           variant="link"
-          className="mt-4"
+          class="mt-4"
           size="xs"
           onClick={() => setShowAddMcpDialog(true)}
         >
-          <Plus className="size-3 mr-1" />
+          <Plus class="size-3 mr-1" />
           {t('Add MCP Server')}
         </Button>
       </AccordionContent>

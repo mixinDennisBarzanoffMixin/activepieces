@@ -1,8 +1,6 @@
-'use client';
-
 import { isNil } from '@activepieces/shared';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import * as React from 'react';
+import { createVirtualizer } from '@tanstack/solid-virtual';
+import { For, createEffect } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -10,7 +8,7 @@ import { ScrollArea } from './scroll-area';
 
 interface VirtualizedScrollAreaProps<T> {
   items: T[];
-  renderItem: (item: T, index: number) => React.ReactNode;
+  renderItem: (item: T, index: number) => JSX.Element;
   overscan?: number;
   estimateSize: (index: number) => number;
   getItemKey?: (index: number) => string | number;
@@ -41,18 +39,18 @@ const VirtualizedScrollArea = <T,>({
   className,
   ...props
 }: VirtualizedScrollAreaProps<T>) => {
-  const scrollAreaViewportRef = React.useRef<HTMLDivElement>(null);
+  let scrollAreaViewportRef: HTMLDivElement | undefined;
 
-  const rowVirtualizer = useVirtualizer({
+  const rowVirtualizer = createVirtualizer({
     count: items.length,
-    getScrollElement: () => scrollAreaViewportRef.current,
+    getScrollElement: () => scrollAreaViewportRef,
     estimateSize: estimateSize,
     overscan,
     getItemKey: getItemKey || ((index) => index),
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
-  React.useEffect(() => {
+  createEffect(() => {
     if (isNil(initialScroll)) {
       return;
     }
@@ -64,7 +62,7 @@ const VirtualizedScrollArea = <T,>({
       if (initialScroll?.clickAfterScroll) {
         //need to wait for the scroll to be completed
         setTimeout(() => {
-          const targetElement = scrollAreaViewportRef.current?.querySelector(
+          const targetElement = scrollAreaViewportRef?.querySelector(
             `[data-virtual-index="${initialScroll.index}"]`,
           );
           const renderedElement = targetElement?.children[0];
@@ -74,12 +72,12 @@ const VirtualizedScrollArea = <T,>({
         }, 100);
       }
     }
-  }, [rowVirtualizer]);
+  });
   return (
     <ScrollArea
       viewPortRef={scrollAreaViewportRef}
       {...props}
-      className={cn('h-full', className)}
+      class={cn('h-full', className)}
     >
       <div
         style={{
@@ -88,22 +86,23 @@ const VirtualizedScrollArea = <T,>({
           position: 'relative',
         }}
       >
-        {virtualItems.map((virtualItem) => (
-          <div
-            key={virtualItem.key}
-            data-virtual-index={virtualItem.index}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: `${virtualItem.size}px`,
-              transform: `translateY(${virtualItem.start}px)`,
-            }}
-          >
-            {renderItem(items[virtualItem.index], virtualItem.index)}
-          </div>
-        ))}
+        <For each={virtualItems}>
+          {(virtualItem) => (
+            <div
+              data-virtual-index={virtualItem.index}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualItem.size}px`,
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+            >
+              {renderItem(items[virtualItem.index], virtualItem.index)}
+            </div>
+          )}
+        </For>
       </div>
     </ScrollArea>
   );

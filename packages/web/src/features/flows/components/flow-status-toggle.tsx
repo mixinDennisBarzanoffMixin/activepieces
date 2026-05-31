@@ -5,7 +5,7 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useEffect, useState } from 'react';
+import { createSignal, createEffect } from 'solid-js';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { useAuthorization } from '@/hooks/authorization-hooks';
@@ -24,11 +24,11 @@ type FlowStatusToggleProps = {
 };
 
 const FlowStatusToggle = ({ flow }: FlowStatusToggleProps) => {
-  const [isFlowPublished, setIsFlowPublished] = useState(
+  const [isFlowPublished, setIsFlowPublished] = createSignal(
     flow.status === FlowStatus.ENABLED,
   );
 
-  useEffect(() => {
+  createEffect(() => {
     setIsFlowPublished(flow.status === FlowStatus.ENABLED);
   }, [flow]);
 

@@ -1,7 +1,7 @@
 import { ApEdition, ApFlagId } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ChevronsUpDown } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ChevronsUpDown } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { Button } from '@/components/ui/button';
@@ -20,16 +20,15 @@ import { determineDefaultRoute } from '@/lib/route-utils';
 
 function SidebarLogoCollapsed({ linkTo }: { linkTo?: string }) {
   const branding = flagsHooks.useWebsiteBranding();
-  const navigate = useNavigate();
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => navigate(linkTo || '/')}
-      className="h-10! w-8! p-0! group-data-[collapsible=icon]:h-10! items-center justify-center"
+      onClick={() => (window.location.href = linkTo || '/')}
+      class="h-10! w-8! p-0! group-data-[collapsible=icon]:h-10! items-center justify-center"
     >
       <img
-        src={branding.logos.logoIconUrl}
+        src={branding()?.logos.logoIconUrl}
         alt={t('home')}
         className="h-5! w-5! shrink-0"
         draggable={false}
@@ -50,14 +49,16 @@ export const AppSidebarHeader = () => {
 
   if (!showSwitcher) {
     return (
-      <SidebarHeader className="pb-0">
+      <SidebarHeader class="pb-0">
         <div className="w-full flex items-center gap-2">
           <SidebarLogoCollapsed linkTo={defaultRoute} />
-          {state !== 'collapsed' && (
-            <h1 className="truncate text-sm font-medium">
-              {branding.websiteName}
-            </h1>
-          )}
+          {
+            <Show when={state !== 'collapsed'}>
+              <h1 className="truncate text-sm font-medium">
+                {branding()?.websiteName}
+              </h1>
+            </Show>
+          }
         </div>
       </SidebarHeader>
     );
@@ -66,20 +67,22 @@ export const AppSidebarHeader = () => {
   return (
     <SidebarHeader>
       <SidebarMenu>
-        <SidebarMenuItem className="flex items-center">
+        <SidebarMenuItem class="flex items-center">
           <SidebarLogoCollapsed linkTo={defaultRoute} />
-          {state !== 'collapsed' && (
-            <div className="flex-1 min-w-0">
-              <PlatformSwitcher>
-                <SidebarMenuButton className="h-10! w-full">
-                  <span className="truncate font-medium flex-1 text-left text-sm">
-                    {currentPlatform?.name ?? t('platform')}
-                  </span>
-                  <ChevronsUpDown className="ml-auto size-3! shrink-0" />
-                </SidebarMenuButton>
-              </PlatformSwitcher>
-            </div>
-          )}
+          {
+            <Show when={state !== 'collapsed'}>
+              <div className="flex-1 min-w-0">
+                <PlatformSwitcher>
+                  <SidebarMenuButton class="h-10! w-full">
+                    <span className="truncate font-medium flex-1 text-left text-sm">
+                      {currentPlatform?.name ?? t('platform')}
+                    </span>
+                    <ChevronsUpDown class="ml-auto size-3! shrink-0" />
+                  </SidebarMenuButton>
+                </PlatformSwitcher>
+              </div>
+            </Show>
+          }
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarHeader>

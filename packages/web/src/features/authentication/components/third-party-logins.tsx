@@ -5,7 +5,6 @@ import {
   ThirdPartyAuthnProvidersToShowMap,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import React from 'react';
 
 import { authenticationApi } from '@/api/authentication-api';
 import GoogleIcon from '@/assets/img/custom/auth/google-icon.svg';
@@ -17,10 +16,10 @@ import { oauth2Utils } from '@/features/connections/utils/oauth2-utils';
 import { flagsHooks } from '@/hooks/flags-hooks';
 
 const ThirdPartyIcon = ({ icon }: { icon: string }) => {
-  return <img src={icon} alt="icon" width={24} height={24} className="mr-2" />;
+  return <img src={icon} alt="icon" width={24} height={24} class="mr-2" />;
 };
 
-const ThirdPartyLogin = React.memo(({ isSignUp }: { isSignUp: boolean }) => {
+const ThirdPartyLogin = ({ isSignUp }: { isSignUp: boolean }) => {
   const { data: thirdPartyAuthProviders } =
     flagsHooks.useFlag<ThirdPartyAuthnProvidersToShowMap>(
       ApFlagId.THIRD_PARTY_AUTH_PROVIDERS_TO_SHOW_MAP,
@@ -33,7 +32,7 @@ const ThirdPartyLogin = React.memo(({ isSignUp }: { isSignUp: boolean }) => {
   const thirdPartyLogin = oauth2Utils.useThirdPartyLogin();
 
   const handleProviderClick = async (
-    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
+    event: MouseEvent<HTMLButtonElement, MouseEvent>,
     providerName: ThirdPartyAuthnProviderEnum,
   ) => {
     event.preventDefault();
@@ -50,11 +49,11 @@ const ThirdPartyLogin = React.memo(({ isSignUp }: { isSignUp: boolean }) => {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div class="flex flex-col gap-4">
       {thirdPartyAuthProviders?.google && (
         <Button
           variant="outline"
-          className="w-full rounded-sm"
+          class="w-full rounded-sm"
           onClick={(e) =>
             handleProviderClick(e, ThirdPartyAuthnProviderEnum.GOOGLE)
           }
@@ -67,7 +66,7 @@ const ThirdPartyLogin = React.memo(({ isSignUp }: { isSignUp: boolean }) => {
       )}
       {isCloud && (
         <SamlDomainDialog>
-          <Button variant="outline" className="w-full rounded-sm">
+          <Button variant="outline" class="w-full rounded-sm">
             <ThirdPartyIcon icon={SamlIcon} />
             {isSignUp
               ? `${t(`Sign up With`)} ${t('SAML')}`
@@ -78,7 +77,7 @@ const ThirdPartyLogin = React.memo(({ isSignUp }: { isSignUp: boolean }) => {
       {!isCloud && thirdPartyAuthProviders?.saml && (
         <Button
           variant="outline"
-          className="w-full rounded-sm"
+          class="w-full rounded-sm"
           onClick={() => {
             window.location.href = '/api/v1/authn/saml/login';
           }}
@@ -91,7 +90,5 @@ const ThirdPartyLogin = React.memo(({ isSignUp }: { isSignUp: boolean }) => {
       )}
     </div>
   );
-});
-
-ThirdPartyLogin.displayName = 'ThirdPartyLogin';
+};
 export { ThirdPartyLogin };

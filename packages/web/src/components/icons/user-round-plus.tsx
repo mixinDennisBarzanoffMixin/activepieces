@@ -1,9 +1,6 @@
-'use client';
-
 import type { Variants } from 'motion/react';
-import { motion, useAnimation } from 'motion/react';
-import type { HTMLAttributes } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
+import { createSignal } from 'solid-js';
+import { motion } from 'motion/react';
 
 import { cn } from '@/lib/utils';
 
@@ -12,7 +9,7 @@ export interface UserRoundPlusIconHandle {
   stopAnimation: () => void;
 }
 
-interface UserRoundPlusIconProps extends HTMLAttributes<HTMLDivElement> {
+interface UserRoundPlusIconProps extends JSX.HTMLAttributes<HTMLDivElement> {
   size?: number;
 }
 
@@ -46,50 +43,55 @@ const HORIZONTAL_BAR_VARIANTS: Variants = {
   },
 };
 
-const UserRoundPlusIcon = forwardRef<
-  UserRoundPlusIconHandle,
-  UserRoundPlusIconProps
->(({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-  const controls = useAnimation();
-  const isControlledRef = useRef(false);
+function UserRoundPlusIcon(
+  props: UserRoundPlusIconProps & { ref?: UserRoundPlusIconHandle },
+) {
+  const ref = props.ref;
+  const {
+    onMouseEnter,
+    onMouseLeave,
+    class: className,
+    size = 28,
+    ...divProps
+  } = props;
+  const [controls, setControls] = createSignal('normal');
+  let isControlledRef = false;
 
-  useImperativeHandle(ref, () => {
-    isControlledRef.current = true;
-
-    return {
-      startAnimation: () => controls.start('animate'),
-      stopAnimation: () => controls.start('normal'),
+  if (ref) {
+    isControlledRef = true;
+    const handle = {
+      startAnimation: () => setControls('animate'),
+      stopAnimation: () => setControls('normal'),
     };
-  });
+    if (typeof ref === 'function') {
+      ref(handle);
+    } else {
+      Object.assign(ref, handle);
+    }
+  }
 
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseEnter?.(e);
-      } else {
-        controls.start('animate');
-      }
-    },
-    [controls, onMouseEnter],
-  );
+  const handleMouseEnter = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseEnter?.(e);
+    } else {
+      setControls('animate');
+    }
+  };
 
-  const handleMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isControlledRef.current) {
-        onMouseLeave?.(e);
-      } else {
-        controls.start('normal');
-      }
-    },
-    [controls, onMouseLeave],
-  );
+  const handleMouseLeave = (e: MouseEvent) => {
+    if (isControlledRef) {
+      onMouseLeave?.(e);
+    } else {
+      setControls('normal');
+    }
+  };
 
   return (
     <div
       className={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      {...props}
+      {...divProps}
     >
       <motion.svg
         fill="none"
@@ -106,13 +108,13 @@ const UserRoundPlusIcon = forwardRef<
         <path d="M2 21a8 8 0 0 1 13.292-6" />
         <circle cx="10" cy="8" r="5" />
         <motion.path
-          animate={controls}
+          animate={controls()}
           d="M19 16v6"
           initial="normal"
           variants={VERTICAL_BAR_VARIANTS}
         />
         <motion.path
-          animate={controls}
+          animate={controls()}
           d="M22 19h-6"
           initial="normal"
           variants={HORIZONTAL_BAR_VARIANTS}
@@ -120,8 +122,7 @@ const UserRoundPlusIcon = forwardRef<
       </motion.svg>
     </div>
   );
-});
-
+}
 UserRoundPlusIcon.displayName = 'UserRoundPlusIcon';
 
 export { UserRoundPlusIcon };

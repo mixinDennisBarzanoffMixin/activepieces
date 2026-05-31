@@ -1,6 +1,7 @@
 import { Template } from '@activepieces/shared';
 import { t } from 'i18next';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid } from 'lucide-solid';
+import { For, Show } from 'solid-js';
 
 import {
   Empty,
@@ -23,19 +24,21 @@ const SelectedCategoryViewSkeleton = ({
 }: SelectedCategoryViewSkeletonProps) => {
   return (
     <div className="space-y-4">
-      {showCategoryTitle && (
+      <Show when={showCategoryTitle}>
         <div className="flex items-center gap-2">
-          <Skeleton className="h-8 w-48" />
+          <Skeleton class="h-8 w-48" />
         </div>
-      )}
+      </Show>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4">
-        {[...Array(6)].map((_, index) => (
-          <TemplateCardSkeleton
-            key={index}
-            showCategoryCarouselButton={showCategoryTitle}
-          />
-        ))}
+        <For each={[...Array(6)]}>
+          {(_, index) => (
+            <TemplateCardSkeleton
+              key={index}
+              showCategoryCarouselButton={showCategoryTitle}
+            />
+          )}
+        </For>
       </div>
     </div>
   );
@@ -64,14 +67,29 @@ export const SelectedCategoryView = ({
 
   return (
     <div className="space-y-4">
-      {showCategoryTitle && (
+      <Show when={showCategoryTitle}>
         <div className="flex items-center gap-2">
           <h2 className="text-xl font-medium">{category}</h2>
         </div>
-      )}
+      </Show>
 
-      {templates.length === 0 ? (
-        <Empty className="min-h-[300px]">
+      <Show
+        when={templates.length === 0}
+        fallback={
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4">
+            <For each={templates}>
+              {(template) => (
+                <ExploreTemplateCard
+                  key={template.id}
+                  template={template}
+                  onTemplateSelect={onTemplateSelect}
+                />
+              )}
+            </For>
+          </div>
+        }
+      >
+        <Empty class="min-h-[300px]">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <LayoutGrid />
@@ -82,17 +100,7 @@ export const SelectedCategoryView = ({
             </EmptyDescription>
           </EmptyHeader>
         </Empty>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4">
-          {templates.map((template) => (
-            <ExploreTemplateCard
-              key={template.id}
-              template={template}
-              onTemplateSelect={onTemplateSelect}
-            />
-          ))}
-        </div>
-      )}
+      </Show>
     </div>
   );
 };

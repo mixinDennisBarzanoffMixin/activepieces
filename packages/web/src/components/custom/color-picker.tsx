@@ -1,7 +1,4 @@
-'use client';
-
-import { forwardRef, useMemo, useState } from 'react';
-import { HexColorPicker } from 'react-colorful';
+import { createSignal } from 'solid-js';
 
 import type { ButtonProps } from '@/components/ui/button';
 import { Button } from '@/components/ui/button';
@@ -11,7 +8,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-import { useForwardedRef } from '@/hooks/use-forwarded-ref';
+import { HexColorPicker } from 'solid-colorful';
 import { cn } from '@/lib/utils';
 
 interface ColorPickerProps {
@@ -20,55 +17,51 @@ interface ColorPickerProps {
   onBlur?: () => void;
 }
 
-const ColorPicker = forwardRef<
-  HTMLInputElement,
-  Omit<ButtonProps, 'value' | 'onChange' | 'onBlur'> & ColorPickerProps
->(
-  (
-    { disabled, value, onChange, onBlur, name, className, ...props },
-    forwardedRef,
-  ) => {
-    const ref = useForwardedRef(forwardedRef);
-    const [open, setOpen] = useState(false);
+const ColorPicker = (
+  props: Omit<ButtonProps, 'value' | 'onChange' | 'onBlur'> &
+    ColorPickerProps & { ref?: HTMLInputElement },
+) => {
+  const { disabled, value, onChange, onBlur, name, className, ...rest } = props;
+  let ref: HTMLInputElement | undefined;
+  const [open, setOpen] = createSignal(false);
 
-    const parsedValue = useMemo(() => {
-      return value || '#FFFFFF';
-    }, [value]);
+  const parsedValue = createMemo(() => {
+    return value || '#FFFFFF';
+  });
 
-    return (
-      <Popover onOpenChange={setOpen} open={open}>
-        <PopoverTrigger asChild disabled={disabled} onBlur={onBlur}>
-          <Button
-            {...props}
-            className={cn('block rounded-full', className)}
-            name={name}
-            onClick={() => {
-              setOpen(true);
-            }}
-            size="icon"
-            style={{
-              backgroundColor: parsedValue,
-            }}
-            variant="outline"
-          >
-            <div />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-full">
-          <HexColorPicker color={parsedValue} onChange={onChange} />
-          <Input
-            maxLength={7}
-            onChange={(e) => {
-              onChange(e?.currentTarget?.value);
-            }}
-            ref={ref}
-            value={parsedValue}
-          />
-        </PopoverContent>
-      </Popover>
-    );
-  },
-);
+  return (
+    <Popover onOpenChange={setOpen} open={open()}>
+      <PopoverTrigger asChild disabled={disabled} onBlur={onBlur}>
+        <Button
+          {...rest}
+          class={cn('block rounded-full', className)}
+          name={name}
+          onClick={() => {
+            setOpen(true);
+          }}
+          size="icon"
+          style={{
+            backgroundColor: parsedValue(),
+          }}
+          variant="outline"
+        >
+          <div />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent class="w-full">
+        <HexColorPicker color={parsedValue()} onChange={onChange} />
+        <Input
+          maxLength={7}
+          onChange={(e) => {
+            onChange(e?.currentTarget?.value);
+          }}
+          ref={(el) => (ref = el)}
+          value={parsedValue()}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+};
 ColorPicker.displayName = 'ColorPicker';
 
 export { ColorPicker };

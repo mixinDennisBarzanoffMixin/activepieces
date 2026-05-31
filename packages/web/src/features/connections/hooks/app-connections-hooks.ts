@@ -14,12 +14,11 @@ import {
   ReplaceAppConnectionsRequestBody,
   UpsertAppConnectionRequestBody,
 } from '@activepieces/shared';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useLocation } from '@solidjs/router';
+import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useMemo } from 'react';
-import { UseFormReturn } from 'react-hook-form';
-import { useLocation } from 'react-router-dom';
-import { toast } from 'sonner';
+import { createMemo } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import {
   CURSOR_QUERY_PARAM,
@@ -39,37 +38,6 @@ import {
   isConnectionNameUnique,
 } from '../utils/utils';
 
-type UseReplaceConnectionsProps = {
-  setDialogOpen: (isOpen: boolean) => void;
-  refetch: () => void;
-};
-
-type UseRenameAppConnectionProps = {
-  currentName: string;
-  setIsRenameDialogOpen: (isOpen: boolean) => void;
-  renameConnectionForm: UseFormReturn<{
-    displayName: string;
-  }>;
-  refetch: () => void;
-};
-
-type UseUpsertAppConnectionProps = {
-  isGlobalConnection: boolean;
-  reconnectConnection: AppConnectionWithoutSensitiveData | null;
-  externalIdComingFromSdk?: string | null;
-  setErrorMessage: (message: string) => void;
-  form: UseFormReturn<{
-    request: UpsertAppConnectionRequestBody & {
-      projectIds: string[];
-      preSelectForNewProjects: boolean;
-    };
-  }>;
-  setOpen: (
-    open: boolean,
-    connection?: AppConnectionWithoutSensitiveData,
-  ) => void;
-};
-
 export const appConnectionsMutations = {
   useUpsertAppConnection: ({
     isGlobalConnection,
@@ -79,7 +47,7 @@ export const appConnectionsMutations = {
     form,
     setOpen,
   }: UseUpsertAppConnectionProps) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async () => {
         setErrorMessage('');
         const formValues = form.getValues().request;
@@ -192,11 +160,11 @@ export const appConnectionsMutations = {
           }
         }
       },
-    });
+    }));
   },
 
   useBulkDeleteAppConnections: (refetch: () => void) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async (ids: string[]) => {
         await Promise.all(ids.map((id) => appConnectionsApi.delete(id)));
       },
@@ -206,7 +174,7 @@ export const appConnectionsMutations = {
       onError: () => {
         internalErrorToast();
       },
-    });
+    }));
   },
 
   useRenameAppConnection: ({
@@ -215,7 +183,7 @@ export const appConnectionsMutations = {
     renameConnectionForm,
     refetch,
   }: UseRenameAppConnectionProps) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async ({
         connectionId,
         displayName,
@@ -249,14 +217,14 @@ export const appConnectionsMutations = {
           internalErrorToast();
         }
       },
-    });
+    }));
   },
 
   useReplaceConnections: ({
     setDialogOpen,
     refetch,
   }: UseReplaceConnectionsProps) => {
-    return useMutation({
+    return createMutation(() => ({
       mutationFn: async (request: ReplaceAppConnectionsRequestBody) => {
         await appConnectionsApi.replace(request);
       },
@@ -272,8 +240,53 @@ export const appConnectionsMutations = {
           description: t('Failed to replace connections'),
         });
       },
-    });
+    }));
   },
+};
+
+type UseReplaceConnectionsProps = {
+  setDialogOpen: (isOpen: boolean) => void;
+  refetch: () => void;
+};
+
+type UseRenameAppConnectionProps = {
+  currentName: string;
+  setIsRenameDialogOpen: (isOpen: boolean) => void;
+  renameConnectionForm: RenameConnectionForm;
+  refetch: () => void;
+};
+
+type UseUpsertAppConnectionProps = {
+  isGlobalConnection: boolean;
+  reconnectConnection: AppConnectionWithoutSensitiveData | null;
+  externalIdComingFromSdk?: string | null;
+  setErrorMessage: (message: string) => void;
+  form: UpsertConnectionForm;
+  setOpen: (
+    open: boolean,
+    connection?: AppConnectionWithoutSensitiveData,
+  ) => void;
+};
+
+type UpsertConnectionForm = {
+  getValues: () => {
+    request: UpsertAppConnectionRequestBody & {
+      projectIds: string[];
+      preSelectForNewProjects: boolean;
+    };
+  };
+  setError: (
+    name: 'request.displayName' | 'request.projectIds',
+    error: ConnectionFormError,
+  ) => void;
+};
+
+type RenameConnectionForm = {
+  setError: (name: 'displayName', error: ConnectionFormError) => void;
+};
+
+type ConnectionFormError = {
+  message: string;
 };
 
 type UseConnectionsProps = {
@@ -294,7 +307,7 @@ export const appConnectionsQueries = {
     pieceAuth,
     showErrorDialog,
   }: UseConnectionsProps) => {
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['app-connections', ...extraKeys],
       meta: showErrorDialog
         ? { showErrorDialog: true, loadSubsetOptions: {} }
@@ -319,12 +332,12 @@ export const appConnectionsQueries = {
       },
       enabled,
       staleTime,
-    });
+    }));
   },
 
   useListSearchParams: () => {
     const { search } = useLocation();
-    return useMemo(() => {
+    return createMemo(() => {
       const sp = new URLSearchParams(search);
       const limitParam = sp.get(LIMIT_QUERY_PARAM);
       return {
@@ -342,7 +355,7 @@ export const appConnectionsQueries = {
     const projectId = authenticationSession.getProjectId() ?? '';
     const isEmbedding = useEmbedding().embedState.isEmbedded;
 
-    return useQuery({
+    return createQuery(() => ({
       queryKey: ['app-connections-owners', projectId],
       queryFn: async () => {
         const { data: owners } = await appConnectionsApi.getOwners({
@@ -364,6 +377,6 @@ export const appConnectionsQueries = {
 
         return owners;
       },
-    });
+    }));
   },
 };

@@ -2,11 +2,10 @@ import {
   AddSigningKeyRequestBody,
   AddSigningKeyResponse,
 } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createForm, reset, zodForm } from '@modular-forms/solid';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { createSignal, JSX, Show } from 'solid-js';
 
 import { CopyToClipboardInput } from '@/components/custom/clipboard/copy-to-clipboard';
 import { Button } from '@/components/ui/button';
@@ -18,13 +17,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { signingKeyApi } from '@/features/platform-admin/api/signing-key-api';
 
 type NewSigningKeyDialogProps = {
-  children: React.ReactNode;
+  children: JSX.Element;
   onCreate: () => void;
 };
 
@@ -32,38 +30,41 @@ export const NewSigningKeyDialog = ({
   children,
   onCreate,
 }: NewSigningKeyDialogProps) => {
-  const [open, setOpen] = useState(false);
-  const [signingKey, setSigningKey] = useState<
+  const [open, setOpen] = createSignal(false);
+  const [signingKey, setSigningKey] = createSignal<
     AddSigningKeyResponse | undefined
-  >(undefined);
-  const form = useForm<AddSigningKeyRequestBody>({
-    resolver: zodResolver(AddSigningKeyRequestBody),
+  >();
+  const [form, { Form, Field }] = createForm<AddSigningKeyRequestBody>({
+    initialValues: {
+      displayName: '',
+    },
+    validate: zodForm(AddSigningKeyRequestBody),
   });
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: () => signingKeyApi.create(form.getValues()),
+  const { mutate, isPending } = createMutation(() => ({
+    mutationFn: signingKeyApi.create,
     onSuccess: (key) => {
       setSigningKey(key);
       onCreate();
     },
-  });
+  }));
 
   return (
     <Dialog
       open={open}
-      onOpenChange={(open) => {
-        setOpen(open);
-        form.reset();
-      }}
+        onOpenChange={(open) => {
+          setOpen(open);
+        reset(form);
+        }}
     >
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {signingKey ? t('Signing Key Created') : t('Create Signing Key')}
+            {signingKey() ? t('Signing Key Created') : t('Create Signing Key')}
           </DialogTitle>
         </DialogHeader>
-        {signingKey && (
+        <Show when={signingKey()}>
           <div className="p-4">
             <div className="flex flex-col items-start gap-2">
               <span className="text-md">
@@ -78,66 +79,68 @@ export const NewSigningKeyDialog = ({
               </span>
               <CopyToClipboardInput
                 useInput={false}
-                fileName={signingKey.displayName}
-                textToCopy={signingKey.privateKey}
+                fileName={signingKey()?.displayName ?? ''}
+                textToCopy={signingKey()?.privateKey ?? ''}
               />
             </div>
           </div>
-        )}
-        {!signingKey && (
-          <Form {...form}>
-            <form
-              className="grid space-y-4"
-              onSubmit={form.handleSubmit(() => mutate())}
-            >
-              <FormField
+        </Show>
+        <Show when={!signingKey()}>
+          <Form
+              class="grid space-y-4"
+              onSubmit={(data) => mutate(data)}
+          >
+              <Field
                 name="displayName"
-                render={({ field }) => (
-                  <FormItem className="grid space-y-4">
-                    <Label htmlFor="displayName">{t('Name')}</Label>
+              >
+                {(field, props) => (
+                  <div class="grid space-y-4">
+                    <Label for="displayName">{t('Name')}</Label>
                     <Input
-                      {...field}
+                      {...props}
+                      value={field.value ?? ''}
                       required
                       id="displayName"
-                      className="rounded-sm"
+                      class="rounded-sm"
                     />
-                    <FormMessage />
-                  </FormItem>
+                    <Show when={field.error}>
+                      <p class="text-sm font-medium text-destructive wrap-break-word">
+                        {t(field.error)}
+                      </p>
+                    </Show>
+                  </div>
                 )}
-              />
-              {form?.formState?.errors?.root?.serverError && (
-                <FormMessage>
-                  {form.formState.errors.root.serverError.message}
-                </FormMessage>
-              )}
-            </form>
+              </Field>
           </Form>
-        )}
+        </Show>
         <DialogFooter>
-          {!signingKey ? (
+          <Show
+            when={!signingKey()}
+            fallback={(
+              <Button
+                variant={'accent'}
+                onClick={() => {
+                  setSigningKey(undefined);
+                  setOpen(false);
+                }}
+              >
+                {t('Done')}
+              </Button>
+            )}
+          >
             <>
               <Button variant="outline" onClick={() => setOpen(false)}>
                 {t('Cancel')}
               </Button>
               <Button
-                disabled={isPending || !form.formState.isValid}
+                disabled={isPending || form.invalid}
                 loading={isPending}
-                onClick={() => mutate()}
+                onClick={() => form.element?.requestSubmit()}
               >
                 {t('Save')}
               </Button>
             </>
-          ) : (
-            <Button
-              variant={'accent'}
-              onClick={() => {
-                setSigningKey(undefined);
-                setOpen(false);
-              }}
-            >
-              {t('Done')}
-            </Button>
-          )}
+          </Show>
         </DialogFooter>
       </DialogContent>
     </Dialog>

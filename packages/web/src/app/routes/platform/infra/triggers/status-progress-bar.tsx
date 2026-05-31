@@ -1,3 +1,5 @@
+import { For } from 'solid-js';
+
 import {
   Tooltip,
   TooltipTrigger,
@@ -20,33 +22,37 @@ interface StatusProgressBarProps {
 export function StatusProgressBar({ days, className }: StatusProgressBarProps) {
   return (
     <div className={cn('flex gap-1', className)}>
-      {[...days].reverse().map((day, index) => {
-        const totalRuns = day.success + day.failure;
-        return (
-          <Tooltip key={index}>
-            <TooltipTrigger asChild>
-              <div
-                className={cn(
-                  'w-3 h-6 rounded-sm cursor-pointer transition-colors',
-                  'hover:scale-110 hover:shadow-xs',
-                  {
-                    'bg-success hover:bg-success-600': day.status === 'success',
-                    'bg-destructive hover:bg-destructive/80':
-                      day.status === 'fault',
-                    'bg-amber-400 hover:bg-amber-500': day.status === 'warning',
-                  },
-                )}
-              />
-            </TooltipTrigger>
-            <TooltipContent side="top" align="center" className="text-xs">
-              <div>
-                On {day.date}, there were {totalRuns} total runs: {day.success}{' '}
-                succeeded and {day.failure} failed.
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        );
-      })}
+      <For each={[...days].reverse()}>
+        {(day, index) => {
+          const totalRuns = day.success + day.failure;
+          return (
+            <Tooltip key={index}>
+              <TooltipTrigger asChild>
+                <div
+                  className={cn(
+                    'w-3 h-6 rounded-sm cursor-pointer transition-colors',
+                    'hover:scale-110 hover:shadow-xs',
+                    {
+                      'bg-success hover:bg-success-600':
+                        day.status === 'success',
+                      'bg-destructive hover:bg-destructive/80':
+                        day.status === 'fault',
+                      'bg-amber-400 hover:bg-amber-500':
+                        day.status === 'warning',
+                    },
+                  )}
+                />
+              </TooltipTrigger>
+              <TooltipContent side="top" align="center" class="text-xs">
+                <div>
+                  On {day.date}, there were {totalRuns} total runs:{' '}
+                  {day.success} succeeded and {day.failure} failed.
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }}
+      </For>
     </div>
   );
 }

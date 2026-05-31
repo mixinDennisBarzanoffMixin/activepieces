@@ -1,57 +1,53 @@
 import { t } from 'i18next';
-import { Search, X } from 'lucide-react';
-import * as React from 'react';
+import { Search, X } from 'lucide-solid';
 
 import { Input, inputClass } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { SelectUtilButton } from './select-util-button';
 
-export type SearchInputProps = Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  'onChange'
-> & {
+export type SearchInputProps = Omit<any, 'onChange'> & {
   onChange: (value: string) => void;
 };
 
-const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
-  ({ type, placeholder = t('Search'), ...props }, ref) => {
-    const inputRef = React.useRef<HTMLInputElement>(null);
+const SearchInput = (props: SearchInputProps & { ref?: HTMLInputElement }) => {
+  let inputRef: HTMLInputElement | undefined;
 
-    React.useImperativeHandle(ref, () => inputRef.current!);
-
-    return (
-      <div
-        className={cn(
-          'grow flex items-center gap-2 w-full bg-background px-3 box-border',
-          inputClass,
-        )}
-      >
-        <Search className="size-4 shrink-0 opacity-50"></Search>
-        <Input
-          {...props}
-          type={type}
-          ref={inputRef}
-          className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none p-0 bg-transparent dark:bg-transparent"
-          placeholder={placeholder}
-          onChange={(e) => props.onChange(e.target.value)}
-        />
-        {props.value !== '' && (
-          <SelectUtilButton
-            tooltipText={t('Clear')}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              props.onChange('');
-              inputRef.current?.focus();
-            }}
-            Icon={X}
-          ></SelectUtilButton>
-        )}
-      </div>
-    );
-  },
-);
+  return (
+    <div
+      className={cn(
+        'grow flex items-center gap-2 w-full bg-background px-3 box-border',
+        inputClass,
+      )}
+    >
+      <Search class="size-4 shrink-0 opacity-50"></Search>
+      <Input
+        {...props}
+        type={props.type}
+        ref={(el) => {
+          inputRef = el;
+          if (typeof props.ref === 'function') props.ref(el);
+          else if (props.ref) props.ref = el;
+        }}
+        class="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 shadow-none p-0 bg-transparent dark:bg-transparent"
+        placeholder={props.placeholder ?? t('Search')}
+        onChange={(e) => props.onChange(e.target.value)}
+      />
+      <Show when={props.value !== ''}>
+        <SelectUtilButton
+          tooltipText={t('Clear')}
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            props.onChange('');
+            inputRef?.focus();
+          }}
+          Icon={X}
+        ></SelectUtilButton>
+      </Show>
+    </div>
+  );
+};
 SearchInput.displayName = 'SearchInput';
 
 export { SearchInput };

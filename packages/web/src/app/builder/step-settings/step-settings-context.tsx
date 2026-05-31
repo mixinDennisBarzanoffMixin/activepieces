@@ -9,17 +9,10 @@ import {
   FlowTrigger,
   PropertyExecutionType,
 } from '@activepieces/shared';
-import {
-  createContext,
-  ReactNode,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-} from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { createContext, createSignal, useContext } from 'solid-js';
 import { z, ZodObject } from 'zod';
 
+import { BuilderForm } from '@/app/builder/builder-form';
 import { formUtils } from '@/features/pieces';
 const numberReplacement = 'def.options.0.element';
 const stringReplacement = 'shape.';
@@ -46,14 +39,14 @@ export type StepSettingsContextState = {
   updatePropertySettingsSchema: (
     schema: PiecePropertyMap,
     propertyName: string,
-    form: UseFormReturn,
+    form: BuilderForm,
   ) => void;
 };
 
 export type StepSettingsProviderProps = {
   selectedStep: FlowAction | FlowTrigger;
   pieceModel: PieceMetadataModel | undefined;
-  children: ReactNode;
+  children: any;
 };
 
 const StepSettingsContext = createContext<StepSettingsContextState | undefined>(
@@ -65,43 +58,43 @@ export const StepSettingsProvider = ({
   pieceModel,
   children,
 }: StepSettingsProviderProps) => {
-  const [formSchema, setFormSchema] = useState<ZodObject<any>>(
+  const [formSchema, setFormSchema] = createSignal<ZodObject<any>>(
     z.object({}) as ZodObject<any>,
   );
-  const formSchemaInitializedRef = useRef<boolean>(false);
+  let formSchemaInitializedRef: boolean | undefined;
 
-  if (!formSchemaInitializedRef.current && selectedStep) {
+  if (!formSchemaInitializedRef && selectedStep) {
     const schema = formUtils.buildPieceSchema(
       selectedStep.type,
       selectedStep.settings.actionName ?? selectedStep.settings.triggerName,
       pieceModel ?? null,
     );
-    formSchemaInitializedRef.current = true;
+    formSchemaInitializedRef = true;
     setFormSchema(schema as ZodObject<any>);
   }
 
-  const updateFormSchema = useCallback(
-    (key: string, newFieldPropertyMap: PiecePropertyMap) => {
-      setFormSchema((prevSchema) => {
-        const newFieldSchema = piecePropertiesUtils.buildSchema(
-          newFieldPropertyMap,
-          undefined,
-        );
-        const currentSchema = Object.create(
-          Object.getPrototypeOf(prevSchema),
-          Object.getOwnPropertyDescriptors(prevSchema),
-        );
-        const keyUpdated = createUpdatedSchemaKey(key);
-        setAtPath(currentSchema, keyUpdated, newFieldSchema);
-        return currentSchema;
-      });
-    },
-    [],
-  );
+  const updateFormSchema = (
+    key: string,
+    newFieldPropertyMap: PiecePropertyMap,
+  ) => {
+    setFormSchema((prevSchema) => {
+      const newFieldSchema = piecePropertiesUtils.buildSchema(
+        newFieldPropertyMap,
+        undefined,
+      );
+      const currentSchema = Object.create(
+        Object.getPrototypeOf(prevSchema),
+        Object.getOwnPropertyDescriptors(prevSchema),
+      );
+      const keyUpdated = createUpdatedSchemaKey(key);
+      setAtPath(currentSchema, keyUpdated, newFieldSchema);
+      return currentSchema;
+    });
+  };
   const updatePropertySettingsSchema = (
     schema: PiecePropertyMap,
     propertyName: string,
-    form: UseFormReturn,
+    form: BuilderForm,
   ) => {
     // previously step settings schema didn't have this property, so we need to set it
     // we can't always set it to MANUAL, because some sub properties might be dynamic and have the same name as the dynamic (parent) property i.e values property in insert row (Google Sheets)

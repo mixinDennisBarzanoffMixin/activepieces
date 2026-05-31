@@ -3,7 +3,8 @@ import {
   ProjectReleaseType,
   Permission,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { useNavigate } from '@solidjs/router';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   ChevronDown,
@@ -16,8 +17,7 @@ import {
   Clock,
   User,
   Database,
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+} from 'lucide-solid';
 
 import { DataTable, RowDataWithActions } from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
@@ -80,16 +80,16 @@ const ProjectReleasesPage = () => {
         return (
           <div className="flex items-center gap-2">
             {isGit ? (
-              <GitBranch className="size-4" />
+              <GitBranch class="size-4" />
             ) : isProject ? (
               <div className="flex items-center gap-2">
-                <FolderOpenDot className="size-4" />
+                <FolderOpenDot class="size-4" />
                 {projects?.find(
                   (project) => project.id === row.original.projectId,
                 )?.displayName ?? t('Project')}
               </div>
             ) : (
-              <RotateCcw className="size-4" />
+              <RotateCcw class="size-4" />
             )}
             {isGit ? 'Git' : isProject ? '' : t('Rollback')}
           </div>
@@ -145,7 +145,7 @@ const ProjectReleasesPage = () => {
                 <ApplyButton
                   onSuccess={refetch}
                   variant="ghost"
-                  className="size-8 p-0"
+                  class="size-8 p-0"
                   request={{
                     projectId: authenticationSession.getProjectId()!,
                     type: ProjectReleaseType.ROLLBACK,
@@ -153,7 +153,7 @@ const ProjectReleasesPage = () => {
                   }}
                   defaultName={row.original.name}
                 >
-                  <Undo2 className="size-4" />
+                  <Undo2 class="size-4" />
                 </ApplyButton>
               </TooltipTrigger>
               <TooltipContent side="bottom">{t('Rollback')}</TooltipContent>
@@ -169,7 +169,7 @@ const ProjectReleasesPage = () => {
       <DataTable
         emptyStateTextTitle={t('No project releases found')}
         emptyStateTextDescription={t('Create a project release to get started')}
-        emptyStateIcon={<Package className="size-14" />}
+        emptyStateIcon={<Package class="size-14" />}
         columns={columns}
         toolbarButtons={[
           <PushEverythingDialog key="push">
@@ -187,39 +187,39 @@ const ProjectReleasesPage = () => {
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button
-                  className="w-full"
+                  class="w-full"
                   disabled={!doesUserHavePermissionToWriteRelease}
                 >
                   {t('Create Release')}
-                  <ChevronDown className="h-3 w-4 ml-2" />
+                  <ChevronDown class="h-3 w-4 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem className="cursor-pointer" asChild>
+                <DropdownMenuItem class="cursor-pointer" asChild>
                   <ApplyButton
                     variant="ghost"
                     onSuccess={refetch}
-                    className="w-full justify-start"
+                    class="w-full justify-start"
                     request={{
                       type: ProjectReleaseType.GIT,
                       projectId: authenticationSession.getProjectId()!,
                     }}
                   >
                     <div className="flex flex-row gap-2 items-center">
-                      <GitBranch className="size-4" />
+                      <GitBranch class="size-4" />
                       <span>{t('From Git')}</span>
                     </div>
                   </ApplyButton>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer" asChild>
+                <DropdownMenuItem class="cursor-pointer" asChild>
                   <SelectionButton
                     variant="ghost"
                     onSuccess={refetch}
-                    className="w-full justify-start"
+                    class="w-full justify-start"
                     ReleaseType={ProjectReleaseType.PROJECT}
                   >
                     <div className="flex flex-row gap-2 items-center">
-                      <FolderOpenDot className="size-4" />
+                      <FolderOpenDot class="size-4" />
                       <span>{t('From Project')}</span>
                     </div>
                   </SelectionButton>

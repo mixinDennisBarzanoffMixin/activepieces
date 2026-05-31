@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { For, Show } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { RightSideBarType } from '@/app/builder/types';
@@ -27,21 +28,27 @@ const FlowVersionsList = () => {
         {t('Version History')}
       </SidebarHeader>
       <CardList>
-        {isLoading && <CardListItemSkeleton numberOfCards={10} />}
-        {isError && <div>{t('Error, please try again.')}</div>}
-        {flowVersionPage && flowVersionPage.data && (
-          <ScrollArea className="w-full h-full">
-            {flowVersionPage.data.map((flowVersion, index) => (
-              <FlowVersionDetailsCard
-                selected={flowVersion.id === selectedFlowVersion?.id}
-                publishedVersionId={flow.publishedVersionId}
-                flowVersion={flowVersion}
-                flowVersionNumber={flowVersionPage.data.length - index}
-                key={flowVersion.id}
-              />
-            ))}
+        <Show when={isLoading()}>
+          <CardListItemSkeleton numberOfCards={10} />
+        </Show>
+        <Show when={isError()}>
+          <div>{t('Error, please try again.')}</div>
+        </Show>
+        <Show when={flowVersionPage && flowVersionPage.data()}>
+          <ScrollArea class="w-full h-full">
+            <For each={flowVersionPage.data}>
+              {(flowVersion, index) => (
+                <FlowVersionDetailsCard
+                  selected={flowVersion.id === selectedFlowVersion?.id}
+                  publishedVersionId={flow.publishedVersionId}
+                  flowVersion={flowVersion}
+                  flowVersionNumber={flowVersionPage.data.length - index}
+                  key={flowVersion.id}
+                />
+              )}
+            </For>
           </ScrollArea>
-        )}
+        </Show>
       </CardList>
     </>
   );

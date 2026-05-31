@@ -1,11 +1,12 @@
-import { DiffReleaseRequest, ProjectReleaseType } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import {
+  DiffReleaseRequest,
+  ProjectReleaseType,
+  ProjectSyncPlan,
+} from '@activepieces/shared';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import { z } from 'zod';
+import { createEffect, createSignal, For, Show } from 'solid-js';
+import { toast } from 'solid-sonner';
 
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Button } from '@/components/ui/button';
@@ -16,18 +17,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { FormField, FormItem, Form, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { projectReleaseApi } from '@/features/project-releases';
 import { projectCollectionUtils } from '@/features/projects';
 
 import { CreateReleaseDialog } from '../create-release-dialog';
-
-const FormSchema = z.object({
-  selectedProject: z.string({ message: t('Please select project') }),
-});
-
-type FormSchema = z.infer<typeof FormSchema>;
 
 type ProjectSelectionDialogProps = {
   projectId: string;
@@ -44,9 +38,21 @@ export function ProjectSelectionDialog({
 }: ProjectSelectionDialogProps) {
   const { data: projects } = projectCollectionUtils.useAll();
   const [isCreateReleaseDialogOpen, setIsCreateReleaseDialogOpen] =
-    useState(false);
-  const [syncPlan, setSyncPlan] = useState<any>(null);
-  const { mutate: loadSyncPlan, isPending: isDoingDiff } = useMutation({
+    createSignal(false);
+  const [syncPlan, setSyncPlan] = createSignal<ProjectSyncPlan>();
+  const [selectedProject, setSelectedProject] = createSignal('');
+  const [error, setError] = createSignal('');
+
+  createEffect(() => {
+    if (!open) {
+      return;
+    }
+    const project = projects?.find((project) => project.id !== projectId);
+    setSelectedProject(project ? project.id : '');
+    setError('');
+  });
+
+  const { mutate: loadSyncPlan, isPending: isDoingDiff } = createMutation({
     mutationFn: (request: DiffReleaseRequest) =>
       projectReleaseApi.diff(request),
     onSuccess: (plan) => {
@@ -65,25 +71,16 @@ export function ProjectSelectionDialog({
     },
   });
 
-  const form = useForm<FormSchema>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      selectedProject: projects?.find((project) => project.id !== projectId)
-        ?.id,
-    },
-  });
-  const onSubmit = (data: FormSchema) => {
-    if (!data.selectedProject) {
-      form.setError('selectedProject', {
-        type: 'required',
-        message: t('Please select a project'),
-      });
+  const submit = (event: SubmitEvent) => {
+    event.preventDefault();
+    if (!selectedProject()) {
+      setError(t('Please select a project'));
       return;
     }
     loadSyncPlan({
       projectId,
       type: ProjectReleaseType.PROJECT,
-      targetProjectId: data.selectedProject,
+      targetProjectId: selectedProject(),
     });
   };
 
@@ -91,80 +88,72 @@ export function ProjectSelectionDialog({
     <>
       <Dialog
         open={open}
-        onOpenChange={(open) => {
-          setOpen(open);
-          if (open) {
-            form.reset();
-          }
-        }}
+        onOpenChange={setOpen}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent class="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{t('Create Release')}</DialogTitle>
           </DialogHeader>
-          <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmit)}
-              className="flex flex-col gap-4"
-            >
-              <FormField
-                control={form.control}
-                name="selectedProject"
-                render={({ field }) => (
-                  <FormItem className="grid gap-2">
-                    <Label>{t('Project')}</Label>
-                    <SearchableSelect
-                      onChange={field.onChange}
-                      value={field.value}
-                      placeholder={t('Search projects...')}
-                      options={(projects ?? [])
-                        .filter((project) => project.id !== projectId)
-                        .map((project) => ({
-                          label: project.displayName,
-                          value: project.id,
-                        }))}
-                    ></SearchableSelect>
-
-                    <FormMessage />
-                  </FormItem>
-                )}
-              ></FormField>
-
-              <DialogFooter>
-                <Button
-                  variant={'outline'}
-                  type="button"
-                  onClick={() => setOpen(false)}
+          <form onSubmit={submit} className="flex flex-col gap-4">
+            <div class="grid gap-2">
+              <Label>{t('Project')}</Label>
+              <SearchableSelect
+                onChange={(value) => {
+                  setSelectedProject(value);
+                  setError('');
+                }}
+                value={selectedProject()}
+                placeholder={t('Search projects...')}
+                options=<For
+                  each={(projects ?? []).filter(
+                    (project) => project.id !== projectId,
+                  )}
                 >
-                  {t('Cancel')}
-                </Button>
-                <Button
-                  type="submit"
-                  onClick={() => form.handleSubmit(onSubmit)}
-                  loading={isDoingDiff}
-                >
-                  {t('Review Changes')}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                  {(project) => ({
+                    label: project.displayName,
+                    value: project.id,
+                  })}
+                </For>
+              ></SearchableSelect>
+              <Show when={error()}>
+                <p class="text-sm font-medium text-destructive wrap-break-word">
+                  {error()}
+                </p>
+              </Show>
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant={'outline'}
+                type="button"
+                onClick={() => setOpen(false)}
+              >
+                {t('Cancel')}
+              </Button>
+              <Button type="submit" loading={isDoingDiff}>
+                {t('Review Changes')}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
 
-      {isCreateReleaseDialogOpen && (
-        <CreateReleaseDialog
-          loading={isDoingDiff}
-          open={isCreateReleaseDialogOpen}
-          setOpen={setIsCreateReleaseDialogOpen}
-          refetch={onSuccess}
-          diffRequest={{
-            projectId,
-            targetProjectId: form.getValues('selectedProject'),
-            type: ProjectReleaseType.PROJECT,
-          }}
-          plan={syncPlan}
-        />
-      )}
+      <Show when={isCreateReleaseDialogOpen() && syncPlan()}>
+        {(plan) => (
+          <CreateReleaseDialog
+            loading={isDoingDiff}
+            open={isCreateReleaseDialogOpen}
+            setOpen={setIsCreateReleaseDialogOpen}
+            refetch={onSuccess}
+            diffRequest={{
+              projectId,
+              targetProjectId: selectedProject(),
+              type: ProjectReleaseType.PROJECT,
+            }}
+            plan={plan()}
+          />
+        )}
+      </Show>
     </>
   );
 }

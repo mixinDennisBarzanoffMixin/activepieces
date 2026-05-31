@@ -5,8 +5,8 @@ import {
   Table,
   UncategorizedFolderId,
 } from '@activepieces/shared';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from '@solidjs/router';
+import { createMutation, useQueryClient } from '@tanstack/solid-query';
 
 import { authenticationSession } from '@/lib/authentication-session';
 import { NEW_TABLE_QUERY_PARAM } from '@/lib/route-utils';
@@ -20,7 +20,7 @@ const queryKeys = (searchParams: URLSearchParams, projectId: string) => {
 };
 export const tableMutations = {
   useRenameTable: ({ onSuccess }: { onSuccess: () => void }) => {
-    return useMutation({
+    return createMutation({
       mutationFn: async ({
         tableId,
         name,
@@ -65,7 +65,7 @@ export const tableHooks = {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
-    return useMutation({
+    return createMutation({
       mutationFn: async (data: { name: string }) => {
         return tableHooks.createTableWithDefaults({
           name: data.name,

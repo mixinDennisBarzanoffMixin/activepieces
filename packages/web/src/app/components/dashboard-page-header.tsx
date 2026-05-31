@@ -5,16 +5,16 @@ export const DashboardPageHeader = ({
   children,
   description,
 }: {
-  title: React.ReactNode;
-  children?: React.ReactNode;
-  description?: React.ReactNode;
+  title: JSX.Element;
+  children?: JSX.Element;
+  description?: JSX.Element;
 }) => {
   return (
     <PageHeader
       title={title}
       description={description}
       rightContent={children}
-      className="min-w-full"
+      class="min-w-full"
     />
   );
 };

@@ -1,17 +1,17 @@
 import { isNil } from '@activepieces/shared';
-import { Navigate } from 'react-router-dom';
 
 import { authenticationSession } from '../../lib/authentication-session';
 
 export default function ProjectSettingsLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: JSX.Element;
 }) {
   const currentProjectId = authenticationSession.getProjectId();
 
   if (isNil(currentProjectId)) {
-    return <Navigate to="/sign-in" replace />;
+    window.location.replace('/sign-in');
+    return null;
   }
 
   return <div className="w-full">{children}</div>;

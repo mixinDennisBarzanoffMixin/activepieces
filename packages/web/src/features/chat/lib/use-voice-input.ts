@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { createEffect, createSignal } from 'solid-js';
 
 interface SpeechRecognitionResult {
   isFinal: boolean;
@@ -101,26 +101,26 @@ function useVoiceInput({
   onInterim: (text: string) => void;
   onError: (message: string) => void;
 }) {
-  const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
-  const accumulatedTranscriptRef = useRef('');
-  const isCancellingRef = useRef(false);
+  const [isRecording, setIsRecording] = createSignal(false);
+  const recognitionRef = null;
+  const accumulatedTranscriptRef = '';
+  const isCancellingRef = false;
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = () => {
     if (recognitionRef.current) {
       isCancellingRef.current = false;
       recognitionRef.current.stop();
     }
-  }, []);
+  };
 
-  const cancelRecording = useCallback(() => {
+  const cancelRecording = () => {
     if (recognitionRef.current) {
       isCancellingRef.current = true;
       recognitionRef.current.stop();
     }
-  }, []);
+  };
 
-  const startRecording = useCallback(() => {
+  const startRecording = () => {
     if (!speechRecognitionConstructor) {
       onError('Voice input is not available in this browser.');
       return;
@@ -172,16 +172,16 @@ function useVoiceInput({
     recognition.start();
     playStartSound();
     setIsRecording(true);
-  }, [onTranscript, onInterim, onError]);
+  };
 
-  useEffect(() => {
+  createEffect(() => {
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
         recognitionRef.current = null;
       }
     };
-  }, []);
+  });
 
   return {
     isRecording,

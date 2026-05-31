@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Trash } from 'lucide-react';
+import { Trash } from 'lucide-solid';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { Button } from '@/components/ui/button';
@@ -43,8 +43,8 @@ export const DeleteUserAction = ({
               onDelete(isInvitation ? row.id : row.data.id, isInvitation);
             }}
           >
-            <Button loading={isDeleting} variant="ghost" className="size-8 p-0">
-              <Trash className="size-4 text-destructive" />
+            <Button loading={isDeleting} variant="ghost" class="size-8 p-0">
+              <Trash class="size-4 text-destructive" />
             </Button>
           </ConfirmationDeleteDialog>
         </TooltipTrigger>

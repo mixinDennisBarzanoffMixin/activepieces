@@ -3,7 +3,8 @@ import {
   PlanStepUpdate,
   ToolApprovalRequest,
 } from '@activepieces/shared';
-import { StoreApi, create } from 'zustand';
+import { createWithStore } from 'solid-zustand';
+import type { StoreApi } from 'zustand/vanilla';
 
 import { chatApi } from './chat-api';
 import { MultiQuestion, PlanProgressData } from './chat-store-types';
@@ -88,7 +89,7 @@ export type ChatStoreState = {
 export type ChatStore = ReturnType<typeof createChatStore>;
 
 export const createChatStore = () =>
-  create<ChatStoreState>((set, get) => ({
+  createWithStore<ChatStoreState>((set, get) => ({
     pendingApprovalRequest: null,
     pendingPlanApproval: null,
     planProgressUpdates: [],

@@ -6,7 +6,7 @@ import {
   PredefinedInputsStructure,
   mcpToolNameUtils,
 } from '@activepieces/shared';
-import { create } from 'zustand';
+import { createWithStore } from 'solid-zustand';
 
 import { PieceStepMetadataWithSuggestions } from '@/features/pieces/types';
 
@@ -57,7 +57,7 @@ const initialState = {
   editingPieceTool: undefined,
 };
 
-export const usePieceToolsDialogStore = create<PiecesToolDialogsState>(
+export const usePieceToolsDialogStore = createWithStore<PiecesToolDialogsState>(
   (set, get) => ({
     ...initialState,
 

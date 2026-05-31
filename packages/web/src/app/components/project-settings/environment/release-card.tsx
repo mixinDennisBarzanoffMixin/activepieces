@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Package } from 'lucide-react';
+import { Package } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,10 +10,10 @@ const ReleaseCard = () => {
   const { project } = projectCollectionUtils.useCurrentProject();
 
   return (
-    <Card className="w-full px-4 py-4">
+    <Card class="w-full px-4 py-4">
       <div className="flex w-full gap-2 justify-center items-center">
         <div className="flex flex-col gap-2 text-center mr-2">
-          <Package className="size-8" />
+          <Package class="size-8" />
         </div>
         <div className="flex grow flex-col">
           <div className="text-lg">{t('Releases')}</div>
@@ -29,7 +29,7 @@ const ReleaseCard = () => {
                 releasesEnabled: !project.releasesEnabled,
               })
             }
-            className={cn('', {
+            class={cn('', {
               'text-destructive': project.releasesEnabled,
             })}
           >
@@ -40,6 +40,4 @@ const ReleaseCard = () => {
     </Card>
   );
 };
-
-ReleaseCard.displayName = 'ReleaseCard';
 export { ReleaseCard };

@@ -5,7 +5,8 @@ import {
   Permission,
   PlatformRole,
 } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { useLocation, useNavigate } from '@solidjs/router';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   CheckIcon,
@@ -15,9 +16,8 @@ import {
   Activity,
   Workflow,
   Puzzle,
-} from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+} from 'lucide-solid';
+import { createMemo, createSignal, Show } from 'solid-js';
 
 import { NewConnectionDialog } from '@/app/connections/new-connection-dialog';
 import { ReconnectButtonDialog } from '@/app/connections/reconnect-button-dialog';
@@ -62,11 +62,11 @@ import { formatUtils } from '@/lib/format-utils';
 
 function AppConnectionsPage() {
   const navigate = useNavigate();
-  const [refresh, setRefresh] = useState(0);
-  const [selectedRows, setSelectedRows] = useState<
+  const [refresh, setRefresh] = createSignal(0);
+  const [selectedRows, setSelectedRows] = createSignal<
     Array<AppConnectionWithoutSensitiveData>
   >([]);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = createSignal(false);
   const { checkAccess } = useAuthorization();
   const userPlatformRole = userHooks.getCurrentUserPlatformRole();
   const location = useLocation();
@@ -106,7 +106,7 @@ function AppConnectionsPage() {
   const { mutateAsync: deleteConnections } =
     appConnectionsMutations.useBulkDeleteAppConnections(refetch);
 
-  const filteredData = useMemo(() => {
+  const filteredData = createMemo(() => {
     if (!connections?.data) return undefined;
     const searchParams = new URLSearchParams(location.search);
     const ownerEmails = searchParams.getAll('owner');
@@ -120,7 +120,7 @@ function AppConnectionsPage() {
       next: connections.next,
       previous: connections.previous,
     };
-  }, [connections, location.search]);
+  });
 
   const userHasPermissionToWriteAppConnection = checkAccess(
     Permission.WRITE_APP_CONNECTION,
@@ -193,10 +193,10 @@ function AppConnectionsPage() {
                   </span>
                 </div>
               </CopyTextTooltip>
-              {isPlatformConnection && (
+              <Show when={isPlatformConnection}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Globe className="w-4 h-4 shrink-0" />
+                    <Globe class="w-4 h-4 shrink-0" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
@@ -206,7 +206,7 @@ function AppConnectionsPage() {
                     </p>
                   </TooltipContent>
                 </Tooltip>
-              )}
+              </Show>
             </div>
           );
         },
@@ -290,7 +290,23 @@ function AppConnectionsPage() {
             : userHasPermissionToWriteAppConnection;
           return (
             <div className="flex items-center gap-2 justify-end">
-              {row.original.scope === AppConnectionScope.PROJECT ? (
+              <Show
+                when={row.original.scope === AppConnectionScope.PROJECT}
+                fallback={
+                  <EditGlobalConnectionDialog
+                    connectionId={row.original.id}
+                    currentName={row.original.displayName}
+                    projectIds={row.original.projectIds}
+                    userHasPermissionToEdit={userHasPermissionToRename}
+                    onEdit={() => {
+                      refetch();
+                    }}
+                    preSelectForNewProjects={
+                      row.original.preSelectForNewProjects ?? false
+                    }
+                  />
+                }
+              >
                 <RenameConnectionDialog
                   connectionId={row.original.id}
                   currentName={row.original.displayName}
@@ -299,20 +315,7 @@ function AppConnectionsPage() {
                   }}
                   userHasPermissionToRename={userHasPermissionToRename}
                 />
-              ) : (
-                <EditGlobalConnectionDialog
-                  connectionId={row.original.id}
-                  currentName={row.original.displayName}
-                  projectIds={row.original.projectIds}
-                  userHasPermissionToEdit={userHasPermissionToRename}
-                  onEdit={() => {
-                    refetch();
-                  }}
-                  preSelectForNewProjects={
-                    row.original.preSelectForNewProjects ?? false
-                  }
-                />
-              )}
+              </Show>
               <ReconnectButtonDialog
                 hasPermission={userHasPermissionToRename}
                 connection={row.original}
@@ -328,13 +331,13 @@ function AppConnectionsPage() {
     4,
   );
 
-  const bulkActions: BulkAction<AppConnectionWithoutSensitiveData>[] = useMemo(
-    () => [
+  const bulkActions: BulkAction<AppConnectionWithoutSensitiveData>[] =
+    createMemo(() => [
       {
         render: (_, resetSelection) => {
           return (
             <>
-              {selectedRows.length > 0 && (
+              <Show when={selectedRows.length > 0}>
                 <ConfirmationDeleteDialog
                   title={t('Delete Connections')}
                   message={t(
@@ -356,69 +359,64 @@ function AppConnectionsPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-destructive hover:text-destructive"
+                    class="text-destructive hover:text-destructive"
                     onClick={() => setShowDeleteDialog(true)}
                   >
-                    <Trash2 className="h-4 w-4 mr-1" />
+                    <Trash2 class="h-4 w-4 mr-1" />
                     {t('Delete')} ({selectedRows.length})
                   </Button>
                 </ConfirmationDeleteDialog>
-              )}
+              </Show>
             </>
           );
         },
       },
-    ],
-    [selectedRows, showDeleteDialog],
-  );
+    ]);
 
-  const toolbarButtons = useMemo(
-    () => [
-      <PermissionNeededTooltip
-        key="replace"
-        hasPermission={userHasPermissionToWriteAppConnection}
+  const toolbarButtons = createMemo(() => [
+    <PermissionNeededTooltip
+      key="replace"
+      hasPermission={userHasPermissionToWriteAppConnection}
+    >
+      <ReplaceConnectionsDialog
+        projectId={projectId}
+        onConnectionMerged={() => {
+          setRefresh(refresh + 1);
+          refetch();
+        }}
       >
-        <ReplaceConnectionsDialog
-          projectId={projectId}
-          onConnectionMerged={() => {
-            setRefresh(refresh + 1);
-            refetch();
-          }}
+        <AnimatedIconButton
+          icon={ReplaceIcon}
+          iconSize={16}
+          variant="outline"
+          disabled={!userHasPermissionToWriteAppConnection}
         >
-          <AnimatedIconButton
-            icon={ReplaceIcon}
-            iconSize={16}
-            variant="outline"
-            disabled={!userHasPermissionToWriteAppConnection}
-          >
-            {t('Replace')}
-          </AnimatedIconButton>
-        </ReplaceConnectionsDialog>
-      </PermissionNeededTooltip>,
-      <PermissionNeededTooltip
-        key="new"
-        hasPermission={userHasPermissionToWriteAppConnection}
+          {t('Replace')}
+        </AnimatedIconButton>
+      </ReplaceConnectionsDialog>
+    </PermissionNeededTooltip>,
+    <PermissionNeededTooltip
+      key="new"
+      hasPermission={userHasPermissionToWriteAppConnection}
+    >
+      <NewConnectionDialog
+        isGlobalConnection={false}
+        onConnectionCreated={() => {
+          setRefresh(refresh + 1);
+          refetch();
+        }}
       >
-        <NewConnectionDialog
-          isGlobalConnection={false}
-          onConnectionCreated={() => {
-            setRefresh(refresh + 1);
-            refetch();
-          }}
+        <AnimatedIconButton
+          icon={PlusIcon}
+          iconSize={16}
+          size="sm"
+          disabled={!userHasPermissionToWriteAppConnection}
         >
-          <AnimatedIconButton
-            icon={PlusIcon}
-            iconSize={16}
-            size="sm"
-            disabled={!userHasPermissionToWriteAppConnection}
-          >
-            {t('New Connection')}
-          </AnimatedIconButton>
-        </NewConnectionDialog>
-      </PermissionNeededTooltip>,
-    ],
-    [userHasPermissionToWriteAppConnection, refresh],
-  );
+          {t('New Connection')}
+        </AnimatedIconButton>
+      </NewConnectionDialog>
+    </PermissionNeededTooltip>,
+  ]);
   return (
     <div className="flex-col w-full">
       <DataTable
@@ -426,7 +424,7 @@ function AppConnectionsPage() {
         emptyStateTextDescription={t(
           'Come back later when you create a automation to manage your connections',
         )}
-        emptyStateIcon={<Globe className="size-14" />}
+        emptyStateIcon={<Globe class="size-14" />}
         columns={columns}
         page={filteredData}
         isLoading={connectionsLoading}

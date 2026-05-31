@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,7 +33,7 @@ export function TimeSavedFilterContent({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1.5">
-        <Label className="text-sm text-muted-foreground">{t('Minimum')}</Label>
+        <Label class="text-sm text-muted-foreground">{t('Minimum')}</Label>
         <div className="relative">
           <Input
             type="number"
@@ -40,7 +41,7 @@ export function TimeSavedFilterContent({
             placeholder="0"
             value={draftMin}
             onChange={(e) => onMinChange(e.target.value)}
-            className="pr-12"
+            class="pr-12"
           />
           <button
             type="button"
@@ -53,7 +54,7 @@ export function TimeSavedFilterContent({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label className="text-sm text-muted-foreground">{t('Maximum')}</Label>
+        <Label class="text-sm text-muted-foreground">{t('Maximum')}</Label>
         <div className="relative">
           <Input
             type="number"
@@ -61,9 +62,9 @@ export function TimeSavedFilterContent({
             placeholder="∞"
             value={draftMax}
             onChange={(e) => onMaxChange(e.target.value)}
-            className={draftMax ? 'pr-12' : ''}
+            class={draftMax ? 'pr-12' : ''}
           />
-          {draftMax && (
+          <Show when={draftMax}>
             <button
               type="button"
               onClick={onCycleUnitMax}
@@ -71,11 +72,11 @@ export function TimeSavedFilterContent({
             >
               {unitMax}
             </button>
-          )}
+          </Show>
         </div>
       </div>
 
-      <Button onClick={onApply} className="w-full mt-1">
+      <Button onClick={onApply} class="w-full mt-1">
         {t('Apply')}
       </Button>
     </div>

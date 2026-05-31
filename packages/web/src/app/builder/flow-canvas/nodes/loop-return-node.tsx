@@ -1,4 +1,4 @@
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position } from '../solid-flow-adapter';
 
 import { flowCanvasConsts } from '../utils/consts';
 

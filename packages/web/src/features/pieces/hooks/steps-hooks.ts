@@ -6,8 +6,8 @@ import {
   SuggestionType,
   FlowTrigger,
 } from '@activepieces/shared';
-import { useQueries, useQuery } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { createQueries, createQuery } from '@tanstack/solid-query';
+import i18n from 'i18next';
 
 import { authenticationSession } from '@/lib/authentication-session';
 
@@ -24,8 +24,7 @@ import {
 
 export const stepsHooks = {
   useStepMetadata: ({ step }: UseStepMetadata) => {
-    const { i18n } = useTranslation();
-    const query = useQuery<
+    const query = createQuery<
       StepMetadataWithActionOrTriggerOrAgentDisplayName,
       Error
     >({
@@ -38,8 +37,7 @@ export const stepsHooks = {
     };
   },
   useStepsMetadata: (props: (FlowAction | FlowTrigger)[]) => {
-    const { i18n } = useTranslation();
-    return useQueries({
+    return createQueries(() => ({
       queries: props.map((step) => {
         return {
           queryKey: getQueryKeyForStepMetadata(
@@ -51,11 +49,10 @@ export const stepsHooks = {
           staleTime: Infinity,
         };
       }),
-    });
+    }));
   },
   useAllStepsMetadata: ({ searchQuery, type, enabled }: UseMetadataProps) => {
-    const { i18n } = useTranslation();
-    const query = useQuery<StepMetadataWithSuggestions[], Error>({
+    const query = createQuery<StepMetadataWithSuggestions[], Error>({
       queryKey: ['pieces-metadata', searchQuery, type],
       queryFn: async () => {
         const pieces = await piecesApi.list({

@@ -1,5 +1,4 @@
-import { createContext, useContext, useState } from 'react';
-
+import { createContext, createSignal, useContext } from 'solid-js';
 import { StepMetadataWithSuggestions } from '@/features/pieces/types';
 
 export enum PieceSelectorTabType {
@@ -24,15 +23,15 @@ export const PieceSelectorTabsProvider = ({
   onTabChange,
   initiallySelectedTab,
 }: {
-  children: React.ReactNode;
+  children;
   onTabChange: (tab: PieceSelectorTabType) => void;
   initiallySelectedTab: PieceSelectorTabType;
 }) => {
-  const [selectedTab, setSelectedTab] = useState(initiallySelectedTab);
+  const [selectedTab, setSelectedTab] = createSignal(initiallySelectedTab);
   const [lastTabBefroeNoneWasSelected, setLastTabBeforeNoneWasSelected] =
-    useState(initiallySelectedTab);
+    createSignal(initiallySelectedTab);
   const [selectedPieceInExplore, setSelectedPieceInExplore] =
-    useState<StepMetadataWithSuggestions | null>(null);
+    createSignal<StepMetadataWithSuggestions | null>(null);
   return (
     <PieceSelectorTabsContext.Provider
       value={{

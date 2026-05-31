@@ -13,7 +13,7 @@ export enum ContextMenuType {
   STEP = 'STEP',
 }
 export type CanvasContextMenuProps = {
-  children?: React.ReactNode;
+  children?: any;
   contextMenuType: ContextMenuType;
 };
 export const CanvasContextMenu = ({

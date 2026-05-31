@@ -1,6 +1,6 @@
-import { ChevronRightIcon } from 'lucide-react';
-import React, { ComponentType, useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@solidjs/router';
+import { ChevronRightIcon } from 'lucide-solid';
+import { Component, Show, For } from 'solid-js';
 
 import {
   Collapsible,
@@ -21,7 +21,7 @@ export type SidebarGeneralItemType = SidebarItemType | SidebarGroupType;
 export type SidebarGroupType = {
   name?: string;
   label: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: Component<any>;
   items: SidebarItemType[];
   type: 'group';
   open: boolean;
@@ -31,59 +31,61 @@ export type SidebarGroupType = {
 
 export function ApSidebareGroup(item: SidebarGroupType) {
   const location = useLocation();
-  const iconRef = useRef<AnimatedIconHandle | null>(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const iconRef = undefined;
+  const [isHovered, setIsHovered] = createSignal(false);
 
-  useEffect(() => {
-    if (isHovered) {
-      iconRef.current?.startAnimation?.();
+  createEffect(() => {
+    if (isHovered()) {
+      iconRef?.startAnimation?.();
     } else {
-      iconRef.current?.stopAnimation?.();
+      iconRef?.stopAnimation?.();
     }
-  }, [isHovered]);
+  });
 
   return (
     <Collapsible
       defaultOpen={item.isActive?.(location.pathname)}
-      className="group/collapsible"
+      class="group/collapsible"
       onOpenChange={(open) => item.setOpen(open)}
     >
       <SidebarMenuItem>
         <CollapsibleTrigger asChild>
           <SidebarMenuButton
-            className="px-2 mb-1 py-5"
+            class="px-2 mb-1 py-5"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
             {item.icon && renderIcon(item.icon, iconRef)}
             <span>{item.label}</span>
             <ChevronRightIcon
-              className={`${item.open && 'rotate-90'} ml-auto duration-150`}
+              class={`${item.open && 'rotate-90'} ml-auto duration-150`}
             />
           </SidebarMenuButton>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
           <SidebarMenuSub>
-            {item.items.map(
-              (link, index) =>
-                link.show && (
-                  <SidebarMenuSubItem key={link.label}>
-                    <SidebarMenuButton asChild>
-                      <ApSidebarItem
-                        to={link.to}
-                        label={link.label}
-                        icon={link.icon}
-                        key={index}
-                        notification={link.notification}
-                        locked={link.locked}
-                        isActive={link.isActive}
-                        type={link.type}
-                      />
-                    </SidebarMenuButton>
-                  </SidebarMenuSubItem>
-                ),
-            )}
+            {
+              <For each={item.items}>
+                {(link, index) => (
+                  <Show when={link.show}>
+                    <SidebarMenuSubItem>
+                      <SidebarMenuButton asChild>
+                        <ApSidebarItem
+                          href={link.to}
+                          label={link.label}
+                          icon={link.icon}
+                          notification={link.notification}
+                          locked={link.locked}
+                          isActive={link.isActive}
+                          type={link.type}
+                        />
+                      </SidebarMenuButton>
+                    </SidebarMenuSubItem>
+                  </Show>
+                )}
+              </For>
+            }
           </SidebarMenuSub>
         </CollapsibleContent>
       </SidebarMenuItem>
@@ -91,14 +93,8 @@ export function ApSidebareGroup(item: SidebarGroupType) {
   );
 }
 
-function renderIcon(
-  Icon: ComponentType<{ className?: string }>,
-  ref: React.RefObject<AnimatedIconHandle | null>,
-) {
-  return React.createElement(Icon, {
-    className: 'size-4 pointer-events-none',
-    ref,
-  } as { className: string });
+function renderIcon(Icon: Component<any>, ref: any) {
+  return <Icon class={'size-4 pointer-events-none'} ref={(el) => (ref = el)} />;
 }
 
 type AnimatedIconHandle = {

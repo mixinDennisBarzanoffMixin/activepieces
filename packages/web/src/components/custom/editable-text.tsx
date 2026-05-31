@@ -1,5 +1,5 @@
 import { isNil } from '@activepieces/shared';
-import { useState, useRef, useCallback } from 'react';
+import { createSignal } from 'solid-js';
 
 import {
   Tooltip,
@@ -28,110 +28,110 @@ const EditableText = ({
   isEditing,
   setIsEditing,
 }: EditableTextProps) => {
-  const [value, setValue] = useState(initialValue);
-  const isEditingPreviousRef = useRef(false);
-  const valueOnEditingStartedRef = useRef(initialValue);
+  const [value, setValue] = createSignal(initialValue);
+  let isEditingPreviousRef = false;
+  let valueOnEditingStartedRef = initialValue;
 
-  if (value !== initialValue) {
+  if (value() !== initialValue) {
     setValue(initialValue);
   }
-  const editableTextRef = useRef<HTMLDivElement>(null);
+  let editableTextRef: HTMLDivElement | undefined;
 
-  const emitChangedValue = useCallback(() => {
-    const nodeValue = (editableTextRef.current?.textContent ?? '').trim();
+  const emitChangedValue = () => {
+    const nodeValue = (editableTextRef?.textContent ?? '').trim();
     const shouldUpdateValue =
-      nodeValue.length > 0 && nodeValue !== valueOnEditingStartedRef.current;
+      nodeValue.length > 0 && nodeValue !== valueOnEditingStartedRef;
 
-    setValue(shouldUpdateValue ? nodeValue : valueOnEditingStartedRef.current);
+    setValue(shouldUpdateValue ? nodeValue : valueOnEditingStartedRef);
     if (shouldUpdateValue) {
       onValueChange(nodeValue);
     }
-  }, [onValueChange, valueOnEditingStartedRef.current]);
+  };
 
   const setSelectionToValue = () => {
     requestAnimationFrame(() => {
-      if (
-        editableTextRef.current &&
-        window.getSelection &&
-        document.createRange
-      ) {
+      if (editableTextRef && window.getSelection && document.createRange) {
         const range = document.createRange();
         const sel = window.getSelection();
-        range.selectNodeContents(editableTextRef.current);
+        range.selectNodeContents(editableTextRef);
         sel?.removeAllRanges();
         sel?.addRange(range);
       }
     });
   };
 
-  if (isEditing && !isEditingPreviousRef.current) {
-    valueOnEditingStartedRef.current = value ? value.trim() : '';
+  if (isEditing && !isEditingPreviousRef) {
+    valueOnEditingStartedRef = value() ? value().trim() : '';
 
     setSelectionToValue();
   }
-  isEditingPreviousRef.current = isEditing;
+  isEditingPreviousRef = isEditing;
 
-  return !isEditing ? (
-    <Tooltip>
-      <TooltipTrigger
-        disabled={
-          readonly ||
-          isEditing ||
-          disallowEditingOnClick ||
-          isNil(tooltipContent)
-        }
-        asChild
-      >
+  return (
+    <Show
+      when={!isEditing}
+      fallback={
         <div
-          onClick={() => {
-            if (!isEditing && !readonly && !disallowEditingOnClick) {
-              setIsEditing(true);
+          key={'editable'}
+          ref={(el) => (editableTextRef = el)}
+          contentEditable
+          suppressContentEditableWarning={true}
+          className={`${className}  focus:outline-hidden break-all`}
+          onBlur={() => {
+            emitChangedValue();
+            setIsEditing(false);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              setValue(valueOnEditingStartedRef);
+              setIsEditing(false);
+            } else if (event.key === 'Enter') {
+              emitChangedValue();
+              setIsEditing(false);
             }
           }}
-          ref={editableTextRef}
-          key={'viewed'}
-          className={`${className} truncate `}
-          title={
-            editableTextRef.current &&
-            editableTextRef.current.scrollWidth >
-              editableTextRef.current.clientWidth &&
-            value
-              ? value
-              : ''
-          }
         >
-          {value}
+          {value()}
         </div>
-      </TooltipTrigger>
-      {tooltipContent && (
-        <TooltipContent className="font-normal z-50" side="bottom">
-          {tooltipContent}
-        </TooltipContent>
-      )}
-    </Tooltip>
-  ) : (
-    <div
-      key={'editable'}
-      ref={editableTextRef}
-      contentEditable
-      suppressContentEditableWarning={true}
-      className={`${className}  focus:outline-hidden break-all`}
-      onBlur={() => {
-        emitChangedValue();
-        setIsEditing(false);
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape') {
-          setValue(valueOnEditingStartedRef.current);
-          setIsEditing(false);
-        } else if (event.key === 'Enter') {
-          emitChangedValue();
-          setIsEditing(false);
-        }
-      }}
+      }
     >
-      {value}
-    </div>
+      <Tooltip>
+        <TooltipTrigger
+          disabled={
+            readonly ||
+            isEditing ||
+            disallowEditingOnClick ||
+            isNil(tooltipContent)
+          }
+          asChild
+        >
+          <div
+            onClick={() => {
+              if (!isEditing && !readonly && !disallowEditingOnClick) {
+                setIsEditing(true);
+              }
+            }}
+            ref={(el) => (editableTextRef = el)}
+            key={'viewed'}
+            className={`${className} truncate `}
+            title={
+              editableTextRef &&
+              editableTextRef.scrollWidth > editableTextRef.clientWidth &&
+              value()
+                ? value()
+                : ''
+            }
+          >
+            {value()}
+          </div>
+        </TooltipTrigger>
+        <Show when={tooltipContent}>
+          <TooltipContent class="font-normal z-50" side="bottom">
+            {tooltipContent}
+          </TooltipContent>
+        </Show>
+      </Tooltip>
+    </Show>
   );
 };
 

@@ -1,15 +1,7 @@
 import { t } from 'i18next';
-import { useContext } from 'react';
-import { FieldErrors, useForm } from 'react-hook-form';
+import { createSignal, Show, useContext } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 
 import { FieldHeaderContext } from '../utils/utils';
@@ -21,75 +13,58 @@ const RenameFieldPopoverContent = ({ name }: { name: string }) => {
     state.fields,
     state.renameField,
   ]);
-  const form = useForm<{ name: string }>({
-    reValidateMode: 'onChange',
-    defaultValues: {
-      name: name,
-    },
-    resolver: (values) => {
-      const errors: FieldErrors<{ name: string }> = {};
-      if (values.name.trim().length === 0) {
-        errors.name = {
-          message: t('Name is required'),
-          type: 'required',
-        };
-      }
-      if (
-        fields.find(
-          (field) =>
-            field.name.trim().toLowerCase() ===
-              values.name.trim().toLowerCase() &&
-            field.name.trim().toLowerCase() !== name.trim().toLowerCase(),
-        )
-      ) {
-        errors.name = {
-          message: t('Name is already taken'),
-          type: 'unique',
-        };
-      }
-
-      return {
-        errors,
-        values: Object.keys(errors).length > 0 ? {} : values,
-      };
-    },
-  });
+  const [value, setValue] = createSignal(name);
+  const [error, setError] = createSignal('');
   const fieldHeaderContext = useContext(FieldHeaderContext);
   if (!fieldHeaderContext) {
     console.error('FieldHeaderContext not found');
     return null;
   }
 
-  const onSubmit = (data: { name: string }) => {
-    renameField(fieldHeaderContext.field.index, data.name);
+  const submit = (event: SubmitEvent) => {
+    event.preventDefault();
+    if (value().trim().length === 0) {
+      setError(t('Name is required'));
+      return;
+    }
+    if (
+      fields.find(
+        (field) =>
+          field.name.trim().toLowerCase() === value().trim().toLowerCase() &&
+          field.name.trim().toLowerCase() !== name.trim().toLowerCase(),
+      )
+    ) {
+      setError(t('Name is already taken'));
+      return;
+    }
+
+    renameField(fieldHeaderContext.field.index, value());
     fieldHeaderContext.setIsPopoverOpen(false);
   };
 
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-2 w-full"
-      >
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormControl>
-                <Input thin={true} {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+    <form onSubmit={submit} className="flex flex-col gap-2 w-full">
+      <div class="space-y-1">
+        <Input
+          thin={true}
+          value={value()}
+          onInput={(event) => {
+            setValue(event.currentTarget.value);
+            setError('');
+          }}
         />
-        <div className="flex justify-end">
-          <Button type="submit" size="sm">
-            {t('Rename')}
-          </Button>
-        </div>
-      </form>
-    </Form>
+        <Show when={error()}>
+          <p class="text-sm font-medium text-destructive wrap-break-word">
+            {error()}
+          </p>
+        </Show>
+      </div>
+      <div className="flex justify-end">
+        <Button type="submit" size="sm">
+          {t('Rename')}
+        </Button>
+      </div>
+    </form>
   );
 };
 

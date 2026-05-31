@@ -1,7 +1,7 @@
 import { ProjectWithLimits } from '@activepieces/shared';
 import { t } from 'i18next';
-import { BellMinus, BellPlus } from 'lucide-react';
-import { useState } from 'react';
+import { BellMinus, BellPlus } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,7 +20,8 @@ export const PlatformAdminProjectAlertSubscriptionBulkActions = ({
   resetSelection,
 }: PlatformAdminProjectAlertSubscriptionBulkActionsProps) => {
   const { data: currentUser } = userHooks.useCurrentUser();
-  const [confirmUnsubscribeOpen, setConfirmUnsubscribeOpen] = useState(false);
+  const [confirmUnsubscribeOpen, setConfirmUnsubscribeOpen] =
+    createSignal(false);
 
   const { mutate: subscribe, isPending: isSubscribing } =
     alertMutations.useBulkSubscribeAlerts();
@@ -53,7 +54,7 @@ export const PlatformAdminProjectAlertSubscriptionBulkActions = ({
         disabled={isRunning}
         onClick={handleSubscribe}
       >
-        <BellPlus className="mr-1 w-4" />
+        <BellPlus class="mr-1 w-4" />
         {t('Subscribe to alerts')}
       </Button>
       <Button
@@ -62,7 +63,7 @@ export const PlatformAdminProjectAlertSubscriptionBulkActions = ({
         disabled={isRunning}
         onClick={() => setConfirmUnsubscribeOpen(true)}
       >
-        <BellMinus className="mr-1 w-4" />
+        <BellMinus class="mr-1 w-4" />
         {t('Unsubscribe from alerts')}
       </Button>
 

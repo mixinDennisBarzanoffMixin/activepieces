@@ -1,9 +1,8 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createForm, zodForm } from '@modular-forms/solid';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { Show, createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -18,11 +17,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  Form,
   FormDescription,
-  FormField,
-  FormItem,
-  FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,7 +28,7 @@ const formSchema = z.object({
 });
 
 type AddNpmDialogProps = {
-  children: React.ReactNode;
+  children: any;
   onAdd: ({
     packageName,
     packageVersion,
@@ -43,15 +38,18 @@ type AddNpmDialogProps = {
   }) => void;
 };
 const AddNpmDialog = ({ children, onAdd }: AddNpmDialogProps) => {
-  const [open, setOpen] = useState(false);
-  const form = useForm<z.infer<typeof formSchema>>({
-    defaultValues: {},
-    resolver: zodResolver(formSchema),
+  const [open, setOpen] = createSignal(false);
+  const [error, setError] = createSignal('');
+  const [form, { Form, Field }] = createForm<z.infer<typeof formSchema>>({
+    initialValues: {
+      packageName: '',
+    },
+    validate: zodForm(formSchema),
   });
 
-  const { mutate, isPending } = useMutation({
-    mutationFn: async () => {
-      const { packageName } = form.getValues();
+  const { mutate, isPending } = createMutation(() => ({
+    mutationFn: async (data: z.infer<typeof formSchema>) => {
+      const { packageName } = data;
       const response = await api.get<{ 'dist-tags': { latest: string } }>(
         `https://registry.npmjs.org/${packageName}`,
       );
@@ -68,53 +66,54 @@ const AddNpmDialog = ({ children, onAdd }: AddNpmDialogProps) => {
       });
     },
     onError: () => {
-      form.setError('root.serverError', {
-        message: t('Could not fetch package version'),
-      });
+      setError(t('Could not fetch package version'));
     },
-  });
+  }));
 
   return (
     <Dialog open={open} onOpenChange={(open) => setOpen(open)}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent class="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{t('Add NPM Package')}</DialogTitle>
           <DialogDescription>
             {t('Type the name of the npm package you want to add.')}
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form
-            onSubmit={(e) => form.handleSubmit(() => mutate())(e)}
-            className="flex flex-col gap-4"
-          >
-            <FormField
-              control={form.control}
+        <Form
+          onSubmit={(data) => mutate(data)}
+          class="flex flex-col gap-4"
+        >
+            <Field
               name="packageName"
-              render={({ field }) => (
-                <FormItem>
-                  <Label htmlFor="packageName">{t('Package Name')}</Label>
+            >
+              {(field, props) => (
+                <div class="space-y-1">
+                  <Label for="packageName">{t('Package Name')}</Label>
                   <Input
-                    {...field}
+                    {...props}
+                    value={field.value ?? ''}
                     id="packageName"
                     type="text"
                     placeholder="hello-world"
-                    className="rounded-sm"
+                    class="rounded-sm"
                   />
-                  <FormMessage />
-                </FormItem>
+                  <Show when={field.error}>
+                    <p class="text-sm font-medium text-destructive wrap-break-word">
+                      {t(field.error)}
+                    </p>
+                  </Show>
+                </div>
               )}
-            />
+            </Field>
             <FormDescription>
               {t('The latest version will be fetched and added')}
             </FormDescription>
-            {form?.formState?.errors?.root?.serverError && (
-              <FormMessage>
-                {form.formState.errors.root.serverError.message}
-              </FormMessage>
-            )}
-          </form>
+            <Show when={error()}>
+              <p class="text-sm font-medium text-destructive wrap-break-word">
+                {error()}
+              </p>
+            </Show>
         </Form>
         <DialogFooter>
           <DialogClose asChild>
@@ -122,7 +121,7 @@ const AddNpmDialog = ({ children, onAdd }: AddNpmDialogProps) => {
               {t('Cancel')}
             </Button>
           </DialogClose>
-          <Button type="submit" loading={isPending} onClick={() => mutate()}>
+          <Button type="submit" loading={isPending} onClick={() => form.element?.requestSubmit()}>
             {t('Add')}
           </Button>
         </DialogFooter>

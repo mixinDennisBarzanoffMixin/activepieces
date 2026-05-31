@@ -1,5 +1,5 @@
 import { SeekPage, TriggerEventWithPayload } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 
 import { authenticationSession } from '@/lib/authentication-session';
 
@@ -7,7 +7,7 @@ import { triggerEventsApi } from '../api/trigger-events-api';
 
 export const triggerEventHooks = {
   usePollResults: (flowVersionId: string, flowId: string) => {
-    const { data: pollResults, refetch } = useQuery<
+    const { data: pollResults, refetch } = createQuery<
       SeekPage<TriggerEventWithPayload>
     >({
       queryKey: ['triggerEvents', flowVersionId],

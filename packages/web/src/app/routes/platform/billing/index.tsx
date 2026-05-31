@@ -6,6 +6,7 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { CenteredPage } from '@/app/components/centered-page';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -80,27 +81,33 @@ function BillingPageDetails() {
       )}
     >
       <div className="flex flex-col gap-6">
-        {isSubscriptionActive && <SubscriptionInfo info={platformPlanInfo} />}
+        <Show when={isSubscriptionActive}>
+          <SubscriptionInfo info={platformPlanInfo} />
+        </Show>
 
-        {(isSubscriptionActive ||
-          platformPlanInfo?.plan.aiCreditsAutoTopUpState ===
-            AiCreditsAutoTopUpState.ENABLED) && (
+        <Show
+          when={
+            isSubscriptionActive ||
+            platformPlanInfo?.plan.aiCreditsAutoTopUpState ===
+              AiCreditsAutoTopUpState.ENABLED
+          }
+        >
           <Button
             variant="outline"
             size="sm"
-            className="w-fit"
+            class="w-fit"
             onClick={() => redirectToPortalSession()}
           >
             {t('Access Billing Portal')}
           </Button>
-        )}
+        </Show>
 
-        {!isCommunity && (
+        <Show when={!isCommunity}>
           <>
             <ActiveFlowAddon platformSubscription={platformPlanInfo} />
             <AICreditUsage platformSubscription={platformPlanInfo} />
           </>
-        )}
+        </Show>
         <LicenseKey platform={platform} />
       </div>
     </CenteredPage>

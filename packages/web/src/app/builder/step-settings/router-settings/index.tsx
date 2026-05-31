@@ -8,12 +8,12 @@ import {
   RouterAction,
   RouterExecutionType,
 } from '@activepieces/shared';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow } from '../../flow-canvas/solid-flow-adapter';
 import { t } from 'i18next';
-import { Split } from 'lucide-react';
-import { memo, useEffect } from 'react';
-import { useFieldArray, useFormContext } from 'react-hook-form';
+import { Split } from 'lucide-solid';
+import { Show, createEffect } from 'solid-js';
 
+import { createBuilderFieldArray, useFormContext } from '@/app/builder/builder-form';
 import { FormField, FormItem } from '../../../../components/ui/form';
 import { Label } from '../../../../components/ui/label';
 import {
@@ -30,7 +30,7 @@ import { BranchSettings } from '../branch-settings';
 import { BranchesList } from './branches-list';
 import BranchesToolbar from './branches-toolbar';
 
-export const RouterSettings = memo(({ readonly }: { readonly: boolean }) => {
+export const RouterSettings = ({ readonly }: { readonly: boolean }) => {
   const [
     step,
     applyOperation,
@@ -51,15 +51,14 @@ export const RouterSettings = memo(({ readonly }: { readonly: boolean }) => {
   ]);
   const { fitView } = useReactFlow();
 
-  const { control, setValue, formState } =
-    useFormContext<Omit<RouterAction, 'children' | 'nextAction'>>();
+  const form = useFormContext<Omit<RouterAction, 'children' | 'nextAction'>>();
+  const { control, setValue, formState } = form;
 
   //To validate array items we need to use form.trigger()
-  const { insert, remove, move } = useFieldArray({
-    control,
+  const { insert, remove, move } = createBuilderFieldArray({
+    form,
     name: 'settings.branches',
   });
-  const form = useFormContext<Omit<RouterAction, 'children' | 'nextAction'>>();
   const deleteBranch = (index: number) => {
     applyOperation({
       type: FlowOperationType.DELETE_BRANCH,
@@ -73,7 +72,7 @@ export const RouterSettings = memo(({ readonly }: { readonly: boolean }) => {
     fitView(flowCanvasUtils.createFocusStepInGraphParams(step.name));
   };
 
-  useEffect(() => {
+  createEffect(() => {
     const operationListener = (
       flowVersion: FlowVersion,
       operation: FlowOperationRequest,
@@ -131,11 +130,11 @@ export const RouterSettings = memo(({ readonly }: { readonly: boolean }) => {
 
     addOperationListener(operationListener);
     return () => removeOperationListener(operationListener);
-  }, []);
+  });
 
   return (
     <>
-      {isNil(selectedBranchIndex) && (
+      <Show when={isNil(selectedBranchIndex)()}>
         <FormField
           control={control}
           name="settings.executionType"
@@ -167,12 +166,12 @@ export const RouterSettings = memo(({ readonly }: { readonly: boolean }) => {
             </FormItem>
           )}
         ></FormField>
-      )}
+      </Show>
 
-      {isNil(selectedBranchIndex) && (
+      <Show when={isNil(selectedBranchIndex)()}>
         <div>
           <div className="flex gap-2 mb-2 items-center">
-            <Split className="w-4 h-4 rotate-180"></Split>
+            <Split class="w-4 h-4 rotate-180"></Split>
             <Label>{t('Branches')}</Label>
           </div>
 
@@ -223,7 +222,7 @@ export const RouterSettings = memo(({ readonly }: { readonly: boolean }) => {
               }
             }}
           ></BranchesList>
-          {!readonly && (
+          <Show when={!readonly()}>
             <div className="mt-2">
               <BranchesToolbar
                 addButtonClicked={() => {
@@ -240,19 +239,19 @@ export const RouterSettings = memo(({ readonly }: { readonly: boolean }) => {
                 }}
               ></BranchesToolbar>
             </div>
-          )}
+          </Show>
         </div>
-      )}
+      </Show>
 
-      {!isNil(selectedBranchIndex) && (
+      <Show when={!isNil(selectedBranchIndex)()}>
         <BranchSettings
           readonly={readonly}
           key={`settings.branches[${selectedBranchIndex}].conditions`}
           branchIndex={selectedBranchIndex}
         ></BranchSettings>
-      )}
+      </Show>
     </>
   );
-});
+};
 
 RouterSettings.displayName = 'RouterSettings';

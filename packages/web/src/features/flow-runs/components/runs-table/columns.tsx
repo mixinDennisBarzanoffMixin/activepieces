@@ -1,5 +1,5 @@
 import { FlowRun, FlowRunStatus, isNil, SeekPage } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   Archive,
@@ -10,8 +10,7 @@ import {
   Clock,
   Timer,
   AlertTriangle,
-} from 'lucide-react';
-import { Dispatch, SetStateAction } from 'react';
+} from 'lucide-solid';
 
 import { RowDataWithActions } from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
@@ -103,12 +102,12 @@ export const runsTableColumns = ({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="xs">
-                  <ChevronDown className="h-4 w-4" />
+                  <ChevronDown class="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="z-50">
+              <DropdownMenuContent class="z-50">
                 <DropdownMenuItem
-                  className="cursor-pointer"
+                  class="cursor-pointer"
                   onClick={() => {
                     const currentPageRows = table
                       .getRowModel()
@@ -125,7 +124,7 @@ export const runsTableColumns = ({
                   {t('Select shown')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="cursor-pointer"
+                  class="cursor-pointer"
                   onClick={() => {
                     if (data?.data) {
                       const allRows = data.data.map((row) => ({
@@ -209,7 +208,7 @@ export const runsTableColumns = ({
       return (
         <div className="flex items-center gap-2 text-left">
           {!isNil(archivedAt) && (
-            <Archive className="size-4 text-muted-foreground" />
+            <Archive class="size-4 text-muted-foreground" />
           )}
           <TruncatedColumnTextValue value={displayName} />
         </div>
@@ -253,7 +252,7 @@ export const runsTableColumns = ({
         <div className="text-left">
           <FormattedDate
             date={new Date(row.original.created ?? new Date())}
-            className="text-left"
+            class="text-left"
             includeTime={true}
           />
         </div>
@@ -287,7 +286,7 @@ export const runsTableColumns = ({
             <div className="text-left flex items-center gap-2">
               {row.original.finishTime && (
                 <>
-                  <Hourglass className="h-4 w-4 text-muted-foreground" />
+                  <Hourglass class="h-4 w-4 text-muted-foreground" />
                   {formatUtils.formatDuration(duration)}
                 </>
               )}

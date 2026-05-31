@@ -4,17 +4,17 @@ import {
   WebsocketClientEvent,
   WebsocketServerEvent,
 } from '@activepieces/shared';
-import { useEffect, useState } from 'react';
+import { createEffect, createSignal, onCleanup } from 'solid-js';
 
 import { useSocket } from '@/components/providers/socket-provider';
 import { authenticationSession } from '@/lib/authentication-session';
 
-function usePresence({ resourceId }: { resourceId: string }): PresenceUser[] {
+function usePresence({ resourceId }: { resourceId: string }) {
   const socket = useSocket();
   const currentUserId = authenticationSession.getCurrentUserId();
-  const [activeUsers, setActiveUsers] = useState<PresenceUser[]>([]);
+  const [activeUsers, setActiveUsers] = createSignal<PresenceUser[]>([]);
 
-  useEffect(() => {
+  createEffect(() => {
     const handlePresenceUpdated = (event: PresenceUpdatedEvent) => {
       if (event.resourceId === resourceId) {
         setActiveUsers(event.users.filter((u) => u.userId !== currentUserId));
@@ -23,12 +23,12 @@ function usePresence({ resourceId }: { resourceId: string }): PresenceUser[] {
 
     socket.on(WebsocketClientEvent.PRESENCE_UPDATED, handlePresenceUpdated);
 
-    return () => {
+    onCleanup(() => {
       socket.off(WebsocketClientEvent.PRESENCE_UPDATED, handlePresenceUpdated);
-    };
-  }, [resourceId, socket, currentUserId]);
+    });
+  });
 
-  useEffect(() => {
+  createEffect(() => {
     socket.emit(
       WebsocketServerEvent.JOIN_PRESENCE,
       { resourceId },
@@ -43,11 +43,11 @@ function usePresence({ resourceId }: { resourceId: string }): PresenceUser[] {
       socket.emit(WebsocketServerEvent.JOIN_PRESENCE, { resourceId });
     }, 30_000);
 
-    return () => {
+    onCleanup(() => {
       clearInterval(heartbeat);
       socket.emit(WebsocketServerEvent.LEAVE_PRESENCE, { resourceId });
-    };
-  }, [resourceId, socket, currentUserId]);
+    });
+  });
 
   return activeUsers;
 }

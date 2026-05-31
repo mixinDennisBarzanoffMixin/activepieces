@@ -1,13 +1,13 @@
 import { marked } from 'marked';
-import React, { memo, useId, useMemo } from 'react';
-import ReactMarkdown, { Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import { createMemo, JSX } from 'solid-js';
 
 import { CopyButton } from '@/components/custom/clipboard/copy-button';
 import { cn } from '@/lib/utils';
 
 import { CodeBlock, CodeBlockCode, CodeBlockGroup } from './code-block';
 import { Source } from './source';
+
+type Components = Record<string, unknown>;
 
 export type MarkdownProps = {
   children: string;
@@ -119,12 +119,12 @@ function isLinkOnlyList(node: HastNode | undefined): boolean {
   return items.length > 0 && items.every(isLinkOnlyItem);
 }
 
-function hasTextContent(children: React.ReactNode): boolean {
+function hasTextContent(children: JSX.Element): boolean {
   if (typeof children === 'string') return children.trim().length > 0;
   if (Array.isArray(children)) return children.some(hasTextContent);
-  if (React.isValidElement(children)) {
+  if (isValidElement(children)) {
     return hasTextContent(
-      (children.props as { children?: React.ReactNode }).children,
+      (children.props as { children?: JSX.Element }).children,
     );
   }
   return Boolean(children);
@@ -137,9 +137,9 @@ const HEADING_CLASSES: Record<'h1' | 'h2' | 'h3', string> = {
 };
 
 function makeHeading(Tag: 'h1' | 'h2' | 'h3') {
-  const Component = function ({ children }: { children?: React.ReactNode }) {
+  const Component = function ({ children }: { children?: JSX.Element }) {
     if (!hasTextContent(children)) return null;
-    return <Tag className={HEADING_CLASSES[Tag]}>{children}</Tag>;
+    return <Tag class={HEADING_CLASSES[Tag]}>{children}</Tag>;
   };
   Component.displayName = Tag.toUpperCase();
   return Component;
@@ -236,8 +236,8 @@ const INITIAL_COMPONENTS: Partial<Components> = {
     const code = children as string;
 
     return (
-      <CodeBlock className={className}>
-        <CodeBlockGroup className="border-b px-3 py-1.5">
+      <CodeBlock class={className}>
+        <CodeBlockGroup class="border-b px-3 py-1.5">
           <span className="text-xs text-muted-foreground font-mono">
             {language !== 'plaintext' ? language : ''}
           </span>
@@ -245,7 +245,7 @@ const INITIAL_COMPONENTS: Partial<Components> = {
             textToCopy={code}
             withoutTooltip
             variant="ghost"
-            className="h-6 w-6 p-0"
+            class="h-6 w-6 p-0"
           />
         </CodeBlockGroup>
         <CodeBlockCode code={code} language={language} />
@@ -260,24 +260,15 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   },
 };
 
-const MemoizedMarkdownBlock = memo(
-  function MarkdownBlock({
-    content,
-    components = INITIAL_COMPONENTS,
-  }: {
-    content: string;
-    components?: Partial<Components>;
-  }) {
-    return (
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-        {content}
-      </ReactMarkdown>
-    );
-  },
-  function propsAreEqual(prevProps, nextProps) {
-    return prevProps.content === nextProps.content;
-  },
-);
+function MemoizedMarkdownBlock({
+  content,
+  components = INITIAL_COMPONENTS,
+}: {
+  content: string;
+  components?: Partial<Components>;
+}) {
+  return <div innerHTML={marked.parse(content, { async: false })} />;
+}
 
 MemoizedMarkdownBlock.displayName = 'MemoizedMarkdownBlock';
 
@@ -287,9 +278,12 @@ function MarkdownComponent({
   className,
   components = INITIAL_COMPONENTS,
 }: MarkdownProps) {
-  const generatedId = useId();
+  const generatedId = createUniqueId();
   const blockId = id ?? generatedId;
-  const blocks = useMemo(() => parseMarkdownIntoBlocks(children), [children]);
+  const blocks = createMemo(
+    () => parseMarkdownIntoBlocks(children),
+    [children],
+  );
 
   return (
     <div
@@ -312,7 +306,7 @@ function MarkdownComponent({
   );
 }
 
-const Markdown = memo(MarkdownComponent);
+const Markdown = MarkdownComponent;
 Markdown.displayName = 'Markdown';
 
 export { Markdown };

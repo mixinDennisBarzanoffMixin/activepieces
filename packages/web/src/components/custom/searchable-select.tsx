@@ -1,7 +1,7 @@
 import deepEqual from 'deep-equal';
 import { t } from 'i18next';
-import { Check, ChevronsUpDown, RefreshCcw, Trash2, X } from 'lucide-react';
-import React, { useState, useRef } from 'react';
+import { Check, ChevronsUpDown, RefreshCcw, Trash2, X } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { SelectUtilButton } from '@/components/custom/select-util-button';
 import {
@@ -40,7 +40,7 @@ type SearchableSelectProps<T> = {
   showRefresh?: boolean;
   onClose?: () => void;
   triggerClassName?: string;
-  valuesRendering?: (value: unknown) => React.ReactNode;
+  valuesRendering?: (value: unknown) => any;
   openState?: {
     open: boolean;
     setOpen: (open: boolean) => void;
@@ -58,7 +58,7 @@ const useOpenState = (openStateInitializer?: {
   open: boolean;
   setOpen: (open: boolean) => void;
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = createSignal(false);
   if (openStateInitializer) {
     return openStateInitializer;
   }
@@ -85,10 +85,10 @@ export const SearchableSelect = <T,>({
   cachedOptions = [],
   onOptionDelete,
 }: SearchableSelectProps<T>) => {
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  let triggerRef: HTMLButtonElement | undefined;
+  const [searchTerm, setSearchTerm] = createSignal('');
   const { open, setOpen } = useOpenState(openStateInitializer);
-  const triggerWidth = `${triggerRef.current?.clientWidth ?? 0}px`;
+  const triggerWidth = `${triggerRef?.clientWidth ?? 0}px`;
   const selectedOption =
     [...cachedOptions, ...options].find((option) =>
       deepEqual(option.value, value),
@@ -103,12 +103,12 @@ export const SearchableSelect = <T,>({
       };
     })
     .filter((option) => {
-      if (refreshOnSearch || searchTerm.length === 0) {
+      if (refreshOnSearch || searchTerm().length === 0) {
         return true;
       }
       return (
-        option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        option.description.toLowerCase().includes(searchTerm.toLowerCase())
+        option.label.toLowerCase().includes(searchTerm().toLowerCase()) ||
+        option.description.toLowerCase().includes(searchTerm().toLowerCase())
       );
     })
     .map((option) => option.index);
@@ -129,12 +129,12 @@ export const SearchableSelect = <T,>({
   return (
     <Popover
       modal={true}
-      open={open}
+      open={open()}
       onOpenChange={(open) => {
         if (!open) {
           onClose?.();
         }
-        if (refreshOnSearch && searchTerm.length > 0) {
+        if (refreshOnSearch && searchTerm().length > 0) {
           refreshOnSearch('');
           setSearchTerm('');
         }
@@ -143,7 +143,7 @@ export const SearchableSelect = <T,>({
     >
       <PopoverTrigger
         asChild
-        className={cn({
+        class={cn({
           'cursor-not-allowed opacity-80 ': disabled,
         })}
         onClick={(e) => {
@@ -155,15 +155,15 @@ export const SearchableSelect = <T,>({
       >
         <div className="relative">
           <Button
-            ref={triggerRef}
+            ref={(el) => (triggerRef = el)}
             variant="outline"
             disabled={disabled}
             role="combobox"
             loading={loading}
-            aria-expanded={open}
-            className={cn('w-full justify-between', triggerClassName)}
+            aria-expanded={open()}
+            class={cn('w-full justify-between', triggerClassName)}
             onClick={(e) => {
-              setOpen(!open);
+              setOpen(!open());
               e.preventDefault();
             }}
           >
@@ -174,10 +174,12 @@ export const SearchableSelect = <T,>({
                   : selectedOption.label
                 : placeholder}
             </span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
           <div className="right-10 top-2 absolute flex gap-2  z-50 items-center">
-            {showDeselect && !disabled && selectedOption && !loading && (
+            <Show
+              when={showDeselect && !disabled && selectedOption && !loading}
+            >
               <SelectUtilButton
                 tooltipText={t('Unset')}
                 onClick={(e) => {
@@ -187,8 +189,8 @@ export const SearchableSelect = <T,>({
                 }}
                 Icon={X}
               ></SelectUtilButton>
-            )}
-            {showRefresh && !loading && (
+            </Show>
+            <Show when={showRefresh && !loading}>
               <SelectUtilButton
                 tooltipText={t('Refresh')}
                 onClick={(e) => {
@@ -200,7 +202,7 @@ export const SearchableSelect = <T,>({
                 }}
                 Icon={RefreshCcw}
               ></SelectUtilButton>
-            )}
+            </Show>
           </div>
         </div>
       </PopoverTrigger>
@@ -209,12 +211,12 @@ export const SearchableSelect = <T,>({
           maxWidth: triggerWidth,
           minWidth: triggerWidth,
         }}
-        className="min-w-full w-full p-0"
+        class="min-w-full w-full p-0"
       >
-        <Command className="w-full" shouldFilter={false}>
+        <Command class="w-full" shouldFilter={false}>
           <CommandInput
             placeholder={t(placeholder)}
-            value={searchTerm}
+            value={searchTerm()}
             onValueChange={(e) => {
               setSearchTerm(e);
               if (refreshOnSearch) {
@@ -222,86 +224,94 @@ export const SearchableSelect = <T,>({
               }
             }}
           />
-          {filterOptionsIndices.length === 0 && (
+          <Show when={filterOptionsIndices.length === 0}>
             <CommandEmpty>{t('No results found.')}</CommandEmpty>
-          )}
+          </Show>
 
           <CommandGroup>
             <CommandList>
-              <ScrollArea
-                className="h-full"
-                viewPortClassName={'max-h-[200px]'}
-              >
-                {filterOptionsIndices &&
-                  !loading &&
-                  filterOptionsIndices.map((filterIndex) => {
-                    const option = options[filterIndex];
-                    if (!option) {
-                      return null;
-                    }
-                    return (
-                      <CommandItem
-                        key={filterIndex}
-                        value={String(filterIndex)}
-                        onSelect={(currentValue) => {
-                          setOpen(false);
-                          onSelect(currentValue);
-                        }}
-                        className={cn(
-                          'flex gap-2 flex-col items-start',
-                          onOptionDelete && 'group/option',
-                        )}
-                      >
-                        <div className="flex gap-2 items-center justify-between w-full">
-                          {option.label === '' ? (
-                            <span className="">&nbsp;</span>
-                          ) : valuesRendering ? (
-                            valuesRendering(option.value)
-                          ) : (
-                            <span className="truncate">{option.label}</span>
+              <ScrollArea class="h-full" viewPortClassName={'max-h-[200px]'}>
+                <Show when={filterOptionsIndices && !loading}>
+                  <For each={filterOptionsIndices}>
+                    {(filterIndex) => {
+                      const option = options[filterIndex];
+                      if (!option) {
+                        return null;
+                      }
+                      return (
+                        <CommandItem
+                          value={String(filterIndex)}
+                          onSelect={(currentValue) => {
+                            setOpen(false);
+                            onSelect(currentValue);
+                          }}
+                          class={cn(
+                            'flex gap-2 flex-col items-start',
+                            onOptionDelete && 'group/option',
                           )}
-                          <div className="relative shrink-0 w-4 h-4">
-                            {onOptionDelete && (
-                              <button
-                                type="button"
-                                className={cn(
-                                  'absolute inset-0 flex items-center justify-center text-muted-foreground hover:text-destructive',
-                                  'opacity-0 group-hover/option:opacity-100',
+                        >
+                          <div className="flex gap-2 items-center justify-between w-full">
+                            <Show
+                              when={option.label === ''}
+                              fallback={
+                                <Show
+                                  when={valuesRendering}
+                                  fallback={
+                                    <span className="truncate">
+                                      {option.label}
+                                    </span>
+                                  }
+                                >
+                                  {valuesRendering(option.value)}
+                                </Show>
+                              }
+                            >
+                              <span className="">&nbsp;</span>
+                            </Show>
+                            <div className="relative shrink-0 w-4 h-4">
+                              <Show when={onOptionDelete}>
+                                <button
+                                  type="button"
+                                  className={cn(
+                                    'absolute inset-0 flex items-center justify-center text-muted-foreground hover:text-destructive',
+                                    'opacity-0 group-hover/option:opacity-100',
+                                  )}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                    onOptionDelete(option.value);
+                                  }}
+                                >
+                                  <Trash2 class="h-3.5 w-3.5" />
+                                </button>
+                              </Show>
+                              <Check
+                                class={cn(
+                                  'absolute inset-0 w-4 h-4',
+                                  selectedOption?.value !== option.value
+                                    ? 'opacity-0'
+                                    : cn(
+                                        'opacity-100',
+                                        onOptionDelete &&
+                                          'group-hover/option:opacity-0',
+                                      ),
                                 )}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  e.preventDefault();
-                                  onOptionDelete(option.value);
-                                }}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                            <Check
-                              className={cn(
-                                'absolute inset-0 w-4 h-4',
-                                selectedOption?.value !== option.value
-                                  ? 'opacity-0'
-                                  : cn(
-                                      'opacity-100',
-                                      onOptionDelete &&
-                                        'group-hover/option:opacity-0',
-                                    ),
-                              )}
-                            />
+                              />
+                            </div>
                           </div>
-                        </div>
-                        {option.description && (
-                          <div className="text-sm text-muted-foreground">
-                            {option.description}
-                          </div>
-                        )}
-                      </CommandItem>
-                    );
-                  })}
-                {loading && (
+                          <Show when={option.description}>
+                            <div className="text-sm text-muted-foreground">
+                              {option.description}
+                            </div>
+                          </Show>
+                        </CommandItem>
+                      );
+                    }}
+                  </For>
+                </Show>
+                <Show when={loading}>
                   <CommandItem disabled>{t('Loading...')}</CommandItem>
-                )}
+                </Show>
               </ScrollArea>
             </CommandList>
           </CommandGroup>

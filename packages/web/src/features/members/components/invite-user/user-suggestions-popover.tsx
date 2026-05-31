@@ -1,7 +1,7 @@
 import { InvitationType } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Globe, UserCheck } from 'lucide-react';
-import React, { useCallback, useRef, useState } from 'react';
+import { Globe, UserCheck } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { TagInput, TagMeta } from '@/components/custom/tag-input';
 import { Command, CommandGroup, CommandList } from '@/components/ui/command';
@@ -18,11 +18,11 @@ function UserSuggestionsPopover({
   invitationType,
   onOpenChange,
 }: UserSuggestionsPopoverProps) {
-  const [inputValue, setInputValue] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [selectedValue, setSelectedValue] = useState('');
-  const [tagInputKey, setTagInputKey] = useState(0);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [inputValue, setInputValue] = createSignal('');
+  const [showSuggestions, setShowSuggestions] = createSignal(false);
+  const [selectedValue, setSelectedValue] = createSignal('');
+  const [tagInputKey, setTagInputKey] = createSignal(0);
+  let inputRef: HTMLInputElement | undefined;
   const isPlatformInvite = invitationType === InvitationType.PLATFORM;
 
   const {
@@ -32,44 +32,41 @@ function UserSuggestionsPopover({
     selectableItems,
     platformUserEmails,
   } = useUserSuggestions({
-    inputValue,
+    inputValue: inputValue(),
     currentEmails: Array.from(value),
     isPlatformInvite,
   });
 
-  const getTagMeta = useCallback(
-    (email: string): TagMeta | undefined => {
+  const getTagMeta = (email: string): TagMeta | undefined => {
       const trimmed = email.trim();
       if (!formatUtils.emailRegex.test(trimmed)) {
         return { tooltip: t('Invalid email') };
       }
-      if (platformUserEmails.has(trimmed.toLowerCase())) {
+      if (platformUserEmails().has(trimmed.toLowerCase())) {
         return {
           className:
             'text-primary bg-primary/10 border-primary/20 dark:bg-primary/15',
-          icon: <UserCheck className="size-3 shrink-0" />,
+          icon: <UserCheck class="size-3 shrink-0" />,
           tooltip: t('Platform member'),
         };
       }
       return {
         className:
           'text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-950 dark:border-blue-900',
-        icon: <Globe className="size-3 shrink-0" />,
+        icon: <Globe class="size-3 shrink-0" />,
         tooltip: isPlatformInvite ? t('New User') : t('New Member'),
       };
-    },
-    [platformUserEmails, isPlatformInvite],
-  );
+  };
 
   const handleSelectUser = (email: string) => {
     onChange([...value, email]);
     setInputValue('');
     setSelectedValue('');
     setTagInputKey((prev) => prev + 1);
-    requestAnimationFrame(() => inputRef.current?.focus());
+    requestAnimationFrame(() => inputRef?.focus());
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
       if (isOpen) {
         e.nativeEvent.stopImmediatePropagation();
@@ -81,13 +78,13 @@ function UserSuggestionsPopover({
     }
     if (
       e.key === 'Enter' &&
-      selectedValue &&
-      showSuggestions &&
+      selectedValue() &&
+      showSuggestions() &&
       hasSuggestions
     ) {
       e.preventDefault();
-      const email = selectableItems.find(
-        (item) => item.toLowerCase() === selectedValue,
+      const email = selectableItems().find(
+        (item) => item.toLowerCase() === selectedValue(),
       );
       if (email) handleSelectUser(email);
     }
@@ -98,18 +95,18 @@ function UserSuggestionsPopover({
     setSelectedValue('');
   };
 
-  const isOpen = showSuggestions && hasSuggestions;
+  const isOpen = () => showSuggestions() && hasSuggestions;
 
   return (
     <Command
       shouldFilter={false}
-      value={selectedValue}
+      value={selectedValue()}
       onValueChange={setSelectedValue}
-      className="overflow-visible bg-transparent rounded-none h-auto"
+      class="overflow-visible bg-transparent rounded-none h-auto"
     >
       <div className="relative">
         <TagInput
-          key={tagInputKey}
+          key={tagInputKey()}
           ref={inputRef}
           value={value}
           onChange={onChange}
@@ -130,15 +127,15 @@ function UserSuggestionsPopover({
             onOpenChange?.(false);
           }}
         />
-        {isOpen && (
+        {isOpen() && (
           <div
             className="absolute top-full left-0 w-full z-50 rounded-md border bg-popover text-popover-foreground shadow-md outline-hidden"
             onMouseDown={(e) => e.preventDefault()}
           >
-            <CommandList className="max-h-none overflow-y-hidden">
+            <CommandList class="max-h-none overflow-y-hidden">
               <ScrollArea viewPortClassName="max-h-[200px]">
                 <CommandGroup heading={t('Suggestions')}>
-                  {suggestedUsers.map((user) => (
+                  {suggestedUsers().map((user) => (
                     <SuggestedUserItem
                       key={user.id}
                       type="platform-user"
@@ -146,10 +143,10 @@ function UserSuggestionsPopover({
                       onSelect={handleSelectUser}
                     />
                   ))}
-                  {emailStatus && (
+                  {emailStatus() && (
                     <SuggestedUserItem
                       type="email-status"
-                      emailStatus={emailStatus}
+                      emailStatus={emailStatus()!}
                       isPlatformInvite={isPlatformInvite}
                       onSelect={handleSelectUser}
                     />

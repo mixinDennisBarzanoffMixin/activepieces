@@ -1,6 +1,7 @@
 import { isNil, Permission } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Info } from 'lucide-react';
+import { Info } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { flowHooks } from '@/features/flows';
@@ -33,14 +34,14 @@ const ViewingOldVersionWidget = () => {
     <LargeWidgetWrapper>
       <>
         <div className="flex items-center gap-2">
-          <Info className="size-5" />
+          <Info class="size-5" />
           <span>
             {t('Viewing version')} #{versionNumber}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          {hasPermissionToWriteFlow && (
+          <Show when={hasPermissionToWriteFlow()}>
             <OverwriteDraftDialog
               versionId={version.id}
               versionNumber={versionNumber}
@@ -50,7 +51,7 @@ const ViewingOldVersionWidget = () => {
                 {t('Use as Draft')}
               </Button>
             </OverwriteDraftDialog>
-          )}
+          </Show>
           <EditFlowOrViewDraftButton
             onCanvas={false}
           ></EditFlowOrViewDraftButton>

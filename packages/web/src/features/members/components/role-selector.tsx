@@ -1,6 +1,6 @@
 import { PlatformRole } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-solid';
 
 import {
   Select,
@@ -99,10 +99,10 @@ export const RoleSelector = ({
       onValueChange={onValueChange}
       disabled={selectDisabled}
     >
-      <SelectTrigger className="w-full">
+      <SelectTrigger class="w-full">
         {showProjectSpinner ? (
           <span className="flex items-center gap-2 font-normal text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
+            <Loader2 class="size-4 animate-spin" />
             {projectRoleAssigning ? t('Saving...') : t('Loading...')}
           </span>
         ) : selectedRole ? (
@@ -115,11 +115,7 @@ export const RoleSelector = ({
         <SelectGroup>
           <SelectLabel>{label}</SelectLabel>
           {options.map((option) => (
-            <SelectItem
-              key={option.value}
-              value={option.value}
-              className="py-3"
-            >
+            <SelectItem key={option.value} value={option.value} class="py-3">
               <div className="flex flex-col gap-1">
                 <span className="font-medium">{t(option.label)}</span>
                 <span className="text-xs text-muted-foreground">
@@ -151,14 +147,14 @@ export const RoleDropdown = ({
 }: RoleDropdownProps) => {
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger className={`w-[150px] justify-between ${className}`}>
+      <SelectTrigger class={`w-[150px] justify-between ${className}`}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
           <SelectLabel>{t('Roles')}</SelectLabel>
           {roles.map((role) => (
-            <SelectItem key={role.name} value={role.name} className="py-3">
+            <SelectItem key={role.name} value={role.name} class="py-3">
               <div className="flex flex-col gap-1">
                 <span className="font-medium">{role.name}</span>
                 <span className="text-xs text-muted-foreground">

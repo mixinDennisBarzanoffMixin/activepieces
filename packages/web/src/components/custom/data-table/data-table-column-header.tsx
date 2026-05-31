@@ -1,10 +1,9 @@
-import { Column } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, LucideIcon } from 'lucide-react';
+import { Column } from '@tanstack/solid-table';
+import { ArrowDown, ArrowUp, ArrowUpDown, LucideIcon } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 
-interface DataTableColumnHeaderProps<TData, TValue>
-  extends React.HTMLAttributes<HTMLDivElement> {
+interface DataTableColumnHeaderProps<TData, TValue> extends any {
   column: Column<TData, TValue>;
   title: string;
   icon?: LucideIcon;
@@ -40,13 +39,13 @@ export function DataTableColumnHeader<TData, TValue>({
             column.clearSorting();
           }
         }}
-        className={`h-auto text-foreground p-0 hover:bg-transparent -ml-3 ${className}`}
+        class={`h-auto text-foreground p-0 hover:bg-transparent -ml-3 ${className}`}
       >
-        {Icon && (
-          <Icon className="h-4 w-4 text-foreground flex-shrink-0 mr-2" />
-        )}
+        <Show when={Icon}>
+          <Icon class="h-4 w-4 text-foreground flex-shrink-0 mr-2" />
+        </Show>
         {title}
-        <SortIcon className="ml-2 h-4 w-4" />
+        <SortIcon class="ml-2 h-4 w-4" />
       </Button>
     );
   }
@@ -55,7 +54,9 @@ export function DataTableColumnHeader<TData, TValue>({
     <div
       className={`flex items-center justify-start space-x-2 whitespace-nowrap ${className}`}
     >
-      {Icon && <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
+      <Show when={Icon}>
+        <Icon class="h-4 w-4 text-muted-foreground flex-shrink-0" />
+      </Show>
       <div className="text-xs font-normal text-foreground">{title}</div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { Tag } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useState } from 'react';
+import { createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +17,7 @@ import { piecesTagMutations } from '@/features/platform-admin';
 
 type CreateTagDialogProps = {
   onTagCreated: (tag: Tag) => void;
-  children: React.ReactNode;
+  children: JSX.Element;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
 };
@@ -28,14 +28,14 @@ export function CreateTagDialog({
   isOpen,
   setIsOpen,
 }: CreateTagDialogProps) {
-  const [tagName, setTagName] = useState('');
+  const [tagName, setTagName] = createSignal('');
 
   const { mutate, isPending } = piecesTagMutations.useCreateTag({
     onTagCreated,
     setIsOpen,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (tagName.trim()) {
       mutate(tagName.trim());
@@ -51,12 +51,12 @@ export function CreateTagDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit}>
           <div className="flex flex-col gap-4">
-            <Label htmlFor="tagName">{t('Tag')}</Label>
+            <Label for="tagName">{t('Tag')}</Label>
             <Input
               id="tagName"
               value={tagName}
               onChange={(e) => setTagName(e.target.value)}
-              className="col-span-3"
+              class="col-span-3"
             />
           </div>
           <DialogFooter>

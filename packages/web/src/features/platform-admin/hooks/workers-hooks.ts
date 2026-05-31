@@ -1,5 +1,5 @@
 import { WorkerMachineWithStatus } from '@activepieces/shared';
-import { useQuery } from '@tanstack/react-query';
+import { createQuery } from '@tanstack/solid-query';
 
 import { workersApi } from '../api/workers-api';
 
@@ -9,7 +9,7 @@ export const workersKeys = {
 
 export const workersQueries = {
   useWorkerMachines: () =>
-    useQuery<WorkerMachineWithStatus[]>({
+    createQuery<WorkerMachineWithStatus[]>({
       queryKey: workersKeys.all,
       staleTime: 0,
       gcTime: 0,

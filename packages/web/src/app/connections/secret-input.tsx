@@ -3,9 +3,8 @@ import {
   SecretManagerFieldsSeparator,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { KeyRound } from 'lucide-react';
-import * as React from 'react';
-import { useState } from 'react';
+import { KeyRound } from 'lucide-solid';
+import { createSignal } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Input, InputProps } from '@/components/ui/input';
@@ -35,46 +34,47 @@ type SecretManagerToggleButtonProps = {
   onClick: () => void;
 };
 
-const SecretManagerToggleButton = React.memo(
-  ({ isActive, onClick }: SecretManagerToggleButtonProps) => {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            onClick={onClick}
-            className={cn('shrink-0', {
-              'bg-primary/10': isActive,
+const SecretManagerToggleButton = ({
+  isActive,
+  onClick,
+}: SecretManagerToggleButtonProps) => {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={onClick}
+          class={cn('shrink-0', {
+            'bg-primary/10': isActive,
+          })}
+        >
+          <KeyRound
+            class={cn('size-4', {
+              'text-primary': isActive,
             })}
-          >
-            <KeyRound
-              className={cn('size-4', {
-                'text-primary': isActive,
-              })}
-            />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          {isActive ? t('Disable Secret Manager') : t('Use Secret Manager')}
-        </TooltipContent>
-      </Tooltip>
-    );
-  },
-);
+          />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {isActive ? t('Disable Secret Manager') : t('Use Secret Manager')}
+      </TooltipContent>
+    </Tooltip>
+  );
+};
 
 SecretManagerToggleButton.displayName = 'SecretManagerToggleButton';
 
-const SecretInput = React.forwardRef<HTMLInputElement, SecretInputProps>(
-  ({ className, value, onChange, ...restProps }, ref) => {
-    const { onBlur, name, disabled, ...otherProps } = restProps;
+function SecretInput(props: SecretInputProps) {
+  const { className, value, onChange, ...restProps } = props;
+  const { onBlur, name, disabled, ...otherProps } = restProps;
 
-    const { platform } = platformHooks.useCurrentPlatform();
-    const { data: connections } =
-      secretManagersHooks.useListSecretManagerConnections({
-        connectedOnly: true,
-      });
+  const { platform } = platformHooks.useCurrentPlatform();
+  const { data: connections } =
+    secretManagersHooks.useListSecretManagerConnections({
+      connectedOnly: true,
+    });
 
     const getSecretParamsForConnection = (connectionId: string | undefined) => {
       if (!connectionId || !connections) return [];
@@ -86,13 +86,15 @@ const SecretInput = React.forwardRef<HTMLInputElement, SecretInputProps>(
       return provider?.secretParams ?? [];
     };
 
-    const [showSecretManagerInput, setShowSecretInput] = useState(false);
+    const [showSecretManagerInput, setShowSecretInput] = createSignal(false);
 
-    const [selectedConnectionId, setSelectedConnectionId] = useState<
+    const [selectedConnectionId, setSelectedConnectionId] = createSignal<
       string | undefined
     >(undefined);
 
-    const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+    const [fieldValues, setFieldValues] = createSignal<Record<string, string>>(
+      {},
+    );
 
     const buildSecretValue = (
       connectionId: string | undefined,
@@ -108,11 +110,11 @@ const SecretInput = React.forwardRef<HTMLInputElement, SecretInputProps>(
     };
 
     const toggleSecretManager = () => {
-      const newShowSecretInput = !showSecretManagerInput;
+      const newShowSecretInput = !showSecretManagerInput();
       setShowSecretInput(newShowSecretInput);
 
       if (newShowSecretInput) {
-        const newValue = buildSecretValue(selectedConnectionId, fieldValues);
+        const newValue = buildSecretValue(selectedConnectionId(), fieldValues());
         onChange?.(newValue);
       } else {
         onChange?.('');
@@ -131,20 +133,20 @@ const SecretInput = React.forwardRef<HTMLInputElement, SecretInputProps>(
     };
 
     const handleFieldChange = (fieldKey: string, fieldValue: string) => {
-      const newFieldValues = { ...fieldValues, [fieldKey]: fieldValue };
+      const newFieldValues = { ...fieldValues(), [fieldKey]: fieldValue };
       setFieldValues(newFieldValues);
-      const newValue = buildSecretValue(selectedConnectionId, newFieldValues);
+      const newValue = buildSecretValue(selectedConnectionId(), newFieldValues);
       onChange?.(newValue);
     };
 
     const handleNormalInputChange = (
-      e: React.ChangeEvent<HTMLInputElement>,
+      e: Event & { currentTarget: HTMLInputElement },
     ) => {
-      onChange?.(e.target.value);
+      onChange?.(e.currentTarget.value);
     };
 
     const currentFields =
-      getSecretParamsForConnection(selectedConnectionId) || [];
+      getSecretParamsForConnection(selectedConnectionId()) || [];
 
     const getProviderForConnection = (connectionId: string | undefined) => {
       if (!connectionId || !connections) return undefined;
@@ -155,9 +157,9 @@ const SecretInput = React.forwardRef<HTMLInputElement, SecretInputProps>(
     };
 
     const selectedConnection = connections?.find(
-      (c) => c.id === selectedConnectionId,
+      (c) => c.id === selectedConnectionId(),
     );
-    const selectedProvider = getProviderForConnection(selectedConnectionId);
+    const selectedProvider = getProviderForConnection(selectedConnectionId());
 
     if (showSecretManagerInput) {
       return (
@@ -168,10 +170,10 @@ const SecretInput = React.forwardRef<HTMLInputElement, SecretInputProps>(
               onClick={toggleSecretManager}
             />
             <Select
-              value={selectedConnectionId}
+              value={selectedConnectionId()}
               onValueChange={handleConnectionChange}
             >
-              <SelectTrigger className="w-64">
+              <SelectTrigger class="w-64">
                 {selectedConnection ? (
                   <div className="flex items-center gap-2 min-w-0">
                     {selectedProvider?.logo && (
@@ -213,16 +215,16 @@ const SecretInput = React.forwardRef<HTMLInputElement, SecretInputProps>(
               <Input
                 disabled
                 type="text"
-                className="bg-muted/50 cursor-not-allowed!"
+                class="bg-muted/50 cursor-not-allowed!"
               />
             ) : (
               currentFields.map((param) => (
                 <Input
                   key={param.name}
                   placeholder={param.placeholder}
-                  value={fieldValues[param.name] || ''}
+                  value={fieldValues()[param.name] || ''}
                   onChange={(e) =>
-                    handleFieldChange(param.name, e.target.value)
+                    handleFieldChange(param.name, e.currentTarget.value)
                   }
                   disabled={disabled}
                   type="text"
@@ -245,19 +247,17 @@ const SecretInput = React.forwardRef<HTMLInputElement, SecretInputProps>(
             />
           )}
         <Input
-          ref={ref}
           name={name}
           onBlur={onBlur}
           disabled={disabled}
-          className="flex-1"
+          class="flex-1"
           value={value || ''}
-          onChange={handleNormalInputChange}
+          onInput={handleNormalInputChange}
           type={otherProps.type}
         />
       </div>
     );
-  },
-);
+}
 
 SecretInput.displayName = 'SecretInput';
 

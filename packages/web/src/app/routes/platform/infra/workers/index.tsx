@@ -6,9 +6,9 @@ import {
   WorkerMachineWithStatus,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Server, Clock, Cpu, MemoryStick, HardDrive, Zap } from 'lucide-react';
+import { Server, Clock, Cpu, MemoryStick, HardDrive, Zap } from 'lucide-solid';
 import prettyBytes from 'pretty-bytes';
-import React from 'react';
+import { For, Show } from 'solid-js';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import { RequestTrial } from '@/app/components/request-trial';
@@ -50,11 +50,11 @@ export default function WorkersPage() {
         description={t('Check the health of your workers')}
         title={t('Workers')}
       ></DashboardPageHeader>
-      {isCloud && fleetType === WorkerMachineType.SHARED && (
+      <Show when={isCloud && fleetType === WorkerMachineType.SHARED}>
         <Alert variant="primary">
           <Zap size={16} />
           <AlertTitle>{t('Upgrade to Dedicated Workers')}</AlertTitle>
-          <AlertDescription className="text-xs">
+          <AlertDescription class="text-xs">
             {t(
               'Your automations run on shared workers where strict sandboxing adds overhead to every execution. Dedicated workers give you your own execution pool that stays warm and ready, so your automations start much faster.',
             )}
@@ -67,45 +67,47 @@ export default function WorkersPage() {
             />
           </AlertAction>
         </Alert>
-      )}
-      {isCloud && fleetType === WorkerMachineType.DEDICATED && (
+      </Show>
+      <Show when={isCloud && fleetType === WorkerMachineType.DEDICATED}>
         <Alert variant="success">
           <Zap size={16} />
           <AlertTitle>{t('Dedicated Workers Active')}</AlertTitle>
-          <AlertDescription className="text-xs">
+          <AlertDescription class="text-xs">
             {t(
               'Your workers run exclusively for your platform. The execution pool stays warm with no sandboxing overhead, so your automations start instantly.',
             )}
           </AlertDescription>
         </Alert>
-      )}
+      </Show>
 
-      {isLoading && (
+      <Show when={isLoading}>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {[0, 1, 2].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <div className="h-4 w-28 bg-muted rounded" />
-                  <div className="h-5 w-16 bg-muted rounded-full" />
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="h-3 w-full bg-muted rounded" />
-                <div className="h-3 w-full bg-muted rounded" />
-                <div className="h-3 w-full bg-muted rounded" />
-              </CardContent>
-              <CardFooter>
-                <div className="h-4 w-full bg-muted rounded" />
-              </CardFooter>
-            </Card>
-          ))}
+          <For each={[0, 1, 2]}>
+            {(i) => (
+              <Card key={i} class="animate-pulse">
+                <CardHeader class="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-28 bg-muted rounded" />
+                    <div className="h-5 w-16 bg-muted rounded-full" />
+                  </div>
+                </CardHeader>
+                <CardContent class="space-y-3">
+                  <div className="h-3 w-full bg-muted rounded" />
+                  <div className="h-3 w-full bg-muted rounded" />
+                  <div className="h-3 w-full bg-muted rounded" />
+                </CardContent>
+                <CardFooter>
+                  <div className="h-4 w-full bg-muted rounded" />
+                </CardFooter>
+              </Card>
+            )}
+          </For>
         </div>
-      )}
+      </Show>
 
-      {!isLoading && (workersData ?? []).length === 0 && (
+      <Show when={!isLoading && (workersData ?? []).length === 0}>
         <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-          <Server className="size-14" />
+          <Server class="size-14" />
           <p className="font-medium text-foreground">{t('No workers found')}</p>
           <p className="text-sm text-center max-w-sm">
             {t(
@@ -113,20 +115,22 @@ export default function WorkersPage() {
             )}
           </p>
         </div>
-      )}
+      </Show>
 
-      {!isLoading && (workersData ?? []).length > 0 && (
+      <Show when={!isLoading && (workersData ?? []).length > 0}>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {(workersData ?? []).map((worker, index) => (
-            <WorkerCard
-              key={worker.id}
-              worker={worker}
-              index={index}
-              isCloud={isCloud}
-            />
-          ))}
+          <For each={workersData ?? []}>
+            {(worker, index) => (
+              <WorkerCard
+                key={worker.id}
+                worker={worker}
+                index={index}
+                isCloud={isCloud}
+              />
+            )}
+          </For>
         </div>
-      )}
+      </Show>
     </div>
   );
 }
@@ -153,11 +157,11 @@ function StatBar({ label, value, detail }: StatBarProps) {
       <span className="text-xs font-medium w-10 text-right shrink-0">
         {value.toFixed(1)}%
       </span>
-      {detail && (
+      <Show when={detail}>
         <span className="text-xs text-foreground shrink-0 w-28 text-right">
           {detail}
         </span>
-      )}
+      </Show>
     </div>
   );
 }
@@ -183,12 +187,12 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader class="pb-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Server
               size={18}
-              className={cn('shrink-0', {
+              class={cn('shrink-0', {
                 'text-destructive': !isOnline,
               })}
             />
@@ -202,7 +206,7 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            {isCloud && (
+            <Show when={isCloud}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge
@@ -217,7 +221,7 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
                       : t('Shared')}
                   </Badge>
                 </TooltipTrigger>
-                <TooltipContent className="max-w-xs">
+                <TooltipContent class="max-w-xs">
                   {worker.type === WorkerMachineType.DEDICATED
                     ? t(
                         'This worker runs exclusively for your platform with no sandboxing overhead.',
@@ -227,7 +231,7 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
                       )}
                 </TooltipContent>
               </Tooltip>
-            )}
+            </Show>
             <Badge variant={isOnline ? 'success' : 'destructive'}>
               {t(worker.status.toLowerCase())}
             </Badge>
@@ -236,11 +240,11 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-2.5">
+      <CardContent class="space-y-2.5">
         <StatBar
           label={
             <>
-              <Cpu className="size-3" />
+              <Cpu class="size-3" />
               <span>CPU</span>
             </>
           }
@@ -250,7 +254,7 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
         <StatBar
           label={
             <>
-              <MemoryStick className="size-3" />
+              <MemoryStick class="size-3" />
               <span>RAM</span>
             </>
           }
@@ -262,7 +266,7 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
         <StatBar
           label={
             <>
-              <HardDrive className="size-3" />
+              <HardDrive class="size-3" />
               <span>Disk</span>
             </>
           }
@@ -273,10 +277,10 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
         />
       </CardContent>
 
-      <CardFooter className="justify-between pt-0 gap-2">
+      <CardFooter class="justify-between pt-0 gap-2">
         <div className="flex items-center gap-3 text-xs text-muted-foreground min-w-0">
           <span className="flex items-center gap-1 truncate">
-            <Clock size={12} className="shrink-0" />
+            <Clock size={12} class="shrink-0" />
             {t('seen')} {timeAgo}
           </span>
         </div>
@@ -288,7 +292,7 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
   );
 }
 
-type StatBarProps = { label: React.ReactNode; value: number; detail?: string };
+type StatBarProps = { label: JSX.Element; value: number; detail?: string };
 type WorkerCardProps = {
   worker: WorkerMachineWithStatus;
   index: number;

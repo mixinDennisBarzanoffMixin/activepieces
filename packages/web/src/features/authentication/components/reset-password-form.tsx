@@ -1,13 +1,10 @@
 import { CreateOtpRequestBody, OtpType } from '@activepieces/shared';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useMutation } from '@tanstack/react-query';
+import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useState } from 'react';
-import { SubmitHandler, useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
-import { z } from 'zod';
+import { createSignal } from 'solid-js';
 
 import { authenticationApi } from '@/api/authentication-api';
+import { queryClient } from '@/app/query-client';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -16,51 +13,41 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CheckEmailNote } from '@/features/authentication/components/check-email-note';
 import { HttpError } from '@/lib/api';
 
-const FormSchema = z.object({
-  email: z.string().min(1, t('Please enter your email')),
-  type: z.nativeEnum(OtpType),
-});
-
-type FormSchema = z.infer<typeof FormSchema>;
-
 const ResetPasswordForm = () => {
-  const [isSent, setIsSent] = useState<boolean>(false);
-  const form = useForm<FormSchema>({
-    resolver: zodResolver(FormSchema),
-    defaultValues: {
-      type: OtpType.PASSWORD_RESET,
-    },
-  });
+  const [isSent, setIsSent] = createSignal<boolean>(false);
+  const [email, setEmail] = createSignal('');
 
-  const { mutate, isPending } = useMutation<
+  const { mutate, isPending } = createMutation<
     void,
     HttpError,
     CreateOtpRequestBody
-  >({
-    mutationFn: authenticationApi.sendOtpEmail,
-    onSuccess: () => setIsSent(true),
-  });
+  >(
+    () => ({
+      mutationFn: authenticationApi.sendOtpEmail,
+      onSuccess: () => setIsSent(true),
+    }),
+    () => queryClient,
+  );
 
-  const onSubmit: SubmitHandler<CreateOtpRequestBody> = (data) => {
-    mutate(data);
+  const onSubmit = () => {
+    mutate({ email: email().trim(), type: OtpType.PASSWORD_RESET });
   };
 
   return (
-    <Card className="w-md rounded-sm drop-shadow-xl">
+    <Card class="w-md rounded-sm drop-shadow-xl">
       <CardHeader>
-        <CardTitle className="text-2xl">
+        <CardTitle class="text-2xl">
           {isSent ? t('Check Your Inbox') : t('Reset Password')}
         </CardTitle>
         <CardDescription>
           {isSent ? (
             <CheckEmailNote
-              email={form.getValues().email.trim().toLocaleLowerCase()}
+              email={email().trim().toLocaleLowerCase()}
               type={OtpType.PASSWORD_RESET}
             />
           ) : (
@@ -72,45 +59,36 @@ const ResetPasswordForm = () => {
           )}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+        <CardContent>
         {!isSent && (
-          <Form {...form}>
-            <form className="grid ">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem className="w-full grid space-y-2">
-                    <Label htmlFor="email">{t('Email')}</Label>
-                    <Input
-                      {...field}
-                      type="text"
-                      placeholder={'email@example.com'}
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <form className="grid" onSubmit={(e) => { e.preventDefault(); onSubmit(); }}>
+              <div class="w-full grid space-y-2">
+                <Label for="email">{t('Email')}</Label>
+                <Input
+                  id="email"
+                  value={email()}
+                  type="text"
+                  placeholder="email@example.com"
+                  onInput={(e) => setEmail(e.currentTarget.value)}
+                />
+              </div>
               <Button
-                className="w-full mt-4"
+                type="submit"
+                class="w-full mt-4"
                 loading={isPending}
-                onClick={(e) => form.handleSubmit(onSubmit)(e)}
               >
                 {t('Send Password Reset Link')}
               </Button>
             </form>
-          </Form>
         )}
         <div className="mt-4 text-center text-sm">
-          <Link to="/sign-in" className="text-muted-foreground">
+          <a href="/sign-in" class="text-muted-foreground">
             {t('Back to sign in')}
-          </Link>
+          </a>
         </div>
       </CardContent>
     </Card>
   );
 };
-
-ResetPasswordForm.displayName = 'ResetPassword';
 
 export { ResetPasswordForm };

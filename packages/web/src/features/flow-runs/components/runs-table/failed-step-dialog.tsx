@@ -5,9 +5,9 @@ import {
   flowStructureUtil,
   isNil,
 } from '@activepieces/shared';
+import { useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
-import { ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-solid';
 
 import { JsonViewer } from '@/components/custom/json-viewer';
 import { Button } from '@/components/ui/button';
@@ -50,7 +50,7 @@ export const FailedStepDialog = ({
   if (isNil(run) || isNil(failedStep)) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg" />
+        <DialogContent class="max-w-lg" />
       </Dialog>
     );
   }
@@ -69,13 +69,13 @@ export const FailedStepDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg" onClick={(e) => e.stopPropagation()}>
+      <DialogContent class="max-w-lg" onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <RunStatusIcon className="size-4 shrink-0 text-destructive-800 dark:text-destructive-200" />
+          <DialogTitle class="flex items-center gap-2 text-base">
+            <RunStatusIcon class="size-4 shrink-0 text-destructive-800 dark:text-destructive-200" />
             <span className="truncate">{flowName || t('Run Failed')}</span>
           </DialogTitle>
-          <DialogDescription className="text-xs">
+          <DialogDescription class="text-xs">
             {failureTimestamp
               ? formatUtils.formatDateWithTime(new Date(failureTimestamp), true)
               : null}
@@ -89,7 +89,7 @@ export const FailedStepDialog = ({
                 {stepNode ? (
                   <StepIconBadge step={stepNode} />
                 ) : (
-                  <Skeleton className="size-[25px] rounded-md shrink-0" />
+                  <Skeleton class="size-[25px] rounded-md shrink-0" />
                 )}
                 <span className="truncate">
                   {stepNumber
@@ -98,7 +98,7 @@ export const FailedStepDialog = ({
                 </span>
               </span>
             }
-            className="max-h-[400px] overflow-auto"
+            class="max-h-[400px] overflow-auto"
             hideDownload
           />
         ) : (
@@ -116,7 +116,7 @@ export const FailedStepDialog = ({
               )
             }
           >
-            <ArrowRight className="size-4" />
+            <ArrowRight class="size-4" />
             {t('Go to run')}
           </Button>
         </DialogFooter>
@@ -128,7 +128,7 @@ export const FailedStepDialog = ({
 const StepIconBadge = ({ step }: { step: FlowAction | FlowTrigger }) => {
   const { stepMetadata, isLoading } = stepsHooks.useStepMetadata({ step });
   if (isLoading || !stepMetadata) {
-    return <Skeleton className="size-[25px] rounded-md shrink-0" />;
+    return <Skeleton class="size-[25px] rounded-md shrink-0" />;
   }
   return (
     <PieceIcon

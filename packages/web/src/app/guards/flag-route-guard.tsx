@@ -1,5 +1,5 @@
 import { ApFlagId } from '@activepieces/shared';
-import { Navigate } from 'react-router-dom';
+import { JSX } from 'solid-js';
 
 import { flagsHooks } from '../../hooks/flags-hooks';
 
@@ -8,11 +8,12 @@ export const FlagRouteGuard = ({
   children,
 }: {
   flag: ApFlagId;
-  children: React.ReactNode;
+  children: JSX.Element;
 }) => {
   const { data: flagValue } = flagsHooks.useFlag<boolean>(flag);
   if (!flagValue) {
-    return <Navigate to="/" replace />;
+    window.location.replace('/');
+    return null;
   }
   return children;
 };

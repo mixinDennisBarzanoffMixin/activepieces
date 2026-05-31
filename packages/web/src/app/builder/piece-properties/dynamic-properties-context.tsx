@@ -1,4 +1,4 @@
-import { createContext, useState, useCallback, useMemo } from 'react';
+import { createContext, createMemo, createSignal } from 'solid-js';
 
 export const DynamicPropertiesContext = createContext<{
   propertiesNamesStillLoading: string[];
@@ -12,46 +12,33 @@ export const DynamicPropertiesContext = createContext<{
   isLoadingDynamicProperties: false,
 });
 
-export const DynamicPropertiesProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const DynamicPropertiesProvider = ({ children }: { children: any }) => {
   const [propertiesNamesStillLoading, setPropertiesNamesStillLoading] =
-    useState<string[]>([]);
+    createSignal<string[]>([]);
 
-  const propertyLoadingFinished = useCallback((propertyName: string) => {
+  const propertyLoadingFinished = (propertyName: string) => {
     setPropertiesNamesStillLoading((prev) =>
       prev.filter((name) => name !== propertyName),
     );
-  }, []);
+  };
 
-  const propertyLoadingStarted = useCallback((propertyName: string) => {
+  const propertyLoadingStarted = (propertyName: string) => {
     setPropertiesNamesStillLoading((prev) => [...prev, propertyName]);
-  }, []);
+  };
 
-  const isLoadingDynamicProperties = useMemo(
-    () => propertiesNamesStillLoading.length > 0,
-    [propertiesNamesStillLoading],
+  const isLoadingDynamicProperties = createMemo(
+    () => propertiesNamesStillLoading().length > 0,
   );
 
-  const contextValue = useMemo(
-    () => ({
-      propertiesNamesStillLoading,
-      propertyLoadingFinished,
-      propertyLoadingStarted,
-      isLoadingDynamicProperties,
-    }),
-    [
-      propertiesNamesStillLoading,
-      propertyLoadingFinished,
-      propertyLoadingStarted,
-      isLoadingDynamicProperties,
-    ],
-  );
+  const contextValue = createMemo(() => ({
+    propertiesNamesStillLoading: propertiesNamesStillLoading(),
+    propertyLoadingFinished,
+    propertyLoadingStarted,
+    isLoadingDynamicProperties: isLoadingDynamicProperties(),
+  }));
 
   return (
-    <DynamicPropertiesContext.Provider value={contextValue}>
+    <DynamicPropertiesContext.Provider value={contextValue()}>
       {children}
     </DynamicPropertiesContext.Provider>
   );

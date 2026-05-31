@@ -1,6 +1,6 @@
 import { t } from 'i18next';
-import { CircleHelp } from 'lucide-react';
-import { useEffect, useState, useCallback } from 'react';
+import { CircleHelp } from 'lucide-solid';
+import { createSignal, createEffect } from 'solid-js';
 
 import {
   Popover,
@@ -77,22 +77,19 @@ function MiniDonut({
 
 function RunsStatusChart() {
   const { categories, total, refetch } = flowRunQueries.useRunStats();
-  const [open, setOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  const [open, setOpen] = createSignal(false);
+  const [isVisible, setIsVisible] = createSignal(false);
 
-  const handleOpenChange = useCallback(
-    (v: boolean) => {
-      setOpen(v);
-      if (v) {
-        refetch();
-      } else {
-        setIsVisible(false);
-      }
-    },
-    [refetch],
-  );
+  const handleOpenChange = (v: boolean) => {
+    setOpen(v);
+    if (v) {
+      refetch();
+      return;
+    }
+    setIsVisible(false);
+  };
 
-  useEffect(() => {
+  createEffect(() => {
     if (open) {
       requestAnimationFrame(() => setIsVisible(true));
     }
@@ -106,14 +103,14 @@ function RunsStatusChart() {
           {t('Queue Status')}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-4">
+      <PopoverContent align="end" class="w-80 p-4">
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <p className="text-sm font-medium">{t('Current Queue Status')}</p>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <CircleHelp className="size-3.5 text-muted-foreground" />
+                  <CircleHelp class="size-3.5 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent side="top">
                   {t('Showing results from the last 7 days')}

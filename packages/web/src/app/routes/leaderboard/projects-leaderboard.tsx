@@ -1,8 +1,8 @@
 import { ColorName, PROJECT_COLOR_PALETTE } from '@activepieces/shared';
-import { ColumnDef } from '@tanstack/react-table';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
-import { Rocket } from 'lucide-react';
-import { useMemo } from 'react';
+import { Rocket } from 'lucide-solid';
+import { createMemo, Show } from 'solid-js';
 
 import { DataTable, RowDataWithActions } from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
@@ -29,9 +29,9 @@ type ProjectsLeaderboardProps = {
 };
 
 export const getRankIcon = (rank: number) => {
-  if (rank === 1) return <FirstIcon className="size-6" />;
-  if (rank === 2) return <SecondIcon className="size-6" />;
-  if (rank === 3) return <ThirdIcon className="size-6" />;
+  if (rank === 1) return <FirstIcon class="size-6" />;
+  if (rank === 2) return <SecondIcon class="size-6" />;
+  if (rank === 3) return <ThirdIcon class="size-6" />;
   return null;
 };
 
@@ -43,7 +43,9 @@ export function RankCell({ rank }: { rank: number }) {
   const icon = getRankIcon(rank);
   return (
     <div className="flex items-center gap-2 shrink-0">
-      {icon && <div>{icon}</div>}
+      <Show when={icon}>
+        <div>{icon}</div>
+      </Show>
       <span className="text-sm text-foreground">{getRankText(rank)}</span>
     </div>
   );
@@ -71,7 +73,7 @@ const createColumns = (): ColumnDef<RowDataWithActions<ProjectStats>>[] => [
       return (
         <div className="flex items-center gap-2">
           <Avatar
-            className="size-6 text-xs font-medium flex items-center justify-center rounded-sm shrink-0"
+            class="size-6 text-xs font-medium flex items-center justify-center rounded-sm shrink-0"
             style={{
               backgroundColor: palette.color,
               color: palette.textColor,
@@ -121,7 +123,7 @@ export function ProjectsLeaderboard({
   data,
   isLoading,
 }: ProjectsLeaderboardProps) {
-  const columns = useMemo(() => createColumns(), []);
+  const columns = createMemo(() => createColumns());
 
   return (
     <DataTable
@@ -138,7 +140,7 @@ export function ProjectsLeaderboard({
       emptyStateTextDescription={t(
         'Projects will rank here as flows are created and time is saved',
       )}
-      emptyStateIcon={<Rocket className="h-10 w-10 text-muted-foreground" />}
+      emptyStateIcon={<Rocket class="h-10 w-10 text-muted-foreground" />}
       onRowClick={(row) => {
         window.open(`/projects/${row.projectId}`, '_blank');
       }}
