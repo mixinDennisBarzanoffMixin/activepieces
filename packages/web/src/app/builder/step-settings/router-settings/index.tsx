@@ -181,7 +181,7 @@ export const RouterSettings = (props: { readonly: boolean }) => {
           </div>
 
           <BranchesList
-            errors={(formState.errors.settings?.branches as unknown[]) ?? []}
+            errors={formState.errors.settings?.branches as unknown[]}
             readonly={props.readonly}
             step={step}
             branchNameChanged={(index, name) => {

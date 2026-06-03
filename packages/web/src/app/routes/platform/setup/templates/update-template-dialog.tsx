@@ -42,11 +42,11 @@ export const UpdateTemplateDialog = (props: {
   const [open, setOpen] = createSignal(false);
   const initial = () => ({
     displayName: props.template.name,
-    summary: props.template.summary || '',
-    blogUrl: props.template.blogUrl || '',
+    summary: props.template.summary,
+    blogUrl: props.template.blogUrl,
     description: props.template.description,
-    tags: props.template.tags || [],
-    categories: props.template.categories || [],
+    tags: props.template.tags,
+    categories: props.template.categories,
     template: undefined,
   });
   const [displayName, setDisplayName] = createSignal(initial().displayName);
@@ -88,13 +88,13 @@ export const UpdateTemplateDialog = (props: {
         tags: formValue.tags,
         blogUrl: formValue.blogUrl,
         metadata: props.template.metadata,
-        categories: formValue.categories || [],
+        categories: formValue.categories,
         flows: next
           ? [
               {
                 ...next,
                 displayName: formValue.displayName,
-                valid: next.valid === undefined ? true : next.valid,
+                valid: next.valid,
               },
             ]
           : undefined,
@@ -123,6 +123,17 @@ export const UpdateTemplateDialog = (props: {
     }
     setErrors({});
     mutate();
+  };
+  const upload = async (e: Event & { currentTarget: HTMLInputElement }) => {
+    const file = e.currentTarget.files?.[0];
+    if (!file) return;
+    const template = templateUtils.extractFlow(await file.text());
+    if (template) {
+      setFlow(template);
+      setErrors({ ...errors(), template: '' });
+      return;
+    }
+    setErrors({ ...errors(), template: t('Invalid JSON') });
   };
 
   return (
@@ -195,20 +206,7 @@ export const UpdateTemplateDialog = (props: {
             <Input
               type="file"
               accept=".json"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  void file.text().then((text) => {
-                    const template = templateUtils.extractFlow(text);
-                    if (template) {
-                      setFlow(template);
-                      setErrors({ ...errors(), template: '' });
-                    } else {
-                      setErrors({ ...errors(), template: t('Invalid JSON') });
-                    }
-                  });
-                }
-              }}
+              onInput={(e) => void upload(e)}
               id="template"
               placeholder={t('Template')}
               class="rounded-sm"

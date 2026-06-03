@@ -10,6 +10,7 @@ import {
   For,
   JSX,
   mergeProps,
+  Show,
   splitProps,
 } from 'solid-js';
 
@@ -32,7 +33,8 @@ function CodeBlock(_props: CodeBlockProps) {
 }
 
 function CodeBlockCode(_props: CodeBlockCodeProps) {
-  const [local, props] = splitProps(mergeProps({ language: 'tsx' }, _props), [
+  const merged = mergeProps({ language: 'tsx' }, _props);
+  const [local, props] = splitProps(merged, [
     'code',
     'language',
     'theme',
@@ -97,41 +99,41 @@ function CodeBlockCode(_props: CodeBlockCodeProps) {
     };
   });
 
-  const classNames = cn(
-    'w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4',
-    local.className,
-  );
-
-  const result = tokenResult();
-
-  if (!result) {
-    return (
-      <div class={classNames} {...props}>
-        <pre>
-          <code>{local.code}</code>
-        </pre>
-      </div>
-    );
-  }
-
-  const lastLineIndex = result.lines.length - 1;
-
   return (
-    <div class={classNames} {...props}>
-      <pre class="shiki" style={result.preStyle}>
-        <code>
-          <For each={result.lines}>
-            {(line, index) => (
-              <span class="line">
-                <For each={line}>
-                  {(token) => <span style={token.style}>{token.content}</span>}
-                </For>
-                {index() < lastLineIndex ? '\n' : ''}
-              </span>
-            )}
-          </For>
-        </code>
-      </pre>
+    <div
+      class={cn(
+        'w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4',
+        local.className,
+      )}
+      {...props}
+    >
+      <Show
+        when={tokenResult()}
+        fallback={
+          <pre>
+            <code>{local.code}</code>
+          </pre>
+        }
+      >
+        {(result) => (
+          <pre class="shiki" style={result().preStyle}>
+            <code>
+              <For each={result().lines}>
+                {(line, index) => (
+                  <span class="line">
+                    <For each={line}>
+                      {(token) => (
+                        <span style={token.style}>{token.content}</span>
+                      )}
+                    </For>
+                    {index() < result().lines.length - 1 ? '\n' : ''}
+                  </span>
+                )}
+              </For>
+            </code>
+          </pre>
+        )}
+      </Show>
     </div>
   );
 }

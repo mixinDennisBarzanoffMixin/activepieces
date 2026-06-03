@@ -4,7 +4,14 @@ import {
   ThirdPartyAuthnProvidersToShowMap,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { createEffect, createSignal, lazy, onCleanup, Show } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  lazy,
+  onCleanup,
+  Show,
+} from 'solid-js';
 
 import { useTheme } from '@/components/providers/theme-provider';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -65,37 +72,36 @@ const TermsFooter = () => {
   );
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
 
-  if (
-    edition !== ApEdition.CLOUD ||
-    (!termsOfServiceUrl && !privacyPolicyUrl)
-  ) {
-    return null;
-  }
-
   return (
-    <div class="text-center text-xs text-muted-foreground">
-      {t('By continuing, you agree to our')}
-      <Show when={termsOfServiceUrl}>
-        <a
-          href={termsOfServiceUrl}
-          target="_blank"
-          class="px-1 text-muted-foreground underline hover:text-primary text-xs transition-all duration-200"
-        >
-          {t('Terms of Service')}
-        </a>
-      </Show>
-      {termsOfServiceUrl && privacyPolicyUrl && t('and')}
-      <Show when={privacyPolicyUrl}>
-        <a
-          href={privacyPolicyUrl}
-          target="_blank"
-          class="pl-1 text-muted-foreground underline hover:text-primary text-xs transition-all duration-200"
-        >
-          {t('Privacy Policy')}
-        </a>
-      </Show>
-      .
-    </div>
+    <Show
+      when={
+        edition === ApEdition.CLOUD && (termsOfServiceUrl || privacyPolicyUrl)
+      }
+    >
+      <div class="text-center text-xs text-muted-foreground">
+        {t('By continuing, you agree to our')}
+        <Show when={termsOfServiceUrl}>
+          <a
+            href={termsOfServiceUrl}
+            target="_blank"
+            class="px-1 text-muted-foreground underline hover:text-primary text-xs transition-all duration-200"
+          >
+            {t('Terms of Service')}
+          </a>
+        </Show>
+        {termsOfServiceUrl && privacyPolicyUrl && t('and')}
+        <Show when={privacyPolicyUrl}>
+          <a
+            href={privacyPolicyUrl}
+            target="_blank"
+            class="pl-1 text-muted-foreground underline hover:text-primary text-xs transition-all duration-200"
+          >
+            {t('Privacy Policy')}
+          </a>
+        </Show>
+        .
+      </div>
+    </Show>
   );
 };
 
@@ -173,7 +179,7 @@ const AuthLayout = (props: { children; isSignUp?: boolean }) => {
 };
 
 const AuthFormTemplate = (props: { form: 'signin' | 'signup' }) => {
-  const isSignUp = props.form === 'signup';
+  const isSignUp = createMemo(() => props.form === 'signup');
   const token = authenticationSession.getToken();
   const redirectAfterLogin = useRedirectAfterLogin();
   const [showCheckYourEmailNote, setShowCheckYourEmailNote] =
@@ -181,16 +187,19 @@ const AuthFormTemplate = (props: { form: 'signin' | 'signup' }) => {
   const { data: isEmailAuthEnabled } = flagsHooks.useFlag<boolean>(
     ApFlagId.EMAIL_AUTH_ENABLED,
   );
-  const data = {
-    signin: {
-      title: t('Welcome back'),
-      description: t('Sign in to pick up where you left off.'),
-    },
-    signup: {
-      title: t('Create a new account'),
-      description: t('Join thousands of teams running on autopilot.'),
-    },
-  }[props.form];
+  const data = createMemo(
+    () =>
+      ({
+        signin: {
+          title: t('Welcome back'),
+          description: t('Sign in to pick up where you left off.'),
+        },
+        signup: {
+          title: t('Create a new account'),
+          description: t('Join thousands of teams running on autopilot.'),
+        },
+      }[props.form]),
+  );
 
   createEffect(() => {
     if (token) {
@@ -198,46 +207,41 @@ const AuthFormTemplate = (props: { form: 'signin' | 'signup' }) => {
     }
   });
 
-  if (token) {
-    return null;
-  }
-
   return (
-    <AuthLayout isSignUp={isSignUp}>
-      <Show when={!showCheckYourEmailNote()}>
-        <div class="mb-6 text-center">
-          <h1
-            class="text-2xl font-bold tracking-tight"
-            style={{ 'font-family': "'Sentient', serif" }}
-          >
-            {data.title}
-          </h1>
-        </div>
-      </Show>
+    <Show when={!token}>
+      <AuthLayout isSignUp={isSignUp()}>
+        <Show when={!showCheckYourEmailNote()}>
+          <div class="mb-6 text-center">
+            <h1
+              class="text-2xl font-bold tracking-tight"
+              style={{ 'font-family': "'Sentient', serif" }}
+            >
+              {data().title}
+            </h1>
+          </div>
+        </Show>
 
-      <Show when={!showCheckYourEmailNote()}>
-        <ThirdPartyLogin isSignUp={isSignUp} />
-      </Show>
-      <AuthSeparator
-        isEmailAuthEnabled={
-          (isEmailAuthEnabled || isEmailAuthEnabled === undefined) &&
-          !showCheckYourEmailNote()
-        }
-      />
+        <Show when={!showCheckYourEmailNote()}>
+          <ThirdPartyLogin isSignUp={isSignUp()} />
+        </Show>
+        <AuthSeparator
+          isEmailAuthEnabled={isEmailAuthEnabled && !showCheckYourEmailNote()}
+        />
 
-      {isEmailAuthEnabled ? (
-        isSignUp ? (
-          <SignUpForm
-            setShowCheckYourEmailNote={setShowCheckYourEmailNote}
-            showCheckYourEmailNote={showCheckYourEmailNote()}
-          />
-        ) : (
-          <SignInForm />
-        )
-      ) : null}
+        {isEmailAuthEnabled ? (
+          isSignUp() ? (
+            <SignUpForm
+              setShowCheckYourEmailNote={setShowCheckYourEmailNote}
+              showCheckYourEmailNote={showCheckYourEmailNote()}
+            />
+          ) : (
+            <SignInForm />
+          )
+        ) : null}
 
-      <BottomNote isSignup={isSignUp} />
-    </AuthLayout>
+        <BottomNote isSignup={isSignUp()} />
+      </AuthLayout>
+    </Show>
   );
 };
 

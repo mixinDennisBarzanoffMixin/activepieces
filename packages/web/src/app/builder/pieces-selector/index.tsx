@@ -11,7 +11,7 @@ import {
   SparklesIcon,
   WrenchIcon,
 } from 'lucide-solid';
-import { Show, createEffect, mergeProps } from 'solid-js';
+import { Show, createEffect, createMemo, mergeProps } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import {
@@ -106,30 +106,35 @@ const PieceSelectorContent = (_props: PieceSelectorProps) => {
     openedPieceSelectorStepNameOrAddButtonId,
     setOpenedPieceSelectorStepNameOrAddButtonId,
     setSelectedPieceMetadataInPieceSelector,
-    isForEmptyTrigger,
+    trigger,
     deselectStep,
   ] = useBuilderStateContext((state) => [
     state.openedPieceSelectorStepNameOrAddButtonId,
     state.setOpenedPieceSelectorStepNameOrAddButtonId,
     state.setSelectedPieceMetadataInPieceSelector,
-    state.flowVersion.trigger.type === FlowTriggerType.EMPTY &&
-      props.id === 'trigger',
+    state.flowVersion.trigger.type,
     state.deselectStep,
   ]);
   const { searchQuery, setSearchQuery } = usePieceSearchContext();
-  const isForReplace =
-    props.operation.type === FlowOperationType.UPDATE_ACTION ||
-    (props.operation.type === FlowOperationType.UPDATE_TRIGGER &&
-      !isForEmptyTrigger);
+  const empty = createMemo(
+    () => trigger === FlowTriggerType.EMPTY && props.id === 'trigger',
+  );
+  const replace = createMemo(
+    () =>
+      props.operation.type === FlowOperationType.UPDATE_ACTION ||
+      (props.operation.type === FlowOperationType.UPDATE_TRIGGER && !empty()),
+  );
   const [debouncedQuery] = useDebounce(searchQuery, 300);
-  const isOpen = openedPieceSelectorStepNameOrAddButtonId === props.id;
+  const open = createMemo(
+    () => openedPieceSelectorStepNameOrAddButtonId === props.id,
+  );
   const isMobile = useIsMobile();
   const { listHeightRef, popoverTriggerRef } =
     pieceSelectorUtils.useAdjustPieceListHeightToAvailableSpace();
   const listHeight = Math.min(listHeightRef.current, 300);
   let searchInputRef: HTMLInputElement | undefined;
   createEffect(() => {
-    if (isOpen) {
+    if (open()) {
       setTimeout(() => {
         searchInputRef?.focus();
       });
@@ -142,22 +147,24 @@ const PieceSelectorContent = (_props: PieceSelectorProps) => {
   };
 
   const { platform } = platformHooks.useCurrentPlatform();
-  const tabsList = getTabsList(
-    props.operation.type,
-    platform?.plan.agentsEnabled === true &&
-      !isNil(aiProviders) &&
-      aiProviders.length > 0,
+  const tabs = createMemo(() =>
+    getTabsList(
+      props.operation.type,
+      platform?.plan.agentsEnabled === true &&
+        !isNil(aiProviders) &&
+        aiProviders.length > 0,
+    ),
   );
 
   return (
     <Popover
-      open={isOpen}
+      open={open()}
       modal={true}
       onOpenChange={(open) => {
         if (!open) {
           clearSearch();
           setOpenedPieceSelectorStepNameOrAddButtonId(null);
-          if (isForEmptyTrigger) {
+          if (empty()) {
             deselectStep();
           }
         }
@@ -177,12 +184,12 @@ const PieceSelectorContent = (_props: PieceSelectorProps) => {
 
       <PieceSelectorTabsProvider
         initiallySelectedTab={
-          isForReplace || isMobile
+          replace() || isMobile()
             ? PieceSelectorTabType.NONE
             : PieceSelectorTabType.EXPLORE
         }
         onTabChange={clearSearch}
-        key={isOpen ? 'open' : 'closed'}
+        key={open() ? 'open' : 'closed'}
       >
         <PopoverContent
           onContextMenu={(e) => {
@@ -206,7 +213,7 @@ const PieceSelectorContent = (_props: PieceSelectorProps) => {
                 }}
               />
               <Show when={!isMobile()}>
-                <PieceSelectorTabs tabs={tabsList} />
+                <PieceSelectorTabs tabs={tabs()} />
               </Show>
               <Separator orientation="horizontal" class="mt-1" />
             </div>
@@ -225,7 +232,7 @@ const PieceSelectorContent = (_props: PieceSelectorProps) => {
                 searchQuery={searchQuery === '' ? '' : debouncedQuery}
                 operation={props.operation}
                 stepToReplacePieceDisplayName={
-                  isMobile ? undefined : props.stepToReplacePieceDisplayName
+                  isMobile() ? undefined : props.stepToReplacePieceDisplayName
                 }
               />
             </div>

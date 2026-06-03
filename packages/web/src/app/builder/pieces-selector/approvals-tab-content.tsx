@@ -1,5 +1,5 @@
 import { FlowActionType, FlowOperationType, isNil } from '@activepieces/shared';
-import { For } from 'solid-js';
+import { For, Show, createMemo } from 'solid-js';
 
 import { CardList, CardListItemSkeleton } from '@/components/custom/card-list';
 import {
@@ -53,88 +53,90 @@ const ApprovalsTabContent = (props: { operation: PieceSelectorOperation }) => {
     state.handleAddingOrUpdatingStep,
   ]);
 
-  const pieceQueries = piecesHooks.useMultiplePieces({
-    names: APPROVAL_PIECES_CONFIG.map((config) => config.pieceName),
+  const queries = piecesHooks.useMultiplePieces({
+    names: APPROVAL_PIECES_CONFIG.map((cfg) => cfg.pieceName),
   });
 
-  const isLoading = pieceQueries.some((query) => query.isLoading);
-  const allPiecesLoaded = pieceQueries.every(
-    (query) => query.isSuccess && !isNil(query.data),
+  const active = createMemo(
+    () =>
+      selectedTab === PieceSelectorTabType.APPROVALS &&
+      [FlowOperationType.ADD_ACTION, FlowOperationType.UPDATE_ACTION].includes(
+        props.operation.type,
+      ),
   );
 
-  if (
-    selectedTab !== PieceSelectorTabType.APPROVALS ||
-    ![FlowOperationType.ADD_ACTION, FlowOperationType.UPDATE_ACTION].includes(
-      props.operation.type,
-    )
-  ) {
-    return null;
-  }
+  const loading = createMemo(() => queries.some((query) => query.isLoading));
+  const loaded = createMemo(() =>
+    queries.every((query) => query.isSuccess && !isNil(query.data)),
+  );
 
-  if (isLoading || !allPiecesLoaded) {
-    return (
-      <div class="flex flex-col gap-2 w-full p-2">
-        <CardListItemSkeleton numberOfCards={3} withCircle={false} />
-      </div>
-    );
-  }
+  const actions = createMemo(() =>
+    queries.flatMap((query) => {
+      if (!query.data) return [];
 
-  const allApprovalActions = pieceQueries.flatMap((query) => {
-    if (!query.data) return [];
+      const cfg = APPROVAL_PIECES_CONFIG.find(
+        (cfg) => cfg.pieceName === query.data.name,
+      );
+      if (isNil(cfg)) return [];
+      const metadata = stepUtils.mapPieceToMetadata({
+        piece: query.data,
+        type: 'action',
+      });
 
-    const config = APPROVAL_PIECES_CONFIG.find(
-      (config) => config.pieceName === query.data.name,
-    );
-    if (isNil(config)) return [];
-    const pieceMetadata = stepUtils.mapPieceToMetadata({
-      piece: query.data,
-      type: 'action',
-    });
+      return cfg.approvalActionNames.flatMap((name) => {
+        if (!Object.hasOwn(query.data.actions, name)) return [];
 
-    return config.approvalActionNames
-      .map((actionName) => {
-        const action = query.data.actions[actionName];
-        if (!action) return null;
         return {
-          action,
-          pieceMetadata,
+          action: query.data.actions[name],
+          pieceMetadata: metadata,
         };
-      })
-      .filter((item) => !isNil(item));
-  });
+      });
+    }),
+  );
 
   return (
-    <CardList listClassName="gap-0">
-      <For each={allApprovalActions}>
-        {(item) => (
-          <GenericActionOrTriggerItem
-            key={`${item.pieceMetadata.pieceName}-${item.action.name}`}
-            item={{
-              actionOrTrigger: item.action,
-              type: FlowActionType.PIECE,
-              pieceMetadata: item.pieceMetadata,
-            }}
-            hidePieceIconAndDescription={false}
-            stepMetadataWithSuggestions={{
-              ...item.pieceMetadata,
-              suggestedActions: [item.action],
-              suggestedTriggers: [],
-            }}
-            onClick={() => {
-              handleAddingOrUpdatingStep({
-                pieceSelectorItem: {
+    <Show when={active()}>
+      <Show
+        when={!loading() && loaded()}
+        fallback={
+          <div class="flex flex-col gap-2 w-full p-2">
+            <CardListItemSkeleton numberOfCards={3} withCircle={false} />
+          </div>
+        }
+      >
+        <CardList listClassName="gap-0">
+          <For each={actions()}>
+            {(item) => (
+              <GenericActionOrTriggerItem
+                key={`${item.pieceMetadata.pieceName}-${item.action.name}`}
+                item={{
                   actionOrTrigger: item.action,
                   type: FlowActionType.PIECE,
                   pieceMetadata: item.pieceMetadata,
-                },
-                operation: props.operation,
-                selectStepAfter: true,
-              });
-            }}
-          />
-        )}
-      </For>
-    </CardList>
+                }}
+                hidePieceIconAndDescription={false}
+                stepMetadataWithSuggestions={{
+                  ...item.pieceMetadata,
+                  suggestedActions: [item.action],
+                  suggestedTriggers: [],
+                }}
+                onClick={() => {
+                  handleAddingOrUpdatingStep({
+                    pieceSelectorItem: {
+                      actionOrTrigger: item.action,
+                      type: FlowActionType.PIECE,
+                      pieceMetadata: item.pieceMetadata,
+                    },
+                    operation: props.operation,
+                    selectStepAfter: true,
+                  });
+                }}
+              />
+            )}
+          </For>
+        </CardList>
+      </Show>
+    </Show>
   );
 };
 

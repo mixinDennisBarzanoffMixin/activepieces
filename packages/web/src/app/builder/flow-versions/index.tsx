@@ -42,7 +42,7 @@ const FlowVersionsList = () => {
                   selected={flowVersion.id === selectedFlowVersion.id}
                   publishedVersionId={flow.publishedVersionId}
                   flowVersion={flowVersion}
-                  flowVersionNumber={flowVersionPage.data.length - index}
+                  flowVersionNumber={flowVersionPage.data.length - index()}
                   key={flowVersion.id}
                 />
               )}

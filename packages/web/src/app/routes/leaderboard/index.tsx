@@ -114,9 +114,7 @@ export default function LeaderboardPage() {
   const projectIconMap = createMemo(() => {
     const map = new Map<string, ColorName>();
     allProjects?.forEach((p) => {
-      if (p.icon) {
-        map.set(p.id, p.icon.color);
-      }
+      map.set(p.id, p.icon.color);
     });
     return map;
   });
@@ -224,6 +222,7 @@ export default function LeaderboardPage() {
     }
 
     const userMap = new Map(analyticsData.users.map((user) => [user.id, user]));
+    const badges = badgesMap();
 
     return usersLeaderboardData
       .reduce<Omit<UserStats, 'rank'>[]>((acc, item) => {
@@ -235,9 +234,9 @@ export default function LeaderboardPage() {
           visibleId: item.userId,
           userName: `${user.firstName} ${user.lastName}`.trim() || user.email,
           userEmail: user.email,
-          flowCount: item.flowCount ?? 0,
+          flowCount: item.flowCount,
           minutesSaved: item.minutesSaved ?? 0,
-          badges: badgesMap().get(item.userId),
+          badges: badges.get(item.userId),
         });
         return acc;
       }, [])
@@ -255,7 +254,7 @@ export default function LeaderboardPage() {
         id: item.projectId,
         projectId: item.projectId,
         projectName: item.projectName,
-        flowCount: item.flowCount ?? 0,
+        flowCount: item.flowCount,
         minutesSaved: item.minutesSaved ?? 0,
         iconColor: projectIconMap().get(item.projectId),
       }))

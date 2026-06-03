@@ -7,13 +7,16 @@ import { cn } from '@/lib/utils';
 
 import { Alert, AlertDescription } from '../ui/alert';
 
-function applyVariables(markdown: string, variables: Record<string, string>) {
-  if (typeof markdown !== 'string') {
-    return '';
-  }
+function applyVariables(
+  markdown: string,
+  variables: Partial<Record<string, string>>,
+) {
   let result = markdown.split('<br>').join('\n');
-  result = result.replace(/\{\{(.*?)\}\}/g, (_match, variableName: string) => {
-    return variables[variableName] ?? '';
+  result = result.replace(/\{\{(.*?)\}\}/g, (_match, name: string) => {
+    if (variables[name] === undefined) {
+      return '';
+    }
+    return variables[name];
   });
   return result;
 }
@@ -67,26 +70,14 @@ const Container = (props: {
 const ApMarkdown = (props: MarkdownProps) => {
   let el: HTMLDivElement | undefined;
 
-  if (props.loading && props.loading.length > 0) {
-    return (
-      <Container variant={props.variant}>
-        <div class="flex items-center gap-2">{props.loading}</div>
-      </Container>
-    );
-  }
-
-  if (!props.markdown) {
-    return null;
-  }
-
   const html = () => {
     if (!props.markdown) {
       return '';
     }
-    return marked.parse(
-      applyVariables(props.markdown, props.variables ?? {}).trim(),
-      { async: false },
-    );
+    const vars = props.variables ? props.variables : {};
+    return marked.parse(applyVariables(props.markdown, vars).trim(), {
+      async: false,
+    });
   };
 
   createEffect(() => {
@@ -96,14 +87,25 @@ const ApMarkdown = (props: MarkdownProps) => {
   });
 
   return (
-    <Container variant={props.variant}>
-      <div
-        class={cn('grow w-full', props.className)}
-        ref={(node) => {
-          el = node;
-        }}
-      />
-    </Container>
+    <Show
+      when={props.loading && props.loading.length > 0}
+      fallback={
+        <Show when={props.markdown}>
+          <Container variant={props.variant}>
+            <div
+              class={cn('grow w-full', props.className)}
+              ref={(node) => {
+                el = node;
+              }}
+            />
+          </Container>
+        </Show>
+      }
+    >
+      <Container variant={props.variant}>
+        <div class="flex items-center gap-2">{props.loading}</div>
+      </Container>
+    </Show>
   );
 };
 

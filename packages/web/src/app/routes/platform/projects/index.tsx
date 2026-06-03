@@ -52,15 +52,18 @@ export default function ProjectsPage() {
     }
   });
 
-  const filters = createMemo(() => {
-    const params = new URLSearchParams(window.location.search);
-    const displayName = params.get('displayName');
-    const types = params.getAll('type');
-    return {
-      displayName: typeof displayName === 'string' ? displayName : undefined,
-      type: Object.values(ProjectType).filter((type) => types.includes(type)),
-    };
-  });
+  const filters = {
+    get displayName() {
+      const params = new URLSearchParams(window.location.search);
+      const displayName = params.get('displayName');
+      return typeof displayName === 'string' ? displayName : undefined;
+    },
+    get type() {
+      const params = new URLSearchParams(window.location.search);
+      const types = params.getAll('type');
+      return Object.values(ProjectType).filter((type) => types.includes(type));
+    },
+  };
 
   const { data: allProjects } =
     projectCollectionUtils.useAllPlatformProjects(filters);
@@ -104,33 +107,29 @@ export default function ProjectsPage() {
       minSize: 40,
       maxSize: 40,
       header: (props) => {
-        const selectableRows = props.table
-          .getRowModel()
-          .rows.filter(
-            (row) =>
-              row.original.id !== currentProject?.id &&
-              row.original.type !== ProjectType.PERSONAL,
-          );
-        const allSelectableSelected =
-          selectableRows.length > 0 &&
-          selectableRows.every((row) => row.getIsSelected());
-        const someSelectableSelected = selectableRows.some((row) =>
-          row.getIsSelected(),
-        );
+        const rows = () =>
+          props.table
+            .getRowModel()
+            .rows.filter(
+              (row) =>
+                row.original.id !== currentProject?.id &&
+                row.original.type !== ProjectType.PERSONAL,
+            );
 
         return (
           <Checkbox
-            checked={allSelectableSelected || someSelectableSelected}
+            checked={
+              (rows().length > 0 &&
+                rows().every((row) => row.getIsSelected())) ||
+              rows().some((row) => row.getIsSelected())
+            }
             onCheckedChange={(value) => {
               const isChecked = !!value;
-              selectableRows.forEach((row) => row.toggleSelected(isChecked));
+              rows().forEach((row) => row.toggleSelected(isChecked));
 
               if (isChecked) {
-                const selectableProjects = selectableRows.map(
-                  (row) => row.original,
-                );
                 const newSelectedRows = [
-                  ...selectableProjects,
+                  ...rows().map((row) => row.original),
                   ...selectedRows(),
                 ];
                 const uniqueRows = Array.from(
@@ -141,8 +140,7 @@ export default function ProjectsPage() {
                 setSelectedRows(uniqueRows);
               } else {
                 const filteredRows = selectedRows().filter(
-                  (row) =>
-                    !selectableRows.some((r) => r.original.id === row.id),
+                  (row) => !rows().some((r) => r.original.id === row.id),
                 );
                 setSelectedRows(filteredRows);
               }
@@ -151,38 +149,38 @@ export default function ProjectsPage() {
         );
       },
       cell: (props) => {
-        const isCurrentProject = props.row.original.id === currentProject?.id;
-        const isPersonalProject =
-          props.row.original.type === ProjectType.PERSONAL;
-        const isDisabled = isCurrentProject || isPersonalProject;
-        const isChecked = selectedRows().some(
-          (selectedRow) => selectedRow.id === props.row.original.id,
+        const project = createMemo(() => props.row.original);
+        const active = createMemo(() => project().id === currentProject?.id);
+        const personal = createMemo(
+          () => project().type === ProjectType.PERSONAL,
+        );
+        const disabled = createMemo(() => active() || personal());
+        const checked = createMemo(() =>
+          selectedRows().some((row) => row.id === project().id),
         );
 
         return (
           <Tooltip>
             <TooltipTrigger>
-              <div class={isDisabled ? 'cursor-not-allowed' : ''}>
+              <div class={disabled() ? 'cursor-not-allowed' : ''}>
                 <Checkbox
-                  checked={isChecked}
-                  disabled={isDisabled}
+                  checked={checked()}
+                  disabled={disabled()}
                   onCheckedChange={(value) => {
-                    if (isDisabled) return;
+                    if (disabled()) return;
 
                     const isChecked = !!value;
                     let newSelectedRows = [...selectedRows()];
                     if (isChecked) {
                       const exists = newSelectedRows.some(
-                        (selectedRow) =>
-                          selectedRow.id === props.row.original.id,
+                        (selectedRow) => selectedRow.id === project().id,
                       );
                       if (!exists) {
-                        newSelectedRows.push(props.row.original);
+                        newSelectedRows.push(project());
                       }
                     } else {
                       newSelectedRows = newSelectedRows.filter(
-                        (selectedRow) =>
-                          selectedRow.id !== props.row.original.id,
+                        (selectedRow) => selectedRow.id !== project().id,
                       );
                     }
                     setSelectedRows(newSelectedRows);
@@ -191,10 +189,10 @@ export default function ProjectsPage() {
                 />
               </div>
             </TooltipTrigger>
-            <Show when={isDisabled}>
+            <Show when={disabled()}>
               <TooltipContent side="right">
                 <Show
-                  when={isCurrentProject}
+                  when={active()}
                   fallback={t(
                     "Personal projects cannot be deleted, and you can't subscribe to their alerts",
                   )}

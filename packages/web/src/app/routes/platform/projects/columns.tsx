@@ -45,15 +45,12 @@ export const projectsTableColumns = ({
         />
       ),
       cell: (props) => {
-        const locked = props.row.original.plan.locked;
-        const isPersonal = props.row.original.type === ProjectType.PERSONAL;
-
         return (
           <div class="text-left flex items-center justify-start ">
-            <Show when={locked}>
+            <Show when={props.row.original.plan.locked}>
               <Lock class="size-3 mr-1.5" strokeWidth={2.5} />
             </Show>
-            <Show when={isPersonal}>
+            <Show when={props.row.original.type === ProjectType.PERSONAL}>
               <User class="size-4 mr-1.5" />
             </Show>
             <span class="font-medium">{props.row.original.displayName}</span>
@@ -127,12 +124,19 @@ export const projectsTableColumns = ({
         />
       ),
       cell: (props) => {
-        const displayValue =
-          isNil(props.row.original.externalId) ||
-          props.row.original.externalId.length === 0
-            ? '-'
-            : props.row.original.externalId;
-        return <div class="text-left truncate">{displayValue}</div>;
+        return (
+          <div class="text-left truncate">
+            <Show
+              when={
+                !isNil(props.row.original.externalId) &&
+                props.row.original.externalId.length > 0
+              }
+              fallback="-"
+            >
+              {props.row.original.externalId}
+            </Show>
+          </div>
+        );
       },
     });
   }

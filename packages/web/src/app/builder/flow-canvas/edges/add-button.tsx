@@ -1,6 +1,6 @@
 import { isNil } from '@activepieces/shared';
 import { Plus } from 'lucide-solid';
-import { Show, createSignal } from 'solid-js';
+import { Show, createMemo, createSignal, untrack } from 'solid-js';
 
 import { PieceSelector } from '@/app/builder/pieces-selector';
 import {
@@ -17,15 +17,17 @@ import { ApButtonData } from '../utils/types';
 
 const ApAddButton = (props: ApButtonData) => {
   const [isStepInsideDropZone, setIsStepInsideDropzone] = createSignal(false);
-  const [activeDraggingStep, readonly, isPieceSelectorOpen] =
-    useBuilderStateContext((state) => [
+  const [activeDraggingStep, readonly, opened] = useBuilderStateContext(
+    (state) => [
       state.activeDraggingStep,
       state.readonly,
-      state.openedPieceSelectorStepNameOrAddButtonId === props.edgeId,
-    ]);
+      state.openedPieceSelectorStepNameOrAddButtonId,
+    ],
+  );
+  const isPieceSelectorOpen = createMemo(() => opened === props.edgeId);
 
   const { setNodeRef } = useDroppable({
-    id: props.edgeId,
+    id: untrack(() => props.edgeId),
     data: {
       accepts: flowCanvasConsts.DRAGGED_STEP_TAG,
       ...props,

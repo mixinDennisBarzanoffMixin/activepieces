@@ -6,7 +6,7 @@ import type {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Plus } from 'lucide-solid';
-import { For, Show } from 'solid-js';
+import { For, Show, createMemo } from 'solid-js';
 
 import { BuilderField } from '@/app/builder/builder-form';
 import { Accordion } from '@/components/ui/accordion';
@@ -31,39 +31,47 @@ const icons = [
 ];
 
 interface AgentToolsProps {
-  toolsField: BuilderField;
+  toolsField: BuilderField<AgentTool[]>;
   disabled?: boolean;
   selectedProvider?: AIProviderName;
 }
 
 export const AgentTools = (props: AgentToolsProps) => {
-  const tools = Array.isArray(props.toolsField.value)
-    ? (props.toolsField.value as AgentTool[])
-    : [];
+  const tools = createMemo(() => {
+    if (!Array.isArray(props.toolsField.value)) return [];
+    return props.toolsField.value;
+  });
 
   const onToolsUpdate = (tools: AgentTool[]) =>
     props.toolsField.onChange(tools);
 
   const removeTool = (toolName: string) => {
-    onToolsUpdate(tools.filter((tool) => toolName !== tool.toolName));
+    onToolsUpdate(tools().filter((tool) => toolName !== tool.toolName));
   };
 
-  const flowTools = tools.filter((tool) => tool.type === AgentToolType.FLOW);
-  const mcpTools = tools.filter((tool) => tool.type === AgentToolType.MCP);
-  const kbTools = tools.filter(
-    (tool): tool is AgentKnowledgeBaseTool =>
-      tool.type === AgentToolType.KNOWLEDGE_BASE,
+  const flowTools = createMemo(() =>
+    tools().filter((tool) => tool.type === AgentToolType.FLOW),
   );
-  const pieceToToolMap = tools
-    .filter((tool) => tool.type === AgentToolType.PIECE)
-    .reduce<Record<string, AgentPieceTool[]>>((acc, tool) => {
-      const key = tool.pieceMetadata.pieceName;
+  const mcpTools = createMemo(() =>
+    tools().filter((tool) => tool.type === AgentToolType.MCP),
+  );
+  const kbTools = createMemo(() =>
+    tools().filter(
+      (tool): tool is AgentKnowledgeBaseTool =>
+        tool.type === AgentToolType.KNOWLEDGE_BASE,
+    ),
+  );
+  const map = createMemo(() =>
+    tools()
+      .filter((tool) => tool.type === AgentToolType.PIECE)
+      .reduce<Partial<Record<string, AgentPieceTool[]>>>((acc, tool) => {
+        const key = tool.pieceMetadata.pieceName;
 
-      if (!key) return acc;
-
-      (acc[key] ??= []).push(tool);
-      return acc;
-    }, {});
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(tool);
+        return acc;
+      }, {}),
+  );
 
   return (
     <div>
@@ -72,9 +80,7 @@ export const AgentTools = (props: AgentToolsProps) => {
       <div class="mt-2">
         <Show
           when={
-            flowTools.length +
-              mcpTools.length +
-              Object.keys(pieceToToolMap).length >
+            flowTools().length + mcpTools().length + Object.keys(map()).length >
             0
           }
           fallback={
@@ -84,7 +90,9 @@ export const AgentTools = (props: AgentToolsProps) => {
                   {(icon, index) => (
                     <div
                       class="relative flex size-9 items-center justify-center rounded-full border bg-background"
-                      style={{ 'margin-left': index === 0 ? 0 : -10 }}
+                      style={{
+                        'margin-left': index() === 0 ? '0px' : '-10px',
+                      }}
                     >
                       <img
                         src={icon}
@@ -96,7 +104,7 @@ export const AgentTools = (props: AgentToolsProps) => {
                 </For>
                 <div
                   class="relative flex size-9 items-center justify-center rounded-full border text-[10px] bg-background text-foreground font-medium"
-                  style={{ 'margin-left': -10 }}
+                  style={{ 'margin-left': '-10px' }}
                 >
                   <span>+500</span>
                 </div>
@@ -121,7 +129,7 @@ export const AgentTools = (props: AgentToolsProps) => {
               collapsible
               class="border rounded-md overflow-hidden shadow-none"
             >
-              <For each={Object.entries(pieceToToolMap)}>
+              <For each={Object.entries(map())}>
                 {([pieceName, tools]) => (
                   <AgentPieceToolComponent
                     key={pieceName}
@@ -131,17 +139,17 @@ export const AgentTools = (props: AgentToolsProps) => {
                   />
                 )}
               </For>
-              <Show when={flowTools.length > 0}>
+              <Show when={flowTools().length > 0}>
                 <AgentFlowToolComponent
                   disabled={props.disabled}
-                  tools={flowTools}
+                  tools={flowTools()}
                   removeTool={removeTool}
                 />
               </Show>
-              <Show when={mcpTools.length > 0}>
+              <Show when={mcpTools().length > 0}>
                 <AgentMcpToolComponent
                   disabled={props.disabled}
-                  tools={mcpTools}
+                  tools={mcpTools()}
                   removeTool={removeTool}
                 />
               </Show>
@@ -158,16 +166,16 @@ export const AgentTools = (props: AgentToolsProps) => {
 
       <KnowledgeBaseSection
         disabled={props.disabled}
-        tools={kbTools}
-        allTools={tools}
+        tools={kbTools()}
+        allTools={tools()}
         removeTool={removeTool}
         onToolsUpdate={onToolsUpdate}
         selectedProvider={props.selectedProvider}
       />
 
-      <AgentFlowToolDialog onToolsUpdate={onToolsUpdate} tools={tools} />
-      <AgentPieceDialog tools={tools} onToolsUpdate={onToolsUpdate} />
-      <AgentMcpDialog tools={tools} onToolsUpdate={onToolsUpdate} />
+      <AgentFlowToolDialog onToolsUpdate={onToolsUpdate} tools={tools()} />
+      <AgentPieceDialog tools={tools()} onToolsUpdate={onToolsUpdate} />
+      <AgentMcpDialog tools={tools()} onToolsUpdate={onToolsUpdate} />
     </div>
   );
 };

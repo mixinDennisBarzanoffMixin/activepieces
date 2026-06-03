@@ -22,7 +22,7 @@ export function ChatWithAIPage() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { conversationId: urlConversationId } = useParams<{
-    conversationId: string;
+    conversationId?: string;
   }>();
   const [resetKey, setResetKey] = createSignal(0);
   const [pendingConversationId, setPendingConversationId] = createSignal<

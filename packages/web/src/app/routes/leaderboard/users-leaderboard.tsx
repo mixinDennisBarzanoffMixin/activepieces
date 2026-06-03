@@ -2,7 +2,7 @@ import { BADGES, UserWithBadges } from '@activepieces/shared';
 import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import { Trophy } from 'lucide-solid';
-import { createMemo, For } from 'solid-js';
+import { createMemo, For, Show } from 'solid-js';
 
 import { ApAvatar } from '@/components/custom/ap-avatar';
 import { DataTable, RowDataWithActions } from '@/components/custom/data-table';
@@ -36,16 +36,15 @@ type UsersLeaderboardProps = {
 const BadgesCell = (props: {
   badges?: UserWithBadges['badges'];
   isTopRank: boolean;
-}) => {
-  if (!props.badges || props.badges.length === 0)
-    return <span class="text-muted-foreground">-</span>;
-
-  return (
+}) => (
+  <Show
+    when={props.badges && props.badges.length > 0}
+    fallback={<span class="text-muted-foreground">-</span>}
+  >
     <div class="flex items-center gap-0.5">
       <For each={props.badges}>
         {(badge) => {
           const badgeInfo = BADGES[badge.name as keyof typeof BADGES];
-          if (!badgeInfo) return null;
           return (
             <Tooltip key={badge.name}>
               <TooltipTrigger asChild>
@@ -68,8 +67,8 @@ const BadgesCell = (props: {
         }}
       </For>
     </div>
-  );
-};
+  </Show>
+);
 
 const createColumns = (): ColumnDef<RowDataWithActions<UserStats>>[] => [
   {

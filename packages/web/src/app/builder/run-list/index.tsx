@@ -32,19 +32,12 @@ const RunsList = () => {
     state.run,
   ]);
 
-  const {
-    data: runs,
-    isLoading,
-    isError,
-    refetch,
-    isRefetching,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = createInfiniteQuery<
+  const query = createInfiniteQuery<
     SeekPage<FlowRun>,
     Error,
-    InfiniteData<SeekPage<FlowRun>>
+    InfiniteData<SeekPage<FlowRun>>,
+    [string, string],
+    string | undefined
   >(() => ({
     queryKey: ['flow-runs', flow.id],
     getNextPageParam: (lastPage) => lastPage.next,
@@ -54,7 +47,7 @@ const RunsList = () => {
         flowId: [flow.id],
         projectId: authenticationSession.getProjectId()!,
         limit: 15,
-        cursor: pageParam as string | undefined,
+        cursor: pageParam,
       }),
     refetchOnMount: true,
     staleTime: 0,
@@ -72,14 +65,12 @@ const RunsList = () => {
   }));
 
   const allViewedRuns = createMemo<RunsListItem[]>(() => {
-    const allRuns = (runs?.pages.flatMap((page) => page.data) ?? []).map(
-      (run) => ({ type: 'flowRun' as const, run }),
-    );
-    if (hasNextPage) {
-      return [
-        ...allRuns,
-        { type: 'loadMoreButton' as const, id: 'loadMoreButton' },
-      ];
+    if (!query.data) return [];
+    const allRuns: RunsListItem[] = query.data.pages
+      .flatMap((page) => page.data)
+      .map((run) => ({ type: 'flowRun', run }));
+    if (query.hasNextPage) {
+      return [...allRuns, { type: 'loadMoreButton', id: 'loadMoreButton' }];
     }
     return allRuns;
   });
@@ -89,26 +80,29 @@ const RunsList = () => {
       <SidebarHeader onClose={() => setRightSidebar(RightSideBarType.NONE)}>
         {t('Recent Runs')}
       </SidebarHeader>
-      <Show when={isLoading}>
+      <Show when={query.isLoading}>
         <CardListItemSkeleton numberOfCards={10} />
       </Show>
 
-      <Show when={isError}>
+      <Show when={query.isError}>
         <div>{t('Error, please try again.')}</div>
       </Show>
 
       <Show
         when={
-          runs &&
-          runs.pages.flatMap((page) => page.data).length === 0 &&
-          !isLoading &&
-          !isRefetching
+          query.data &&
+          query.data.pages.flatMap((page) => page.data).length === 0 &&
+          !query.isRefetching
         }
       >
         <CardListEmpty message={t('No runs found')} />
       </Show>
 
-      <Show when={runs && runs.pages.flatMap((page) => page.data).length > 0}>
+      <Show
+        when={
+          query.data && query.data.pages.flatMap((page) => page.data).length > 0
+        }
+      >
         <VirtualizedScrollArea
           class="w-full grow max-w-[calc(100%-6px)]"
           items={allViewedRuns()}
@@ -119,7 +113,7 @@ const RunsList = () => {
               return (
                 <FlowRunCard
                   refetchRuns={() => {
-                    void refetch();
+                    void query.refetch();
                   }}
                   run={item.run}
                   key={item.run.id + item.run.status}
@@ -132,8 +126,8 @@ const RunsList = () => {
                 <Button
                   class="w-full"
                   variant={'accent'}
-                  onClick={() => void fetchNextPage()}
-                  loading={isFetchingNextPage}
+                  onClick={() => void query.fetchNextPage()}
+                  loading={query.isFetchingNextPage}
                 >
                   {t('More...')}
                 </Button>
