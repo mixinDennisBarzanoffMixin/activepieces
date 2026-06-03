@@ -24,8 +24,7 @@ import {
 import { createMutation } from '@tanstack/solid-query';
 import { AxiosError } from 'axios';
 import { t } from 'i18next';
-import { createMemo, createSignal, Show } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { createMemo, createSignal, Show, untrack } from 'solid-js';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -77,7 +76,7 @@ export const UpsertAIProviderDialog = (params: UpsertAIProviderDialogProps) => {
       }}
     >
       <UpsertAIProviderDialogContent
-        key={open ? 'opened' : 'closed'}
+        key={open() ? 'opened' : 'closed'}
         {...params}
         setOpen={setOpen}
       />
@@ -91,12 +90,30 @@ export const UpsertAIProviderDialogContent = (
   const currentProviderDef = createMemo(
     () => SUPPORTED_AI_PROVIDERS.find((p) => p.provider === props.provider)!,
   );
-  const [form, setForm] = createStore<ProviderForm>({
-    provider: props.provider,
-    displayName: props.defaultDisplayName ?? '',
-    config: props.config ?? getDefaultConfig(props.provider),
-    auth: getDefaultAuth(props.provider),
-  });
+  const [form, setForm] = createSignal(
+    untrack(() => ({
+      provider: props.provider,
+      displayName: props.defaultDisplayName ?? '',
+      config: props.config ?? getDefaultConfig(props.provider),
+      auth: getDefaultAuth(props.provider),
+    })),
+  );
+  function setValue(
+    key: 'auth',
+    setter: (auth: ProviderForm['auth']) => ProviderForm['auth'],
+  ): void;
+  function setValue(
+    key: 'config',
+    setter: (cfg: ProviderForm['config']) => ProviderForm['config'],
+  ): void;
+  function setValue(
+    key: 'auth' | 'config',
+    setter: (
+      value: ProviderForm['auth'] | ProviderForm['config'],
+    ) => ProviderForm['auth'] | ProviderForm['config'],
+  ) {
+    setForm((state) => ({ ...state, [key]: setter(state[key]) }));
+  }
   const [errors, setErrors] = createSignal<Record<string, string>>({});
   const [serverError, setServerError] = createSignal<string>();
 
@@ -133,8 +150,8 @@ export const UpsertAIProviderDialogContent = (
     const parsed = createFormSchema(
       props.provider,
       !isNil(props.providerId),
-    ).safeParse(form);
-    const errs = getVertexErrors(form);
+    ).safeParse(form());
+    const errs = getVertexErrors(form());
     if (!parsed.success) {
       setErrors({ ...getZodErrors(parsed.error), ...errs });
       return;
@@ -169,8 +186,13 @@ export const UpsertAIProviderDialogContent = (
                 <Label for="displayName">{t('Display Name')}</Label>
                 <Input
                   id="displayName"
-                  value={form.displayName}
-                  onInput={(e) => setForm('displayName', e.currentTarget.value)}
+                  value={form().displayName}
+                  onInput={(e) =>
+                    setForm((state) => ({
+                      ...state,
+                      displayName: e.currentTarget.value,
+                    }))
+                  }
                   placeholder={'My Provider'}
                   disabled={isPending}
                 />
@@ -184,7 +206,7 @@ export const UpsertAIProviderDialogContent = (
               </Show>
 
               <UpsertProviderConfigForm
-                form={{ values: form, set: setForm, errors: errors() }}
+                form={{ values: form(), set: setValue, errors: errors() }}
                 provider={props.provider}
                 apiKeyRequired={!props.config}
                 isLoading={isPending}

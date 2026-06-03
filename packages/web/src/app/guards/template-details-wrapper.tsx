@@ -1,5 +1,6 @@
 import { TemplateType, isNil } from '@activepieces/shared';
 import { useParams } from '@solidjs/router';
+import { Show, createEffect } from 'solid-js';
 
 import { PageTitle } from '@/app/components/page-title';
 import { ProjectDashboardLayout } from '@/app/components/project-layout';
@@ -13,40 +14,53 @@ const TemplateDetailsWrapper = () => {
   const { templateId } = useParams<{ templateId: string }>();
   const { data: template, isLoading } = templatesHooks.useTemplate(templateId);
 
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
-
-  if (!template) {
-    window.location.replace('/templates');
-    return null;
-  }
-
-  const token = authenticationSession.getToken();
-  const isNotAuthenticated = isNil(token);
-  const useProjectLayout = template.type !== TemplateType.SHARED;
-
-  if (isNotAuthenticated && useProjectLayout) {
+  createEffect(() => {
+    if (isLoading) {
+      return;
+    }
+    if (!template) {
+      window.location.replace('/templates');
+      return;
+    }
+    if (
+      !isNil(authenticationSession.getToken()) ||
+      template.type === TemplateType.SHARED
+    ) {
+      return;
+    }
     if (window.location.pathname === '/sign-in') {
-      return null;
+      return;
     }
     window.location.replace(
       `/sign-in?${FROM_QUERY_PARAM}=${window.location.pathname}${window.location.search}`,
     );
-    return null;
-  }
+  });
 
-  const content = (
-    <PageTitle title={template.name}>
-      <TemplateDetailsPage template={template} />
-    </PageTitle>
+  return (
+    <Show when={!isLoading} fallback={<LoadingScreen />}>
+      <Show when={template} keyed>
+        {(item) => (
+          <Show
+            when={
+              !isNil(authenticationSession.getToken()) ||
+              item.type === TemplateType.SHARED
+            }
+          >
+            <Show
+              when={item.type !== TemplateType.SHARED}
+              fallback={<ShareTemplate template={item} />}
+            >
+              <ProjectDashboardLayout>
+                <PageTitle title={item.name}>
+                  <TemplateDetailsPage template={item} />
+                </PageTitle>
+              </ProjectDashboardLayout>
+            </Show>
+          </Show>
+        )}
+      </Show>
+    </Show>
   );
-
-  if (useProjectLayout) {
-    return <ProjectDashboardLayout>{content}</ProjectDashboardLayout>;
-  }
-
-  return <ShareTemplate template={template} />;
 };
 
 export { TemplateDetailsWrapper };

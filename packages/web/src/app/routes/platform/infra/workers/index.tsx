@@ -136,7 +136,7 @@ export default function WorkersPage() {
 }
 
 function StatBar(props: StatBarProps) {
-  const barColor =
+  const color = () =>
     props.value > 95
       ? 'bg-destructive'
       : props.value > 80
@@ -150,7 +150,7 @@ function StatBar(props: StatBarProps) {
       </span>
       <div class="flex-1 h-2 bg-muted rounded-full overflow-hidden">
         <div
-          class={cn('h-full rounded-full', barColor)}
+          class={cn('h-full rounded-full', color())}
           style={{ width: `${Math.min(props.value, 100)}%` }}
         />
       </div>
@@ -167,23 +167,10 @@ function StatBar(props: StatBarProps) {
 }
 
 function WorkerCard(props: WorkerCardProps) {
-  const timeAgo = useTimeAgo(new Date(props.worker.updated));
-  const isOnline = props.worker.status === WorkerMachineStatus.ONLINE;
-
-  const {
-    diskInfo,
-    cpuUsagePercentage,
-    ramUsagePercentage,
-    totalAvailableRamInBytes,
-    ip,
-    workerProps,
-    totalCpuCores,
-  } = props.worker.information;
-
-  const usedRamBytes = totalAvailableRamInBytes * (ramUsagePercentage / 100);
-  const usedDiskBytes = diskInfo.used;
-
-  const version = workerProps.version ?? 'v0.39.4';
+  const online = () => props.worker.status === WorkerMachineStatus.ONLINE;
+  const info = () => props.worker.information;
+  const ram = () =>
+    info().totalAvailableRamInBytes * (info().ramUsagePercentage / 100);
 
   return (
     <Card>
@@ -193,14 +180,16 @@ function WorkerCard(props: WorkerCardProps) {
             <Server
               size={18}
               class={cn('shrink-0', {
-                'text-destructive': !isOnline,
+                'text-destructive': !online(),
               })}
             />
             <div class="flex flex-col min-w-0">
               <span class="text-sm font-medium truncate">
                 Machine #{props.index + 1}
               </span>
-              <span class="text-xs text-muted-foreground font-mono">{ip}</span>
+              <span class="text-xs text-muted-foreground font-mono">
+                {info().ip}
+              </span>
             </div>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
@@ -230,10 +219,10 @@ function WorkerCard(props: WorkerCardProps) {
                 </TooltipContent>
               </Tooltip>
             </Show>
-            <Badge variant={isOnline ? 'success' : 'destructive'}>
+            <Badge variant={online() ? 'success' : 'destructive'}>
               {t(props.worker.status.toLowerCase())}
             </Badge>
-            <WorkerConfigsPopover workerProps={workerProps} />
+            <WorkerConfigsPopover workerProps={info().workerProps} />
           </div>
         </div>
       </CardHeader>
@@ -246,8 +235,10 @@ function WorkerCard(props: WorkerCardProps) {
               <span>CPU</span>
             </>
           }
-          value={cpuUsagePercentage}
-          detail={`${totalCpuCores} core${totalCpuCores === 1 ? '' : 's'}`}
+          value={info().cpuUsagePercentage}
+          detail={`${info().totalCpuCores} core${
+            info().totalCpuCores === 1 ? '' : 's'
+          }`}
         />
         <StatBar
           label={
@@ -256,10 +247,12 @@ function WorkerCard(props: WorkerCardProps) {
               <span>RAM</span>
             </>
           }
-          value={ramUsagePercentage}
-          detail={`${prettyBytes(usedRamBytes, {
+          value={info().ramUsagePercentage}
+          detail={`${prettyBytes(ram(), {
             binary: true,
-          })} / ${prettyBytes(totalAvailableRamInBytes, { binary: true })}`}
+          })} / ${prettyBytes(info().totalAvailableRamInBytes, {
+            binary: true,
+          })}`}
         />
         <StatBar
           label={
@@ -268,10 +261,10 @@ function WorkerCard(props: WorkerCardProps) {
               <span>Disk</span>
             </>
           }
-          value={diskInfo.percentage}
-          detail={`${prettyBytes(usedDiskBytes, {
+          value={info().diskInfo.percentage}
+          detail={`${prettyBytes(info().diskInfo.used, {
             binary: true,
-          })} / ${prettyBytes(diskInfo.total, { binary: true })}`}
+          })} / ${prettyBytes(info().diskInfo.total, { binary: true })}`}
         />
       </CardContent>
 
@@ -279,11 +272,11 @@ function WorkerCard(props: WorkerCardProps) {
         <div class="flex items-center gap-3 text-xs text-muted-foreground min-w-0">
           <span class="flex items-center gap-1 truncate">
             <Clock size={12} class="shrink-0" />
-            {t('seen')} {timeAgo}
+            {t('seen')} {useTimeAgo(new Date(props.worker.updated))()}
           </span>
         </div>
         <span class="text-xs text-muted-foreground font-mono shrink-0">
-          {version}
+          {info().workerProps.version}
         </span>
       </CardFooter>
     </Card>

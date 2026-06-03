@@ -7,7 +7,7 @@ import { useNavigate } from '@solidjs/router';
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { GlobeIcon, WorkflowIcon } from 'lucide-solid';
-import { createSignal, createMemo, type JSX, Show } from 'solid-js';
+import { createSignal, createMemo, type JSX, Show, For } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { SearchableSelect } from '@/components/custom/searchable-select';
@@ -64,14 +64,13 @@ const ReplaceConnectionsDialog = (props: ReplaceConnectionsDialogProps) => {
         projectId: projectId(),
         limit: 1000,
       },
-      extraKeys: [projectId(), String(dialogOpen())],
-      enabled: dialogOpen(),
+      extraKeys: [projectId()],
     });
 
   const { mutate: replaceConnections, isPending: isReplacing } =
     appConnectionsMutations.useReplaceConnections({
       setDialogOpen,
-      refetch: props.onConnectionMerged,
+      refetch: () => props.onConnectionMerged(),
     });
 
   const { mutate: fetchAffectedFlows, isPending: isFetchingAffectedFlows } =
@@ -106,22 +105,21 @@ const ReplaceConnectionsDialog = (props: ReplaceConnectionsDialogProps) => {
 
   const selectedPiece = () => form().pieceName;
 
-  const connectionPieceNames = new Set(
-    connections?.data.map((conn) => conn.pieceName),
-  );
-
-  const piecesOptions =
-    pieces
-      ?.filter(
+  const piecesOptions = createMemo(() => {
+    const names = new Set(connections?.data.map((conn) => conn.pieceName));
+    if (!pieces) return [];
+    return pieces
+      .filter(
         (piece) =>
           piece.name !== '@activepieces/piece-mcp' &&
           piece.name !== '@activepieces/piece-webhook' &&
-          connectionPieceNames.has(piece.name),
+          names.has(piece.name),
       )
       .map((piece) => ({
         label: piece.displayName,
         value: piece.name,
-      })) ?? [];
+      }));
+  });
 
   const filteredConnections = createMemo(
     () =>
@@ -139,6 +137,15 @@ const ReplaceConnectionsDialog = (props: ReplaceConnectionsDialogProps) => {
         value: conn.id,
       }));
   });
+
+  const sourceOptions = createMemo(() =>
+    filteredConnections()
+      .filter((conn) => conn.scope === AppConnectionScope.PROJECT)
+      .map((conn) => ({
+        label: conn.displayName,
+        value: conn.id,
+      })),
+  );
 
   const handleBack = () => {
     setStep(STEP.SELECT);
@@ -187,13 +194,13 @@ const ReplaceConnectionsDialog = (props: ReplaceConnectionsDialogProps) => {
       <DialogContent class="flex flex-col">
         <DialogHeader>
           <DialogTitle>
-            {step === STEP.SELECT
+            {step() === STEP.SELECT
               ? t('Replace Connections')
               : t('Confirm Replacement')}
           </DialogTitle>
           <DialogDescription>
             <Show
-              when={step === STEP.SELECT}
+              when={step() === STEP.SELECT}
               fallback={
                 <>
                   {t(
@@ -210,7 +217,7 @@ const ReplaceConnectionsDialog = (props: ReplaceConnectionsDialogProps) => {
         </DialogHeader>
 
         <Show
-          when={step === STEP.SELECT}
+          when={step() === STEP.SELECT}
           fallback={
             <div class="flex flex-col gap-4">
               <ScrollArea
@@ -222,24 +229,28 @@ const ReplaceConnectionsDialog = (props: ReplaceConnectionsDialogProps) => {
                 <div class="flex flex-col gap-2">
                   <Show
                     when={affectedFlows().length === 0}
-                    fallback={affectedFlows().map((flow) => (
-                      <div class="flex items-center justify-between">
-                        <div class="flex items-center gap-2">
-                          <WorkflowIcon class="w-5 h-5" />
-                          <Button
-                            variant="link"
-                            class="p-0 h-auto font-medium text-foreground truncate text-base"
-                            onClick={() => {
-                              navigate(
-                                `/projects/${flow.projectId}/flows/${flow.id}`,
-                              );
-                            }}
-                          >
-                            {flow.version.displayName}
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                    fallback={
+                      <For each={affectedFlows()}>
+                        {(flow) => (
+                          <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                              <WorkflowIcon class="w-5 h-5" />
+                              <Button
+                                variant="link"
+                                class="p-0 h-auto font-medium text-foreground truncate text-base"
+                                onClick={() => {
+                                  navigate(
+                                    `/projects/${flow.projectId}/flows/${flow.id}`,
+                                  );
+                                }}
+                              >
+                                {flow.version.displayName}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </For>
+                    }
                   >
                     <span class="text-center text-muted-foreground p-4">
                       {t('No flows will be affected by this change')}
@@ -290,7 +301,7 @@ const ReplaceConnectionsDialog = (props: ReplaceConnectionsDialogProps) => {
                     },
                   }));
                 }}
-                options={piecesOptions}
+                options={piecesOptions()}
                 placeholder={t('Select a piece')}
                 loading={piecesLoading}
                 valuesRendering={(value) => {
@@ -337,14 +348,7 @@ const ReplaceConnectionsDialog = (props: ReplaceConnectionsDialogProps) => {
                         },
                       }));
                     }}
-                    options={filteredConnections()
-                      .filter(
-                        (conn) => conn.scope === AppConnectionScope.PROJECT,
-                      )
-                      .map((conn) => ({
-                        label: conn.displayName,
-                        value: conn.id,
-                      }))}
+                    options={sourceOptions()}
                     placeholder={t('Choose connection to replace')}
                     valuesRendering={(value) => {
                       const conn = filteredConnections().find(

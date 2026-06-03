@@ -1,5 +1,5 @@
 import { Globe } from 'lucide-solid';
-import { createSignal, Show } from 'solid-js';
+import { createMemo, createSignal, Show } from 'solid-js';
 
 import {
   HoverCard,
@@ -27,27 +27,30 @@ function getFaviconUrl(url: string): string {
 }
 
 function FaviconOrGlobe(props: { url: string; size: 'sm' | 'md' }) {
-  const favicon = getFaviconUrl(props.url);
+  const favicon = createMemo(() => getFaviconUrl(props.url));
   const [failed, setFailed] = createSignal(false);
-  const globeSize = props.size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
-  const imgSize = props.size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
-
-  if (!favicon || failed) {
-    return <Globe class={cn(globeSize, 'shrink-0 text-muted-foreground')} />;
-  }
+  const globe = createMemo(() =>
+    props.size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4',
+  );
+  const img = createMemo(() => (props.size === 'sm' ? 'h-4 w-4' : 'h-5 w-5'));
 
   return (
-    <img
-      src={favicon}
-      alt=""
-      class={cn(imgSize, 'shrink-0 rounded-sm')}
-      onError={() => setFailed(true)}
-    />
+    <Show
+      when={favicon() && !failed()}
+      fallback={<Globe class={cn(globe(), 'shrink-0 text-muted-foreground')} />}
+    >
+      <img
+        src={favicon()}
+        alt=""
+        class={cn(img(), 'shrink-0 rounded-sm')}
+        onError={() => setFailed(true)}
+      />
+    </Show>
   );
 }
 
 function Source(props: SourceProps) {
-  const domain = getDomain(props.href);
+  const domain = createMemo(() => getDomain(props.href));
 
   return (
     <HoverCard openDelay={300} closeDelay={100}>
@@ -63,7 +66,7 @@ function Source(props: SourceProps) {
         >
           <FaviconOrGlobe url={props.href} size="sm" />
           <span class="max-w-[200px] truncate text-foreground/80">
-            {domain}
+            {domain()}
           </span>
         </a>
       </HoverCardTrigger>
@@ -71,7 +74,9 @@ function Source(props: SourceProps) {
         <div class="flex flex-col gap-2">
           <div class="flex items-center gap-2">
             <FaviconOrGlobe url={props.href} size="md" />
-            <span class="text-xs text-muted-foreground truncate">{domain}</span>
+            <span class="text-xs text-muted-foreground truncate">
+              {domain()}
+            </span>
           </div>
           <Show when={props.title}>
             <p class="text-sm font-medium leading-snug line-clamp-2">

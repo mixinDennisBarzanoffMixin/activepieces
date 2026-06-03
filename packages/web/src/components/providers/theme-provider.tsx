@@ -5,6 +5,7 @@ import {
   createEffect,
   mergeProps,
   splitProps,
+  untrack,
   type JSX,
 } from 'solid-js';
 
@@ -44,12 +45,19 @@ const setFavicon = (url: string) => {
 };
 
 export function ThemeProvider(_props: ThemeProviderProps) {
-  const [local, rest] = splitProps(
-    mergeProps({ defaultTheme: 'system', storageKey: 'ap-ui-theme' }, _props),
-    ['children', 'defaultTheme', 'storageKey'],
+  const props = mergeProps(
+    { defaultTheme: 'system', storageKey: 'ap-ui-theme' },
+    _props,
   );
+  const [local, rest] = splitProps(props, [
+    'children',
+    'defaultTheme',
+    'storageKey',
+  ]);
+  const key = untrack(() => local.storageKey);
+  const stored = untrack(() => localStorage.getItem(local.storageKey));
   const [theme, setTheme] = createSignal<Theme>(
-    (localStorage.getItem(local.storageKey) as Theme) || local.defaultTheme,
+    stored ? (stored as Theme) : untrack(() => local.defaultTheme),
   );
   const [forceLightMode, setForceLightMode] = createSignal(false);
   const branding = flagsHooks.useWebsiteBranding();
@@ -108,7 +116,7 @@ export function ThemeProvider(_props: ThemeProviderProps) {
       return theme();
     },
     setTheme: (t: Theme) => {
-      localStorage.setItem(local.storageKey, t);
+      localStorage.setItem(key, t);
       setTheme(t);
     },
     get forceLightMode() {
@@ -125,12 +133,7 @@ export function ThemeProvider(_props: ThemeProviderProps) {
 }
 
 export const useTheme = () => {
-  const context = useContext(ThemeProviderContext);
-
-  if (context === undefined)
-    throw new Error('useTheme must be used within a ThemeProvider');
-
-  return context;
+  return useContext(ThemeProviderContext);
 };
 
 export const useApRipple = () => {

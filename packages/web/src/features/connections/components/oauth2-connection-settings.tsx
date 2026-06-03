@@ -46,9 +46,9 @@ function OAuth2ConnectionSettings(props: OAuth2ConnectionSettingsProps) {
   const isPropsValid = () => isNil(props.form.errors()['request.value.props']);
   const selectedScopeString = () =>
     String(props.form.getValue('request.value.scope') ?? '');
-  const showScopeSelector = props.authProperty.scope.length > 1;
+  const showScopeSelector = () => props.authProperty.scope.length > 1;
   const hasSelectedScopes = () =>
-    !showScopeSelector || selectedScopeString().trim().length > 0;
+    !showScopeSelector() || selectedScopeString().trim().length > 0;
   const isConnectButtonEnabled = () =>
     isClientIdValid() &&
     isClientSecretValid() &&
@@ -57,23 +57,28 @@ function OAuth2ConnectionSettings(props: OAuth2ConnectionSettingsProps) {
   const { data: thirdPartyUrl } = flagsHooks.useFlag<string>(
     ApFlagId.THIRD_PARTY_AUTH_PROVIDER_REDIRECT_URL,
   );
-  const redirectUrl =
+  const redirectUrl = () =>
     props.oauth2App.oauth2Type === AppConnectionType.CLOUD_OAUTH2
       ? 'https://secrets.activepieces.com/redirect'
       : thirdPartyUrl ?? 'no_redirect_url_found';
 
-  const showRedirectUrlInput =
+  const showRedirectUrlInput = () =>
     props.oauth2App.oauth2Type === AppConnectionType.OAUTH2 &&
     props.grantType === OAuth2GrantType.AUTHORIZATION_CODE;
+  const items = () =>
+    props.authProperty.scope.map((scope) => ({
+      value: scope,
+      label: scope,
+    }));
   const [loading, setLoading] = createSignal(false);
   const [scopesEditing, setScopesEditing] = createSignal(false);
 
   return (
     <div class="flex flex-col gap-4">
-      <Show when={showRedirectUrlInput}>
+      <Show when={showRedirectUrlInput()}>
         <div class="flex flex-col gap-2">
           <Label>{t('Redirect URL')}</Label>
-          <Input disabled type="text" value={redirectUrl} />
+          <Input disabled type="text" value={redirectUrl()} />
         </div>
       </Show>
 
@@ -110,7 +115,7 @@ function OAuth2ConnectionSettings(props: OAuth2ConnectionSettingsProps) {
         </>
       </Show>
 
-      <Show when={showScopeSelector}>
+      <Show when={showScopeSelector()}>
         <div class="flex flex-col gap-2">
           <div class="flex flex-col gap-2">
             <div
@@ -140,10 +145,7 @@ function OAuth2ConnectionSettings(props: OAuth2ConnectionSettingsProps) {
                 onValueChange={(next: string[]) =>
                   props.form.setValue('request.value.scope', next.join(' '))
                 }
-                items={props.authProperty.scope.map((scope) => ({
-                  value: scope,
-                  label: scope,
-                }))}
+                items={items()}
               >
                 <MultiSelectTrigger>
                   <Show
@@ -223,7 +225,7 @@ function OAuth2ConnectionSettings(props: OAuth2ConnectionSettingsProps) {
                           ),
                         );
                         void openPopup({
-                          redirectUrl,
+                          redirectUrl: redirectUrl(),
                           clientId: String(
                             props.form.getValue('request.value.client_id') ??
                               '',

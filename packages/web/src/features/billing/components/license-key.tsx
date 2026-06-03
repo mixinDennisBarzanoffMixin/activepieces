@@ -2,7 +2,7 @@ import { isNil, PlatformWithoutSensitiveData } from '@activepieces/shared';
 import dayjs from 'dayjs';
 import { t } from 'i18next';
 import { Shield, AlertTriangle, Check, ExternalLink } from 'lucide-solid';
-import { createSignal, Show } from 'solid-js';
+import { createMemo, createSignal, Show } from 'solid-js';
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import {
@@ -29,17 +29,25 @@ export const LicenseKey = (props: {
   const [isActivateLicenseKeyDialogOpen, setIsActivateLicenseKeyDialogOpen] =
     createSignal(false);
 
-  const expired =
-    !isNil(props.platform.plan.licenseExpiresAt) &&
-    dayjs(props.platform.plan.licenseExpiresAt).isBefore(dayjs());
-  const expiresSoon =
-    !expired &&
-    !isNil(props.platform.plan.licenseExpiresAt) &&
-    dayjs(props.platform.plan.licenseExpiresAt).isBefore(dayjs().add(7, 'day'));
+  const expired = createMemo(
+    () =>
+      !isNil(props.platform.plan.licenseExpiresAt) &&
+      dayjs(props.platform.plan.licenseExpiresAt).isBefore(dayjs()),
+  );
+  const expiresSoon = createMemo(
+    () =>
+      !expired() &&
+      !isNil(props.platform.plan.licenseExpiresAt) &&
+      dayjs(props.platform.plan.licenseExpiresAt).isBefore(
+        dayjs().add(7, 'day'),
+      ),
+  );
 
-  const description = props.platform.plan.licenseKey
-    ? buildLicenseDescription(props.platform, expired)
-    : t('Activate your license to unlock enterprise features');
+  const description = createMemo(() =>
+    props.platform.plan.licenseKey
+      ? buildLicenseDescription(props.platform, expired())
+      : t('Activate your license to unlock enterprise features'),
+  );
 
   return (
     <>
@@ -51,10 +59,10 @@ export const LicenseKey = (props: {
           <ItemTitle>
             {t('License Key')}
             {props.platform.plan.licenseKey &&
-              getStatusBadge(expired, expiresSoon)}
+              getStatusBadge(expired(), expiresSoon())}
           </ItemTitle>
-          <Show when={description}>
-            <ItemDescription>{description}</ItemDescription>
+          <Show when={description()}>
+            <ItemDescription>{description()}</ItemDescription>
           </Show>
         </ItemContent>
         <ItemActions class="gap-4">

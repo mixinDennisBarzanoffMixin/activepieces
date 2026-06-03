@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Show } from 'solid-js';
+import { createMemo, Show } from 'solid-js';
 
 import { UserAvatar } from '@/components/custom/user-avatar';
 import { Badge } from '@/components/ui/badge';
@@ -11,17 +11,33 @@ import { EmailStatusType } from './types';
 import { SuggestedUser } from './use-user-suggestions';
 
 export function SuggestedUserItem(props: SuggestedUserItemProps) {
-  if (props.type === 'platform-user') {
-    return <PlatformUserItem {...props} />;
-  }
-  return <EmailStatusSuggestionItem {...props} />;
+  return (
+    <Show
+      when={props.type === 'platform-user'}
+      fallback={
+        <EmailStatusSuggestionItem
+          {...(props as Extract<
+            SuggestedUserItemProps,
+            { type: 'email-status' }
+          >)}
+        />
+      }
+    >
+      <PlatformUserItem
+        {...(props as Extract<
+          SuggestedUserItemProps,
+          { type: 'platform-user' }
+        >)}
+      />
+    </Show>
+  );
 }
 
 function PlatformUserItem(props: {
   user: SuggestedUser;
   onSelect: (email: string) => void;
 }) {
-  const isDisabled = props.user.memberStatus !== 'available';
+  const isDisabled = createMemo(() => props.user.memberStatus !== 'available');
 
   const getBadge = () => {
     if (props.user.memberStatus === 'has-access') {
@@ -41,15 +57,15 @@ function PlatformUserItem(props: {
     };
   };
 
-  const badge = getBadge();
+  const badge = createMemo(getBadge);
 
   return (
     <CommandItem
       key={props.user.id}
       value={props.user.email}
-      onSelect={() => !isDisabled && props.onSelect(props.user.email)}
-      disabled={isDisabled}
-      class={cn('cursor-pointer', isDisabled && 'opacity-60')}
+      onSelect={() => !isDisabled() && props.onSelect(props.user.email)}
+      disabled={isDisabled()}
+      class={cn('cursor-pointer', isDisabled() && 'opacity-60')}
     >
       <div class="flex items-center gap-2 w-full">
         <UserAvatar
@@ -69,9 +85,9 @@ function PlatformUserItem(props: {
         </div>
         <Badge
           variant="ghost"
-          class={cn('ml-auto shrink-0 text-xs rounded-sm', badge.className)}
+          class={cn('ml-auto shrink-0 text-xs rounded-sm', badge().className)}
         >
-          {badge.label}
+          {badge().label}
         </Badge>
       </div>
     </CommandItem>
@@ -113,43 +129,45 @@ function EmailStatusSuggestionItem(props: {
     }
   };
 
-  const { label, className, disabled } = getBadgeAndState();
-  const user = props.emailStatus.user;
+  const state = createMemo(getBadgeAndState);
+  const user = createMemo(() => props.emailStatus.user);
 
   return (
     <CommandItem
       value={props.emailStatus.email}
-      onSelect={() => !disabled && props.onSelect(props.emailStatus.email)}
-      disabled={disabled}
-      class={cn('cursor-pointer', disabled && 'opacity-60')}
+      onSelect={() =>
+        !state().disabled && props.onSelect(props.emailStatus.email)
+      }
+      disabled={state().disabled}
+      class={cn('cursor-pointer', state().disabled && 'opacity-60')}
     >
       <div class="flex items-center gap-2 w-full">
-        <Show when={user}>
+        <Show when={user()}>
           <UserAvatar
-            name={`${user.firstName} ${user.lastName}`}
-            email={user.email}
+            name={`${user()!.firstName} ${user()!.lastName}`}
+            email={user()!.email}
             size={32}
             disableTooltip={true}
-            imageUrl={user.imageUrl}
+            imageUrl={user()!.imageUrl}
           />
         </Show>
         <div class="flex flex-col flex-1 min-w-0">
           <span class="text-sm font-medium truncate">
-            {user
-              ? `${user.firstName} ${user.lastName}`
+            {user()
+              ? `${user()!.firstName} ${user()!.lastName}`
               : props.emailStatus.email}
           </span>
-          <Show when={user}>
+          <Show when={user()}>
             <span class="text-xs text-muted-foreground truncate">
-              {user.email}
+              {user()!.email}
             </span>
           </Show>
         </div>
         <Badge
           variant="ghost"
-          class={cn('ml-auto shrink-0 text-xs rounded-sm', className)}
+          class={cn('ml-auto shrink-0 text-xs rounded-sm', state().className)}
         >
-          {label}
+          {state().label}
         </Badge>
       </div>
     </CommandItem>

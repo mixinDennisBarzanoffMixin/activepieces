@@ -30,9 +30,9 @@ interface EditableStepNameProps {
 }
 
 const EditableStepName = (props: EditableStepNameProps) => {
-  const inBranchView = !isNil(props.selectedBranchIndex);
-  const showActionTooltip =
-    !inBranchView &&
+  const branch = () => !isNil(props.selectedBranchIndex);
+  const tooltip = () =>
+    !branch() &&
     !props.isEditingStepOrBranchName &&
     (!!props.tooltipTitle ||
       !!props.tooltipDescription ||
@@ -46,7 +46,7 @@ const EditableStepName = (props: EditableStepNameProps) => {
   return (
     <>
       <Show
-        when={inBranchView}
+        when={branch()}
         fallback={
           props.isEditingStepOrBranchName ? (
             <StepNameEditor
@@ -92,7 +92,7 @@ const EditableStepName = (props: EditableStepNameProps) => {
                     </Show>
                   </div>
                 </TooltipTrigger>
-                <Show when={showActionTooltip}>
+                <Show when={tooltip()}>
                   <TooltipContent side="bottom" class="max-w-xs">
                     <div class="flex flex-col gap-1">
                       <Show when={props.tooltipTitle}>
@@ -152,9 +152,7 @@ const EditableStepName = (props: EditableStepNameProps) => {
         </>
       </Show>
       <Show
-        when={
-          inBranchView && !props.isEditingStepOrBranchName && !props.readonly
-        }
+        when={branch() && !props.isEditingStepOrBranchName && !props.readonly}
       >
         <TooltipProvider>
           <Tooltip>

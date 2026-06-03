@@ -3,10 +3,10 @@ import { t } from 'i18next';
 import { Calendar as CalendarIcon, Clock } from 'lucide-solid';
 import {
   createSignal,
-  createMemo,
   createEffect,
   Show,
   mergeProps,
+  untrack,
 } from 'solid-js';
 
 import { TimePicker } from '@/components/custom/time-picker';
@@ -151,26 +151,28 @@ const getInitialDateAndPreset = (
 
 export function DateTimePickerWithRange(_props: DateTimePickerWithRangeProps) {
   const props = mergeProps({ maxDate: new Date(), presetType: 'past' }, _props);
-  const { initialDate, initialPreset } = createMemo(() => {
-    return getInitialDateAndPreset(
+  const initial = untrack(() =>
+    getInitialDateAndPreset(
       props.from,
       props.to,
       props.presetType,
       props.defaultSelectedRange,
-    );
-  })();
+    ),
+  );
 
-  const [date, setDate] = createSignal<DateRange | undefined>(initialDate);
+  const [date, setDate] = createSignal<DateRange | undefined>(
+    initial.initialDate,
+  );
   const [timeDate, setTimeDate] = createSignal<DateRange>({
-    from: initialDate?.from,
-    to: initialDate?.to,
+    from: initial.initialDate?.from,
+    to: initial.initialDate?.to,
   });
   const [selectedPreset, setSelectedPreset] = createSignal<string | null>(
-    initialPreset,
+    initial.initialPreset,
   );
 
   const isDefaultApplied = {
-    current: !!initialPreset && !props.from && !props.to,
+    current: untrack(() => !!initial.initialPreset && !props.from && !props.to),
   };
 
   createEffect(() => {
@@ -191,9 +193,12 @@ export function DateTimePickerWithRange(_props: DateTimePickerWithRangeProps) {
       const preset = detectPreset(newDate.from, newDate.to, props.presetType);
       setSelectedPreset(preset);
     } else if (!props.from && !props.to) {
-      setDate(initialDate);
-      setTimeDate({ from: initialDate?.from, to: initialDate?.to });
-      setSelectedPreset(initialPreset);
+      setDate(initial.initialDate);
+      setTimeDate({
+        from: initial.initialDate?.from,
+        to: initial.initialDate?.to,
+      });
+      setSelectedPreset(initial.initialPreset);
     }
   });
 

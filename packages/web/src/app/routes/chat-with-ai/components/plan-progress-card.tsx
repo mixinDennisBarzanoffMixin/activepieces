@@ -2,7 +2,7 @@ import { PlanStepStatus, PlanStepUpdate } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Check, ListChecks, Loader2, X } from 'lucide-solid';
 import { AnimatePresence, motion } from 'motion/react';
-import { createMemo, For, Show } from 'solid-js';
+import { createMemo, For, Match, Show, Switch } from 'solid-js';
 
 import { TextShimmer } from '@/components/ui/text-shimmer';
 import { cn } from '@/lib/utils';
@@ -29,32 +29,36 @@ function computeStepStatuses({
 }
 
 function StepIndicator(props: { status: PlanStepStatus; index: number }) {
-  switch (props.status) {
-    case 'done':
-      return (
-        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
-          <Check class="h-3 w-3 text-green-600 dark:text-green-400" />
-        </span>
-      );
-    case 'executing':
-      return (
-        <span class="flex h-5 w-5 items-center justify-center">
-          <Loader2 class="h-4 w-4 text-primary animate-spin" />
-        </span>
-      );
-    case 'error':
-      return (
-        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-destructive/10">
-          <X class="h-3 w-3 text-destructive" />
-        </span>
-      );
-    default:
-      return (
+  return (
+    <Switch
+      fallback={
         <span class="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground/50 text-[10px] font-medium">
           {props.index + 1}
         </span>
-      );
-  }
+      }
+    >
+      <Match when={props.status === 'done'}>
+        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
+          <Check class="h-3 w-3 text-green-600 dark:text-green-400" />
+        </span>
+      </Match>
+      <Match when={props.status === 'executing'}>
+        <span class="flex h-5 w-5 items-center justify-center">
+          <Loader2 class="h-4 w-4 text-primary animate-spin" />
+        </span>
+      </Match>
+      <Match when={props.status === 'error'}>
+        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-destructive/10">
+          <X class="h-3 w-3 text-destructive" />
+        </span>
+      </Match>
+      <Match when={props.status === 'pending'}>
+        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground/50 text-[10px] font-medium">
+          {props.index + 1}
+        </span>
+      </Match>
+    </Switch>
+  );
 }
 
 function overallStatus(
