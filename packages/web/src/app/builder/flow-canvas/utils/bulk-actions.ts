@@ -17,6 +17,12 @@ type CopyActionsRequest = {
   actions: FlowAction[];
 };
 
+function request(value: unknown): value is CopyActionsRequest {
+  if (!value || typeof value !== 'object') return false;
+  const data = value as { type?: unknown; actions?: unknown };
+  return data.type === 'COPY_ACTIONS' && Array.isArray(data.actions);
+}
+
 export function copySelectedNodes({
   selectedNodes,
   flowVersion,
@@ -53,14 +59,13 @@ export function deleteSelectedNodes({
 }
 
 export async function getActionsInClipboard(): Promise<FlowAction[]> {
+  const clipboardText = await navigator.clipboard.readText();
+  if (!clipboardText.trim()) return [];
+
   try {
-    const clipboardText = await navigator.clipboard.readText();
-    const request: CopyActionsRequest = JSON.parse(clipboardText);
-    if (request && request.type === 'COPY_ACTIONS') {
-      return request.actions;
-    }
-  } catch (error) {
-    console.error('Error getting actions in clipboard', error);
+    const data = JSON.parse(clipboardText);
+    if (request(data)) return data.actions;
+  } catch {
     return [];
   }
 
