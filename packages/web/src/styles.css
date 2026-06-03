@@ -381,6 +381,74 @@
   }
 }
 
+.veritly-automation-editor {
+  --background: #ffffff;
+  --foreground: #18181b;
+  --popover: #ffffff;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #27272a;
+  --border: #dfe3e8;
+  --input: #dfe3e8;
+  --ring: #a1a1aa;
+  --primary-100: 214 95% 86%;
+  --primary: 214 84% 52%;
+  --primary-300: 214 75% 30%;
+  --primary-foreground: 0 0% 100%;
+  --sidebar-border: #dfe3e8;
+  --builder-background: #f8fafc;
+  --builder-background-pattern: #cbd5e1;
+  --shadow-step-container: 0 12px 32px rgba(15, 23, 42, 0.08);
+  --add-button-shadow: 0 0 0 5px hsl(var(--primary) / 0.16);
+}
+
+.veritly-automation-editor,
+.veritly-automation-editor * {
+  letter-spacing: 0;
+}
+
+.veritly-automation-editor [data-slot='page-header'],
+.veritly-automation-editor .sticky.top-0,
+.veritly-automation-editor .z-40 > .flex {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+}
+
+.veritly-automation-editor .border-b {
+  border-color: var(--border);
+}
+
+.veritly-automation-editor .bg-builder-background {
+  background-color: var(--builder-background);
+}
+
+.veritly-automation-editor .react-flow__pane {
+  cursor: default;
+}
+
+.veritly-automation-editor .react-flow__node {
+  filter: drop-shadow(0 10px 22px rgba(15, 23, 42, 0.08));
+}
+
+.veritly-automation-editor .react-flow__controls,
+.veritly-automation-editor #canvas-controls > div {
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+}
+
+.veritly-automation-editor #canvas-controls button {
+  border-radius: 6px;
+}
+
+.veritly-automation-editor [id='right-sidebar'] {
+  border-left: 1px solid var(--border);
+}
+
+.veritly-automation-editor [role='dialog'],
+.veritly-automation-editor [data-radix-popper-content-wrapper] {
+  color: var(--foreground);
+}
+
 /* You can add global styles to this file, and also import other style files */
 @layer base {
   input[type='number']::-webkit-inner-spin-button,
