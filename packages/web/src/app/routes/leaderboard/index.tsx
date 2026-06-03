@@ -3,7 +3,7 @@ import {
   ColorName,
   UserWithBadges,
 } from '@activepieces/shared';
-import { useQueries } from '@tanstack/solid-query';
+import { createQuery } from '@tanstack/solid-query';
 import dayjs from 'dayjs';
 import { t } from 'i18next';
 import {
@@ -128,10 +128,16 @@ export default function LeaderboardPage() {
   const [projectsTimeSaved, setProjectsTimeSaved] =
     createSignal<TimeSavedFilter>(emptyFilter);
 
-  const appliedFilter =
-    activeTab === 'creators' ? peopleTimeSaved : projectsTimeSaved;
-  const setAppliedFilter =
-    activeTab === 'creators' ? setPeopleTimeSaved : setProjectsTimeSaved;
+  const appliedFilter = createMemo(() =>
+    activeTab() === 'creators' ? peopleTimeSaved() : projectsTimeSaved(),
+  );
+  const setAppliedFilter = (filter: TimeSavedFilter) => {
+    if (activeTab() === 'creators') {
+      setPeopleTimeSaved(filter);
+      return;
+    }
+    setProjectsTimeSaved(filter);
+  };
 
   const [draftTimeSavedMin, setDraftTimeSavedMin] = createSignal('');
   const [draftTimeSavedMax, setDraftTimeSavedMax] = createSignal('');
@@ -147,59 +153,57 @@ export default function LeaderboardPage() {
     () => usersLeaderboardData?.map((u) => u.userId) ?? [],
   );
 
-  const badgeQueries = useQueries({
-    queries: userIds.map((userId) => ({
-      queryKey: ['user-badges', userId],
-      queryFn: () => userApi.getUserById(userId),
-      staleTime: 5 * 60 * 1000,
-      enabled: userIds.length > 0,
-    })),
-  });
+  const { data: usersWithBadges } = createQuery(() => ({
+    queryKey: ['user-badges', ...userIds()],
+    queryFn: async () =>
+      Promise.all(userIds().map((id) => userApi.getUserById(id))),
+    staleTime: 5 * 60 * 1000,
+    enabled: userIds().length > 0,
+  }));
 
   const badgesMap = createMemo(() => {
     const map = new Map<string, UserWithBadges['badges']>();
-    badgeQueries.forEach((q) => {
-      if (q.data) {
-        map.set(q.data.id, q.data.badges);
-      }
-    });
+    usersWithBadges?.forEach((user) => map.set(user.id, user.badges));
     return map;
   });
 
   const isLoading = isAnalyticsLoading || isUsersLoading || isProjectsLoading;
 
   const cycleDraftTimeUnitMin = () => {
-    const idx = TIME_UNITS.indexOf(draftTimeUnitMin);
+    const idx = TIME_UNITS.indexOf(draftTimeUnitMin());
     setDraftTimeUnitMin(TIME_UNITS[(idx + 1) % TIME_UNITS.length]);
   };
 
   const cycleDraftTimeUnitMax = () => {
-    const idx = TIME_UNITS.indexOf(draftTimeUnitMax);
+    const idx = TIME_UNITS.indexOf(draftTimeUnitMax());
     setDraftTimeUnitMax(TIME_UNITS[(idx + 1) % TIME_UNITS.length]);
   };
 
   const handleTimeSavedPopoverOpen = (open: boolean) => {
     if (open) {
-      setDraftTimeSavedMin(appliedFilter.min);
-      setDraftTimeSavedMax(appliedFilter.max);
-      setDraftTimeUnitMin(appliedFilter.unitMin);
-      setDraftTimeUnitMax(appliedFilter.unitMax);
+      const filter = appliedFilter();
+      setDraftTimeSavedMin(filter.min);
+      setDraftTimeSavedMax(filter.max);
+      setDraftTimeUnitMin(filter.unitMin);
+      setDraftTimeUnitMax(filter.unitMax);
     }
     setTimeSavedPopoverOpen(open);
   };
 
   const handleApplyFilter = () => {
     setAppliedFilter({
-      min: draftTimeSavedMin,
-      max: draftTimeSavedMax,
-      unitMin: draftTimeUnitMin,
-      unitMax: draftTimeUnitMax,
+      min: draftTimeSavedMin(),
+      max: draftTimeSavedMax(),
+      unitMin: draftTimeUnitMin(),
+      unitMax: draftTimeUnitMax(),
     });
     setTimeSavedPopoverOpen(false);
   };
 
-  const hasActiveFilters =
-    searchQuery !== '' || appliedFilter.min !== '' || appliedFilter.max !== '';
+  const hasActiveFilters = createMemo(() => {
+    const filter = appliedFilter();
+    return searchQuery() !== '' || filter.min !== '' || filter.max !== '';
+  });
 
   const clearAllFilters = () => {
     setSearchQuery('');
@@ -207,13 +211,10 @@ export default function LeaderboardPage() {
   };
 
   const timeSavedLabel = createMemo(() => {
-    if (!appliedFilter.min && !appliedFilter.max) return null;
-    const min = appliedFilter.min
-      ? `${appliedFilter.min} ${appliedFilter.unitMin}`
-      : '0';
-    const max = appliedFilter.max
-      ? `${appliedFilter.max} ${appliedFilter.unitMax}`
-      : '∞';
+    const filter = appliedFilter();
+    if (!filter.min && !filter.max) return null;
+    const min = filter.min ? `${filter.min} ${filter.unitMin}` : '0';
+    const max = filter.max ? `${filter.max} ${filter.unitMax}` : '∞';
     return `${min} – ${max}`;
   });
 
@@ -236,7 +237,7 @@ export default function LeaderboardPage() {
           userEmail: user.email,
           flowCount: item.flowCount ?? 0,
           minutesSaved: item.minutesSaved ?? 0,
-          badges: badgesMap.get(item.userId),
+          badges: badgesMap().get(item.userId),
         });
         return acc;
       }, [])
@@ -256,40 +257,40 @@ export default function LeaderboardPage() {
         projectName: item.projectName,
         flowCount: item.flowCount ?? 0,
         minutesSaved: item.minutesSaved ?? 0,
-        iconColor: projectIconMap.get(item.projectId),
+        iconColor: projectIconMap().get(item.projectId),
       }))
       .sort((a, b) => b.minutesSaved - a.minutesSaved)
       .map((item, index) => ({ ...item, rank: index + 1 }));
   });
 
   const filteredPeopleData = createMemo(() => {
-    let data = peopleData;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    let data = peopleData();
+    if (searchQuery()) {
+      const q = searchQuery().toLowerCase();
       data = data.filter(
         (p) =>
           p.userName.toLowerCase().includes(q) ||
           p.userEmail.toLowerCase().includes(q),
       );
     }
-    return applyTimeSavedFilter(data, peopleTimeSaved);
+    return applyTimeSavedFilter(data, peopleTimeSaved());
   });
 
   const filteredProjectsData = createMemo(() => {
-    let data = projectsData;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
+    let data = projectsData();
+    if (searchQuery()) {
+      const q = searchQuery().toLowerCase();
       data = data.filter((p) => p.projectName.toLowerCase().includes(q));
     }
-    return applyTimeSavedFilter(data, projectsTimeSaved);
+    return applyTimeSavedFilter(data, projectsTimeSaved());
   });
 
   const handleDownload = () => {
-    if (activeTab === 'creators') {
-      if (filteredPeopleData.length === 0) return;
+    if (activeTab() === 'creators') {
+      if (filteredPeopleData().length === 0) return;
 
       const csvHeader = 'Name,Email,Flows,Time Saved\n';
-      const csvContent = filteredPeopleData
+      const csvContent = filteredPeopleData()
         .map(
           (person) =>
             `"${person.userName}","${person.userEmail}",${
@@ -300,16 +301,16 @@ export default function LeaderboardPage() {
         )
         .join('\n');
 
-      downloadFile({
+      void downloadFile({
         obj: csvHeader + csvContent,
         fileName: 'people-leaderboard',
         extension: 'csv',
       });
     } else {
-      if (filteredProjectsData.length === 0) return;
+      if (filteredProjectsData().length === 0) return;
 
       const csvHeader = 'Project,Flows,Time Saved\n';
-      const csvContent = filteredProjectsData
+      const csvContent = filteredProjectsData()
         .map(
           (project) =>
             `"${project.projectName}",${
@@ -320,7 +321,7 @@ export default function LeaderboardPage() {
         )
         .join('\n');
 
-      downloadFile({
+      void downloadFile({
         obj: csvHeader + csvContent,
         fileName: 'projects-leaderboard',
         extension: 'csv',
@@ -328,10 +329,12 @@ export default function LeaderboardPage() {
     }
   };
 
-  const isDownloadDisabled =
-    isLoading ||
-    (activeTab === 'creators' && filteredPeopleData.length === 0) ||
-    (activeTab === 'projects' && filteredProjectsData.length === 0);
+  const isDownloadDisabled = createMemo(
+    () =>
+      isLoading ||
+      (activeTab() === 'creators' && filteredPeopleData().length === 0) ||
+      (activeTab() === 'projects' && filteredProjectsData().length === 0),
+  );
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -348,12 +351,12 @@ export default function LeaderboardPage() {
       )}
     >
       <RefreshAnalyticsProvider>
-        <div className="flex flex-col gap-2 w-full">
+        <div class="flex flex-col gap-2 w-full">
           <PageHeader
             showSidebarToggle={true}
             title={
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-medium">{t('Leaderboard')}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm font-medium">{t('Leaderboard')}</span>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info class="h-4 w-4 text-muted-foreground cursor-help" />
@@ -365,8 +368,8 @@ export default function LeaderboardPage() {
               </div>
             }
             rightContent={
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3 py-1.5 border border-dashed rounded-md text-sm text-muted-foreground">
+              <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 px-3 py-1.5 border border-dashed rounded-md text-sm text-muted-foreground">
                   <span>
                     {t('Updated')}{' '}
                     {dayjs(analyticsData?.cachedAt).format('MMM DD, hh:mm A')}
@@ -399,7 +402,7 @@ export default function LeaderboardPage() {
                 </div>
 
                 <Select
-                  value={timePeriod}
+                  value={timePeriod()}
                   onValueChange={(value) =>
                     setTimePeriod(value as AnalyticsTimePeriod)
                   }
@@ -451,24 +454,24 @@ export default function LeaderboardPage() {
             </TabsList>
 
             <div
-              className={cn(
+              class={cn(
                 'flex items-center justify-between mt-4 mb-4',
                 DASHBOARD_CONTENT_PADDING_X,
               )}
             >
-              <div className="flex items-center gap-2">
+              <div class="flex items-center gap-2">
                 <SearchInput
-                  value={searchQuery}
+                  value={searchQuery()}
                   onChange={setSearchQuery}
                   placeholder={
-                    activeTab === 'creators'
-                      ? t('Search users')
-                      : t('Search projects')
+                    activeTab() === 'creators'
+                      ? `${t('Search users')}`
+                      : `${t('Search projects')}`
                   }
                   class="w-[200px]"
                 />
                 <Popover
-                  open={timeSavedPopoverOpen}
+                  open={timeSavedPopoverOpen()}
                   onOpenChange={handleTimeSavedPopoverOpen}
                 >
                   <PopoverTrigger asChild>
@@ -478,9 +481,9 @@ export default function LeaderboardPage() {
                     >
                       <Clock class="h-4 w-4" />
                       <span>{t('Time Saved')}</span>
-                      <Show when={timeSavedLabel}>
-                        <span className="rounded bg-accent px-1.5 py-0.5 text-xs font-medium">
-                          {timeSavedLabel}
+                      <Show when={timeSavedLabel()}>
+                        <span class="rounded bg-accent px-1.5 py-0.5 text-xs font-medium">
+                          {timeSavedLabel()}
                         </span>
                       </Show>
                       <ChevronDown class="h-4 w-4 opacity-50" />
@@ -488,19 +491,19 @@ export default function LeaderboardPage() {
                   </PopoverTrigger>
                   <PopoverContent class="w-[200px] p-4" align="start">
                     <TimeSavedFilterContent
-                      draftMin={draftTimeSavedMin}
+                      draftMin={draftTimeSavedMin()}
                       onMinChange={setDraftTimeSavedMin}
-                      unitMin={draftTimeUnitMin}
+                      unitMin={draftTimeUnitMin()}
                       onCycleUnitMin={cycleDraftTimeUnitMin}
-                      draftMax={draftTimeSavedMax}
+                      draftMax={draftTimeSavedMax()}
                       onMaxChange={setDraftTimeSavedMax}
-                      unitMax={draftTimeUnitMax}
+                      unitMax={draftTimeUnitMax()}
                       onCycleUnitMax={cycleDraftTimeUnitMax}
                       onApply={handleApplyFilter}
                     />
                   </PopoverContent>
                 </Popover>
-                <Show when={hasActiveFilters}>
+                <Show when={hasActiveFilters()}>
                   <Button variant="ghost" size="sm" onClick={clearAllFilters}>
                     <X class="h-4 w-4" />
                     {t('Clear')}
@@ -513,7 +516,7 @@ export default function LeaderboardPage() {
                     variant="outline"
                     size="sm"
                     onClick={handleDownload}
-                    disabled={isDownloadDisabled}
+                    disabled={isDownloadDisabled()}
                   >
                     <Download class="h-4 w-4 mr-2" />
                     {t('Download')}
@@ -527,14 +530,14 @@ export default function LeaderboardPage() {
 
             <TabsContent value="creators">
               <UsersLeaderboard
-                data={filteredPeopleData}
+                data={filteredPeopleData()}
                 isLoading={isLoading}
               />
             </TabsContent>
 
             <TabsContent value="projects">
               <ProjectsLeaderboard
-                data={filteredProjectsData}
+                data={filteredProjectsData()}
                 isLoading={isLoading}
               />
             </TabsContent>

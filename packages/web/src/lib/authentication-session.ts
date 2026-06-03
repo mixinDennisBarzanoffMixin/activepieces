@@ -25,7 +25,7 @@ export const authenticationSession = {
     if (!isNil(response.projectId)) {
       ApStorage.getInstance().setItem(projectIdKey, response.projectId);
     }
-    queryClient.invalidateQueries({ queryKey: ['flags'] });
+    void queryClient.invalidateQueries({ queryKey: ['flags'] });
     window.dispatchEvent(new Event('storage'));
   },
   isJwtExpired(token: string): boolean {
@@ -34,7 +34,7 @@ export const authenticationSession = {
     }
     try {
       const decoded = jwtDecode(token);
-      if (decoded && decoded.exp && dayjs().isAfter(dayjs.unix(decoded.exp))) {
+      if (decoded.exp && dayjs().isAfter(dayjs.unix(decoded.exp))) {
         return true;
       }
       return false;
@@ -83,7 +83,7 @@ export const authenticationSession = {
       return null;
     }
     const decodedJwt = getDecodedJwt(token);
-    if ('platform' in decodedJwt && decodedJwt.platform) {
+    if ('platform' in decodedJwt) {
       return decodedJwt.platform.id;
     }
     return null;
@@ -93,7 +93,7 @@ export const authenticationSession = {
     if (isNil(token)) {
       return false;
     }
-    const decodedJwt = jwtDecode<{ type: string }>(token);
+    const decodedJwt = jwtDecode<{ type: PrincipalType }>(token);
     return decodedJwt.type === PrincipalType.ONBOARDING;
   },
   async switchToPlatform(platformId: string) {

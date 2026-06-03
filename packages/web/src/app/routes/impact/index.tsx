@@ -42,11 +42,9 @@ type TabValue = 'analytics' | 'details';
 export default function ImpactPage() {
   const { platform } = platformHooks.useCurrentPlatform();
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedProjectId = searchParams.get('projectId') || undefined;
-  const selectedTimePeriod =
-    (searchParams.get('timePeriod') as AnalyticsTimePeriod) ||
-    AnalyticsTimePeriod.LAST_MONTH;
-  const activeTab = (searchParams.get('tab') as TabValue) || 'analytics';
+  const selectedProjectId = searchParams.projectId || undefined;
+  const selectedTimePeriod = parseTimePeriod(searchParams.timePeriod);
+  const activeTab = parseTab(searchParams.tab);
 
   const { data: projects } = projectCollectionUtils.useAll();
   const { data, isLoading } = platformAnalyticsHooks.useAnalyticsTimeBased(
@@ -59,29 +57,23 @@ export default function ImpactPage() {
   const { isRefreshing } = useContext(RefreshAnalyticsContext);
 
   const handleProjectChange = (projectId: string) => {
-    const newParams = new URLSearchParams(searchParams);
     if (projectId === 'all') {
-      newParams.delete('projectId');
-    } else {
-      newParams.set('projectId', projectId);
+      setSearchParams({ projectId: undefined }, { replace: true });
+      return;
     }
-    setSearchParams(newParams, { replace: true });
+    setSearchParams({ projectId }, { replace: true });
   };
 
   const handleTimePeriodChange = (timePeriod: string) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set('timePeriod', timePeriod);
-    setSearchParams(newParams, { replace: true });
+    setSearchParams({ timePeriod }, { replace: true });
   };
 
   const handleTabChange = (tab: string) => {
-    const newParams = new URLSearchParams(searchParams);
     if (tab === 'analytics') {
-      newParams.delete('tab');
-    } else {
-      newParams.set('tab', tab);
+      setSearchParams({ tab: undefined }, { replace: true });
+      return;
     }
-    setSearchParams(newParams, { replace: true });
+    setSearchParams({ tab }, { replace: true });
   };
 
   createEffect(() => {
@@ -104,12 +96,12 @@ export default function ImpactPage() {
         'View impact analytics and metrics for the active flows across your platform',
       )}
     >
-      <div className="flex flex-col gap-4 w-full">
+      <div class="flex flex-col gap-4 w-full">
         <PageHeader
           showSidebarToggle={true}
           title={
-            <div className="flex items-center gap-1.5">
-              <span className="text-sm font-medium">{t('Impact')}</span>
+            <div class="flex items-center gap-1.5">
+              <span class="text-sm font-medium">{t('Impact')}</span>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Info class="h-4 w-4 text-muted-foreground cursor-help" />
@@ -121,8 +113,8 @@ export default function ImpactPage() {
             </div>
           }
           rightContent={
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-1.5 border border-dashed rounded-md text-sm text-muted-foreground">
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2 px-3 py-1.5 border border-dashed rounded-md text-sm text-muted-foreground">
                 <span>
                   {t('Updated')}{' '}
                   {dayjs(data?.updated).format('MMM DD, hh:mm A')} —{' '}
@@ -143,9 +135,10 @@ export default function ImpactPage() {
                       disabled={isRefreshing}
                     >
                       <RefreshCcw
-                        class={`h-3.5 w-3.5 ${
-                          isRefreshing ? 'animate-spin' : ''
-                        }`}
+                        class={cn(
+                          'h-3.5 w-3.5',
+                          isRefreshing && 'animate-spin',
+                        )}
                       />
                     </Button>
                   </TooltipTrigger>
@@ -206,9 +199,7 @@ export default function ImpactPage() {
           </TabsList>
 
           <TabsContent value="analytics">
-            <div
-              className={cn('flex flex-col gap-6', DASHBOARD_CONTENT_PADDING_X)}
-            >
+            <div class={cn('flex flex-col gap-6', DASHBOARD_CONTENT_PADDING_X)}>
               <Summary report={report ?? undefined} />
               <Trends report={report ?? undefined} />
             </div>
@@ -225,4 +216,20 @@ export default function ImpactPage() {
       </div>
     </LockedFeatureGuard>
   );
+}
+
+function parseTimePeriod(period: string | undefined) {
+  switch (period) {
+    case AnalyticsTimePeriod.LAST_WEEK:
+    case AnalyticsTimePeriod.LAST_MONTH:
+    case AnalyticsTimePeriod.LAST_THREE_MONTHS:
+    case AnalyticsTimePeriod.LAST_SIX_MONTHS:
+    case AnalyticsTimePeriod.LAST_YEAR:
+      return period;
+  }
+  return AnalyticsTimePeriod.LAST_MONTH;
+}
+
+function parseTab(tab: string | undefined): TabValue {
+  return tab === 'details' ? 'details' : 'analytics';
 }

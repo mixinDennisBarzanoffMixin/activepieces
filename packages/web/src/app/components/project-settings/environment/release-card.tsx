@@ -11,17 +11,17 @@ const ReleaseCard = () => {
 
   return (
     <Card class="w-full px-4 py-4">
-      <div className="flex w-full gap-2 justify-center items-center">
-        <div className="flex flex-col gap-2 text-center mr-2">
+      <div class="flex w-full gap-2 justify-center items-center">
+        <div class="flex flex-col gap-2 text-center mr-2">
           <Package class="size-8" />
         </div>
-        <div className="flex grow flex-col">
-          <div className="text-lg">{t('Releases')}</div>
-          <div className="text-sm text-muted-foreground">
+        <div class="flex grow flex-col">
+          <div class="text-lg">{t('Releases')}</div>
+          <div class="text-sm text-muted-foreground">
             {t('Enable releases to easily create and manage project releases.')}
           </div>
         </div>
-        <div className="flex flex-row justify-center items-center gap-1">
+        <div class="flex flex-row justify-center items-center gap-1">
           <Button
             variant={'basic'}
             onClick={() =>

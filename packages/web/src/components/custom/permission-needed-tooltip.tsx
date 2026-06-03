@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { Show, type JSX } from 'solid-js';
 
 import {
   Tooltip,
@@ -7,18 +8,13 @@ import {
 } from '@/components/ui/tooltip';
 
 export const PermissionNeededTooltip = (props: {
-  children: any;
+  children: JSX.Element;
   hasPermission: boolean;
   ref?: HTMLButtonElement;
 }) => {
-  let ref: HTMLButtonElement | undefined;
   return (
     <Tooltip delayDuration={100}>
-      <TooltipTrigger
-        ref={(el) => (ref = el)}
-        asChild
-        disabled={!props.hasPermission}
-      >
+      <TooltipTrigger asChild disabled={!props.hasPermission}>
         <div>{props.children}</div>
       </TooltipTrigger>
       <Show when={!props.hasPermission}>
@@ -27,5 +23,3 @@ export const PermissionNeededTooltip = (props: {
     </Tooltip>
   );
 };
-
-PermissionNeededTooltip.displayName = 'PermissionNeededWrapper';

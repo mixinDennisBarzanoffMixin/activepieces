@@ -1,7 +1,14 @@
 import deepEqual from 'deep-equal';
 import { t } from 'i18next';
 import { Check, ChevronsUpDown, RefreshCcw, Trash2, X } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import {
+  Accessor,
+  createMemo,
+  createSignal,
+  Show,
+  For,
+  mergeProps,
+} from 'solid-js';
 
 import { SelectUtilButton } from '@/components/custom/select-util-button';
 import {
@@ -42,7 +49,7 @@ type SearchableSelectProps<T> = {
   triggerClassName?: string;
   valuesRendering?: (value: unknown) => any;
   openState?: {
-    open: boolean;
+    open: Accessor<boolean>;
     setOpen: (open: boolean) => void;
   };
   refreshOnSearch?: (searchValue: string) => void;
@@ -55,7 +62,7 @@ type SearchableSelectProps<T> = {
 };
 
 const useOpenState = (openStateInitializer?: {
-  open: boolean;
+  open: Accessor<boolean>;
   setOpen: (open: boolean) => void;
 }) => {
   const [isOpen, setIsOpen] = createSignal(false);
@@ -67,51 +74,40 @@ const useOpenState = (openStateInitializer?: {
     setOpen: setIsOpen,
   };
 };
-export const SearchableSelect = <T,>({
-  options,
-  onChange,
-  value,
-  placeholder,
-  disabled,
-  loading,
-  showDeselect,
-  onRefresh,
-  showRefresh,
-  onClose,
-  triggerClassName,
-  valuesRendering,
-  openState: openStateInitializer,
-  refreshOnSearch,
-  cachedOptions = [],
-  onOptionDelete,
-}: SearchableSelectProps<T>) => {
+export const SearchableSelect = <T,>(_props: SearchableSelectProps<T>) => {
+  const props = mergeProps({ cachedOptions: [] }, _props);
   let triggerRef: HTMLButtonElement | undefined;
   const [searchTerm, setSearchTerm] = createSignal('');
-  const { open, setOpen } = useOpenState(openStateInitializer);
-  const triggerWidth = `${triggerRef?.clientWidth ?? 0}px`;
-  const selectedOption =
-    [...cachedOptions, ...options].find((option) =>
-      deepEqual(option.value, value),
-    ) ?? undefined;
-  const filterOptionsIndices = options
-    .map((option, index) => {
-      return {
-        label: option.label,
-        value: option.value,
-        index: index,
-        description: option.description ?? '',
-      };
-    })
-    .filter((option) => {
-      if (refreshOnSearch || searchTerm().length === 0) {
-        return true;
-      }
-      return (
-        option.label.toLowerCase().includes(searchTerm().toLowerCase()) ||
-        option.description.toLowerCase().includes(searchTerm().toLowerCase())
-      );
-    })
-    .map((option) => option.index);
+  const state = createMemo(() => useOpenState(props.openState));
+  const open = () => state().open();
+  const setOpen = (value: boolean) => state().setOpen(value);
+  const triggerWidth = createMemo(() => `${triggerRef?.clientWidth ?? 0}px`);
+  const selectedOption = createMemo(() =>
+    [...props.cachedOptions, ...props.options].find((option) =>
+      deepEqual(option.value, props.value),
+    ),
+  );
+  const filterOptionsIndices = createMemo(() =>
+    props.options
+      .map((option, index) => {
+        return {
+          label: option.label,
+          value: option.value,
+          index: index,
+          description: option.description ?? '',
+        };
+      })
+      .filter((option) => {
+        if (props.refreshOnSearch || searchTerm().length === 0) {
+          return true;
+        }
+        return (
+          option.label.toLowerCase().includes(searchTerm().toLowerCase()) ||
+          option.description.toLowerCase().includes(searchTerm().toLowerCase())
+        );
+      })
+      .map((option) => option.index),
+  );
 
   const onSelect = (index: string) => {
     const optionIndex =
@@ -123,8 +119,8 @@ export const SearchableSelect = <T,>({
     if (optionIndex === -1) {
       return;
     }
-    const option = options[optionIndex];
-    onChange(option.value);
+    const option = props.options[optionIndex];
+    props.onChange(option.value);
   };
   return (
     <Popover
@@ -132,10 +128,10 @@ export const SearchableSelect = <T,>({
       open={open()}
       onOpenChange={(open) => {
         if (!open) {
-          onClose?.();
+          props.onClose?.();
         }
-        if (refreshOnSearch && searchTerm().length > 0) {
-          refreshOnSearch('');
+        if (props.refreshOnSearch && searchTerm().length > 0) {
+          props.refreshOnSearch('');
           setSearchTerm('');
         }
         setOpen(open);
@@ -143,101 +139,105 @@ export const SearchableSelect = <T,>({
     >
       <PopoverTrigger
         asChild
-        class={cn({
-          'cursor-not-allowed opacity-80 ': disabled,
-        })}
+        classlist={{
+          'cursor-not-allowed opacity-80 ': props.disabled,
+        }}
         onClick={(e) => {
-          if (disabled) {
+          if (props.disabled) {
             e.preventDefault();
           }
           e.stopPropagation();
         }}
       >
-        <div className="relative">
+        <div class="relative">
           <Button
-            ref={(el) => (triggerRef = el)}
+            ref={(el) => {
+              triggerRef = el;
+            }}
             variant="outline"
-            disabled={disabled}
+            disabled={props.disabled}
             role="combobox"
-            loading={loading}
+            loading={props.loading}
             aria-expanded={open()}
-            class={cn('w-full justify-between', triggerClassName)}
+            class={cn('w-full justify-between', props.triggerClassName)}
             onClick={(e) => {
               setOpen(!open());
               e.preventDefault();
             }}
           >
-            <span className="flex w-full truncate select-none">
-              {selectedOption
-                ? valuesRendering
-                  ? valuesRendering(selectedOption.value)
-                  : selectedOption.label
-                : placeholder}
+            <span class="flex w-full truncate select-none">
+              {selectedOption()
+                ? props.valuesRendering
+                  ? props.valuesRendering(selectedOption()!.value)
+                  : selectedOption()!.label
+                : props.placeholder}
             </span>
             <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
-          <div className="right-10 top-2 absolute flex gap-2  z-50 items-center">
+          <div class="right-10 top-2 absolute flex gap-2  z-50 items-center">
             <Show
-              when={showDeselect && !disabled && selectedOption && !loading}
+              when={
+                props.showDeselect &&
+                !props.disabled &&
+                selectedOption() &&
+                !props.loading
+              }
             >
               <SelectUtilButton
                 tooltipText={t('Unset')}
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  onChange(null);
+                  props.onChange(null);
                 }}
                 Icon={X}
-              ></SelectUtilButton>
+              />
             </Show>
-            <Show when={showRefresh && !loading}>
+            <Show when={props.showRefresh && !props.loading}>
               <SelectUtilButton
                 tooltipText={t('Refresh')}
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  if (onRefresh) {
-                    onRefresh();
+                  if (props.onRefresh) {
+                    props.onRefresh();
                   }
                 }}
                 Icon={RefreshCcw}
-              ></SelectUtilButton>
+              />
             </Show>
           </div>
         </div>
       </PopoverTrigger>
       <PopoverContent
         style={{
-          maxWidth: triggerWidth,
-          minWidth: triggerWidth,
+          'max-width': triggerWidth(),
+          'min-width': triggerWidth(),
         }}
         class="min-w-full w-full p-0"
       >
         <Command class="w-full" shouldFilter={false}>
           <CommandInput
-            placeholder={t(placeholder)}
+            placeholder={t(props.placeholder)}
             value={searchTerm()}
             onValueChange={(e) => {
               setSearchTerm(e);
-              if (refreshOnSearch) {
-                refreshOnSearch(e);
+              if (props.refreshOnSearch) {
+                props.refreshOnSearch(e);
               }
             }}
           />
-          <Show when={filterOptionsIndices.length === 0}>
+          <Show when={filterOptionsIndices().length === 0}>
             <CommandEmpty>{t('No results found.')}</CommandEmpty>
           </Show>
 
           <CommandGroup>
             <CommandList>
               <ScrollArea class="h-full" viewPortClassName={'max-h-[200px]'}>
-                <Show when={filterOptionsIndices && !loading}>
-                  <For each={filterOptionsIndices}>
+                <Show when={!props.loading}>
+                  <For each={filterOptionsIndices()}>
                     {(filterIndex) => {
-                      const option = options[filterIndex];
-                      if (!option) {
-                        return null;
-                      }
+                      const option = props.options[filterIndex];
                       return (
                         <CommandItem
                           value={String(filterIndex)}
@@ -247,39 +247,37 @@ export const SearchableSelect = <T,>({
                           }}
                           class={cn(
                             'flex gap-2 flex-col items-start',
-                            onOptionDelete && 'group/option',
+                            props.onOptionDelete && 'group/option',
                           )}
                         >
-                          <div className="flex gap-2 items-center justify-between w-full">
+                          <div class="flex gap-2 items-center justify-between w-full">
                             <Show
                               when={option.label === ''}
                               fallback={
                                 <Show
-                                  when={valuesRendering}
+                                  when={props.valuesRendering}
                                   fallback={
-                                    <span className="truncate">
-                                      {option.label}
-                                    </span>
+                                    <span class="truncate">{option.label}</span>
                                   }
                                 >
-                                  {valuesRendering(option.value)}
+                                  {props.valuesRendering(option.value)}
                                 </Show>
                               }
                             >
-                              <span className="">&nbsp;</span>
+                              <span class="">&nbsp;</span>
                             </Show>
-                            <div className="relative shrink-0 w-4 h-4">
-                              <Show when={onOptionDelete}>
+                            <div class="relative shrink-0 w-4 h-4">
+                              <Show when={props.onOptionDelete}>
                                 <button
                                   type="button"
-                                  className={cn(
+                                  class={cn(
                                     'absolute inset-0 flex items-center justify-center text-muted-foreground hover:text-destructive',
                                     'opacity-0 group-hover/option:opacity-100',
                                   )}
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     e.preventDefault();
-                                    onOptionDelete(option.value);
+                                    props.onOptionDelete(option.value);
                                   }}
                                 >
                                   <Trash2 class="h-3.5 w-3.5" />
@@ -288,11 +286,11 @@ export const SearchableSelect = <T,>({
                               <Check
                                 class={cn(
                                   'absolute inset-0 w-4 h-4',
-                                  selectedOption?.value !== option.value
+                                  selectedOption()?.value !== option.value
                                     ? 'opacity-0'
                                     : cn(
                                         'opacity-100',
-                                        onOptionDelete &&
+                                        props.onOptionDelete &&
                                           'group-hover/option:opacity-0',
                                       ),
                                 )}
@@ -300,7 +298,7 @@ export const SearchableSelect = <T,>({
                             </div>
                           </div>
                           <Show when={option.description}>
-                            <div className="text-sm text-muted-foreground">
+                            <div class="text-sm text-muted-foreground">
                               {option.description}
                             </div>
                           </Show>
@@ -309,7 +307,7 @@ export const SearchableSelect = <T,>({
                     }}
                   </For>
                 </Show>
-                <Show when={loading}>
+                <Show when={props.loading}>
                   <CommandItem disabled>{t('Loading...')}</CommandItem>
                 </Show>
               </ScrollArea>
@@ -320,5 +318,3 @@ export const SearchableSelect = <T,>({
     </Popover>
   );
 };
-
-SearchableSelect.displayName = 'SearchableSelect';

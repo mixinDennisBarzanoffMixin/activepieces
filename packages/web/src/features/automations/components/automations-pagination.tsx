@@ -1,6 +1,6 @@
-import { For } from 'solid-js';
 import { t } from 'i18next';
-import { ChevronLeft, ChevronRight } from "lucide-solid";
+import { ChevronLeft, ChevronRight } from 'lucide-solid';
+import { For } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,39 +22,32 @@ type AutomationsPaginationProps = {
   onNextPage: () => void;
 };
 
-export const AutomationsPagination = ({
-  currentPage,
-  totalPages,
-  pageSize,
-  onPageSizeChange,
-  onPrevPage,
-  onNextPage,
-}: AutomationsPaginationProps) => {
-  const maxPages = Math.max(totalPages, 1);
+export const AutomationsPagination = (props: AutomationsPaginationProps) => {
+  const maxPages = () => Math.max(props.totalPages, 1);
 
   return (
     <div class="flex items-center justify-end gap-4 px-2 py-4 text-sm">
       <div class="flex items-center gap-2">
         <span class="text-muted-foreground">{t('Rows per page')}</span>
         <Select
-          value={String(pageSize)}
-          onValueChange={(val) => onPageSizeChange(Number(val))}
+          value={String(props.pageSize)}
+          onValueChange={(val) => props.onPageSizeChange(Number(val))}
         >
           <SelectTrigger class="h-8 w-[70px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <For each={PAGE_SIZE_OPTIONS}>{(size) => <SelectItem value={String(size)}>
-                {size}
-              </SelectItem>}</For>
+            <For each={PAGE_SIZE_OPTIONS}>
+              {(size) => <SelectItem value={String(size)}>{size}</SelectItem>}
+            </For>
           </SelectContent>
         </Select>
       </div>
       <Button
         variant="ghost"
         size="sm"
-        onClick={onPrevPage}
-        disabled={currentPage === 0}
+        onClick={props.onPrevPage}
+        disabled={props.currentPage === 0}
         class="gap-1"
       >
         <ChevronLeft class="h-4 w-4" />
@@ -63,8 +56,8 @@ export const AutomationsPagination = ({
       <Button
         variant="ghost"
         size="sm"
-        onClick={onNextPage}
-        disabled={currentPage >= maxPages - 1}
+        onClick={props.onNextPage}
+        disabled={props.currentPage >= maxPages() - 1}
         class="gap-1"
       >
         {t('Next')}

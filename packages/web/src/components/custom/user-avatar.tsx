@@ -1,6 +1,7 @@
 import { isNil } from '@activepieces/shared';
-import Avatar from 'boring-avatars-solid';
+import { Show, mergeProps } from 'solid-js';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Tooltip,
   TooltipTrigger,
@@ -18,49 +19,50 @@ type UserAvatarProps = {
   withoutBorder?: boolean;
 };
 
-export function UserAvatar({
-  name,
-  email,
-  size,
-  disableTooltip = false,
-  imageUrl,
-  className,
-  withoutBorder = false,
-}: UserAvatarProps) {
-  const tooltip = `${name} (${email})`;
+export function UserAvatar(_props: UserAvatarProps) {
+  const props = mergeProps(
+    { disableTooltip: false, withoutBorder: false },
+    _props,
+  );
+  const fallback = () =>
+    props.name
+      .split(' ')
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
 
-  const avatarElement = !isNil(imageUrl) ? (
-    <img
-      src={imageUrl}
-      alt={name}
-      width={size}
-      height={size}
-      className={cn('rounded-full aspect-square object-cover', className)}
-      style={{ width: `${size}px !important`, height: `${size}px !important` }}
-    />
-  ) : (
+  const avatarElement = () => (
     <Avatar
-      name={email}
-      size={size}
-      colors={['#0a0310', '#49007e', '#ff005b', '#ff7d10', '#ffb238']}
-      variant="beam"
-      square
-      class={cn('rounded-full', className)}
-    />
+      class={cn('rounded-full', props.className)}
+      style={{
+        width: `${props.size}px !important`,
+        height: `${props.size}px !important`,
+      }}
+    >
+      <Show when={!isNil(props.imageUrl)}>
+        <AvatarImage src={props.imageUrl} alt={props.name} />
+      </Show>
+      <AvatarFallback>{fallback()}</AvatarFallback>
+    </Avatar>
   );
 
-  if (disableTooltip) {
-    return avatarElement;
-  }
-
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div className={cn('size-12 border', { 'border-none': withoutBorder })}>
-          {avatarElement} {disableTooltip}
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom">{tooltip}</TooltipContent>
-    </Tooltip>
+    <Show when={!props.disableTooltip} fallback={avatarElement()}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            class={cn('size-12 border', {
+              'border-none': props.withoutBorder,
+            })}
+          >
+            {avatarElement()}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          {`${props.name} (${props.email})`}
+        </TooltipContent>
+      </Tooltip>
+    </Show>
   );
 }

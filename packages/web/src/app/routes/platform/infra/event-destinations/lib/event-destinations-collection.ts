@@ -50,7 +50,9 @@ export const eventDestinationsCollectionUtils = {
         mutationFn: (request: CreatePlatformEventDestinationRequestBody) =>
           api.post<EventDestination>('/v1/event-destinations', request),
         onSuccess: (data) => {
-          queryClient.invalidateQueries({ queryKey: ['event-destinations'] });
+          void queryClient.invalidateQueries({
+            queryKey: ['event-destinations'],
+          });
           onSuccess(data);
         },
         onError: (error) => {

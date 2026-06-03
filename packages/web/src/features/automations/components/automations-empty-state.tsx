@@ -1,10 +1,10 @@
-import { For, createSignal } from 'solid-js';
 import {
   Permission,
   Template,
   TemplateType,
   UncategorizedFolderId,
 } from '@activepieces/shared';
+import { useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
 import {
   ChevronRight,
@@ -14,7 +14,15 @@ import {
   Upload,
   Workflow,
 } from 'lucide-solid';
-import { useNavigate } from "@solidjs/router";
+import {
+  For,
+  Show,
+  createMemo,
+  createSignal,
+  mergeProps,
+  untrack,
+  type JSX,
+} from 'solid-js';
 
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
 import { TagWithBright } from '@/components/custom/tag-with-bright';
@@ -33,77 +41,68 @@ import { useGradientFromPieces } from '@/features/templates/hooks/use-gradient-f
 import { useAuthorization } from '@/hooks/authorization-hooks';
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { platformHooks } from '@/hooks/platform-hooks';
+import { cn } from '@/lib/utils';
 
 type ActionRowProps = {
-  icon;
+  icon: JSX.Element;
   label: string;
   onClick?: () => void;
   disabled?: boolean;
   hasPermission?: boolean;
 };
 
-const ActionRow = ({
-  icon,
-  label,
-  onClick,
-  disabled,
-  hasPermission = true,
-}: ActionRowProps) => {
+const ActionRow = (_props: ActionRowProps) => {
+  const props = mergeProps({ hasPermission: true }, _props);
   const content = (
     <button
-      onClick={onClick}
-      disabled={disabled || !hasPermission}
+      onClick={() => props.onClick?.()}
+      disabled={props.disabled || !props.hasPermission}
       class="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-muted/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border-t first:border-t-0"
     >
       <div class="flex items-center gap-3">
-        <span class="text-muted-foreground">{icon}</span>
-        <span class="text-sm font-medium">{label}</span>
+        <span class="text-muted-foreground">{props.icon}</span>
+        <span class="text-sm font-medium">{props.label}</span>
       </div>
       <ChevronRight class="h-4 w-4 text-muted-foreground" />
     </button>
   );
 
-  if (!hasPermission) {
-    return (
-      <PermissionNeededTooltip hasPermission={hasPermission}>
+  return (
+    <Show when={!props.hasPermission} fallback={content}>
+      <PermissionNeededTooltip hasPermission={props.hasPermission}>
         {content}
       </PermissionNeededTooltip>
-    );
-  }
-
-  return content;
+    </Show>
+  );
 };
 
 type GetStartedCardProps = {
-  icon;
+  icon: JSX.Element;
   iconBgClass: string;
   title: string;
   description: string;
-  children;
+  children: JSX.Element;
 };
 
-const GetStartedCard = ({
-  icon,
-  iconBgClass,
-  title,
-  description,
-  children,
-}: GetStartedCardProps) => {
+const GetStartedCard = (props: GetStartedCardProps) => {
   return (
     <Card class="flex-1 overflow-hidden">
       <CardContent class="p-0">
         <div class="flex items-center gap-3 px-4 py-4">
           <div
-            class={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBgClass}`}
+            class={cn(
+              'w-10 h-10 rounded-lg flex items-center justify-center',
+              props.iconBgClass,
+            )}
           >
-            {icon}
+            {props.icon}
           </div>
           <div>
-            <h3 class="font-semibold text-base">{title}</h3>
-            <p class="text-sm text-muted-foreground">{description}</p>
+            <h3 class="font-semibold text-base">{props.title}</h3>
+            <p class="text-sm text-muted-foreground">{props.description}</p>
           </div>
         </div>
-        <div class="flex flex-col">{children}</div>
+        <div class="flex flex-col">{props.children}</div>
       </CardContent>
     </Card>
   );
@@ -114,48 +113,46 @@ type SuggestedTemplateCardProps = {
   onSelect: (template: Template) => void;
 };
 
-const SuggestedTemplateCard = ({
-  template,
-  onSelect,
-}: SuggestedTemplateCardProps) => {
-  const hasFlows = template.flows && template.flows.length > 0;
-  const { gradient } = useGradientFromPieces(
-    hasFlows ? template.flows![0]?.trigger : undefined,
-  );
+const SuggestedTemplateCard = (props: SuggestedTemplateCardProps) => {
+  const trigger = createMemo(() => props.template.flows?.[0]?.trigger);
+  const hasFlows = createMemo(() => trigger() !== undefined);
+  const { gradient } = useGradientFromPieces(untrack(trigger));
 
-  const displayTags = template.tags.slice(0, 1);
+  const displayTags = createMemo(() => props.template.tags.slice(0, 1));
 
   return (
     <Card
-      onClick={() => onSelect(template)}
+      onClick={() => props.onSelect(props.template)}
       variant="interactive"
       class="h-[220px] flex flex-col"
     >
       <CardContent class="py-4 px-4 flex flex-col gap-1 flex-1 min-h-0">
         <div class="h-12 flex flex-col justify-start flex-shrink-0">
           <h3 class="font-semibold text-base leading-tight line-clamp-2">
-            {template.name}
+            {props.template.name}
           </h3>
         </div>
 
         <p class="text-muted-foreground text-sm line-clamp-2 mt-1 flex-shrink-0">
-          {template.summary || (
+          {props.template.summary || (
             <span class="italic">{t('No summary')}</span>
           )}
         </p>
 
         <div class="h-8 flex gap-2 flex-wrap overflow-hidden mt-2 flex-shrink-0">
-          {displayTags.length > 0 &&
-            displayTags.map((tag, index) => (
-              <TagWithBright
-                key={index}
-                index={index}
-                prefix={t('Save')}
-                title={tag.title}
-                color={tag.color}
-                size="sm"
-              />
-            ))}
+          <Show when={displayTags().length > 0}>
+            <For each={displayTags()}>
+              {(tag, index) => (
+                <TagWithBright
+                  index={index()}
+                  prefix={t('Save')}
+                  title={tag.title}
+                  color={tag.color}
+                  size="sm"
+                />
+              )}
+            </For>
+          </Show>
         </div>
       </CardContent>
 
@@ -165,16 +162,16 @@ const SuggestedTemplateCard = ({
           background: gradient || 'rgba(0,0,0,0.02)',
         }}
       >
-        {hasFlows && template.flows![0]?.trigger && (
+        <Show when={hasFlows() && trigger()}>
           <PieceIconList
-            trigger={template.flows![0]?.trigger}
+            trigger={trigger()}
             maxNumberOfIconsToShow={4}
             size="md"
             class="flex gap-0.5"
             background="white"
             excludeCore={true}
           />
-        )}
+        </Show>
       </div>
     </Card>
   );
@@ -198,12 +195,11 @@ type AutomationsEmptyStateProps = {
   onRefresh: () => void;
 };
 
-export const AutomationsEmptyState = ({
-  onRefresh,
-}: AutomationsEmptyStateProps) => {
+export const AutomationsEmptyState = (props: AutomationsEmptyStateProps) => {
   const navigate = useNavigate();
   const { embedState } = useEmbedding();
-  const [isImportTableDialogOpen, setIsImportTableDialogOpen] = createSignal(false);
+  const [isImportTableDialogOpen, setIsImportTableDialogOpen] =
+    createSignal(false);
   const [isTemplatesBrowseDialogOpen, setIsTemplatesBrowseDialogOpen] =
     createSignal(false);
   const [selectedTemplate, setSelectedTemplate] = createSignal<Template | null>(
@@ -246,8 +242,8 @@ export const AutomationsEmptyState = ({
     }
   };
 
-  const topTemplates = templates?.slice(0, 3) || [];
-  const hasTemplates = topTemplates.length > 0;
+  const topTemplates = createMemo(() => templates?.slice(0, 3) || []);
+  const hasTemplates = createMemo(() => topTemplates().length > 0);
   const branding = flagsHooks.useWebsiteBranding();
 
   return (
@@ -277,7 +273,7 @@ export const AutomationsEmptyState = ({
             >
               <ImportFlowDialog
                 insideBuilder={false}
-                onRefresh={onRefresh}
+                onRefresh={props.onRefresh}
                 folderId={UncategorizedFolderId}
               >
                 <button
@@ -308,7 +304,7 @@ export const AutomationsEmptyState = ({
             />
           </GetStartedCard>
 
-          {!embedState.hideTables && (
+          <Show when={!embedState.hideTables}>
             <GetStartedCard
               icon={<Table2 class="h-5 w-5 text-primary" />}
               iconBgClass="bg-primary-100"
@@ -329,11 +325,11 @@ export const AutomationsEmptyState = ({
                 hasPermission={userHasPermissionToWriteTable}
               />
             </GetStartedCard>
-          )}
+          </Show>
         </div>
       </div>
 
-      {(hasTemplates || isLoadingTemplates) && (
+      <Show when={hasTemplates() || isLoadingTemplates}>
         <div>
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -349,47 +345,51 @@ export const AutomationsEmptyState = ({
             </button>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {isLoadingTemplates ? (
+            <Show
+              when={isLoadingTemplates}
+              fallback={
+                <For each={topTemplates()}>
+                  {(template) => (
+                    <SuggestedTemplateCard
+                      template={template}
+                      onSelect={handleTemplateSelect}
+                    />
+                  )}
+                </For>
+              }
+            >
               <>
                 <TemplateCardSkeleton />
                 <TemplateCardSkeleton />
                 <TemplateCardSkeleton />
               </>
-            ) : (
-              topTemplates.map((template) => (
-                <SuggestedTemplateCard
-                  key={template.id}
-                  template={template}
-                  onSelect={handleTemplateSelect}
-                />
-              ))
-            )}
+            </Show>
           </div>
         </div>
-      )}
+      </Show>
 
-      {!embedState.hideTables && (
+      <Show when={!embedState.hideTables}>
         <ImportTableDialog
           open={isImportTableDialogOpen}
           setIsOpen={setIsImportTableDialogOpen}
           showTrigger={false}
         />
-      )}
+      </Show>
       <TemplatesBrowseDialog
         open={isTemplatesBrowseDialogOpen}
         onOpenChange={setIsTemplatesBrowseDialogOpen}
       />
-      {selectedTemplate && (
+      <Show when={selectedTemplate()}>
         <UseTemplateDialog
-          key={selectedTemplate.id}
-          template={selectedTemplate}
+          key={selectedTemplate()?.id}
+          template={selectedTemplate()}
           open={useTemplateDialogOpen}
           onOpenChange={(isOpen) => {
             setUseTemplateDialogOpen(isOpen);
             if (!isOpen) setSelectedTemplate(null);
           }}
         />
-      )}
+      </Show>
     </div>
   );
 };

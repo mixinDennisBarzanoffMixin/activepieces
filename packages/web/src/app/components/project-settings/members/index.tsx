@@ -2,11 +2,14 @@ import {
   InvitationType,
   Permission,
   PlatformRole,
+  ProjectMemberWithUser,
+  SeekPage,
   UserStatus,
+  UserWithMetaInformation,
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Users } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { createMemo, createSignal, Show } from 'solid-js';
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { DataTable } from '@/components/custom/data-table';
@@ -28,14 +31,23 @@ export const MembersSettings = () => {
     projectMembers,
     isLoading: projectMembersIsPending,
     refetch: refetchProjectMembers,
+  }: {
+    projectMembers: ProjectMemberWithUser[] | undefined;
+    isLoading: boolean;
+    refetch: () => Promise<unknown>;
   } = projectMembersHooks.useProjectMembers();
   const {
     invitations,
     isLoading: invitationsIsPending,
     refetch: refetchInvitations,
   } = userInvitationsHooks.useInvitations();
-  const { data: platformUsersData, isLoading: platformUsersIsPending } =
-    platformUserHooks.useUsers();
+  const {
+    data: platformUsersData,
+    isLoading: platformUsersIsPending,
+  }: {
+    data: SeekPage<UserWithMetaInformation> | undefined;
+    isLoading: boolean;
+  } = platformUserHooks.useUsers();
 
   const [filterValue, setFilterValue] = createSignal('');
   const [inviteOpen, setInviteOpen] = createSignal(false);
@@ -46,11 +58,11 @@ export const MembersSettings = () => {
   );
 
   const refetch = () => {
-    refetchProjectMembers();
-    refetchInvitations();
+    void refetchProjectMembers();
+    void refetchInvitations();
   };
 
-  const combinedData: MemberRowData[] = createMemo(() => {
+  const combinedData = createMemo<MemberRowData[]>(() => {
     const currentProjectId = authenticationSession.getProjectId();
 
     const members: MemberRowData[] =
@@ -81,7 +93,7 @@ export const MembersSettings = () => {
 
     const platformAdminsAndOperators: MemberRowData[] =
       platformUsersData?.data
-        ?.filter(
+        .filter(
           (user) =>
             user.status === UserStatus.ACTIVE &&
             (user.platformRole === PlatformRole.ADMIN ||
@@ -98,11 +110,11 @@ export const MembersSettings = () => {
   });
 
   const filteredData = createMemo(() => {
-    if (!filterValue) {
-      return combinedData;
+    if (!filterValue()) {
+      return combinedData();
     }
-    const searchValue = filterValue.toLowerCase();
-    return combinedData.filter((row) => {
+    const searchValue = filterValue().toLowerCase();
+    return combinedData().filter((row) => {
       if (row.type === 'member') {
         const fullName =
           `${row.data.user.firstName} ${row.data.user.lastName}`.toLowerCase();
@@ -127,8 +139,8 @@ export const MembersSettings = () => {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 justify-between">
+    <div class="space-y-4">
+      <div class="flex items-center gap-2 justify-between">
         <DataTableInputPopover
           title={t('Search')}
           filterValue={filterValue}
@@ -149,7 +161,7 @@ export const MembersSettings = () => {
       <DataTable
         columns={columns}
         page={{
-          data: filteredData,
+          data: filteredData(),
           next: null,
           previous: null,
         }}

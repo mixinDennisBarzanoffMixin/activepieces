@@ -33,19 +33,16 @@ type UsersLeaderboardProps = {
   isLoading?: boolean;
 };
 
-const BadgesCell = ({
-  badges,
-  isTopRank,
-}: {
+const BadgesCell = (props: {
   badges?: UserWithBadges['badges'];
   isTopRank: boolean;
 }) => {
-  if (!badges || badges.length === 0)
-    return <span className="text-muted-foreground">-</span>;
+  if (!props.badges || props.badges.length === 0)
+    return <span class="text-muted-foreground">-</span>;
 
   return (
-    <div className="flex items-center gap-0.5">
-      <For each={badges}>
+    <div class="flex items-center gap-0.5">
+      <For each={props.badges}>
         {(badge) => {
           const badgeInfo = BADGES[badge.name as keyof typeof BADGES];
           if (!badgeInfo) return null;
@@ -55,16 +52,16 @@ const BadgesCell = ({
                 <img
                   src={badgeInfo.imageUrl}
                   alt={badgeInfo.title}
-                  className={cn(
+                  class={cn(
                     'h-7 w-7 object-cover rounded-md transition-opacity',
-                    !isTopRank &&
+                    !props.isTopRank &&
                       'opacity-30 group-hover/leaderrow:opacity-100',
                   )}
                 />
               </TooltipTrigger>
               <TooltipContent class="text-left">
-                <p className="font-semibold">{badgeInfo.title}</p>
-                <p className="text-xs">{badgeInfo.description}</p>
+                <p class="font-semibold">{badgeInfo.title}</p>
+                <p class="text-xs">{badgeInfo.description}</p>
               </TooltipContent>
             </Tooltip>
           );
@@ -77,22 +74,22 @@ const BadgesCell = ({
 const createColumns = (): ColumnDef<RowDataWithActions<UserStats>>[] => [
   {
     accessorKey: 'rank',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Rank')} />
+    header: (props) => (
+      <DataTableColumnHeader column={props.column} title={t('Rank')} />
     ),
-    cell: ({ row }) => <RankCell rank={row.original.rank} />,
+    cell: (props) => <RankCell rank={props.row.original.rank} />,
     enableSorting: false,
     size: 25,
   },
   {
     accessorKey: 'userName',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('User')} />
+    header: (props) => (
+      <DataTableColumnHeader column={props.column} title={t('User')} />
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center gap-3">
+    cell: (props) => (
+      <div class="flex items-center gap-3">
         <ApAvatar
-          id={row.original.visibleId}
+          id={props.row.original.visibleId}
           size="small"
           includeAvatar={true}
           includeName={true}
@@ -103,23 +100,23 @@ const createColumns = (): ColumnDef<RowDataWithActions<UserStats>>[] => [
   },
   {
     accessorKey: 'flowCount',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Active Flows')} />
+    header: (props) => (
+      <DataTableColumnHeader column={props.column} title={t('Active Flows')} />
     ),
-    cell: ({ row }) => (
-      <div className="text-left">{row.original.flowCount}</div>
+    cell: (props) => (
+      <div class="text-left">{props.row.original.flowCount}</div>
     ),
     enableSorting: false,
     size: 120,
   },
   {
     accessorKey: 'minutesSaved',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Time Saved')} />
+    header: (props) => (
+      <DataTableColumnHeader column={props.column} title={t('Time Saved')} />
     ),
-    cell: ({ row }) => (
-      <div className="text-left">
-        {formatUtils.formatToHoursAndMinutes(row.original.minutesSaved)}
+    cell: (props) => (
+      <div class="text-left">
+        {formatUtils.formatToHoursAndMinutes(props.row.original.minutesSaved)}
       </div>
     ),
     enableSorting: false,
@@ -127,13 +124,13 @@ const createColumns = (): ColumnDef<RowDataWithActions<UserStats>>[] => [
   },
   {
     accessorKey: 'badges',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Badges')} />
+    header: (props) => (
+      <DataTableColumnHeader column={props.column} title={t('Badges')} />
     ),
-    cell: ({ row }) => (
+    cell: (props) => (
       <BadgesCell
-        badges={row.original.badges}
-        isTopRank={row.original.rank <= 3}
+        badges={props.row.original.badges}
+        isTopRank={props.row.original.rank <= 3}
       />
     ),
     enableSorting: false,
@@ -148,18 +145,18 @@ const getRowClassName = (
   return 'group/leaderrow hover:bg-accent';
 };
 
-export function UsersLeaderboard({ data, isLoading }: UsersLeaderboardProps) {
+export function UsersLeaderboard(props: UsersLeaderboardProps) {
   const columns = createMemo(() => createColumns());
 
   return (
     <DataTable
-      columns={columns}
+      columns={columns()}
       page={{
-        data,
+        data: props.data,
         next: null,
         previous: null,
       }}
-      isLoading={isLoading ?? false}
+      isLoading={props.isLoading ?? false}
       clientPagination={true}
       getRowClassName={getRowClassName}
       emptyStateTextTitle={t('No automation heroes yet')}

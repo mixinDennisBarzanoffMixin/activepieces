@@ -24,33 +24,35 @@ type AnimatedIconHandle = {
   stopAnimation: () => void;
 };
 
-const AnimatedTab = ({
-  tab,
-  isActive,
-  onClick,
-}: {
+const AnimatedTab = (props: {
   tab: ProjectDashboardLayoutHeaderTab;
   isActive: boolean;
   onClick: () => void;
 }) => {
-  let iconRef = undefined;
-  const IconComponent = tab.icon as any;
+  let iconRef: AnimatedIconHandle | undefined;
+  const IconComponent = props.tab.icon;
 
   return (
     <TabsTrigger
-      value={tab.to}
+      value={props.tab.to}
       variant="outline"
       class="pb-3"
-      onClick={onClick}
-      data-state={isActive ? 'active' : 'inactive'}
+      onClick={props.onClick}
+      data-state={props.isActive ? 'active' : 'inactive'}
       onMouseEnter={() => iconRef?.startAnimation()}
       onMouseLeave={() => iconRef?.stopAnimation()}
     >
-      <IconComponent ref={(el) => (iconRef = el)} size={16} class="mr-2" />
-      {tab.label}
+      <IconComponent
+        ref={(handle: AnimatedIconHandle) => {
+          iconRef = handle;
+        }}
+        size={16}
+        class="mr-2"
+      />
+      {props.tab.label}
       {
-        <Show when={tab.beta}>
-          <span className="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary">
+        <Show when={props.tab.beta}>
+          <span class="ml-1.5 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium leading-none text-primary">
             Beta
           </span>
         </Show>
@@ -118,7 +120,7 @@ export const ProjectDashboardLayoutHeader = () => {
   );
 
   return (
-    <div className="flex flex-col">
+    <div class="flex flex-col">
       {
         <Show when={!isEmbedded}>
           <ProjectDashboardPageHeader />

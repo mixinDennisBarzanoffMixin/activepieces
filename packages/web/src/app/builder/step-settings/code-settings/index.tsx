@@ -1,7 +1,7 @@
 import { CodeAction, MarkdownVariant } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useFormContext } from '@/app/builder/builder-form';
 
+import { BuilderField, useFormContext } from '@/app/builder/builder-form';
 import { DictionaryInput } from '@/components/custom/dictionary-input';
 import { ApMarkdown } from '@/components/custom/markdown';
 import {
@@ -29,25 +29,29 @@ type CodeSettingsProps = {
   readonly: boolean;
 };
 
-const CodeSettings = ({ readonly }: CodeSettingsProps) => {
+const CodeSettings = (props: CodeSettingsProps) => {
   const form = useFormContext<CodeAction>();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div class="flex flex-col gap-4">
       <FormField
         control={form.control}
         name="settings.input"
-        render={({ field }) => (
+        render={({
+          field,
+        }: {
+          field: BuilderField<CodeAction['settings']['input']>;
+        }) => (
           <FormItem>
-            <div className="pb-4">
+            <div class="pb-4">
               <ApMarkdown markdown={markdown} variant={MarkdownVariant.INFO} />
             </div>
-            <div className="flex items-center justify-between mb-2!">
+            <div class="flex items-center justify-between mb-2!">
               <FormLabel>{t('Inputs')}</FormLabel>
             </div>
 
             <DictionaryInput
-              disabled={readonly}
+              disabled={props.readonly}
               values={field.value}
               onChange={field.onChange}
               keyInputClassName="h-[38px]"
@@ -73,13 +77,17 @@ const CodeSettings = ({ readonly }: CodeSettingsProps) => {
       <FormField
         control={form.control}
         name="settings.sourceCode"
-        render={({ field }) => (
+        render={({
+          field,
+        }: {
+          field: BuilderField<CodeAction['settings']['sourceCode']>;
+        }) => (
           <FormItem>
             <CodeEditor
               sourceCode={field.value}
               onChange={field.onChange}
-              readonly={readonly}
-            ></CodeEditor>
+              readonly={props.readonly}
+            />
             <FormMessage />
           </FormItem>
         )}
@@ -87,5 +95,5 @@ const CodeSettings = ({ readonly }: CodeSettingsProps) => {
     </div>
   );
 };
-CodeSettings.displayName = 'CodeSettings';
+
 export { CodeSettings };

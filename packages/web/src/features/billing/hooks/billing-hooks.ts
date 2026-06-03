@@ -3,6 +3,7 @@ import {
   CreateSubscriptionParams,
   CreateAICreditCheckoutSessionParamsSchema,
   UpdateAICreditsAutoTopUpParamsSchema,
+  PlatformBillingInformation,
 } from '@activepieces/shared';
 import { useNavigate } from '@solidjs/router';
 import {
@@ -24,17 +25,17 @@ export const billingKeys = {
 
 export const billingMutations = {
   usePortalLink: () => {
-    return createMutation({
+    return createMutation(() => ({
       mutationFn: async () => {
         const portalLink = await platformBillingApi.getPortalLink();
         window.open(portalLink, '_blank');
       },
-    });
+    }));
   },
   useUpdateActiveFlowsLimit: (setIsOpen?: (isOpen: boolean) => void) => {
     const navigate = useNavigate();
-    return createMutation({
-      mutationFn: (params: UpdateActiveFlowsAddonParams) =>
+    return createMutation<string, Error, UpdateActiveFlowsAddonParams>(() => ({
+      mutationFn: (params) =>
         platformBillingApi.updateActiveFlowsLimits(params),
       onSuccess: (url) => {
         setIsOpen?.(false);
@@ -46,10 +47,10 @@ export const billingMutations = {
       onError: () => {
         navigate(`/platform/setup/billing/error`);
       },
-    });
+    }));
   },
   useCreateSubscription: (setIsOpen?: (isOpen: boolean) => void) => {
-    return createMutation({
+    return createMutation<void, Error, CreateSubscriptionParams>(() => ({
       mutationFn: async (params: CreateSubscriptionParams) => {
         const checkoutSessionURl = await platformBillingApi.createSubscription(
           params,
@@ -59,16 +60,16 @@ export const billingMutations = {
       onSuccess: () => {
         setIsOpen?.(false);
       },
-      onError: (error) => {
+      onError: (error: Error) => {
         toast.error(t('Starting Subscription failed'), {
           description: t(error.message),
           duration: 3000,
         });
       },
-    });
+    }));
   },
   useCreateAICreditCheckoutSession: (setIsOpen?: (isOpen: boolean) => void) => {
-    return createMutation({
+    return createMutation(() => ({
       mutationFn: async (params: CreateAICreditCheckoutSessionParamsSchema) => {
         const { stripeCheckoutUrl } =
           await platformBillingApi.createAICreditCheckoutSession(params);
@@ -77,43 +78,44 @@ export const billingMutations = {
       onSuccess: () => {
         setIsOpen?.(false);
       },
-      onError: (error) => {
+      onError: (error: Error) => {
         toast.error(t('Starting Checkout Session failed'), {
           description: t(error.message),
           duration: 3000,
         });
       },
-    });
+    }));
   },
   useUpdateAutoTopUp: (queryClient: QueryClient) => {
-    return createMutation({
-      mutationFn: async (params: UpdateAICreditsAutoTopUpParamsSchema) => {
-        const { stripeCheckoutUrl } = await platformBillingApi.updateAutoTopUp(
-          params,
-        );
-        if (stripeCheckoutUrl) {
-          window.open(stripeCheckoutUrl, '_blank');
-        }
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({
-          queryKey: ['platform-billing-subscription'],
-        });
-        toast.success(t('Auto top-up config saved'));
-      },
-      onError: () => {
-        toast.error(t('Auto top-up config change failed'));
-        internalErrorToast();
-      },
-    });
+    return createMutation<void, Error, UpdateAICreditsAutoTopUpParamsSchema>(
+      () => ({
+        mutationFn: async (params: UpdateAICreditsAutoTopUpParamsSchema) => {
+          const { stripeCheckoutUrl } =
+            await platformBillingApi.updateAutoTopUp(params);
+          if (stripeCheckoutUrl) {
+            window.open(stripeCheckoutUrl, '_blank');
+          }
+        },
+        onSuccess: () => {
+          void queryClient.invalidateQueries({
+            queryKey: ['platform-billing-subscription'],
+          });
+          toast.success(t('Auto top-up config saved'));
+        },
+        onError: () => {
+          toast.error(t('Auto top-up config change failed'));
+          internalErrorToast();
+        },
+      }),
+    );
   },
 };
 
 export const billingQueries = {
   usePlatformSubscription: (platformId: string) => {
-    return createQuery({
+    return createQuery<PlatformBillingInformation, Error>(() => ({
       queryKey: billingKeys.platformSubscription(platformId),
-      queryFn: platformBillingApi.getSubscriptionInfo,
-    });
+      queryFn: () => platformBillingApi.getSubscriptionInfo(),
+    }));
   },
 };

@@ -21,19 +21,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RoleSelector } from '@/features/members';
 
-const roles = Object.values(PlatformRole);
+const roles: string[] = Object.values(PlatformRole);
 
 function isPlatformRole(value: string): value is PlatformRole {
   return roles.some((role) => role === value);
 }
 
-export const UpdateUserDialog = ({
-  children,
-  onUpdate,
-  userId,
-  role,
-  externalId,
-}: {
+export const UpdateUserDialog = (props: {
   children: JSX.Element;
   onUpdate: (role: PlatformRole) => void;
   userId: string;
@@ -41,25 +35,22 @@ export const UpdateUserDialog = ({
   externalId?: string;
 }) => {
   const [open, setOpen] = createSignal(false);
-  const [selected, setSelected] = createSignal(role);
-  const [external, setExternal] = createSignal(externalId || '');
+  const [selected, setSelected] = createSignal(props.role);
+  const [external, setExternal] = createSignal(props.externalId || '');
   const [error, setError] = createSignal('');
-  const { mutate, isPending } = createMutation<
-    User,
-    Error,
-    UpdateUserRequestBody
-  >({
+  const { mutate, isPending } = createMutation(() => ({
     mutationKey: ['update-user'],
-    mutationFn: (request) => platformUserApi.update(userId, request),
-    onSuccess: (user) => {
-      onUpdate(user.platformRole);
+    mutationFn: (request: UpdateUserRequestBody) =>
+      platformUserApi.update(props.userId, request),
+    onSuccess: (user: User) => {
+      props.onUpdate(user.platformRole);
       setOpen(false);
     },
-  });
+  }));
 
   const reset = () => {
-    setSelected(role);
-    setExternal(externalId || '');
+    setSelected(props.role);
+    setExternal(props.externalId || '');
     setError('');
   };
 
@@ -84,12 +75,12 @@ export const UpdateUserDialog = ({
         setOpen(open);
       }}
     >
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Update User Role')}</DialogTitle>
         </DialogHeader>
-        <form className="grid space-y-4" onSubmit={(e) => e.preventDefault()}>
+        <form class="grid space-y-4" onSubmit={(e) => e.preventDefault()}>
           <div class="grid space-y-2">
             <Label for="role">{t('Role')}</Label>
             <RoleSelector

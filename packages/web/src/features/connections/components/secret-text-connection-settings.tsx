@@ -10,21 +10,21 @@ type SecretTextConnectionSettingsProps = {
   form: SolidConnectionForm<unknown>;
 };
 
-const SecretTextConnectionSettings = ({
-  authProperty,
-  form,
-}: SecretTextConnectionSettingsProps) => {
+const SecretTextConnectionSettings = (
+  props: SecretTextConnectionSettingsProps,
+) => {
   return (
     <div class="flex flex-col gap-2">
-      <Label showRequiredIndicator>{authProperty.displayName}</Label>
+      <Label showRequiredIndicator>{props.authProperty.displayName}</Label>
       <SecretInput
-        value={String(form.getValue('request.value.secret_text') ?? '')}
-        onChange={(value) => form.setValue('request.value.secret_text', value)}
+        value={String(props.form.getValue('request.value.secret_text') ?? '')}
+        onInput={(value) =>
+          props.form.setValue('request.value.secret_text', value)
+        }
         type="password"
       />
     </div>
   );
 };
 
-SecretTextConnectionSettings.displayName = 'SecretTextConnectionSettings';
 export { SecretTextConnectionSettings };

@@ -11,11 +11,12 @@ export const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
       if (query.meta?.showErrorDialog) {
-        const { openDialog } = useApErrorDialogStore.getState();
-        openDialog({
+        useApErrorDialogStore().openDialog({
           title: t('Failed to load data'),
-          description: t(
-            'Something went wrong while loading your data. Your data is safe — please try again by refreshing the page.',
+          description: String(
+            t(
+              'Something went wrong while loading your data. Your data is safe — please try again by refreshing the page.',
+            ),
           ),
           error: {
             queryKey: query.queryKey,

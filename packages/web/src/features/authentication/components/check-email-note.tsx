@@ -5,11 +5,11 @@ import { toast } from 'solid-sonner';
 
 import { authMutations } from '../hooks/auth-hooks';
 
-const CheckEmailNote = ({ email, type }: CreateOtpRequestBody) => {
+const CheckEmailNote = (props: CreateOtpRequestBody) => {
   const { mutate: resendVerification } = authMutations.useSendOtpEmail({
     onSuccess: () => {
       toast.success(
-        type === OtpType.EMAIL_VERIFICATION
+        props.type === OtpType.EMAIL_VERIFICATION
           ? t('Verification email resent, if previous one expired.')
           : t('Password reset link resent, if previous one expired.'),
         {
@@ -19,24 +19,24 @@ const CheckEmailNote = ({ email, type }: CreateOtpRequestBody) => {
     },
   });
   return (
-    <div className="gap-2 w-full flex flex-col">
-      <div className="gap-4 w-full flex flex-row items-center justify-center">
+    <div class="gap-2 w-full flex flex-col">
+      <div class="gap-4 w-full flex flex-row items-center justify-center">
         <MailCheck class="w-16 h-16" />
-        <span className="text-left w-fit">
-          {type === OtpType.EMAIL_VERIFICATION
+        <span class="text-left w-fit">
+          {props.type === OtpType.EMAIL_VERIFICATION
             ? t('We sent you a link to complete your registration to')
             : t('We sent you a link to reset your password to')}
-          <strong>&nbsp;{email}</strong>.
+          <strong>&nbsp;{props.email}</strong>.
         </span>
       </div>
-      <div className="flex flex-row gap-1">
+      <div class="flex flex-row gap-1">
         {t("Didn't receive an email or it expired?")}
         <button
-          className="cursor-pointer text-primary underline"
+          class="cursor-pointer text-primary underline"
           onClick={() =>
             resendVerification({
-              email,
-              type,
+              email: props.email,
+              type: props.type,
             })
           }
         >

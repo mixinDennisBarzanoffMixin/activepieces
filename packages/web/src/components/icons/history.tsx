@@ -1,6 +1,6 @@
 import type { Transition, Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -87,7 +87,7 @@ function HistoryIcon(props: HistoryIconProps & { ref?: HistoryIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -135,6 +135,5 @@ function HistoryIcon(props: HistoryIconProps & { ref?: HistoryIconHandle }) {
     </div>
   );
 }
-HistoryIcon.displayName = 'HistoryIcon';
 
 export { HistoryIcon };

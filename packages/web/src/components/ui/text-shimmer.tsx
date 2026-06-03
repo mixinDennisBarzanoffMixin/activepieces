@@ -1,40 +1,44 @@
+import { splitProps, type JSX, type ValidComponent } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
+
 import { cn } from '@/lib/utils';
 
-function TextShimmer({
-  as = 'span',
-  className,
-  duration = 4,
-  spread = 20,
-  children,
-  ...props
-}: TextShimmerProps) {
-  const dynamicSpread = Math.min(Math.max(spread, 5), 45);
-  const Component = as as any;
+function TextShimmer(props: TextShimmerProps) {
+  const [local, rest] = splitProps(props, [
+    'as',
+    'class',
+    'className',
+    'duration',
+    'spread',
+    'children',
+  ]);
+  const spread = () => Math.min(Math.max(local.spread ?? 20, 5), 45);
 
   return (
-    <Component
+    <Dynamic
+      component={local.as ?? 'span'}
       class={cn(
         'bg-[length:200%_auto] bg-clip-text font-medium text-transparent',
         'animate-[shimmer_4s_infinite_linear]',
-        className,
+        local.class,
+        local.className,
       )}
       style={{
-        backgroundImage: `linear-gradient(to right, var(--muted-foreground) ${
-          50 - dynamicSpread
-        }%, var(--foreground) 50%, var(--muted-foreground) ${
-          50 + dynamicSpread
-        }%)`,
-        animationDuration: `${duration}s`,
+        'background-image': `linear-gradient(to right, var(--muted-foreground) ${
+          50 - spread()
+        }%, var(--foreground) 50%, var(--muted-foreground) ${50 + spread()}%)`,
+        'animation-duration': `${local.duration ?? 4}s`,
       }}
-      {...props}
+      {...rest}
     >
-      {children}
-    </Component>
+      {local.children}
+    </Dynamic>
   );
 }
 
 type TextShimmerProps = {
-  as?: string;
+  as?: ValidComponent;
+  className?: string;
   duration?: number;
   spread?: number;
   children: JSX.Element;

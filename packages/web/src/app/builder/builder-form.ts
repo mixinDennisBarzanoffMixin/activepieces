@@ -5,19 +5,18 @@ import { createSignal } from 'solid-js';
 import { z } from 'zod';
 
 function getAtPath(obj: unknown, path: string) {
-  return path
-    .match(/([^.[\]])+/g)
-    ?.reduce<unknown>((acc, key) => {
-      if (acc === null || acc === undefined) {
-        return undefined;
-      }
-      return (acc as Record<string, unknown>)[key];
-    }, obj);
+  return path.match(/([^.[\]])+/g)?.reduce<unknown>((acc, key) => {
+    if (acc === null || acc === undefined) {
+      return undefined;
+    }
+    return (acc as Record<string, unknown>)[key];
+  }, obj);
 }
 
 function fieldArray<T>({ form, name }: BuilderFieldArrayParams) {
   const read = () => (form.getValues(name) ?? []) as T[];
-  const wrap = (values: T[]) => values.map((value) => ({ id: nanoid(), value }));
+  const wrap = (values: T[]) =>
+    values.map((value) => ({ id: nanoid(), value }));
   const [fields, setFields] = createSignal(wrap(read()));
   const write = (values: T[]) => {
     form.setValue(name, values, { shouldValidate: true });
@@ -56,7 +55,9 @@ function zodResolver<T>(schema: z.ZodType<T>) {
 
     return {
       values: {},
-      errors: result.error.issues.reduce<Record<string, { type: string; message: string }>>(
+      errors: result.error.issues.reduce<
+        Record<string, { type: string; message: string }>
+      >(
         (errors, issue) => ({
           ...errors,
           [issue.path.join('.')]: {
@@ -70,7 +71,14 @@ function zodResolver<T>(schema: z.ZodType<T>) {
   };
 }
 
-export { createForm, fieldArray as createBuilderFieldArray, getAtPath, setAtPath, useFormContext, zodResolver };
+export {
+  createForm,
+  fieldArray as createBuilderFieldArray,
+  getAtPath,
+  setAtPath,
+  useFormContext,
+  zodResolver,
+};
 
 export type BuilderField<T = unknown> = {
   value: T;

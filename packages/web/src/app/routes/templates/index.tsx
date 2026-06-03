@@ -24,7 +24,7 @@ import { SelectedCategoryView } from './selected-category-view';
 
 const TemplatesPage = () => {
   const navigate = useNavigate();
-  const { data: templateCategories } = templatesHooks.useTemplateCategories();
+  const categoriesQuery = templatesHooks.useTemplateCategories();
   const { platform } = platformHooks.useCurrentPlatform();
   const isShowingOfficialTemplates = !platform.plan.manageTemplatesEnabled;
   const { templates, isLoading, search, setSearch, category, setCategory } =
@@ -36,6 +36,7 @@ const TemplatesPage = () => {
     templatesHooks.useAllOfficialTemplates();
   const { mutate: createFlow, isPending: isCreateFlowPending } =
     flowHooks.useStartFromScratch(UncategorizedFolderId);
+  const searchText = () => (typeof search === 'string' ? search : '');
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
@@ -44,7 +45,7 @@ const TemplatesPage = () => {
   const handleTemplateSelect = (template: Template) => {
     navigate(`/templates/${template.id}`);
     if (template.type === TemplateType.OFFICIAL) {
-      templatesTelemetryApi.sendEvent({
+      void templatesTelemetryApi.sendEvent({
         eventType: TemplateTelemetryEventType.VIEW,
         templateId: template.id,
       });
@@ -52,15 +53,12 @@ const TemplatesPage = () => {
   };
 
   const templatesByCategory = createMemo(() => {
-    const grouped: Record<string, Template[]> = {} as Record<
-      string,
-      Template[]
-    >;
+    const grouped: Record<string, Template[]> = {};
 
     if (isShowingOfficialTemplates) {
-      allOfficialTemplates?.forEach((template: Template) => {
-        if (template.categories?.length) {
-          template.categories?.forEach((category: string) => {
+      (allOfficialTemplates || []).forEach((template) => {
+        if (template.categories.length) {
+          template.categories.forEach((category: string) => {
             if (!grouped[category]) {
               grouped[category] = [];
             }
@@ -73,15 +71,18 @@ const TemplatesPage = () => {
     return grouped;
   });
 
-  const categories = createMemo(() => {
-    return ['All', ...(templateCategories || [])];
+  const categories = createMemo<string[]>(() => {
+    if (!Array.isArray(categoriesQuery.data)) {
+      return ['All'];
+    }
+    return ['All', ...categoriesQuery.data.filter(isString)];
   });
 
   const selectedCategoryTemplates = createMemo(() => {
     if (selectedCategory === 'All') {
       return templates || [];
     }
-    return templatesByCategory[selectedCategory] || [];
+    return templatesByCategory()[selectedCategory] || [];
   });
 
   const showLoading =
@@ -95,19 +96,21 @@ const TemplatesPage = () => {
   return (
     <div>
       <div>
-        <div className="sticky top-0 z-10 bg-background">
+        <div class="sticky top-0 z-10 bg-background">
           <PageHeader
             showSidebarToggle={true}
             class="static"
             title={
               <>
-                <div className="flex flex-row w-full justify-between gap-1">
+                <div class="flex flex-row w-full justify-between gap-1">
                   <SearchInput
-                    value={search}
+                    value={searchText()}
                     onChange={handleSearchChange}
-                    placeholder={t('Search templates by name or description')}
-                  ></SearchInput>
-                  <div className="flex flex-row justify-end w-[50%]">
+                    placeholder={String(
+                      t('Search templates by name or description'),
+                    )}
+                  />
+                  <div class="flex flex-row justify-end w-[50%]">
                     <Button
                       variant="outline"
                       class="gap-2 h-full"
@@ -121,7 +124,7 @@ const TemplatesPage = () => {
                 </div>
               </>
             }
-          ></PageHeader>
+          />
 
           <Show when={isShowingOfficialTemplates && categories}>
             <CategoryFilterCarousel
@@ -131,7 +134,7 @@ const TemplatesPage = () => {
             />
           </Show>
         </div>
-        <div className={DASHBOARD_CONTENT_PADDING_X}>
+        <div class={DASHBOARD_CONTENT_PADDING_X}>
           <Show
             when={!hasTemplates && !showLoading}
             fallback={
@@ -140,7 +143,7 @@ const TemplatesPage = () => {
                 fallback={
                   <SelectedCategoryView
                     category={selectedCategory}
-                    templates={selectedCategoryTemplates}
+                    templates={selectedCategoryTemplates()}
                     onTemplateSelect={handleTemplateSelect}
                     isLoading={showLoading}
                     showCategoryTitle={showCategoryTitleForOfficialTemplates}
@@ -148,8 +151,8 @@ const TemplatesPage = () => {
                 }
               >
                 <AllCategoriesView
-                  templatesByCategory={templatesByCategory}
-                  categories={categories}
+                  templatesByCategory={templatesByCategory()}
+                  categories={categories()}
                   onCategorySelect={setCategory}
                   onTemplateSelect={handleTemplateSelect}
                   isLoading={showLoading}
@@ -167,3 +170,7 @@ const TemplatesPage = () => {
 };
 
 export { TemplatesPage };
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}

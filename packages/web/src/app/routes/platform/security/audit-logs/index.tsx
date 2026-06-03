@@ -1,10 +1,12 @@
 import {
   ApplicationEvent,
   ApplicationEventName,
+  SeekPage,
   summarizeApplicationEvent,
   isNil,
 } from '@activepieces/shared';
 import { A as Link } from '@solidjs/router';
+import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import {
   CheckIcon,
@@ -21,11 +23,15 @@ import {
   User,
   Clock,
 } from 'lucide-solid';
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, For, Fragment, Show } from 'solid-js';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
-import { DataTable, DataTableFilters } from '@/components/custom/data-table';
+import {
+  DataTable,
+  DataTableFilters,
+  RowDataWithActions,
+} from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
 import { FormattedDate } from '@/components/custom/formatted-date';
 import { SimpleJsonViewer } from '@/components/custom/simple-json-viewer';
@@ -50,6 +56,132 @@ export default function AuditLogsPage() {
   const [isSheetOpen, setIsSheetOpen] = createSignal(false);
   const { data: projects } = projectCollectionUtils.useAll();
   const { data: users } = platformUserHooks.useUsers();
+  const { data: auditLogsData, isLoading } = auditLogQueries.useAuditLogs();
+
+  const userOptions = (): { label: string; value: string }[] => {
+    const data: unknown = users?.data;
+    if (!Array.isArray(data)) {
+      return [];
+    }
+    return data.filter(isUserOption).map((user) => ({
+      label: user.email,
+      value: user.id,
+    }));
+  };
+  const projectOptions = (): { label: string; value: string }[] =>
+    projects.map((project) => ({
+      label: project.displayName,
+      value: project.id,
+    })) ?? [];
+  const auditLogs = (): SeekPage<ApplicationEvent> | undefined => auditLogsData;
+  const columns: ColumnDef<RowDataWithActions<ApplicationEvent>>[] = [
+    {
+      accessorKey: 'action',
+      size: 180,
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title={t('Action')}
+          icon={Wand}
+        />
+      ),
+      cell: (props) => {
+        const icon = convertToIcon(props.row.original);
+        return (
+          <div class="text-left flex items-center gap-2">
+            <Show when={!isNil(icon?.icon)}>
+              <span class="text-muted-foreground shrink-0">{icon?.icon}</span>
+            </Show>
+            {formatUtils.convertEnumToHumanReadable(props.row.original.action)}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'details',
+      size: 320,
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title={t('Details')}
+          icon={FileText}
+        />
+      ),
+      cell: (props) => (
+        <div class="text-left">{convertToDetails(props.row.original)}</div>
+      ),
+    },
+    {
+      accessorKey: 'userId',
+      size: 200,
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title={t('Performed By')}
+          icon={User}
+        />
+      ),
+      cell: (props) => (
+        <div class="text-left">{props.row.original.userEmail}</div>
+      ),
+    },
+    {
+      accessorKey: 'projectId',
+      size: 130,
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title={t('Project')}
+          icon={Folder}
+        />
+      ),
+      cell: (props) => (
+        <Show
+          when={eventProjectName(props.row.original)}
+          fallback={<div class="text-left">{t('N/A')}</div>}
+        >
+          {(name) => (
+            <Link href={`/projects/${props.row.original.projectId}`}>
+              <div class="text-left text-primary hover:underline">{name()}</div>
+            </Link>
+          )}
+        </Show>
+      ),
+    },
+    {
+      accessorKey: 'created',
+      size: 110,
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title={t('Created')}
+          icon={Clock}
+        />
+      ),
+      cell: (props) => (
+        <div class="text-left">
+          <FormattedDate date={new Date(props.row.original.created)} />
+        </div>
+      ),
+    },
+    {
+      id: 'view',
+      size: 50,
+      cell: (props) => (
+        <Button
+          variant="ghost"
+          size="icon"
+          class="size-8"
+          onClick={() => {
+            setSelectedEvent(props.row.original);
+            setIsSheetOpen(true);
+          }}
+        >
+          <Eye class="size-4 text-muted-foreground" />
+        </Button>
+      ),
+    },
+  ];
 
   const filters: DataTableFilters<keyof ApplicationEvent>[] = [
     {
@@ -68,26 +200,14 @@ export default function AuditLogsPage() {
       type: 'select',
       title: t('Performed By'),
       accessorKey: 'userId',
-      options:
-        users?.data?.map((user) => {
-          return {
-            label: user.email,
-            value: user.id,
-          };
-        }) ?? [],
+      options: userOptions(),
       icon: Users,
     },
     {
       type: 'select',
       title: t('Project'),
       accessorKey: 'projectId',
-      options:
-        projects?.map((project) => {
-          return {
-            label: project.displayName,
-            value: project.id,
-          };
-        }) ?? [],
+      options: projectOptions(),
       icon: Folder,
     },
     {
@@ -97,8 +217,6 @@ export default function AuditLogsPage() {
       icon: CheckIcon,
     },
   ];
-
-  const { data: auditLogsData, isLoading } = auditLogQueries.useAuditLogs();
 
   const isEnabled = platform.plan.auditLogEnabled;
   return (
@@ -110,10 +228,10 @@ export default function AuditLogsPage() {
         'Comply with internal and external security policies by tracking activities done within your account',
       )}
     >
-      <div className="flex flex-col  w-full">
+      <div class="flex flex-col  w-full">
         <DashboardPageHeader
-          description={t('Track activities done within your platform')}
-          title={t('Audit Logs')}
+          description={String(t('Track activities done within your platform'))}
+          title={String(t('Audit Logs'))}
         />
         <DataTable
           emptyStateTextTitle={t('No audit logs found')}
@@ -122,127 +240,8 @@ export default function AuditLogsPage() {
           )}
           emptyStateIcon={<History class="size-14" />}
           filters={filters}
-          columns={[
-            {
-              accessorKey: 'action',
-              size: 180,
-              header: ({ column }) => (
-                <DataTableColumnHeader
-                  column={column}
-                  title={t('Action')}
-                  icon={Wand}
-                />
-              ),
-              cell: ({ row }) => {
-                const icon = convertToIcon(row.original);
-                return (
-                  <div className="text-left flex items-center gap-2">
-                    <Show when={!isNil(icon?.icon)}>
-                      <span className="text-muted-foreground shrink-0">
-                        {icon.icon}
-                      </span>
-                    </Show>
-                    {formatUtils.convertEnumToHumanReadable(
-                      row.original.action,
-                    )}
-                  </div>
-                );
-              },
-            },
-            {
-              accessorKey: 'details',
-              size: 320,
-              header: ({ column }) => (
-                <DataTableColumnHeader
-                  column={column}
-                  title={t('Details')}
-                  icon={FileText}
-                />
-              ),
-              cell: ({ row }) => {
-                return (
-                  <div className="text-left">
-                    {convertToDetails(row.original)}
-                  </div>
-                );
-              },
-            },
-            {
-              accessorKey: 'userId',
-              size: 200,
-              header: ({ column }) => (
-                <DataTableColumnHeader
-                  column={column}
-                  title={t('Performed By')}
-                  icon={User}
-                />
-              ),
-              cell: ({ row }) => {
-                return (
-                  <div className="text-left">{row.original.userEmail}</div>
-                );
-              },
-            },
-            {
-              accessorKey: 'projectId',
-              size: 130,
-              header: ({ column }) => (
-                <DataTableColumnHeader
-                  column={column}
-                  title={t('Project')}
-                  icon={Folder}
-                />
-              ),
-              cell: ({ row }) => {
-                return row.original.projectId &&
-                  'project' in row.original.data ? (
-                  <Link href={`/projects/${row.original.projectId}`}>
-                    <div className="text-left text-primary hover:underline">
-                      {row.original.data.project?.displayName}
-                    </div>
-                  </Link>
-                ) : (
-                  <div className="text-left">{t('N/A')}</div>
-                );
-              },
-            },
-            {
-              accessorKey: 'created',
-              size: 110,
-              header: ({ column }) => (
-                <DataTableColumnHeader
-                  column={column}
-                  title={t('Created')}
-                  icon={Clock}
-                />
-              ),
-              cell: ({ row }) => {
-                return (
-                  <div className="text-left">
-                    <FormattedDate date={new Date(row.original.created)} />
-                  </div>
-                );
-              },
-            },
-            {
-              id: 'view',
-              size: 50,
-              cell: ({ row }) => (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="size-8"
-                  onClick={() => {
-                    setSelectedEvent(row.original);
-                    setIsSheetOpen(true);
-                  }}
-                >
-                  <Eye class="size-4 text-muted-foreground" />
-                </Button>
-              ),
-            },
-          ]}
-          page={auditLogsData}
+          columns={columns}
+          page={auditLogs()}
           isLoading={isLoading}
         />
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -250,74 +249,81 @@ export default function AuditLogsPage() {
             <SheetHeader class="px-6 py-4 border-b shrink-0">
               <SheetTitle class="text-base">
                 {formatUtils.convertEnumToHumanReadable(
-                  selectedEvent?.action ?? '',
+                  selectedEvent()?.action ?? '',
                 )}
               </SheetTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                <Show when={selectedEvent}>convertToDetails(selectedEvent</Show>
+              <p class="text-sm text-muted-foreground mt-1">
+                <Show when={selectedEvent()}>
+                  {(event) => convertToDetails(event())}
+                </Show>
               </p>
             </SheetHeader>
-            <div className="flex-1 overflow-y-auto">
-              <div className="px-6 py-5 flex flex-col gap-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            <div class="flex-1 overflow-y-auto">
+              <div class="px-6 py-5 flex flex-col gap-4">
+                <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   {t('Who & When')}
                 </p>
-                <div className="grid grid-cols-[150px_1fr] gap-y-3 text-sm">
-                  <Show when={selectedEvent?.userEmail}>
-                    <>
-                      <span className="text-muted-foreground">
-                        {t('Performed By')}
-                      </span>
-                      <span className="font-medium">
-                        {selectedEvent.userEmail}
-                      </span>
-                    </>
+                <div class="grid grid-cols-[150px_1fr] gap-y-3 text-sm">
+                  <Show when={selectedEvent()?.userEmail}>
+                    {(email) => (
+                      <>
+                        <span class="text-muted-foreground">
+                          {t('Performed By')}
+                        </span>
+                        <span class="font-medium">{email()}</span>
+                      </>
+                    )}
                   </Show>
-                  <Show when={selectedEvent?.projectDisplayName}>
-                    <>
-                      <span className="text-muted-foreground">
-                        {t('Project')}
-                      </span>
-                      <span className="font-medium">
-                        {selectedEvent.projectDisplayName}
-                      </span>
-                    </>
+                  <Show when={selectedEvent()?.projectDisplayName}>
+                    {(name) => (
+                      <>
+                        <span class="text-muted-foreground">
+                          {t('Project')}
+                        </span>
+                        <span class="font-medium">{name()}</span>
+                      </>
+                    )}
                   </Show>
-                  <Show when={selectedEvent?.ip}>
-                    <>
-                      <span className="text-muted-foreground">
-                        {t('IP Address')}
-                      </span>
-                      <span className="font-medium">{selectedEvent.ip}</span>
-                    </>
+                  <Show when={selectedEvent()?.ip}>
+                    {(ip) => (
+                      <>
+                        <span class="text-muted-foreground">
+                          {t('IP Address')}
+                        </span>
+                        <span class="font-medium">{ip()}</span>
+                      </>
+                    )}
                   </Show>
-                  <span className="text-muted-foreground">{t('Created')}</span>
-                  <span className="font-medium">
-                    <Show when={selectedEvent}>
-                      <FormattedDate date={new Date(selectedEvent.created)} />
+                  <span class="text-muted-foreground">{t('Created')}</span>
+                  <span class="font-medium">
+                    <Show when={selectedEvent()}>
+                      {(event) => (
+                        <FormattedDate date={new Date(event().created)} />
+                      )}
                     </Show>
                   </span>
                 </div>
               </div>
               <Show
                 when={
-                  selectedEvent && extractEventDetails(selectedEvent).length > 0
+                  selectedEvent() &&
+                  extractEventDetails(selectedEvent()).length > 0
                 }
               >
                 <>
                   <Separator />
-                  <div className="px-6 py-5 flex flex-col gap-4">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                  <div class="px-6 py-5 flex flex-col gap-4">
+                    <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       {t('Event Details')}
                     </p>
-                    <div className="grid grid-cols-[150px_1fr] gap-y-3 text-sm">
-                      <For each={extractEventDetails(selectedEvent)}>
-                        {({ label, value }) => (
-                          <Fragment key={label}>
-                            <span className="text-muted-foreground">
-                              {label}
+                    <div class="grid grid-cols-[150px_1fr] gap-y-3 text-sm">
+                      <For each={extractEventDetails(selectedEvent())}>
+                        {(row) => (
+                          <Fragment key={row.label}>
+                            <span class="text-muted-foreground">
+                              {row.label}
                             </span>
-                            <span className="font-medium">{value}</span>
+                            <span class="font-medium">{row.value}</span>
                           </Fragment>
                         )}
                       </For>
@@ -326,11 +332,11 @@ export default function AuditLogsPage() {
                 </>
               </Show>
               <Separator />
-              <div className="px-6 py-5 flex flex-col gap-4">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              <div class="px-6 py-5 flex flex-col gap-4">
+                <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                   {t('Full Payload')}
                 </p>
-                <SimpleJsonViewer data={selectedEvent?.data ?? {}} />
+                <SimpleJsonViewer data={selectedEvent()?.data ?? {}} />
               </div>
             </div>
           </SheetContent>
@@ -423,6 +429,24 @@ function convertToDetails(event: ApplicationEvent): string {
     default:
       return summarizeApplicationEvent(event) ?? '';
   }
+}
+
+function eventProjectName(event: ApplicationEvent): string | undefined {
+  if (!event.projectId || !('project' in event.data)) {
+    return undefined;
+  }
+  return event.data.project?.displayName;
+}
+
+function isUserOption(user: unknown): user is { email: string; id: string } {
+  return (
+    typeof user === 'object' &&
+    user !== null &&
+    'email' in user &&
+    typeof user.email === 'string' &&
+    'id' in user &&
+    typeof user.id === 'string'
+  );
 }
 
 function extractEventDetails(event: ApplicationEvent): EventDetailRow[] {

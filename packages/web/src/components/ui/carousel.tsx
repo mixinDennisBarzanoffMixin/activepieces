@@ -1,17 +1,25 @@
-import { createContext, createEffect, createSignal, useContext } from 'solid-js';
-
-import useEmblaCarousel, {
-  type UseEmblaCarouselType,
-} from 'embla-carousel-solid';
 import { ArrowLeft, ArrowRight } from 'lucide-solid';
+import {
+  createContext,
+  createSignal,
+  mergeProps,
+  splitProps,
+  useContext,
+  type ComponentProps,
+  type JSX,
+} from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-type CarouselApi = UseEmblaCarouselType[1];
-type UseCarouselParameters = Parameters<typeof useEmblaCarousel>;
-type CarouselOptions = UseCarouselParameters[0];
-type CarouselPlugin = UseCarouselParameters[1];
+type CarouselApi = {
+  scrollPrev: () => void;
+  scrollNext: () => void;
+};
+type CarouselOptions = {
+  axis?: 'x' | 'y';
+};
+type CarouselPlugin = unknown;
 
 type CarouselProps = {
   opts?: CarouselOptions;
@@ -21,13 +29,15 @@ type CarouselProps = {
 };
 
 type CarouselContextProps = {
-  carouselRef: ReturnType<typeof useEmblaCarousel>[0];
-  api: ReturnType<typeof useEmblaCarousel>[1];
+  carouselRef: (el: HTMLDivElement) => void;
+  api: CarouselApi | undefined;
   scrollPrev: () => void;
   scrollNext: () => void;
-  canScrollPrev: boolean;
-  canScrollNext: boolean;
-} & CarouselProps;
+  canScrollPrev: () => boolean;
+  canScrollNext: () => boolean;
+  opts: () => CarouselOptions | undefined;
+  orientation: () => 'horizontal' | 'vertical';
+};
 
 const CarouselContext = createContext<CarouselContextProps | null>(null);
 
@@ -41,38 +51,31 @@ function useCarousel() {
   return context;
 }
 
-function Carousel({
-  orientation = 'horizontal',
-  opts,
-  setApi,
-  plugins,
-  className,
-  children,
-  ...props
-}: JSX.IntrinsicElements['div'] & CarouselProps) {
-  const [carouselRef, api] = useEmblaCarousel(
-    {
-      ...opts,
-      axis: orientation === 'horizontal' ? 'x' : 'y',
-    },
-    plugins,
-  );
+function Carousel(
+  _props: ClassName<JSX.IntrinsicElements['div']> & CarouselProps,
+) {
+  const props = mergeProps({ orientation: 'horizontal' }, _props);
+  const [local, rest] = splitProps(props, [
+    'orientation',
+    'opts',
+    'setApi',
+    'plugins',
+    'className',
+    'children',
+  ]);
+  const carouselRef = (_el: HTMLDivElement) => undefined;
+  const api: CarouselApi | undefined = undefined;
   const [canScrollPrev, setCanScrollPrev] = createSignal(false);
   const [canScrollNext, setCanScrollNext] = createSignal(false);
 
-  const onSelect = (api: CarouselApi) => {
-    if (!api) return;
-    setCanScrollPrev(api.canScrollPrev());
-    setCanScrollNext(api.canScrollNext());
+  const onSelect = () => {
+    setCanScrollPrev(false);
+    setCanScrollNext(false);
   };
 
-  const scrollPrev = () => {
-    api?.scrollPrev();
-  };
+  const scrollPrev = () => undefined;
 
-  const scrollNext = () => {
-    api?.scrollNext();
-  };
+  const scrollNext = () => undefined;
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === 'ArrowLeft') {
@@ -86,30 +89,17 @@ function Carousel({
     }
   };
 
-  createEffect(() => {
-    if (!api || !setApi) return;
-    setApi(api);
-  });
-
-  createEffect(() => {
-    if (!api) return;
-    onSelect(api);
-    api.on('reInit', onSelect);
-    api.on('select', onSelect);
-
-    return () => {
-      api?.off('select', onSelect);
-    };
-  });
+  onSelect();
 
   return (
     <CarouselContext.Provider
       value={{
         carouselRef,
         api: api,
-        opts,
-        orientation:
-          orientation || (opts?.axis === 'y' ? 'vertical' : 'horizontal'),
+        opts: () => local.opts,
+        orientation: () =>
+          local.orientation ||
+          (local.opts?.axis === 'y' ? 'vertical' : 'horizontal'),
         scrollPrev,
         scrollNext,
         canScrollPrev,
@@ -118,41 +108,43 @@ function Carousel({
     >
       <div
         onKeyDownCapture={handleKeyDown}
-        class={cn('relative', className)}
+        class={cn('relative', local.className)}
         role="region"
         aria-roledescription="carousel"
         data-slot="carousel"
-        {...props}
+        {...rest}
       >
-        {children}
+        {local.children}
       </div>
     </CarouselContext.Provider>
   );
 }
 
-function CarouselContent({ className, ...props }: JSX.IntrinsicElements['div']) {
+function CarouselContent(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, rest] = splitProps(_props, ['className']);
   const state = useCarousel();
 
   return (
     <div
-      ref={(el) => { state.carouselRef = el; }}
+      ref={state.carouselRef}
       class="overflow-hidden"
       data-slot="carousel-content"
     >
       <div
         class={cn(
           'flex',
-          state.orientation === 'horizontal' ? '-ml-4' : '-mt-4 flex-col',
-          className,
+          state.orientation() === 'horizontal' ? '-ml-4' : '-mt-4 flex-col',
+          local.className,
         )}
-        {...props}
+        {...rest}
       />
     </div>
   );
 }
 
-function CarouselItem({ className, ...props }: JSX.IntrinsicElements['div']) {
-  const { orientation } = useCarousel();
+function CarouselItem(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, rest] = splitProps(_props, ['className']);
+  const state = useCarousel();
 
   return (
     <div
@@ -161,71 +153,73 @@ function CarouselItem({ className, ...props }: JSX.IntrinsicElements['div']) {
       data-slot="carousel-item"
       class={cn(
         'min-w-0 shrink-0 grow-0 basis-full',
-        orientation === 'horizontal' ? 'pl-4' : 'pt-4',
-        className,
+        state.orientation() === 'horizontal' ? 'pl-4' : 'pt-4',
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function CarouselPrevious({
-  className,
-  variant = 'outline',
-  size = 'icon',
-  children,
-  ...props
-}: ComponentProps<typeof Button>) {
-  const { orientation, scrollPrev, canScrollPrev } = useCarousel();
+function CarouselPrevious(_props: ClassName<ComponentProps<typeof Button>>) {
+  const props = mergeProps({ variant: 'outline', size: 'icon' }, _props);
+  const [local, rest] = splitProps(props, [
+    'className',
+    'variant',
+    'size',
+    'children',
+  ]);
+  const state = useCarousel();
 
   return (
     <Button
       data-slot="carousel-previous"
-      variant={variant}
-      size={size}
+      variant={local.variant}
+      size={local.size}
       class={cn(
         'absolute h-8 w-8 rounded-full',
-        orientation === 'horizontal'
+        state.orientation() === 'horizontal'
           ? 'top-1/2 -left-12 -translate-y-1/2'
           : '-top-12 left-1/2 -translate-x-1/2 rotate-90',
-        className,
+        local.className,
       )}
-      disabled={!canScrollPrev}
-      onClick={scrollPrev}
-      {...props}
+      disabled={!state.canScrollPrev()}
+      onClick={state.scrollPrev}
+      {...rest}
     >
-      {children || <ArrowLeft class="h-4 w-4" />}
+      {local.children || <ArrowLeft class="h-4 w-4" />}
       <span class="sr-only">Previous slide</span>
     </Button>
   );
 }
 
-function CarouselNext({
-  className,
-  variant = 'outline',
-  size = 'icon',
-  children,
-  ...props
-}: ComponentProps<typeof Button>) {
-  const { orientation, scrollNext, canScrollNext } = useCarousel();
+function CarouselNext(_props: ClassName<ComponentProps<typeof Button>>) {
+  const props = mergeProps({ variant: 'outline', size: 'icon' }, _props);
+  const [local, rest] = splitProps(props, [
+    'className',
+    'variant',
+    'size',
+    'children',
+  ]);
+  const state = useCarousel();
 
   return (
     <Button
       data-slot="carousel-next"
-      variant={variant}
-      size={size}
+      variant={local.variant}
+      size={local.size}
       class={cn(
         'absolute h-8 w-8 rounded-full',
-        orientation === 'horizontal'
+        state.orientation() === 'horizontal'
           ? 'top-1/2 -right-12 -translate-y-1/2'
           : '-bottom-12 left-1/2 -translate-x-1/2 rotate-90',
-        className,
+        local.className,
       )}
-      disabled={!canScrollNext}
-      onClick={scrollNext}
-      {...props}
+      disabled={!state.canScrollNext()}
+      onClick={state.scrollNext}
+      {...rest}
     >
-      {children || <ArrowRight class="h-4 w-4" />}
+      {local.children || <ArrowRight class="h-4 w-4" />}
       <span class="sr-only">Next slide</span>
     </Button>
   );
@@ -239,4 +233,8 @@ export {
   CarouselPrevious,
   CarouselNext,
   useCarousel,
+};
+
+type ClassName<T> = Omit<T, 'className'> & {
+  className?: string;
 };

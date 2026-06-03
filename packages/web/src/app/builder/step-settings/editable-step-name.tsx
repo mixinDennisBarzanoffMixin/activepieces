@@ -29,53 +29,41 @@ interface EditableStepNameProps {
   stepIndex?: number;
 }
 
-const EditableStepName: any = ({
-  selectedBranchIndex,
-  displayName,
-  branchName,
-  setDisplayName,
-  setBranchName,
-  readonly,
-  isEditingStepOrBranchName,
-  setIsEditingStepOrBranchName,
-  setSelectedBranchIndex,
-  tooltipTitle,
-  tooltipDescription,
-  pieceVersion,
-  stepIndex,
-}) => {
-  const inBranchView = !isNil(selectedBranchIndex);
+const EditableStepName = (props: EditableStepNameProps) => {
+  const inBranchView = !isNil(props.selectedBranchIndex);
   const showActionTooltip =
     !inBranchView &&
-    !isEditingStepOrBranchName &&
-    (!!tooltipTitle || !!tooltipDescription || !!pieceVersion);
+    !props.isEditingStepOrBranchName &&
+    (!!props.tooltipTitle ||
+      !!props.tooltipDescription ||
+      !!props.pieceVersion);
   const handleStartEditing = () => {
-    if (!readonly) {
-      setIsEditingStepOrBranchName(true);
+    if (!props.readonly) {
+      props.setIsEditingStepOrBranchName(true);
     }
   };
 
   return (
     <>
       <Show
-        when={inBranchView()}
+        when={inBranchView}
         fallback={
-          isEditingStepOrBranchName ? (
+          props.isEditingStepOrBranchName ? (
             <StepNameEditor
-              value={displayName}
-              onValueChange={setDisplayName}
-              onCommit={() => setIsEditingStepOrBranchName(false)}
+              value={props.displayName}
+              onValueChange={props.setDisplayName}
+              onCommit={() => props.setIsEditingStepOrBranchName(false)}
             />
           ) : (
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <div
-                    role={readonly ? undefined : 'button'}
-                    tabIndex={readonly ? undefined : 0}
-                    onClick={readonly ? undefined : handleStartEditing}
+                    role={props.readonly ? undefined : 'button'}
+                    tabIndex={props.readonly ? undefined : 0}
+                    onClick={props.readonly ? undefined : handleStartEditing}
                     onKeyDown={
-                      readonly
+                      props.readonly
                         ? undefined
                         : (e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
@@ -84,47 +72,49 @@ const EditableStepName: any = ({
                             }
                           }
                     }
-                    aria-label={readonly ? undefined : t('Edit Step Name')}
-                    className={cn(
+                    aria-label={
+                      props.readonly ? undefined : t('Edit Step Name')
+                    }
+                    class={cn(
                       'flex items-center gap-1.5 min-w-0',
-                      !readonly &&
+                      !props.readonly &&
                         'cursor-text rounded-sm hover:text-foreground/80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
                     )}
                   >
-                    <span className="truncate text-foreground">
+                    <span class="truncate text-foreground">
                       <Show
-                        when={typeof stepIndex === 'number'()}
-                      >{`${stepIndex}. `}</Show>
-                      {displayName}
+                        when={typeof props.stepIndex === 'number'}
+                      >{`${props.stepIndex}. `}</Show>
+                      {props.displayName}
                     </span>
-                    <Show when={!readonly()}>
+                    <Show when={!props.readonly}>
                       <Pencil class="size-3.5 shrink-0 text-muted-foreground" />
                     </Show>
                   </div>
                 </TooltipTrigger>
-                <Show when={showActionTooltip()}>
+                <Show when={showActionTooltip}>
                   <TooltipContent side="bottom" class="max-w-xs">
-                    <div className="flex flex-col gap-1">
-                      <Show when={tooltipTitle()}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">
-                            {tooltipTitle}
+                    <div class="flex flex-col gap-1">
+                      <Show when={props.tooltipTitle}>
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium text-sm">
+                            {props.tooltipTitle}
                           </span>
-                          <Show when={pieceVersion()}>
-                            <span className="text-[11px] font-mono text-background/90">
-                              (v{pieceVersion})
+                          <Show when={props.pieceVersion}>
+                            <span class="text-[11px] font-mono text-background/90">
+                              (v{props.pieceVersion})
                             </span>
                           </Show>
                         </div>
                       </Show>
-                      <Show when={!tooltipTitle && pieceVersion()}>
-                        <span className="text-[11px] font-mono text-background/90">
-                          (v{pieceVersion})
+                      <Show when={!props.tooltipTitle && props.pieceVersion}>
+                        <span class="text-[11px] font-mono text-background/90">
+                          (v{props.pieceVersion})
                         </span>
                       </Show>
-                      <Show when={tooltipDescription()}>
-                        <div className="text-xs text-background/90">
-                          {tooltipDescription}
+                      <Show when={props.tooltipDescription}>
+                        <div class="text-xs text-background/90">
+                          {props.tooltipDescription}
                         </div>
                       </Show>
                     </div>
@@ -137,31 +127,35 @@ const EditableStepName: any = ({
       >
         <>
           <div
-            className="truncate cursor-pointer hover:underline"
+            class="truncate cursor-pointer hover:underline"
             onClick={(e) => {
               e.stopPropagation();
-              setSelectedBranchIndex(null);
+              props.setSelectedBranchIndex(null);
             }}
           >
-            {displayName}
+            {props.displayName}
           </div>
           /
           <EditableText
-            key={branchName}
+            key={props.branchName}
             onValueChange={(value) => {
               if (value) {
-                setBranchName(value);
+                props.setBranchName(value);
               }
             }}
-            readonly={readonly}
-            value={branchName}
-            tooltipContent={readonly ? '' : t('Edit Branch Name')}
-            isEditing={isEditingStepOrBranchName}
-            setIsEditing={setIsEditingStepOrBranchName}
+            readonly={props.readonly}
+            value={props.branchName}
+            tooltipContent={props.readonly ? '' : t('Edit Branch Name')}
+            isEditing={props.isEditingStepOrBranchName}
+            setIsEditing={props.setIsEditingStepOrBranchName}
           />
         </>
       </Show>
-      <Show when={inBranchView && !isEditingStepOrBranchName && !readonly()}>
+      <Show
+        when={
+          inBranchView && !props.isEditingStepOrBranchName && !props.readonly
+        }
+      >
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -191,11 +185,7 @@ type StepNameEditorProps = {
   onCommit: () => void;
 };
 
-const StepNameEditor = ({
-  value,
-  onValueChange,
-  onCommit,
-}: StepNameEditorProps) => {
+const StepNameEditor = (props: StepNameEditorProps) => {
   let ref: HTMLDivElement | undefined;
 
   const focusAndSelect = (el: HTMLDivElement | null) => {
@@ -213,10 +203,10 @@ const StepNameEditor = ({
 
   const commit = () => {
     const next = (ref?.textContent ?? '').trim();
-    if (next.length > 0 && next !== value) {
-      onValueChange(next);
+    if (next.length > 0 && next !== props.value) {
+      props.onValueChange(next);
     }
-    onCommit();
+    props.onCommit();
   };
 
   return (
@@ -224,22 +214,22 @@ const StepNameEditor = ({
       ref={focusAndSelect}
       contentEditable
       suppressContentEditableWarning
-      className="truncate focus:outline-hidden break-all"
+      class="truncate focus:outline-hidden break-all"
       onBlur={commit}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
           event.preventDefault();
           if (ref) {
-            ref.textContent = value;
+            ref.textContent = props.value;
           }
-          onCommit();
+          props.onCommit();
         } else if (event.key === 'Enter') {
           event.preventDefault();
           commit();
         }
       }}
     >
-      {value}
+      {props.value}
     </div>
   );
 };

@@ -75,8 +75,8 @@ const PushEverythingDialog = (props: PushEverythingDialogProps) => {
             <DialogTitle>{t('Push Everything to Git')}</DialogTitle>
           </DialogHeader>
           <div class="gap-2 flex flex-col">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium" for="commitMessage">
+            <div class="flex items-center gap-2">
+              <label class="text-sm font-medium" for="commitMessage">
                 {t('Commit Message')}
               </label>
               <Tooltip>
@@ -95,7 +95,7 @@ const PushEverythingDialog = (props: PushEverythingDialogProps) => {
               value={commitMessage()}
               onInput={(event) => setCommitMessage(event.currentTarget.value)}
             />
-            <div className="text-sm text-gray-500">
+            <div class="text-sm text-gray-500">
               {t(
                 'Enter a commit message to describe the changes you want to push.',
               )}
@@ -122,5 +122,4 @@ const PushEverythingDialog = (props: PushEverythingDialogProps) => {
   );
 };
 
-PushEverythingDialog.displayName = 'PushEverythingDialog';
 export { PushEverythingDialog };

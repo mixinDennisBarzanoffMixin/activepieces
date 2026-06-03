@@ -4,6 +4,10 @@ import {
   flowStructureUtil,
   isNil,
 } from '@activepieces/shared';
+import { t } from 'i18next';
+import { JSX, Show, createMemo, createSignal } from 'solid-js';
+import { toast } from 'solid-sonner';
+
 import {
   DndContext,
   DragEndEvent,
@@ -16,22 +20,23 @@ import {
   useSensors,
   PointerSensorOptions,
 } from '@/lib/solid-dnd-kit';
-import { ReactFlowInstance, useReactFlow } from './solid-flow-adapter';
-import { t } from 'i18next';
-import { Show, createSignal } from 'solid-js';
-import { toast } from 'solid-sonner';
 
 import { BuilderState, useBuilderStateContext } from '../builder-hooks';
 import { NoteDragOverlayMode } from '../state/notes-state';
 
 import NoteDragOverlay from './nodes/note-node/note-drag-overlay';
 import StepDragOverlay from './nodes/step-node/step-drag-overlay';
+import {
+  ReactFlowInstance,
+  Viewport,
+  useReactFlow,
+} from './solid-flow-adapter';
 import { flowCanvasConsts } from './utils/consts';
 import { ApButtonData } from './utils/types';
 
-const FlowDragLayer = ({ children }: { children: any }) => {
+const FlowDragLayer = (props: { children: JSX.Element }) => {
   const reactFlow = useReactFlow();
-  let previousViewPortRef: any | undefined;
+  let previousViewPortRef: Viewport | undefined;
   const [cursorPositionOnActivation, setCursorPositionOnActivation] =
     createSignal<{
       x: number;
@@ -55,17 +60,15 @@ const FlowDragLayer = ({ children }: { children: any }) => {
     state.moveNote,
   ]);
 
-  const fixCursorSnapOffset = (
-    args: Parameters<typeof rectIntersection>[0],
-  ) => {
+  const fixCursorSnapOffset = (args: CanvasCollisionArgs) => {
     // Bail out if keyboard activated
-    if (!args.pointerCoordinates) {
+    if (!args.pointerCoordinates || !args.collisionRect) {
       return rectIntersection(args);
     }
     const { x, y } = args.pointerCoordinates;
     const { width, height } = args.collisionRect;
     const currentViewport = reactFlow.getViewport();
-    const previousViewPort = previousViewPortRef;
+    const previousViewPort = previousViewPortRef ?? currentViewport;
     const deltaViewport = {
       x: previousViewPort.x - currentViewport.x,
       y: previousViewPort.y - currentViewport.y,
@@ -85,9 +88,11 @@ const FlowDragLayer = ({ children }: { children: any }) => {
     };
     return rectIntersection(updated);
   };
-  const draggedStep = activeDraggingStep
-    ? flowStructureUtil.getStep(activeDraggingStep, flowVersion.trigger)
-    : undefined;
+  const draggedStep = createMemo(() =>
+    activeDraggingStep
+      ? flowStructureUtil.getStep(activeDraggingStep, flowVersion.trigger)
+      : undefined,
+  );
   const handleDragStart = (e: DragStartEvent) => {
     if (e.active.data.current?.type === flowCanvasConsts.DRAGGED_STEP_TAG) {
       setActiveDraggingStep(e.active.id.toString());
@@ -144,12 +149,12 @@ const FlowDragLayer = ({ children }: { children: any }) => {
         sensors={sensors}
         collisionDetection={fixCursorSnapOffset}
       >
-        {children}
-        <DragOverlay dropAnimation={{ duration: 0 }}></DragOverlay>
+        {props.children}
+        <DragOverlay dropAnimation={{ duration: 0 }} />
       </DndContext>
 
       <Show when={draggedStep()}>
-        <StepDragOverlay step={draggedStep}></StepDragOverlay>
+        <StepDragOverlay step={draggedStep()} />
       </Show>
       <NoteDragOverlay />
     </>
@@ -171,8 +176,8 @@ function handleStepDragEnd({
     ? flowStructureUtil.getStep(activeDraggingStep, flowVersion.trigger)
     : undefined;
   const isOverSomething =
-    !isNil(e.over?.data?.current) &&
-    e.over.data.current.accepts === e.active.data?.current?.type;
+    !isNil(e.over?.data.current) &&
+    e.over.data.current.accepts === e.active.data.current?.type;
   if (isOverSomething) {
     const droppedAtNodeData: ApButtonData | undefined = e.over?.data
       .current as unknown as ApButtonData | undefined;
@@ -240,18 +245,21 @@ class PointerSensorIgnoringInteractiveItems extends PointerSensor {
     {
       eventName: 'onPointerDown' as const,
       handler: (
-        { nativeEvent: event }: PointerEvent,
+        { nativeEvent: event }: { nativeEvent: globalThis.PointerEvent },
         { onActivation }: PointerSensorOptions,
       ) => {
-        const target = event.target as HTMLElement;
-        if (target?.closest('[contenteditable="true"]')) {
+        const target = event.target;
+        if (
+          target instanceof Element &&
+          target.closest('[contenteditable="true"]')
+        ) {
           return false;
         }
 
         if (
           !event.isPrimary ||
           event.button !== 0 ||
-          isInteractiveElement(event.target as Element)
+          isInteractiveElement(target)
         ) {
           return false;
         }
@@ -262,7 +270,7 @@ class PointerSensorIgnoringInteractiveItems extends PointerSensor {
   ];
 }
 
-function isInteractiveElement(element: Element | null): boolean {
+function isInteractiveElement(element: EventTarget | null): boolean {
   const interactiveElements = [
     'button',
     'input',
@@ -272,7 +280,7 @@ function isInteractiveElement(element: Element | null): boolean {
   ];
 
   if (
-    element?.tagName &&
+    element instanceof Element &&
     interactiveElements.includes(element.tagName.toLowerCase())
   ) {
     return true;
@@ -280,3 +288,8 @@ function isInteractiveElement(element: Element | null): boolean {
 
   return false;
 }
+
+type CanvasCollisionArgs = Parameters<typeof rectIntersection>[0] & {
+  pointerCoordinates?: { x: number; y: number };
+  collisionRect?: { width: number; height: number };
+};

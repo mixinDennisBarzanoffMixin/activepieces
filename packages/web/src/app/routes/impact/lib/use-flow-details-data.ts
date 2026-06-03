@@ -1,5 +1,5 @@
 import { PlatformAnalyticsReport } from '@activepieces/shared';
-import { useContext, createMemo } from 'solid-js';
+import { Accessor, useContext, createMemo } from 'solid-js';
 
 import { RefreshAnalyticsContext } from '@/features/platform-admin';
 
@@ -11,22 +11,26 @@ export type FlowDetailRow = PlatformAnalyticsReport['flows'][number] & {
 
 export type Owner = { id: string; name: string };
 
-export function useFlowDetailsData(report?: PlatformAnalyticsReport) {
+export function useFlowDetailsData(
+  report: Accessor<PlatformAnalyticsReport | undefined>,
+) {
   const { timeSavedPerRunOverrides, setTimeSavedPerRunOverride } = useContext(
     RefreshAnalyticsContext,
   );
 
   const runsMap = createMemo(() => {
-    if (!report) return new Map<string, number>();
-    return new Map(report.runs.map((run) => [run.flowId, run.runs ?? 0]));
+    const data = report();
+    if (!data) return new Map<string, number>();
+    return new Map(data.runs.map((run) => [run.flowId, run.runs ?? 0]));
   });
 
   const flowDetails = createMemo((): FlowDetailRow[] | undefined => {
-    if (!report) return undefined;
-    return report.flows.map((flow) => {
+    const data = report();
+    if (!data) return undefined;
+    return data.flows.map((flow) => {
       const override = timeSavedPerRunOverrides[flow.flowId];
-      const timeSavedPerRun = override?.value ?? flow.timeSavedPerRun;
-      const runs = runsMap.get(flow.flowId) ?? 0;
+      const timeSavedPerRun = override.value ?? flow.timeSavedPerRun;
+      const runs = runsMap().get(flow.flowId) ?? 0;
       return {
         ...flow,
         id: flow.flowId,
@@ -38,9 +42,10 @@ export function useFlowDetailsData(report?: PlatformAnalyticsReport) {
   });
 
   const uniqueOwners = createMemo((): Owner[] => {
-    if (!flowDetails) return [];
+    const data = flowDetails();
+    if (!data) return [];
     const ownerMap = new Map<string, Owner>();
-    flowDetails.forEach((flow) => {
+    data.forEach((flow) => {
       if (flow.ownerId && !ownerMap.has(flow.ownerId)) {
         ownerMap.set(flow.ownerId, {
           id: flow.ownerId,
@@ -52,8 +57,9 @@ export function useFlowDetailsData(report?: PlatformAnalyticsReport) {
   });
 
   const flowsMissingTimeSaved = createMemo(() => {
-    if (!flowDetails) return 0;
-    return flowDetails.filter(
+    const data = flowDetails();
+    if (!data) return 0;
+    return data.filter(
       (flow) => flow.timeSavedPerRun === null || flow.timeSavedPerRun === 0,
     ).length;
   });

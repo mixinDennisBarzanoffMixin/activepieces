@@ -1,6 +1,6 @@
 import { Permission, ProjectRole, RoleType } from '@activepieces/shared';
 import { t } from 'i18next';
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, For, mergeProps, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -101,17 +101,12 @@ interface ProjectRoleDialogProps {
   disabled?: boolean;
 }
 
-export const ProjectRoleDialog = ({
-  mode,
-  projectRole,
-  onSave,
-  children,
-  disabled = false,
-}: ProjectRoleDialogProps) => {
+export const ProjectRoleDialog = (_props: ProjectRoleDialogProps) => {
+  const props = mergeProps({ disabled: false }, _props);
   const [isOpen, setIsOpen] = createSignal(false);
-  const [roleName, setRoleName] = createSignal(projectRole?.name || '');
+  const [roleName, setRoleName] = createSignal(props.projectRole?.name || '');
   const [permissions, setPermissions] = createSignal<string[]>(() => {
-    if (!projectRole?.permissions) {
+    if (!props.projectRole?.permissions) {
       // Set default Read permissions for any permission with disableNone
       const defaultPermissions = new Set<string>();
       initialPermissions.forEach((permission) => {
@@ -121,12 +116,12 @@ export const ProjectRoleDialog = ({
       });
       return Array.from(defaultPermissions);
     }
-    return projectRole.permissions;
+    return props.projectRole.permissions;
   });
   const { mutate } = projectRoleMutations.useUpsertProjectRole({
     onSave: () => {
       setIsOpen(false);
-      onSave();
+      props.onSave();
     },
   });
 
@@ -190,10 +185,10 @@ export const ProjectRoleDialog = ({
     return 'ghost';
   };
   const handleSubmit = () => {
-    if (!disabled) {
+    if (!props.disabled) {
       mutate({
-        mode,
-        roleId: projectRole?.id,
+        mode: props.mode,
+        roleId: props.projectRole?.id,
         name: roleName,
         permissions,
         type: RoleType.CUSTOM,
@@ -203,60 +198,56 @@ export const ProjectRoleDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent class="w-full max-w-3xl">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create'
+            {props.mode === 'create'
               ? t('Create Role')
-              : projectRole?.type === RoleType.DEFAULT
-              ? t('View Role: {name}', { name: projectRole?.name })
-              : t('Edit Role: {name}', { name: projectRole?.name })}
+              : props.projectRole?.type === RoleType.DEFAULT
+              ? t('View Role: {name}', { name: props.projectRole.name })
+              : t('Edit Role: {name}', { name: props.projectRole?.name })}
           </DialogTitle>
           <DialogDescription>
             <Show
-              when={mode === 'create'}
+              when={props.mode === 'create'}
               fallback={t('Review and manage permissions for this role.')}
             >
-              t( 'Define a custom role with specific permissions for project
-              members.',
+              {t(
+                'Define a custom role with specific permissions for project members.',
+              )}
             </Show>
           </DialogDescription>
         </DialogHeader>
-        <div className="grid space-y-4 mt-4">
+        <div class="grid space-y-4 mt-4">
           <div>
-            <span className="text-sm font-medium text-foreground">
-              {t('Name')}
-            </span>
+            <span class="text-sm font-medium text-foreground">{t('Name')}</span>
             <Input
               value={roleName}
-              onChange={(e) => setRoleName(e.target.value)}
+              onChange={(e) => setRoleName(e.currentTarget.value)}
               required
               id="name"
               type="text"
               placeholder={t('Role Name')}
               class="rounded-sm mt-2"
-              disabled={disabled}
+              disabled={props.disabled}
             />
           </div>
           <div>
-            <span className="text-sm font-medium text-foreground">
+            <span class="text-sm font-medium text-foreground">
               {t('Permissions')}
             </span>
-            <div className="overflow-y-auto p-2 rounded-md">
+            <div class="overflow-y-auto p-2 rounded-md">
               <ScrollArea class="h-[55vh] pr-4">
-                <div className="grid grid-cols-2 gap-x-6">
+                <div class="grid grid-cols-2 gap-x-6">
                   <For each={initialPermissions}>
                     {(permission) => (
-                      <div
-                        key={permission.name}
-                        className="flex flex-col justify-between py-3 border-b last:border-b-0"
-                      >
-                        <div className="flex flex-row items-center justify-between gap-2">
-                          <span className="font-semibold text-sm text-foreground">
+                      <div class="flex flex-col justify-between py-3 border-b last:border-b-0">
+                        <div class="flex flex-row items-center justify-between gap-2">
+                          <span class="font-semibold text-sm text-foreground">
                             {permission.name}
                           </span>
-                          <div className="flex bg-accent rounded-sm">
+                          <div class="flex bg-accent rounded-sm">
                             <Show when={!permission.disableNone}>
                               <Button
                                 class="h-9 px-4"
@@ -270,7 +261,7 @@ export const ProjectRoleDialog = ({
                                     'None',
                                   )
                                 }
-                                disabled={disabled}
+                                disabled={props.disabled}
                               >
                                 {t('None')}
                               </Button>
@@ -288,7 +279,7 @@ export const ProjectRoleDialog = ({
                                     'Read',
                                   )
                                 }
-                                disabled={disabled}
+                                disabled={props.disabled}
                               >
                                 {t('Read')}
                               </Button>
@@ -302,13 +293,13 @@ export const ProjectRoleDialog = ({
                               onClick={() =>
                                 handlePermissionChange(permission.name, 'Write')
                               }
-                              disabled={disabled}
+                              disabled={props.disabled}
                             >
                               {t('Write')}
                             </Button>
                           </div>
                         </div>
-                        <span className="text-xs text-muted-foreground mt-1">
+                        <span class="text-xs text-muted-foreground mt-1">
                           {permission.description}
                         </span>
                       </div>
@@ -318,10 +309,10 @@ export const ProjectRoleDialog = ({
               </ScrollArea>
             </div>
           </div>
-          <Show when={!disabled}>
+          <Show when={!props.disabled}>
             <Button onClick={handleSubmit}>
-              <Show when={mode === 'create'} fallback={t('Save')}>
-                t('Create'
+              <Show when={props.mode === 'create'} fallback={t('Save')}>
+                {t('Create')}
               </Show>
             </Button>
           </Show>

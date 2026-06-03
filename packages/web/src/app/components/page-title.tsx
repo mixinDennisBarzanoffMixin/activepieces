@@ -1,4 +1,4 @@
-import { createEffect } from 'solid-js';
+import { createEffect, type JSX } from 'solid-js';
 
 import { flagsHooks } from '@/hooks/flags-hooks';
 
@@ -7,7 +7,7 @@ type PageTitleProps = {
   children: JSX.Element;
 };
 
-const PageTitle = ({ title, children }: PageTitleProps) => {
+const PageTitle = (props: PageTitleProps) => {
   const websiteBranding = flagsHooks.useWebsiteBranding();
 
   createEffect(() => {
@@ -15,10 +15,10 @@ const PageTitle = ({ title, children }: PageTitleProps) => {
     if (!branding) {
       return;
     }
-    document.title = `${title} | ${branding.websiteName}`;
+    document.title = `${props.title} | ${branding.websiteName}`;
   });
 
-  return children;
+  return props.children;
 };
 
 export { PageTitle };

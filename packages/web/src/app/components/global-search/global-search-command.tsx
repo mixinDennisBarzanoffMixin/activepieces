@@ -22,10 +22,10 @@ export function GlobalSearchCommand() {
       )}
     >
       <Search class="size-4 shrink-0 mr-auto" />
-      <span className="flex-1 text-left text-muted-foreground group-data-[collapsible=icon]:hidden">
+      <span class="flex-1 text-left text-muted-foreground group-data-[collapsible=icon]:hidden">
         {t('Search...')}
       </span>
-      <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted py-0.5 px-1 font-mono text-[9px] font-medium sm:flex group-data-[collapsible=icon]:hidden!">
+      <kbd class="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted py-0.5 px-1 font-mono text-[9px] font-medium sm:flex group-data-[collapsible=icon]:hidden!">
         {isMac ? '⌘' : 'Ctrl'}&nbsp;K
       </kbd>
     </Button>

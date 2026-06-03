@@ -4,7 +4,9 @@ export const useNewWindow = () => {
   const { embedState } = useEmbedding();
   if (embedState.isEmbedded) {
     return (route: string, searchParams?: string) =>
-      window.location.assign(`${route}${searchParams ? '?' + searchParams : ''}`);
+      window.location.assign(
+        `${route}${searchParams ? '?' + searchParams : ''}`,
+      );
   }
 
   return (route: string, searchParams?: string) =>
@@ -27,6 +29,8 @@ export const useDefaultRedirectPath = () => {
 
 export const useRedirectAfterLogin = () => {
   const defaultRedirectPath = useDefaultRedirectPath();
-  const from = new URLSearchParams(window.location.search).get(FROM_QUERY_PARAM);
+  const from = new URLSearchParams(window.location.search).get(
+    FROM_QUERY_PARAM,
+  );
   return () => window.location.assign(from || defaultRedirectPath);
 };

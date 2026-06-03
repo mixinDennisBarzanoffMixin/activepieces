@@ -1,4 +1,4 @@
-import { createEffect, createSignal } from 'solid-js';
+import { createEffect, createSignal, Show } from 'solid-js';
 
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -6,44 +6,44 @@ import { cn } from '@/lib/utils';
 import { useCellContext } from './cell-context';
 
 const TextEditor = () => {
-  const { value, handleCellChange, setIsEditing, isEditing } = useCellContext();
-  const textAreaRef = null;
-  const [inputValue, setInputValue] = createSignal(value);
+  const cell = useCellContext();
+  let textAreaRef: HTMLTextAreaElement | undefined;
+  const [inputValue, setInputValue] = createSignal(cell.value);
   createEffect(() => {
-    if (isEditing) {
-      textAreaRef.current?.focus();
-      setInputValue(value);
+    if (cell.isEditing) {
+      textAreaRef?.focus();
+      setInputValue(cell.value);
     } else {
-      setInputValue(value);
+      setInputValue(cell.value);
     }
   });
   return (
-    <div className="h-full relative w-full relative">
+    <div class="h-full relative w-full relative">
       <div
-        className={cn({
+        classlist={{
           'h-min-[300px] w-min-[calc(100%+50px)] w-full absolute top-0  z-50 border-2 border-primary  drop-shadow-md':
-            isEditing,
-        })}
+            cell.isEditing,
+        }}
       >
-        {isEditing && (
+        <Show when={cell.isEditing}>
           <Textarea
             ref={textAreaRef}
-            value={inputValue}
-            onChange={(e) => {
-              setInputValue(e.target.value);
+            value={inputValue()}
+            onInput={(e) => {
+              setInputValue(e.currentTarget.value);
             }}
             onBlur={() => {
-              handleCellChange(inputValue);
+              cell.handleCellChange(inputValue());
             }}
             onKeyDown={(e) => {
               e.stopPropagation();
               e.stopPropagation();
               if (e.key === 'Enter' && !e.shiftKey) {
-                handleCellChange(inputValue);
+                cell.handleCellChange(inputValue());
                 e.preventDefault();
               }
               if (e.key === 'Escape') {
-                setIsEditing(false);
+                cell.setIsEditing(false);
                 e.preventDefault();
               }
             }}
@@ -57,15 +57,14 @@ const TextEditor = () => {
             )}
             autoComplete="off"
           />
-        )}
-        {!isEditing && (
-          <div className="flex grow h-full w-full ">
-            {value?.replaceAll('\n', ' ')}
+        </Show>
+        <Show when={!cell.isEditing}>
+          <div class="flex grow h-full w-full ">
+            {cell.value.replaceAll('\n', ' ')}
           </div>
-        )}
+        </Show>
       </div>
     </div>
   );
 };
-TextEditor.displayName = 'TextEditor';
 export { TextEditor };

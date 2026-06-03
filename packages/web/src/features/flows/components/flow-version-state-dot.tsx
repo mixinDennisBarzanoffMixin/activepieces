@@ -1,5 +1,6 @@
 import { FlowVersionState } from '@activepieces/shared';
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import {
   Tooltip,
@@ -36,13 +37,13 @@ const FlowVersionStateDot = (state: FlowVersionStateProps) => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="size-8 flex justify-center items-center">
-          {stateName === 'Draft' && (
-            <span className="bg-warning size-1.5 rounded-full"></span>
-          )}
-          {stateName === 'Published' && (
-            <span className="bg-success size-1.5 rounded-full"></span>
-          )}
+        <div class="size-8 flex justify-center items-center">
+          <Show when={stateName === 'Draft'}>
+            <span class="bg-warning size-1.5 rounded-full" />
+          </Show>
+          <Show when={stateName === 'Published'}>
+            <span class="bg-success size-1.5 rounded-full" />
+          </Show>
         </div>
       </TooltipTrigger>
       <TooltipContent>
@@ -53,5 +54,4 @@ const FlowVersionStateDot = (state: FlowVersionStateProps) => {
   );
 };
 
-FlowVersionStateDot.displayName = 'FlowVersionStateDot';
 export { FlowVersionStateDot };

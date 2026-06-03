@@ -43,8 +43,10 @@ export function useUserSuggestions({
   isPlatformInvite,
 }: UseUserSuggestionsParams) {
   const { data: currentUser } = userHooks.useCurrentUser();
-  const { data: platformUsersData } = platformUserHooks.useUsers();
-  const { projectMembers } = projectMembersHooks.useProjectMembers();
+  const platformUsersQuery = platformUserHooks.useUsers();
+  const platformUsersData = platformUsersQuery.data;
+  const membersQuery = projectMembersHooks.useProjectMembers();
+  const projectMembers = membersQuery.projectMembers;
   const { invitations } = userInvitationsHooks.useInvitations();
   const { platform } = platformHooks.useCurrentPlatform();
   const currentUserEmail = currentUser?.email.toLowerCase();
@@ -57,12 +59,10 @@ export function useUserSuggestions({
           ?.filter((inv) => inv.status === InvitationStatus.PENDING)
           .map((inv) => inv.email.toLowerCase()) ?? [],
       ),
-    [invitations],
   );
 
   const projectMemberEmails = createMemo(
     () => new Set(projectMembers?.map((m) => m.user.email.toLowerCase()) ?? []),
-    [projectMembers],
   );
 
   const suggestedUsers = createMemo<SuggestedUser[]>(() => {
@@ -86,9 +86,9 @@ export function useUserSuggestions({
       .map((user) => {
         const email = user.email.toLowerCase();
         let memberStatus: SuggestedUser['memberStatus'] = 'available';
-        if (projectMemberEmails.has(email)) {
+        if (projectMemberEmails().has(email)) {
           memberStatus = 'has-access';
-        } else if (pendingInvitationEmails.has(email)) {
+        } else if (pendingInvitationEmails().has(email)) {
           memberStatus = 'already-invited';
         }
         return { ...user, memberStatus };
@@ -102,16 +102,7 @@ export function useUserSuggestions({
     });
 
     return filtered.slice(0, 10);
-  }, [
-    isPlatformInvite,
-    platformUsersData,
-    projectMemberEmails,
-    pendingInvitationEmails,
-    currentEmails,
-    searchTerm,
-    currentUserEmail,
-    platform.plan.embeddingEnabled,
-  ]);
+  });
 
   const emailStatus = createMemo<EmailStatusType | null>(() => {
     if (
@@ -126,10 +117,10 @@ export function useUserSuggestions({
 
     // Skip if already in current selection or shown in suggestions
     if (emailSetHas(currentEmails, email)) return null;
-    if (suggestedUsers.some((u) => u.email.toLowerCase() === email))
+    if (suggestedUsers().some((u) => u.email.toLowerCase() === email))
       return null;
 
-    const platformUser = platformUsersData?.data.find(
+    const platformUser = platformUsersData.data.find(
       (u) => u.email.toLowerCase() === email,
     );
 
@@ -143,54 +134,43 @@ export function useUserSuggestions({
       return { email, type: 'has-access', user: platformUser };
     }
 
-    if (!isPlatformInvite && projectMemberEmails.has(email)) {
+    if (!isPlatformInvite && projectMemberEmails().has(email)) {
       return { email, type: 'in-project', user: platformUser };
     }
 
-    if (pendingInvitationEmails.has(email)) {
+    if (pendingInvitationEmails().has(email)) {
       return { email, type: 'already-invited', user: platformUser };
     }
 
     return { email, type: 'new-user', user: undefined };
-  }, [
-    isPlatformInvite,
-    searchTerm,
-    currentEmails,
-    suggestedUsers,
-    projectMemberEmails,
-    pendingInvitationEmails,
-    platformUsersData,
-    currentUserEmail,
-    platform.plan.embeddingEnabled,
-  ]);
+  });
 
   const selectableItems = createMemo<string[]>(() => {
     const items: string[] = [];
-    for (const user of suggestedUsers) {
+    for (const user of suggestedUsers()) {
       if (user.memberStatus === 'available') {
         items.push(user.email);
       }
     }
+    const status = emailStatus();
     if (
-      emailStatus &&
-      (emailStatus.type === 'new-user' ||
-        emailStatus.type === 'already-invited')
+      status &&
+      (status.type === 'new-user' || status.type === 'already-invited')
     ) {
-      items.push(emailStatus.email);
+      items.push(status.email);
     }
     return items;
-  }, [suggestedUsers, emailStatus]);
+  });
 
   const platformUserEmails = createMemo(
     () =>
       new Set(platformUsersData?.data.map((u) => u.email.toLowerCase()) ?? []),
-    [platformUsersData],
   );
 
   return {
     suggestedUsers,
     emailStatus,
-    hasSuggestions: suggestedUsers.length > 0 || emailStatus !== null,
+    hasSuggestions: suggestedUsers().length > 0 || emailStatus() !== null,
     selectableItems,
     platformUserEmails,
   };

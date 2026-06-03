@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams } from '@solidjs/router';
 import { t } from 'i18next';
-import { Check, TrendingUp, TrendingDown } from 'lucide-solid';
+import { Check, TrendingUp, TrendingDown, type IconNode } from 'lucide-solid';
 import { createSignal, createEffect } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ export const Success = () => {
   const [searchParams] = useSearchParams();
   const [countdown, setCountdown] = createSignal(5);
 
-  const action = searchParams.get('action') || '';
+  const action = () => searchParams.action || '';
 
   createEffect(() => {
     const timer = setInterval(() => {
@@ -24,10 +24,10 @@ export const Success = () => {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, [navigate]);
+  });
 
-  const getActionConfig = () => {
-    switch (action) {
+  const getActionConfig = (): ActionConfig => {
+    switch (action()) {
       case 'upgrade':
         return {
           icon: TrendingUp,
@@ -83,26 +83,24 @@ export const Success = () => {
   const IconComponent = config.icon;
 
   return (
-    <div className="h-full bg-background flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div class="h-full bg-background flex items-center justify-center p-4">
+      <div class="w-full max-w-md">
         <CardContent class="pt-8 pb-6 px-6">
-          <div className="text-center space-y-6">
+          <div class="text-center space-y-6">
             <div
-              className={`mx-auto w-20 h-20 ${config.iconBg} rounded-full flex items-center justify-center`}
+              class={`mx-auto w-20 h-20 ${config.iconBg} rounded-full flex items-center justify-center`}
             >
               <IconComponent class={`w-10 h-10 ${config.iconColor}`} />
             </div>
 
-            <div className="space-y-2">
-              <h1 className="text-2xl font-semibold text-foreground">
+            <div class="space-y-2">
+              <h1 class="text-2xl font-semibold text-foreground">
                 {config.title}
               </h1>
-              <p className="text-lg text-muted-foreground">
-                {config.description}
-              </p>
+              <p class="text-lg text-muted-foreground">{config.description}</p>
             </div>
 
-            <div className="flex flex-col gap-3 pt-2">
+            <div class="flex flex-col gap-3 pt-2">
               <Button onClick={() => navigate('/')} class="w-full">
                 {t('Go to Dashboard')}
               </Button>
@@ -116,9 +114,9 @@ export const Success = () => {
               </Button>
             </div>
 
-            <p className="text-xs text-muted-foreground">
+            <p class="text-xs text-muted-foreground">
               {t('Redirecting to billing in {countdown} seconds...', {
-                countdown,
+                countdown: countdown(),
               })}
             </p>
           </div>
@@ -126,4 +124,12 @@ export const Success = () => {
       </div>
     </div>
   );
+};
+
+type ActionConfig = {
+  icon: IconNode;
+  iconBg: string;
+  iconColor: string;
+  title: string;
+  description: string;
 };

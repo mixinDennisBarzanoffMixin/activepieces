@@ -36,7 +36,7 @@ type ConnectGitProps = {
   showButton?: boolean;
 };
 
-const ConnectGitDialog = ({ open, setOpen, showButton }: ConnectGitProps) => {
+const ConnectGitDialog = (props: ConnectGitProps) => {
   const projectId = authenticationSession.getProjectId()!;
   const { platform } = platformHooks.useCurrentPlatform();
   const [remoteUrl, setRemoteUrl] = createSignal('');
@@ -47,7 +47,7 @@ const ConnectGitDialog = ({ open, setOpen, showButton }: ConnectGitProps) => {
 
   const { refetch } = gitSyncHooks.useGitSync(
     projectId,
-    platform.plan.environmentsEnabled,
+    platform?.plan.environmentsEnabled === true,
   );
 
   const { mutate, isPending } = createMutation(() => ({
@@ -55,7 +55,7 @@ const ConnectGitDialog = ({ open, setOpen, showButton }: ConnectGitProps) => {
       return gitSyncApi.configure(request);
     },
     onSuccess: () => {
-      refetch();
+      void refetch();
       toast.success(t('Connected successfully'), {
         duration: 3000,
       });
@@ -97,23 +97,23 @@ const ConnectGitDialog = ({ open, setOpen, showButton }: ConnectGitProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen} modal={true}>
-      {showButton && (
+    <Dialog open={props.open} onOpenChange={props.setOpen} modal={true}>
+      <Show when={props.showButton}>
         <DialogTrigger asChild>
           <Button size={'sm'} class="w-32">
             {t('Connect Git')}
           </Button>
         </DialogTrigger>
-      )}
+      </Show>
       <DialogContent class="sm:max-w-[500px]">
-        <form className="flex flex-col" onSubmit={submit}>
+        <form class="flex flex-col" onSubmit={submit}>
           <DialogHeader>
             <DialogTitle>{t('Connect Git')}</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4">
-            <div className="space-y-1">
-              <label className="text-sm font-medium" for="remoteUrl">
+          <div class="grid gap-4">
+            <div class="space-y-1">
+              <label class="text-sm font-medium" for="remoteUrl">
                 {t('Remote URL')}
               </label>
               <Input
@@ -123,8 +123,8 @@ const ConnectGitDialog = ({ open, setOpen, showButton }: ConnectGitProps) => {
                 onInput={(event) => setRemoteUrl(event.currentTarget.value)}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" for="branch">
+            <div class="space-y-1">
+              <label class="text-sm font-medium" for="branch">
                 {t('Branch')}
               </label>
               <Input
@@ -134,8 +134,8 @@ const ConnectGitDialog = ({ open, setOpen, showButton }: ConnectGitProps) => {
                 onInput={(event) => setBranch(event.currentTarget.value)}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" for="slug">
+            <div class="space-y-1">
+              <label class="text-sm font-medium" for="slug">
                 {t('Folder')}
               </label>
               <Input
@@ -144,14 +144,14 @@ const ConnectGitDialog = ({ open, setOpen, showButton }: ConnectGitProps) => {
                 value={slug()}
                 onInput={(event) => setSlug(event.currentTarget.value)}
               />
-              <p className="text-sm text-muted-foreground">
+              <p class="text-sm text-muted-foreground">
                 {t(
                   'Folder name is the name of the folder where the project will be stored or fetched.',
                 )}
               </p>
             </div>
-            <div className="space-y-1">
-              <label className="text-sm font-medium" for="sshPrivateKey">
+            <div class="space-y-1">
+              <label class="text-sm font-medium" for="sshPrivateKey">
                 {t('SSH Private Key')}
               </label>
               <Textarea
@@ -160,12 +160,12 @@ const ConnectGitDialog = ({ open, setOpen, showButton }: ConnectGitProps) => {
                 value={sshPrivateKey()}
                 onInput={(event) => setSshPrivateKey(event.currentTarget.value)}
               />
-              <p className="text-sm text-muted-foreground">
+              <p class="text-sm text-muted-foreground">
                 {t('The SSH private key to use for authentication.')}
               </p>
             </div>
             <Show when={error()}>
-              <p className="text-sm font-medium text-destructive wrap-break-word">
+              <p class="text-sm font-medium text-destructive wrap-break-word">
                 {error()}
               </p>
             </Show>
@@ -187,5 +187,4 @@ const ConnectGitDialog = ({ open, setOpen, showButton }: ConnectGitProps) => {
   );
 };
 
-ConnectGitDialog.displayName = 'ConnectGitDialog';
 export { ConnectGitDialog };

@@ -1,4 +1,3 @@
-import { useDebounce } from '@/lib/debounce';
 import { t } from 'i18next';
 import { CornerDownLeft, X } from 'lucide-solid';
 import {
@@ -22,6 +21,7 @@ import {
 } from '@/components/ui/command';
 import { projectCollectionUtils } from '@/features/projects';
 import { authenticationSession } from '@/lib/authentication-session';
+import { useDebounce } from '@/lib/debounce';
 
 import { recordAccess, type AccessedItemType } from './access-history';
 import { SearchResultRow } from './search-result-item';
@@ -50,11 +50,11 @@ function SkeletonRows() {
     <>
       {
         <For each={[1, 2, 3]}>
-          {(i) => (
-            <div className="flex items-center gap-2 px-2 py-2">
-              <div className="size-4 shrink-0 animate-pulse rounded bg-muted" />
-              <div className="h-3.5 flex-1 animate-pulse rounded bg-muted" />
-              <div className="h-3.5 w-24 animate-pulse rounded bg-muted" />
+          {() => (
+            <div class="flex items-center gap-2 px-2 py-2">
+              <div class="size-4 shrink-0 animate-pulse rounded bg-muted" />
+              <div class="h-3.5 flex-1 animate-pulse rounded bg-muted" />
+              <div class="h-3.5 w-24 animate-pulse rounded bg-muted" />
             </div>
           )}
         </For>
@@ -63,10 +63,7 @@ function SkeletonRows() {
   );
 }
 
-function GlobalSearchDialogContent({
-  open,
-  onOpenChange,
-}: {
+function GlobalSearchDialogContent(props: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }) {
@@ -74,10 +71,13 @@ function GlobalSearchDialogContent({
   const [commandValue, setCommandValue] = createSignal('');
   const [debouncedSearch] = useDebounce(search, 250);
 
-  const { groups, isLoading } = useGlobalSearchResults(debouncedSearch, () => open);
+  const { groups, isLoading } = useGlobalSearchResults(
+    debouncedSearch,
+    () => props.open,
+  );
 
   const handleOpenChange = (value: boolean) => {
-    onOpenChange(value);
+    props.onOpenChange(value);
     if (!value) setSearch('');
   };
 
@@ -112,7 +112,8 @@ function GlobalSearchDialogContent({
   const noResults = () => hasQuery() && !isLoading() && groups().length === 0;
 
   const firstItemId = () =>
-    groups().find((g) => !g.isLoading && g.items.length > 0)?.items[0]?.id ?? '';
+    groups().find((g) => !g.isLoading && g.items.length > 0)?.items[0]?.id ??
+    '';
 
   createEffect(() => {
     setCommandValue(firstItemId);
@@ -120,7 +121,7 @@ function GlobalSearchDialogContent({
 
   return (
     <CommandDialog
-      open={open}
+      open={props.open}
       onOpenChange={handleOpenChange}
       showCloseButton={false}
       shouldFilter={false}
@@ -128,7 +129,7 @@ function GlobalSearchDialogContent({
       onCommandValueChange={setCommandValue}
       class="sm:max-w-[620px] h-[70vh] flex flex-col"
     >
-      <div className="relative">
+      <div class="relative">
         <CommandInput
           placeholder={t('Search pages, flows, tables...')}
           value={search()}
@@ -139,7 +140,7 @@ function GlobalSearchDialogContent({
           <Show when={search()}>
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setSearch('')}
             >
               <X class="size-3.5" />
@@ -151,13 +152,13 @@ function GlobalSearchDialogContent({
       <CommandList class="flex-1 min-h-0 max-h-none overflow-y-auto! scrollbar-hover">
         {
           <Show when={noResults()}>
-            <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-              <p className="text-sm text-muted-foreground">
+            <div class="flex flex-col items-center justify-center gap-3 py-16 text-center">
+              <p class="text-sm text-muted-foreground">
                 {t('No results found.')}
               </p>
               <button
                 type="button"
-                className="text-xs text-primary underline hover:no-underline"
+                class="text-xs text-primary underline hover:no-underline"
                 onClick={() => setSearch('')}
               >
                 {t('Clear search')}
@@ -189,7 +190,9 @@ function GlobalSearchDialogContent({
                             >
                               <SearchResultRow
                                 item={item}
-                                query={hasQuery() ? debouncedSearch() : undefined}
+                                query={
+                                  hasQuery() ? debouncedSearch() : undefined
+                                }
                               />
                               <CornerDownLeft class="ml-auto size-2 shrink-0 text-muted-foreground/70 opacity-0 transition-opacity group-data-[selected=true]:opacity-100" />
                             </CommandItem>
@@ -207,24 +210,24 @@ function GlobalSearchDialogContent({
         }
       </CommandList>
 
-      <div className="flex items-center gap-4 border-t bg-muted/50 px-4 py-2.5 text-[11px] text-muted-foreground">
-        <span className="flex items-center gap-1.5">
-          <kbd className="inline-flex h-5 items-center rounded border bg-background px-1 font-mono">
+      <div class="flex items-center gap-4 border-t bg-muted/50 px-4 py-2.5 text-[11px] text-muted-foreground">
+        <span class="flex items-center gap-1.5">
+          <kbd class="inline-flex h-5 items-center rounded border bg-background px-1 font-mono">
             ↑
           </kbd>
-          <kbd className="inline-flex h-5 items-center rounded border bg-background px-1 font-mono">
+          <kbd class="inline-flex h-5 items-center rounded border bg-background px-1 font-mono">
             ↓
           </kbd>
           {t('to navigate')}
         </span>
-        <span className="flex items-center gap-1.5">
-          <kbd className="inline-flex h-5 items-center rounded border bg-background px-1 font-mono">
+        <span class="flex items-center gap-1.5">
+          <kbd class="inline-flex h-5 items-center rounded border bg-background px-1 font-mono">
             ↵
           </kbd>
           {t('to select')}
         </span>
-        <span className="flex items-center gap-1.5">
-          <kbd className="inline-flex h-5 items-center rounded border bg-background px-1.5 font-mono text-[10px]">
+        <span class="flex items-center gap-1.5">
+          <kbd class="inline-flex h-5 items-center rounded border bg-background px-1.5 font-mono text-[10px]">
             esc
           </kbd>
           {t('to close')}
@@ -234,7 +237,7 @@ function GlobalSearchDialogContent({
   );
 }
 
-export function GlobalSearchProvider({ children }: { children: JSX.Element }) {
+export function GlobalSearchProvider(props: { children: JSX.Element }) {
   const [open, setOpen] = createSignal(false);
   const isLoggedIn = authenticationSession.isLoggedIn();
 
@@ -251,7 +254,7 @@ export function GlobalSearchProvider({ children }: { children: JSX.Element }) {
 
   return (
     <GlobalSearchContext.Provider value={{ open, setOpen }}>
-      {children}
+      {props.children}
       <Show when={isLoggedIn && open()}>
         <GlobalSearchDialogContent open={open()} onOpenChange={setOpen} />
       </Show>

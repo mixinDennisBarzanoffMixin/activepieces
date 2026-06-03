@@ -11,7 +11,7 @@ import {
 
 import { AIPieceActionsList } from './ai-actions-list';
 
-const AITabContent = ({ operation }: { operation: PieceSelectorOperation }) => {
+const AITabContent = (props: { operation: PieceSelectorOperation }) => {
   const { selectedTab } = usePieceSelectorTabs();
   const { pieceModel, isLoading } = piecesHooks.usePiece({
     name: '@activepieces/piece-ai',
@@ -20,7 +20,7 @@ const AITabContent = ({ operation }: { operation: PieceSelectorOperation }) => {
   if (
     selectedTab !== PieceSelectorTabType.AI_AND_AGENTS ||
     ![FlowOperationType.ADD_ACTION, FlowOperationType.UPDATE_ACTION].includes(
-      operation.type,
+      props.operation.type,
     )
   ) {
     return null;
@@ -28,7 +28,7 @@ const AITabContent = ({ operation }: { operation: PieceSelectorOperation }) => {
 
   if (isLoading || isNil(pieceModel)) {
     return (
-      <div className="flex flex-col gap-2 w-full">
+      <div class="flex flex-col gap-2 w-full">
         <CardListItemSkeleton numberOfCards={2} withCircle={false} />
       </div>
     );
@@ -41,16 +41,16 @@ const AITabContent = ({ operation }: { operation: PieceSelectorOperation }) => {
 
   const pieceMetadataWithSuggestion = {
     ...metadata,
-    suggestedActions: Object.values(pieceModel?.actions),
+    suggestedActions: Object.values(pieceModel.actions),
     suggestedTriggers: Object.values(pieceModel.triggers),
   };
 
   return (
-    <div className="w-full">
+    <div class="w-full">
       <AIPieceActionsList
         stepMetadataWithSuggestions={pieceMetadataWithSuggestion}
         hidePieceIconAndDescription={false}
-        operation={operation}
+        operation={props.operation}
       />
     </div>
   );

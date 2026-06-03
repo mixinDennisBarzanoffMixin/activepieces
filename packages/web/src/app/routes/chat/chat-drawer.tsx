@@ -4,6 +4,7 @@ import {
   WebsocketClientEvent,
 } from '@activepieces/shared';
 import { ArrowRight } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { ChatDrawerSource } from '@/app/builder/types';
@@ -19,25 +20,16 @@ import {
 import { FlowChat } from './flow-chat';
 
 export const ChatDrawer = () => {
-  const [
-    chatSessionMessages,
-    chatSessionId,
-    addChatMessage,
-    flowVersion,
-    setChatSessionId,
-    setRun,
-    chatDrawerOpenSource,
-    setChatDrawerOpenSource,
-  ] = useBuilderStateContext((state) => [
-    state.chatSessionMessages,
-    state.chatSessionId,
-    state.addChatMessage,
-    state.flowVersion,
-    state.setChatSessionId,
-    state.setRun,
-    state.chatDrawerOpenSource,
-    state.setChatDrawerOpenSource,
-  ]);
+  const state = useBuilderStateContext((state) => ({
+    chatSessionMessages: state.chatSessionMessages,
+    chatSessionId: state.chatSessionId,
+    addChatMessage: state.addChatMessage,
+    flowVersion: state.flowVersion,
+    setChatSessionId: state.setChatSessionId,
+    setRun: state.setRun,
+    chatDrawerOpenSource: state.chatDrawerOpenSource,
+    setChatDrawerOpenSource: state.setChatDrawerOpenSource,
+  }));
   const socket = useSocket();
   let isListening = false;
   //shouldn't use testFlow hook here because it would run the flow with sample data not the real user message
@@ -45,11 +37,11 @@ export const ChatDrawer = () => {
     isListening = true;
     const onTestFlowRunStarted = (run: FlowRun) => {
       if (
-        run.flowVersionId === flowVersion.id &&
+        run.flowVersionId === state.flowVersion.id &&
         run.environment === RunEnvironment.TESTING &&
         isListening
       ) {
-        setRun(run, flowVersion);
+        state.setRun(run, state.flowVersion);
         isListening = false;
         socket.off(
           WebsocketClientEvent.TEST_FLOW_RUN_STARTED,
@@ -60,51 +52,53 @@ export const ChatDrawer = () => {
     socket.on(WebsocketClientEvent.TEST_FLOW_RUN_STARTED, onTestFlowRunStarted);
   };
   return (
-    <Drawer
-      open={chatDrawerOpenSource !== null}
-      onOpenChange={() => setChatDrawerOpenSource(null)}
-      direction="right"
-      dismissible={false}
-      modal={false}
-    >
-      <DrawerContent class="w-[500px] overflow-x-hidden">
-        <DrawerHeader>
-          <div className="p-4">
-            <div className="flex items-center gap-1">
-              <Button
-                variant="basic"
-                size={'icon'}
-                class="text-foreground"
-                onClick={() => setChatDrawerOpenSource(null)}
-              >
-                <ArrowRight class="h-5 w-5" />
-              </Button>
-              <DrawerTitle>Chat</DrawerTitle>
+    <Show when={state.chatDrawerOpenSource !== null}>
+      <Drawer
+        open={true}
+        onOpenChange={() => state.setChatDrawerOpenSource(null)}
+        direction="right"
+        dismissible={false}
+        modal={false}
+      >
+        <DrawerContent class="w-[500px] overflow-x-hidden">
+          <DrawerHeader>
+            <div class="p-4">
+              <div class="flex items-center gap-1">
+                <Button
+                  variant="basic"
+                  size={'icon'}
+                  class="text-foreground"
+                  onClick={() => state.setChatDrawerOpenSource(null)}
+                >
+                  <ArrowRight class="h-5 w-5" />
+                </Button>
+                <DrawerTitle>Chat</DrawerTitle>
+              </div>
             </div>
+          </DrawerHeader>
+          <div class="flex-1 overflow-hidden">
+            <FlowChat
+              flowId={state.flowVersion.flowId}
+              class="h-full"
+              mode={state.chatDrawerOpenSource}
+              showWelcomeMessage={true}
+              onError={() => {}}
+              onSendingMessage={() => {
+                if (state.chatDrawerOpenSource === ChatDrawerSource.TEST_FLOW) {
+                  listenToTestRun();
+                }
+              }}
+              closeChat={() => {
+                state.setChatDrawerOpenSource(null);
+              }}
+              messages={state.chatSessionMessages}
+              chatSessionId={state.chatSessionId}
+              onAddMessage={state.addChatMessage}
+              onSetSessionId={state.setChatSessionId}
+            />
           </div>
-        </DrawerHeader>
-        <div className="flex-1 overflow-hidden">
-          <FlowChat
-            flowId={flowVersion.flowId}
-            class="h-full"
-            mode={chatDrawerOpenSource}
-            showWelcomeMessage={true}
-            onError={() => {}}
-            onSendingMessage={() => {
-              if (chatDrawerOpenSource === ChatDrawerSource.TEST_FLOW) {
-                listenToTestRun();
-              }
-            }}
-            closeChat={() => {
-              setChatDrawerOpenSource(null);
-            }}
-            messages={chatSessionMessages}
-            chatSessionId={chatSessionId}
-            onAddMessage={addChatMessage}
-            onSetSessionId={setChatSessionId}
-          />
-        </div>
-      </DrawerContent>
-    </Drawer>
+        </DrawerContent>
+      </Drawer>
+    </Show>
   );
 };

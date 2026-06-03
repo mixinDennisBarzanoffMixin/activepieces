@@ -8,6 +8,7 @@ import {
 import { useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
 import { ArrowRight } from 'lucide-solid';
+import { createMemo, Show, untrack } from 'solid-js';
 
 import { JsonViewer } from '@/components/custom/json-viewer';
 import { Button } from '@/components/ui/button';
@@ -33,85 +34,140 @@ type FailedStepDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-export const FailedStepDialog = ({
-  run,
-  open,
-  onOpenChange,
-}: FailedStepDialogProps) => {
-  const navigate = useNavigate();
-  const failedStep = run?.failedStep;
-
-  const { data: populatedFlow } = flowHooks.useGetFlow({
-    flowId: run?.flowId ?? '',
-    versionId: run?.flowVersionId,
-    enabled: open && !isNil(run) && !isNil(failedStep),
+export const FailedStepDialog = (props: FailedStepDialogProps) => {
+  const state = createMemo(() => {
+    if (isNil(props.run) || isNil(props.run.failedStep)) {
+      return undefined;
+    }
+    return props.run;
   });
 
-  if (isNil(run) || isNil(failedStep)) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent class="max-w-lg" />
-      </Dialog>
-    );
-  }
+  return (
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <Show when={state()} keyed fallback={<DialogContent class="max-w-lg" />}>
+        {(run) => (
+          <FailedStepContent
+            run={run}
+            open={props.open}
+            onOpenChange={props.onOpenChange}
+          />
+        )}
+      </Show>
+    </Dialog>
+  );
+};
 
-  const flowVersion = populatedFlow?.version;
-  const stepNode = flowVersion
-    ? flowStructureUtil.getStep(failedStep.name, flowVersion.trigger)
-    : undefined;
-  const stepNumber = flowVersion
-    ? flowStructureUtil.getStepNumber(flowVersion.trigger, failedStep.name)
-    : null;
-  const flowName =
-    run.flowVersion?.displayName ?? flowVersion?.displayName ?? '';
-  const failureTimestamp = run.finishTime ?? run.startTime ?? run.created;
-  const { Icon: RunStatusIcon } = flowRunUtils.getStatusIcon(run.status);
+const FailedStepContent = (props: {
+  run: FlowRun;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) => {
+  const navigate = useNavigate();
+  const step = createMemo(() => {
+    if (isNil(props.run.failedStep)) {
+      throw new Error('Failed step is required');
+    }
+    return props.run.failedStep;
+  });
+
+  const flow = flowHooks.useGetFlow({
+    flowId: untrack(() => props.run.flowId),
+    versionId: untrack(() => props.run.flowVersionId),
+    enabled: untrack(() => props.open),
+  });
+
+  const version = createMemo(() => flow.data?.version);
+  const node = createMemo(() =>
+    version()
+      ? flowStructureUtil.getStep(step().name, version()!.trigger)
+      : undefined,
+  );
+  const number = createMemo(() =>
+    version()
+      ? flowStructureUtil.getStepNumber(version()!.trigger, step().name)
+      : undefined,
+  );
+  const name = createMemo(() => {
+    if (props.run.flowVersion?.displayName) {
+      return props.run.flowVersion.displayName;
+    }
+    if (version()?.displayName) {
+      return version()!.displayName;
+    }
+    return t('Run Failed');
+  });
+  const timestamp = createMemo(() => {
+    if (props.run.finishTime) {
+      return props.run.finishTime;
+    }
+    if (props.run.startTime) {
+      return props.run.startTime;
+    }
+    return props.run.created;
+  });
+  const icon = createMemo(
+    () => flowRunUtils.getStatusIcon(props.run.status).Icon,
+  );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent class="max-w-lg" onClick={(e) => e.stopPropagation()}>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
+      <DialogContent
+        class="max-w-lg"
+        onClick={(e: MouseEvent) => e.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2 text-base">
-            <RunStatusIcon class="size-4 shrink-0 text-destructive-800 dark:text-destructive-200" />
-            <span className="truncate">{flowName || t('Run Failed')}</span>
+            {(() => {
+              const Icon = icon();
+              return (
+                <Icon class="size-4 shrink-0 text-destructive-800 dark:text-destructive-200" />
+              );
+            })()}
+            <span class="truncate">{name()}</span>
           </DialogTitle>
           <DialogDescription class="text-xs">
-            {failureTimestamp
-              ? formatUtils.formatDateWithTime(new Date(failureTimestamp), true)
+            {timestamp()
+              ? formatUtils.formatDateWithTime(new Date(timestamp()), true)
               : null}
           </DialogDescription>
         </DialogHeader>
-        {failedStep.message ? (
+        <Show
+          when={step().message}
+          fallback={
+            <div class="text-sm italic text-muted-foreground">
+              {t('No error message available')}
+            </div>
+          }
+        >
           <JsonViewer
-            json={failedStep.message}
+            json={step().message}
             title={
-              <span className="flex items-center gap-2 min-w-0">
-                {stepNode ? (
-                  <StepIconBadge step={stepNode} />
-                ) : (
-                  <Skeleton class="size-[25px] rounded-md shrink-0" />
-                )}
-                <span className="truncate">
-                  {stepNumber
-                    ? `${stepNumber}. ${failedStep.displayName}`
-                    : failedStep.displayName}
+              <span class="flex items-center gap-2 min-w-0">
+                <Show
+                  when={node()}
+                  fallback={
+                    <Skeleton class="size-[25px] rounded-md shrink-0" />
+                  }
+                >
+                  {(item) => <StepIconBadge step={item()} />}
+                </Show>
+                <span class="truncate">
+                  {number()
+                    ? `${number()}. ${step().displayName}`
+                    : step().displayName}
                 </span>
               </span>
             }
             class="max-h-[400px] overflow-auto"
             hideDownload
           />
-        ) : (
-          <div className="text-sm italic text-muted-foreground">
-            {t('No error message available')}
-          </div>
-        )}
+        </Show>
         <DialogFooter>
           <Button
             onClick={() =>
               navigate(
                 authenticationSession.appendProjectRoutePrefix(
-                  `/runs/${run.id}`,
+                  `/runs/${props.run.id}`,
                 ),
               )
             }
@@ -125,18 +181,26 @@ export const FailedStepDialog = ({
   );
 };
 
-const StepIconBadge = ({ step }: { step: FlowAction | FlowTrigger }) => {
-  const { stepMetadata, isLoading } = stepsHooks.useStepMetadata({ step });
-  if (isLoading || !stepMetadata) {
-    return <Skeleton class="size-[25px] rounded-md shrink-0" />;
-  }
+const StepIconBadge = (props: { step: FlowAction | FlowTrigger }) => {
+  const query = stepsHooks.useStepMetadata({
+    step: untrack(() => props.step),
+  });
+  const metadata = createMemo(() => query.stepMetadata);
+
   return (
-    <PieceIcon
-      logoUrl={stepMetadata.logoUrl}
-      displayName={stepMetadata.displayName}
-      size="xs"
-      border={false}
-      showTooltip={false}
-    />
+    <Show
+      when={!query.isLoading && metadata()}
+      fallback={<Skeleton class="size-[25px] rounded-md shrink-0" />}
+    >
+      {(item) => (
+        <PieceIcon
+          logoUrl={item().logoUrl}
+          displayName={item().displayName}
+          size="xs"
+          border={false}
+          showTooltip={false}
+        />
+      )}
+    </Show>
   );
 };

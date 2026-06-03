@@ -14,15 +14,17 @@ const initialState = {
   searchQuery: '',
 };
 
-export const useFlowToolDialogStore = createWithStore<FlowToolDialogState>((set) => ({
-  ...initialState,
+export const useFlowToolDialogStore = createWithStore<FlowToolDialogState>(
+  (set) => ({
+    ...initialState,
 
-  setShowAddFlowDialog: (show) => set({ showAddFlowDialog: show }),
-  setSearchQuery: (query) => set({ searchQuery: query }),
+    setShowAddFlowDialog: (show) => set({ showAddFlowDialog: show }),
+    setSearchQuery: (query) => set({ searchQuery: query }),
 
-  resetDialogState: () => {
-    set({
-      searchQuery: '',
-    });
-  },
-}));
+    resetDialogState: () => {
+      set({
+        searchQuery: '',
+      });
+    },
+  }),
+);

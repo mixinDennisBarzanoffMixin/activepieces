@@ -1,4 +1,5 @@
 import { FileIcon, VideoIcon } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 interface FileMessageProps {
   content: string;
@@ -7,33 +8,34 @@ interface FileMessageProps {
   role?: 'user' | 'bot';
 }
 
-export const FileMessage = ({ content, mimeType, fileName, role }) => {
-  const isVideo = mimeType?.startsWith('video/');
+export const FileMessage = (props: FileMessageProps) => {
   return (
     <a
-      className="p-2 w-80 rounded-lg border px-2 max-w-full hover:bg-muted transition-colors cursor-pointer"
-      href={content}
-      download={fileName ?? 'file'}
+      class="p-2 w-80 rounded-lg border px-2 max-w-full hover:bg-muted transition-colors cursor-pointer"
+      href={props.content}
+      download={props.fileName ?? 'file'}
     >
-      <div className="flex flex-row items-center gap-2">
-        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
-          <div className="h-full w-full flex items-center justify-center bg-foreground text-background">
-            {isVideo ? (
+      <div class="flex flex-row items-center gap-2">
+        <div class="relative h-10 w-10 shrink-0 overflow-hidden rounded-md">
+          <div class="h-full w-full flex items-center justify-center bg-foreground text-background">
+            <Show
+              when={props.mimeType?.startsWith('video/')}
+              fallback={<FileIcon class="h-5 w-5" />}
+            >
               <VideoIcon class="h-5 w-5" />
-            ) : (
-              <FileIcon class="h-5 w-5" />
-            )}
+            </Show>
           </div>
         </div>
-        <div className="overflow-hidden flex flex-col gap-1">
-          <div className="truncate font-semibold text-sm leading-none">
-            {fileName ?? (role === 'user' ? 'Untitled File' : 'Download File')}
+        <div class="overflow-hidden flex flex-col gap-1">
+          <div class="truncate font-semibold text-sm leading-none">
+            {props.fileName ??
+              (props.role === 'user' ? 'Untitled File' : 'Download File')}
           </div>
-          {fileName && (
-            <div className="truncate text-sm text-token-text-tertiary leading-none">
-              {role === 'user' ? 'View File' : 'Download File'}
+          <Show when={props.fileName}>
+            <div class="truncate text-sm text-token-text-tertiary leading-none">
+              {props.role === 'user' ? 'View File' : 'Download File'}
             </div>
-          )}
+          </Show>
         </div>
       </div>
     </a>

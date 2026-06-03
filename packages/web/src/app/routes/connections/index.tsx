@@ -82,7 +82,7 @@ function AppConnectionsPage() {
   const limit = searchParams.get(LIMIT_QUERY_PARAM)
     ? parseInt(searchParams.get(LIMIT_QUERY_PARAM)!)
     : 10;
-  const status = (searchParams.getAll('status') as AppConnectionStatus[]) ?? [];
+  const status = searchParams.getAll('status') as AppConnectionStatus[];
   const pieceName = searchParams.get('pieceName') ?? undefined;
   const displayName = searchParams.get('displayName') ?? undefined;
 
@@ -104,7 +104,9 @@ function AppConnectionsPage() {
   });
 
   const { mutateAsync: deleteConnections } =
-    appConnectionsMutations.useBulkDeleteAppConnections(refetch);
+    appConnectionsMutations.useBulkDeleteAppConnections(() => {
+      void refetch();
+    });
 
   const filteredData = createMemo(() => {
     if (!connections?.data) return undefined;
@@ -167,33 +169,34 @@ function AppConnectionsPage() {
       {
         accessorKey: 'displayName',
         size: 280,
-        header: ({ column }) => (
+        header: (props) => (
           <DataTableColumnHeader
-            column={column}
+            column={props.column}
             title={t('Name')}
             icon={Puzzle}
           />
         ),
-        cell: ({ row }) => {
-          const isPlatformConnection = row.original.scope === 'PLATFORM';
+        cell: (props) => {
+          const platform = () =>
+            props.row.original.scope === AppConnectionScope.PLATFORM;
           return (
-            <div className="flex items-center gap-2">
+            <div class="flex items-center gap-2">
               <CopyTextTooltip
                 title={t('External ID')}
-                text={row.original.externalId || ''}
+                text={props.row.original.externalId || ''}
               >
-                <div className="flex items-center gap-2 w-fit">
+                <div class="flex items-center gap-2 w-fit">
                   <PieceIconWithPieceName
-                    pieceName={row.original.pieceName}
+                    pieceName={props.row.original.pieceName}
                     showTooltip={false}
                     size="sm"
                   />
-                  <span className="truncate max-w-[120px] 2xl:max-w-[250px]">
-                    {row.original.displayName}
+                  <span class="truncate max-w-[120px] 2xl:max-w-[250px]">
+                    {props.row.original.displayName}
                   </span>
                 </div>
               </CopyTextTooltip>
-              <Show when={isPlatformConnection}>
+              <Show when={platform()}>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Globe class="w-4 h-4 shrink-0" />
@@ -214,23 +217,24 @@ function AppConnectionsPage() {
       {
         accessorKey: 'status',
         size: 120,
-        header: ({ column }) => (
+        header: (props) => (
           <DataTableColumnHeader
-            column={column}
+            column={props.column}
             title={t('Status')}
             icon={Activity}
           />
         ),
-        cell: ({ row }) => {
-          const status = row.original.status;
-          const { variant, icon: Icon } =
-            appConnectionUtils.getStatusIcon(status);
+        cell: (props) => {
+          const status = () => props.row.original.status;
+          const icon = createMemo(() =>
+            appConnectionUtils.getStatusIcon(status()),
+          );
           return (
-            <div className="text-left">
+            <div class="text-left">
               <StatusIconWithText
-                icon={Icon}
-                text={formatUtils.convertEnumToHumanReadable(status)}
-                variant={variant}
+                icon={icon().icon}
+                text={formatUtils.convertEnumToHumanReadable(status())}
+                variant={icon().variant}
               />
             </div>
           );
@@ -239,17 +243,17 @@ function AppConnectionsPage() {
       {
         accessorKey: 'updated',
         size: 150,
-        header: ({ column }) => (
+        header: (props) => (
           <DataTableColumnHeader
-            column={column}
+            column={props.column}
             title={t('Connected At')}
             icon={Clock}
           />
         ),
-        cell: ({ row }) => {
+        cell: (props) => {
           return (
-            <div className="text-left">
-              <FormattedDate date={new Date(row.original.updated)} />
+            <div class="text-left">
+              <FormattedDate date={new Date(props.row.original.updated)} />
             </div>
           );
         },
@@ -257,24 +261,24 @@ function AppConnectionsPage() {
       {
         accessorKey: 'flowCount',
         size: 80,
-        header: ({ column }) => (
+        header: (props) => (
           <DataTableColumnHeader
-            column={column}
+            column={props.column}
             title={t('Flows')}
             icon={Workflow}
           />
         ),
-        cell: ({ row }) => {
+        cell: (props) => {
           return (
             <div
-              className="text-left underline cursor-pointer"
+              class="text-left underline cursor-pointer"
               onClick={() => {
                 navigate(
-                  `/flows?connectionExternalId=${row.original.externalId}`,
+                  `/flows?connectionExternalId=${props.row.original.externalId}`,
                 );
               }}
             >
-              {row.original.flowIds?.length}
+              {props.row.original.flowIds?.length}
             </div>
           );
         },
@@ -282,45 +286,47 @@ function AppConnectionsPage() {
       {
         id: 'actions',
         size: 100,
-        cell: ({ row }) => {
-          const isPlatformConnection =
-            row.original.scope === AppConnectionScope.PLATFORM;
-          const userHasPermissionToRename = isPlatformConnection
-            ? userPlatformRole === PlatformRole.ADMIN
-            : userHasPermissionToWriteAppConnection;
+        cell: (props) => {
+          const platform = () =>
+            props.row.original.scope === AppConnectionScope.PLATFORM;
+          const rename = createMemo(() =>
+            platform()
+              ? userPlatformRole === PlatformRole.ADMIN
+              : userHasPermissionToWriteAppConnection,
+          );
           return (
-            <div className="flex items-center gap-2 justify-end">
+            <div class="flex items-center gap-2 justify-end">
               <Show
-                when={row.original.scope === AppConnectionScope.PROJECT}
+                when={props.row.original.scope === AppConnectionScope.PROJECT}
                 fallback={
                   <EditGlobalConnectionDialog
-                    connectionId={row.original.id}
-                    currentName={row.original.displayName}
-                    projectIds={row.original.projectIds}
-                    userHasPermissionToEdit={userHasPermissionToRename}
+                    connectionId={props.row.original.id}
+                    currentName={props.row.original.displayName}
+                    projectIds={props.row.original.projectIds}
+                    userHasPermissionToEdit={rename()}
                     onEdit={() => {
-                      refetch();
+                      void refetch();
                     }}
                     preSelectForNewProjects={
-                      row.original.preSelectForNewProjects ?? false
+                      props.row.original.preSelectForNewProjects
                     }
                   />
                 }
               >
                 <RenameConnectionDialog
-                  connectionId={row.original.id}
-                  currentName={row.original.displayName}
+                  connectionId={props.row.original.id}
+                  currentName={props.row.original.displayName}
                   onRename={() => {
-                    refetch();
+                    void refetch();
                   }}
-                  userHasPermissionToRename={userHasPermissionToRename}
+                  userHasPermissionToRename={rename()}
                 />
               </Show>
               <ReconnectButtonDialog
-                hasPermission={userHasPermissionToRename}
-                connection={row.original}
+                hasPermission={rename()}
+                connection={props.row.original}
                 onConnectionCreated={() => {
-                  refetch();
+                  void refetch();
                 }}
               />
             </div>
@@ -334,22 +340,28 @@ function AppConnectionsPage() {
   const bulkActions: BulkAction<AppConnectionWithoutSensitiveData>[] =
     createMemo(() => [
       {
-        render: (_, resetSelection) => {
+        render: (
+          _rows: RowDataWithActions<AppConnectionWithoutSensitiveData>[],
+          resetSelection: () => void,
+        ) => {
           return (
             <>
-              <Show when={selectedRows.length > 0}>
+              <Show when={selectedRows().length > 0}>
                 <ConfirmationDeleteDialog
                   title={t('Delete Connections')}
-                  message={t(
-                    'The selected connections will be permanently deleted.',
+                  message={String(
+                    t('The selected connections will be permanently deleted.'),
                   )}
                   warning={<DeleteConnectionWarning />}
-                  mutationFn={async () => {
-                    await deleteConnections(selectedRows.map((row) => row.id));
-                    refetch();
-                    resetSelection();
-                    setSelectedRows([]);
-                  }}
+                  mutationFn={() =>
+                    deleteConnections(selectedRows().map((row) => row.id)).then(
+                      () => {
+                        void refetch();
+                        resetSelection();
+                        setSelectedRows([]);
+                      },
+                    )
+                  }
                   entityName={t('connection')}
                   buttonText={t('Delete')}
                   open={showDeleteDialog}
@@ -363,7 +375,7 @@ function AppConnectionsPage() {
                     onClick={() => setShowDeleteDialog(true)}
                   >
                     <Trash2 class="h-4 w-4 mr-1" />
-                    {t('Delete')} ({selectedRows.length})
+                    {t('Delete')} ({selectedRows().length})
                   </Button>
                 </ConfirmationDeleteDialog>
               </Show>
@@ -381,8 +393,8 @@ function AppConnectionsPage() {
       <ReplaceConnectionsDialog
         projectId={projectId}
         onConnectionMerged={() => {
-          setRefresh(refresh + 1);
-          refetch();
+          setRefresh(refresh() + 1);
+          void refetch();
         }}
       >
         <AnimatedIconButton
@@ -402,8 +414,8 @@ function AppConnectionsPage() {
       <NewConnectionDialog
         isGlobalConnection={false}
         onConnectionCreated={() => {
-          setRefresh(refresh + 1);
-          refetch();
+          setRefresh(refresh() + 1);
+          void refetch();
         }}
       >
         <AnimatedIconButton
@@ -418,7 +430,7 @@ function AppConnectionsPage() {
     </PermissionNeededTooltip>,
   ]);
   return (
-    <div className="flex-col w-full">
+    <div class="flex-col w-full">
       <DataTable
         emptyStateTextTitle={t('No connections found')}
         emptyStateTextDescription={t(

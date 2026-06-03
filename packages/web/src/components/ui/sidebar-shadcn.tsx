@@ -5,15 +5,20 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  onCleanup,
+  splitProps,
+  untrack,
   useContext,
+  type ComponentProps,
+  type JSX,
 } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
 import { PanelLeftCloseIcon } from '@/components/icons/panel-left-close';
 import { PanelLeftOpenIcon } from '@/components/icons/panel-left-open';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
-import { Slot } from '@/components/ui/slot';
 import {
   Sheet,
   SheetContent,
@@ -22,6 +27,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Slot } from '@/components/ui/slot';
 import {
   Tooltip,
   TooltipContent,
@@ -49,30 +55,28 @@ function useSidebar() {
   return context;
 }
 
-function SidebarProvider({
-  defaultOpen = true,
-  open: openProp,
-  onOpenChange: setOpenProp,
-  hoverMode = false,
-  className,
-  style,
-  children,
-  ...props
-}: JSX.IntrinsicElements['div'] & {
-  defaultOpen?: boolean;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  hoverMode?: boolean;
-}) {
+function SidebarProvider(props: SidebarProviderProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'style',
+    'children',
+    'defaultOpen',
+    'open',
+    'onOpenChange',
+    'hoverMode',
+  ]);
   const isMobile = useIsMobile();
   const [openMobile, setOpenMobile] = createSignal(false);
   const [isHovered, setIsHovered] = createSignal(false);
   const [keepElevatedZIndex, setKeepElevatedZIndex] = createSignal(false);
+  const defaultOpen = () => local.defaultOpen ?? true;
+  const hoverMode = () => local.hoverMode ?? false;
 
   const [_open, _setOpen] = createSignal(
-    (() => {
-      if (hoverMode) {
-        return defaultOpen;
+    untrack(() => {
+      if (hoverMode()) {
+        return defaultOpen();
       }
       if (typeof window !== 'undefined') {
         const stored = localStorage.getItem(SIDEBAR_COOKIE_NAME);
@@ -80,25 +84,25 @@ function SidebarProvider({
           return stored === 'true';
         }
       }
-      return defaultOpen;
-    })(),
+      return defaultOpen();
+    }),
   );
-  const persistedOpen = openProp ?? _open;
+  const persistedOpen = () => local.open ?? _open();
 
-  const isHoverExpanded = hoverMode && !persistedOpen && isHovered;
-  const open = persistedOpen || isHoverExpanded;
-  const shouldElevateZIndex = isHoverExpanded || keepElevatedZIndex;
+  const isHoverExpanded = () => hoverMode() && !persistedOpen() && isHovered();
+  const open = () => persistedOpen() || isHoverExpanded();
+  const shouldElevateZIndex = () => isHoverExpanded() || keepElevatedZIndex();
 
   const setOpen = (value: boolean | ((value: boolean) => boolean)) => {
     const openState =
-      typeof value === 'function' ? value(persistedOpen) : value;
-    if (setOpenProp) {
-      setOpenProp(openState);
+      typeof value === 'function' ? value(persistedOpen()) : value;
+    if (local.onOpenChange) {
+      local.onOpenChange(openState);
     } else {
       _setOpen(openState);
     }
 
-    if (!hoverMode) {
+    if (!hoverMode()) {
       localStorage.setItem(SIDEBAR_COOKIE_NAME, String(openState));
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
     }
@@ -156,22 +160,22 @@ function SidebarProvider({
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    onCleanup(() => window.removeEventListener('keydown', handleKeyDown));
   });
 
-  const state = open ? 'expanded' : 'collapsed';
+  const state = () => (open() ? 'expanded' : 'collapsed');
 
   const contextValue = createMemo<SidebarContextProps>(() => ({
-    state,
-    open,
+    state: state(),
+    open: open(),
     setOpen,
     isMobile,
     openMobile,
     setOpenMobile,
     toggleSidebar,
-    hoverMode,
-    isHoverExpanded,
-    shouldElevateZIndex,
+    hoverMode: hoverMode(),
+    isHoverExpanded: isHoverExpanded(),
+    shouldElevateZIndex: shouldElevateZIndex(),
     setHovered,
   }));
 
@@ -184,34 +188,35 @@ function SidebarProvider({
             {
               '--sidebar-width': SIDEBAR_WIDTH,
               '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
-              ...style,
+              ...local.style,
             } as JSX.CSSProperties
           }
-          className={cn(
+          class={cn(
             'group/sidebar-wrapper flex h-svh w-full has-data-[variant=inset]:bg-sidebar',
-            className,
+            local.class,
+            local.className,
           )}
-          {...props}
+          {...rest}
         >
-          {children}
+          {local.children}
         </div>
       </TooltipProvider>
     </SidebarContext.Provider>
   );
 }
 
-function Sidebar({
-  side = 'left',
-  variant = 'sidebar',
-  collapsible = 'offcanvas',
-  className,
-  children,
-  ...props
-}: JSX.IntrinsicElements['div'] & {
-  side?: 'left' | 'right';
-  variant?: 'sidebar' | 'floating' | 'inset';
-  collapsible?: 'offcanvas' | 'icon' | 'none';
-}) {
+function Sidebar(props: SidebarProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'children',
+    'side',
+    'variant',
+    'collapsible',
+  ]);
+  const side = () => local.side ?? 'left';
+  const variant = () => local.variant ?? 'sidebar';
+  const collapsible = () => local.collapsible ?? 'offcanvas';
   const {
     isMobile,
     state,
@@ -224,126 +229,135 @@ function Sidebar({
     setHovered,
   } = useSidebar();
 
-  if (collapsible === 'none') {
-    return (
+  return (
+    <Show
+      when={collapsible() === 'none'}
+      fallback={
+        <Show
+          when={isMobile}
+          fallback={
+            <div
+              class="group peer hidden text-sidebar-foreground md:block"
+              data-state={state}
+              data-collapsible={state === 'collapsed' ? collapsible() : ''}
+              data-variant={variant()}
+              data-side={side()}
+              data-slot="sidebar"
+              onMouseEnter={hoverMode ? () => setHovered(true) : undefined}
+              onMouseLeave={hoverMode ? () => setHovered(false) : undefined}
+            >
+              {/* This is what handles the sidebar gap on desktop */}
+              <div
+                data-slot="sidebar-gap"
+                class={cn(
+                  'relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear',
+                  'group-data-[collapsible=offcanvas]:w-0',
+                  'group-data-[side=right]:rotate-180',
+                  variant() === 'floating' || variant() === 'inset'
+                    ? 'group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]'
+                    : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
+                  isHoverExpanded &&
+                    (variant() === 'floating' || variant() === 'inset'
+                      ? 'w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]'
+                      : 'w-(--sidebar-width-icon)'),
+                )}
+              />
+              <div
+                data-slot="sidebar-container"
+                class={cn(
+                  'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
+                  side() === 'left'
+                    ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
+                    : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
+                  variant() === 'floating' || variant() === 'inset'
+                    ? 'p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]'
+                    : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
+                  !hoverMode && (side() === 'left' ? 'border-r' : 'border-l'),
+                  hoverMode &&
+                    isHoverExpanded &&
+                    (side() === 'left' ? 'border-r' : 'border-l'),
+                  !hoverMode &&
+                    state === 'collapsed' &&
+                    collapsible() === 'icon' &&
+                    '[&_*]:!cursor-nesw-resize [&_button]:!cursor-pointer [&_button]:relative [&_button]:z-20 [&_button_*]:!cursor-pointer [&_a]:!cursor-pointer [&_a]:relative [&_a]:z-20 [&_a_*]:!cursor-pointer [&_[role=button]]:!cursor-pointer [&_[role=button]]:relative [&_[role=button]]:z-20 [&_[role=button]_*]:!cursor-pointer [&_[data-sidebar=menu-button]]:!cursor-pointer [&_[data-sidebar=menu-button]]:relative [&_[data-sidebar=menu-button]]:z-20 [&_[data-sidebar=menu-button]_*]:!cursor-pointer cursor-nesw-resize',
+                  shouldElevateZIndex && 'z-55',
+                  local.class,
+                  local.className,
+                )}
+                {...rest}
+              >
+                <div
+                  data-sidebar="sidebar"
+                  data-slot="sidebar-inner"
+                  class={cn(
+                    'flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow',
+                    !hoverMode &&
+                      state === 'collapsed' &&
+                      collapsible() === 'icon' &&
+                      'relative',
+                  )}
+                >
+                  <Show
+                    when={
+                      !hoverMode &&
+                      state === 'collapsed' &&
+                      collapsible() === 'icon'
+                    }
+                  >
+                    <div
+                      class="absolute inset-0 z-10 !cursor-nesw-resize"
+                      onClick={() => setOpen(true)}
+                      aria-hidden="true"
+                    />
+                  </Show>
+                  {local.children}
+                </div>
+              </div>
+            </div>
+          }
+        >
+          <Sheet open={openMobile} onOpenChange={setOpenMobile} {...rest}>
+            <SheetContent
+              data-sidebar="sidebar"
+              data-slot="sidebar"
+              data-mobile="true"
+              class="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+              style={
+                {
+                  '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
+                } as JSX.CSSProperties
+              }
+              side={side()}
+            >
+              <SheetHeader class="sr-only">
+                <SheetTitle>Sidebar</SheetTitle>
+                <SheetDescription>
+                  Displays the mobile sidebar.
+                </SheetDescription>
+              </SheetHeader>
+              <div class="flex h-full w-full flex-col">{local.children}</div>
+            </SheetContent>
+          </Sheet>
+        </Show>
+      }
+    >
       <div
         data-slot="sidebar"
-        className={cn(
+        class={cn(
           'flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground',
-          className,
+          local.class,
+          local.className,
         )}
-        {...props}
+        {...rest}
       >
-        {children}
+        {local.children}
       </div>
-    );
-  }
-
-  if (isMobile) {
-    return (
-      <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
-        <SheetContent
-          data-sidebar="sidebar"
-          data-slot="sidebar"
-          data-mobile="true"
-          class="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-          style={
-            {
-              '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
-            } as JSX.CSSProperties
-          }
-          side={side}
-        >
-          <SheetHeader class="sr-only">
-            <SheetTitle>Sidebar</SheetTitle>
-            <SheetDescription>Displays the mobile sidebar.</SheetDescription>
-          </SheetHeader>
-          <div className="flex h-full w-full flex-col">{children}</div>
-        </SheetContent>
-      </Sheet>
-    );
-  }
-
-  return (
-    <div
-      className="group peer hidden text-sidebar-foreground md:block"
-      data-state={state}
-      data-collapsible={state === 'collapsed' ? collapsible : ''}
-      data-variant={variant}
-      data-side={side}
-      data-slot="sidebar"
-      onMouseEnter={hoverMode ? () => setHovered(true) : undefined}
-      onMouseLeave={hoverMode ? () => setHovered(false) : undefined}
-    >
-      {/* This is what handles the sidebar gap on desktop */}
-      <div
-        data-slot="sidebar-gap"
-        className={cn(
-          'relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear',
-          'group-data-[collapsible=offcanvas]:w-0',
-          'group-data-[side=right]:rotate-180',
-          variant === 'floating' || variant === 'inset'
-            ? 'group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]'
-            : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
-          isHoverExpanded &&
-            (variant === 'floating' || variant === 'inset'
-              ? 'w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]'
-              : 'w-(--sidebar-width-icon)'),
-        )}
-      />
-      <div
-        data-slot="sidebar-container"
-        className={cn(
-          'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
-          side === 'left'
-            ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
-            : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
-          variant === 'floating' || variant === 'inset'
-            ? 'p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]'
-            : 'group-data-[collapsible=icon]:w-(--sidebar-width-icon)',
-          !hoverMode && (side === 'left' ? 'border-r' : 'border-l'),
-          hoverMode &&
-            isHoverExpanded &&
-            (side === 'left' ? 'border-r' : 'border-l'),
-          !hoverMode &&
-            state === 'collapsed' &&
-            collapsible === 'icon' &&
-            '[&_*]:!cursor-nesw-resize [&_button]:!cursor-pointer [&_button]:relative [&_button]:z-20 [&_button_*]:!cursor-pointer [&_a]:!cursor-pointer [&_a]:relative [&_a]:z-20 [&_a_*]:!cursor-pointer [&_[role=button]]:!cursor-pointer [&_[role=button]]:relative [&_[role=button]]:z-20 [&_[role=button]_*]:!cursor-pointer [&_[data-sidebar=menu-button]]:!cursor-pointer [&_[data-sidebar=menu-button]]:relative [&_[data-sidebar=menu-button]]:z-20 [&_[data-sidebar=menu-button]_*]:!cursor-pointer cursor-nesw-resize',
-          shouldElevateZIndex && 'z-55',
-          className,
-        )}
-        {...props}
-      >
-        <div
-          data-sidebar="sidebar"
-          data-slot="sidebar-inner"
-          className={cn(
-            'flex h-full w-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:border-sidebar-border group-data-[variant=floating]:shadow',
-            !hoverMode &&
-              state === 'collapsed' &&
-              collapsible === 'icon' &&
-              'relative',
-          )}
-        >
-          {!hoverMode && state === 'collapsed' && collapsible === 'icon' && (
-            <div
-              className="absolute inset-0 z-10 !cursor-nesw-resize"
-              onClick={() => setOpen(true)}
-              aria-hidden="true"
-            />
-          )}
-          {children}
-        </div>
-      </div>
-    </div>
+    </Show>
   );
 }
 
-function SidebarTrigger({
-  className,
-  onClick,
-  ...props
-}: ComponentProps<typeof Button>) {
+function SidebarTrigger(props: SidebarTriggerProps) {
+  const [local, rest] = splitProps(props, ['class', 'className', 'onClick']);
   const { toggleSidebar, open } = useSidebar();
 
   return (
@@ -352,24 +366,23 @@ function SidebarTrigger({
       data-slot="sidebar-trigger"
       variant="ghost"
       size="icon"
-      class={cn('size-7', className)}
+      class={cn('size-7', local.class, local.className)}
       onClick={(event) => {
-        onClick?.(event);
+        local.onClick?.(event);
         toggleSidebar();
       }}
-      {...props}
+      {...rest}
     >
-      {open ? (
+      <Show when={open} fallback={<PanelLeftOpenIcon size={16} />}>
         <PanelLeftCloseIcon size={16} />
-      ) : (
-        <PanelLeftOpenIcon size={16} />
-      )}
-      <span className="sr-only">Toggle Sidebar</span>
+      </Show>
+      <span class="sr-only">Toggle Sidebar</span>
     </Button>
   );
 }
 
-function SidebarRail({ className, ...props }: JSX.IntrinsicElements['button']) {
+function SidebarRail(props: SidebarButtonProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   const { toggleSidebar } = useSidebar();
 
   return (
@@ -380,181 +393,196 @@ function SidebarRail({ className, ...props }: JSX.IntrinsicElements['button']) {
       tabIndex={-1}
       onClick={toggleSidebar}
       title="Toggle Sidebar"
-      className={cn(
+      class={cn(
         'absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border sm:flex',
         'in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize',
         '[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize',
         'group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar',
         '[[data-side=left][data-collapsible=offcanvas]_&]:-right-2',
         '[[data-side=right][data-collapsible=offcanvas]_&]:-left-2',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function SidebarInset({ className, ...props }: JSX.IntrinsicElements['main']) {
+function SidebarInset(props: SidebarMainProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <main
       data-slot="sidebar-inset"
-      className={cn(
+      class={cn(
         'relative flex w-full flex-1 flex-col bg-background',
         'md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function SidebarInput({ className, ...props }: ComponentProps<typeof Input>) {
+function SidebarInput(props: SidebarInputProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <Input
       data-slot="sidebar-input"
       data-sidebar="input"
-      class={cn('h-8 w-full bg-background shadow-none', className)}
-      {...props}
+      class={cn(
+        'h-8 w-full bg-background shadow-none',
+        local.class,
+        local.className,
+      )}
+      {...rest}
     />
   );
 }
 
-function SidebarHeader({ className, ...props }: JSX.IntrinsicElements['div']) {
+function SidebarHeader(props: SidebarDivProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <div
       data-slot="sidebar-header"
       data-sidebar="header"
-      className={cn('flex flex-col gap-2 p-2', className)}
-      {...props}
+      class={cn('flex flex-col gap-2 p-2', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function SidebarFooter({ className, ...props }: JSX.IntrinsicElements['div']) {
+function SidebarFooter(props: SidebarDivProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <div
       data-slot="sidebar-footer"
       data-sidebar="footer"
-      className={cn('flex flex-col gap-2 p-2', className)}
-      {...props}
+      class={cn('flex flex-col gap-2 p-2', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function SidebarSeparator({
-  className,
-  ...props
-}: ComponentProps<typeof Separator>) {
+function SidebarSeparator(props: SidebarSeparatorProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <Separator
       data-slot="sidebar-separator"
       data-sidebar="separator"
-      class={cn('mx-2 w-auto bg-sidebar-border', className)}
-      {...props}
+      class={cn('mx-2 w-auto bg-sidebar-border', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function SidebarContent({ className, ...props }: JSX.IntrinsicElements['div']) {
+function SidebarContent(props: SidebarDivProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <div
       data-slot="sidebar-content"
       data-sidebar="content"
-      className={cn(
+      class={cn(
         'no-scrollbar flex min-h-0 flex-1 flex-col gap-0 overflow-auto group-data-[collapsible=icon]:overflow-hidden',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function SidebarGroup({ className, ...props }: JSX.IntrinsicElements['div']) {
+function SidebarGroup(props: SidebarDivProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <div
       data-slot="sidebar-group"
       data-sidebar="group"
-      className={cn('relative flex w-full min-w-0 flex-col p-2', className)}
-      {...props}
+      class={cn(
+        'relative flex w-full min-w-0 flex-col p-2',
+        local.class,
+        local.className,
+      )}
+      {...rest}
     />
   );
 }
 
-function SidebarGroupLabel({
-  className,
-  asChild = false,
-  ...props
-}: JSX.IntrinsicElements['div'] & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : 'div';
+function SidebarGroupLabel(props: SidebarGroupLabelProps) {
+  const [local, rest] = splitProps(props, ['class', 'className', 'asChild']);
 
   return (
-    <Comp
+    <Dynamic
+      component={local.asChild ? Slot.Root : 'div'}
       data-slot="sidebar-group-label"
       data-sidebar="group-label"
       class={cn(
         'flex h-7 shrink-0 items-center rounded-md px-2 text-xs font-normal text-sidebar-foreground/70 ring-sidebar-ring outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
         'group-data-[collapsible=icon]:-mt-7 group-data-[collapsible=icon]:opacity-0',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function SidebarGroupAction({
-  className,
-  asChild = false,
-  ...props
-}: JSX.IntrinsicElements['button'] & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : 'button';
+function SidebarGroupAction(props: SidebarGroupActionProps) {
+  const [local, rest] = splitProps(props, ['class', 'className', 'asChild']);
 
   return (
-    <Comp
+    <Dynamic
+      component={local.asChild ? Slot.Root : 'button'}
       data-slot="sidebar-group-action"
       data-sidebar="group-action"
       class={cn(
         'absolute top-3.5 right-3 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground ring-sidebar-ring outline-hidden transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
         'after:absolute after:-inset-2 md:after:hidden',
         'group-data-[collapsible=icon]:hidden',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function SidebarGroupContent({
-  className,
-  ...props
-}: JSX.IntrinsicElements['div']) {
+function SidebarGroupContent(props: SidebarDivProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <div
       data-slot="sidebar-group-content"
       data-sidebar="group-content"
-      className={cn('w-full text-sm', className)}
-      {...props}
+      class={cn('w-full text-sm', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function SidebarMenu({ className, ...props }: JSX.IntrinsicElements['ul']) {
+function SidebarMenu(props: SidebarUlProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <ul
       data-slot="sidebar-menu"
       data-sidebar="menu"
-      className={cn('flex w-full min-w-0 flex-col gap-1', className)}
-      {...props}
+      class={cn(
+        'flex w-full min-w-0 flex-col gap-1',
+        local.class,
+        local.className,
+      )}
+      {...rest}
     />
   );
 }
 
-function SidebarMenuItem({ className, ...props }: JSX.IntrinsicElements['li']) {
+function SidebarMenuItem(props: SidebarLiProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <li
       data-slot="sidebar-menu-item"
       data-sidebar="menu-item"
-      className={cn('group/menu-item relative', className)}
-      {...props}
+      class={cn('group/menu-item relative', local.class, local.className)}
+      {...rest}
     />
   );
 }
@@ -582,69 +610,67 @@ const sidebarMenuButtonVariants = cva(
   },
 );
 
-function SidebarMenuButton({
-  asChild = false,
-  isActive = false,
-  variant = 'default',
-  size = 'default',
-  tooltip,
-  className,
-  ...props
-}: JSX.IntrinsicElements['button'] & {
-  asChild?: boolean;
-  isActive?: boolean;
-  tooltip?: string | ComponentProps<typeof TooltipContent>;
-} & VariantProps<typeof sidebarMenuButtonVariants>) {
-  const Comp = asChild ? Slot.Root : 'button';
+function SidebarMenuButton(props: SidebarMenuButtonProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'asChild',
+    'isActive',
+    'variant',
+    'size',
+    'tooltip',
+  ]);
   const { isMobile, state } = useSidebar();
+  const size = () => local.size ?? 'default';
+  const variant = () => local.variant ?? 'default';
+  const active = () => local.isActive ?? false;
+  const tooltip = () =>
+    typeof local.tooltip === 'string'
+      ? { children: local.tooltip }
+      : local.tooltip;
 
   const button = (
-    <Comp
+    <Dynamic
+      component={local.asChild ? Slot.Root : 'button'}
       data-slot="sidebar-menu-button"
       data-sidebar="menu-button"
-      data-size={size}
-      data-active={isActive}
-      class={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-      {...props}
+      data-size={size()}
+      data-active={active()}
+      class={cn(
+        sidebarMenuButtonVariants({ variant: variant(), size: size() }),
+        local.class,
+        local.className,
+      )}
+      {...rest}
     />
   );
 
-  if (!tooltip) {
-    return button;
-  }
-
-  if (typeof tooltip === 'string') {
-    tooltip = {
-      children: tooltip,
-    };
-  }
-
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent
-        side="right"
-        align="center"
-        hidden={state !== 'collapsed' || isMobile}
-        {...tooltip}
-      />
-    </Tooltip>
+    <Show when={local.tooltip} fallback={button}>
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent
+          side="right"
+          align="center"
+          hidden={state !== 'collapsed' || isMobile}
+          {...tooltip()}
+        />
+      </Tooltip>
+    </Show>
   );
 }
 
-function SidebarMenuAction({
-  className,
-  asChild = false,
-  showOnHover = false,
-  ...props
-}: JSX.IntrinsicElements['button'] & {
-  asChild?: boolean;
-  showOnHover?: boolean;
-}) {
-  const Comp = asChild ? Slot.Root : 'button';
+function SidebarMenuAction(props: SidebarMenuActionProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'asChild',
+    'showOnHover',
+  ]);
 
   return (
-    <Comp
+    <Dynamic
+      component={local.asChild ? Slot.Root : 'button'}
       data-slot="sidebar-menu-action"
       data-sidebar="menu-action"
       class={cn(
@@ -654,44 +680,39 @@ function SidebarMenuAction({
         'peer-data-[size=default]/menu-button:top-1.5',
         'peer-data-[size=lg]/menu-button:top-2.5',
         'group-data-[collapsible=icon]:hidden',
-        showOnHover &&
+        local.showOnHover &&
           'peer-data-active/menu-button:text-sidebar-accent-foreground group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-open:opacity-100 md:opacity-0',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function SidebarMenuBadge({
-  className,
-  ...props
-}: JSX.IntrinsicElements['div']) {
+function SidebarMenuBadge(props: SidebarDivProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <div
       data-slot="sidebar-menu-badge"
       data-sidebar="menu-badge"
-      className={cn(
+      class={cn(
         'pointer-events-none absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium text-sidebar-foreground tabular-nums select-none',
         'peer-hover/menu-button:text-sidebar-accent-foreground peer-data-active/menu-button:text-sidebar-accent-foreground',
         'peer-data-[size=sm]/menu-button:top-1',
         'peer-data-[size=default]/menu-button:top-1.5',
         'peer-data-[size=lg]/menu-button:top-2.5',
         'group-data-[collapsible=icon]:hidden',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function SidebarMenuSkeleton({
-  className,
-  showIcon = false,
-  ...props
-}: JSX.IntrinsicElements['div'] & {
-  showIcon?: boolean;
-}) {
+function SidebarMenuSkeleton(props: SidebarMenuSkeletonProps) {
+  const [local, rest] = splitProps(props, ['class', 'className', 'showIcon']);
   const width = createMemo(() => {
     return `${Math.floor(Math.random() * 40) + 50}%`;
   });
@@ -700,10 +721,14 @@ function SidebarMenuSkeleton({
     <div
       data-slot="sidebar-menu-skeleton"
       data-sidebar="menu-skeleton"
-      className={cn('flex h-7 items-center gap-2 rounded-md px-2', className)}
-      {...props}
+      class={cn(
+        'flex h-7 items-center gap-2 rounded-md px-2',
+        local.class,
+        local.className,
+      )}
+      {...rest}
     >
-      <Show when={showIcon}>
+      <Show when={local.showIcon}>
         <Skeleton class="size-4 rounded-md" data-sidebar="menu-skeleton-icon" />
       </Show>
       <Skeleton
@@ -719,63 +744,63 @@ function SidebarMenuSkeleton({
   );
 }
 
-function SidebarMenuSub({ className, ...props }: JSX.IntrinsicElements['ul']) {
+function SidebarMenuSub(props: SidebarUlProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <ul
       data-slot="sidebar-menu-sub"
       data-sidebar="menu-sub"
-      className={cn(
+      class={cn(
         'mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border px-2.5 py-0.5',
         'group-data-[collapsible=icon]:hidden',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function SidebarMenuSubItem({
-  className,
-  ...props
-}: JSX.IntrinsicElements['li']) {
+function SidebarMenuSubItem(props: SidebarLiProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <li
       data-slot="sidebar-menu-sub-item"
       data-sidebar="menu-sub-item"
-      className={cn('group/menu-sub-item relative', className)}
-      {...props}
+      class={cn('group/menu-sub-item relative', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function SidebarMenuSubButton({
-  asChild = false,
-  size = 'md',
-  isActive = false,
-  className,
-  ...props
-}: JSX.IntrinsicElements['a'] & {
-  asChild?: boolean;
-  size?: 'sm' | 'md';
-  isActive?: boolean;
-}) {
-  const Comp = asChild ? Slot.Root : 'a';
+function SidebarMenuSubButton(props: SidebarMenuSubButtonProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'asChild',
+    'size',
+    'isActive',
+  ]);
+  const size = () => local.size ?? 'md';
+  const active = () => local.isActive ?? false;
 
   return (
-    <Comp
+    <Dynamic
+      component={local.asChild ? Slot.Root : 'a'}
       data-slot="sidebar-menu-sub-button"
       data-sidebar="menu-sub-button"
-      data-size={size}
-      data-active={isActive}
+      data-size={size()}
+      data-active={active()}
       class={cn(
         'flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground ring-sidebar-ring outline-hidden hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground',
         'data-active:bg-sidebar-accent data-active:text-sidebar-accent-foreground',
-        size === 'sm' && 'text-xs',
-        size === 'md' && 'text-sm',
+        size() === 'sm' && 'text-xs',
+        size() === 'md' && 'text-sm',
         'group-data-[collapsible=icon]:hidden',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
@@ -820,4 +845,86 @@ type SidebarContextProps = {
   isHoverExpanded: boolean;
   shouldElevateZIndex: boolean;
   setHovered: (hovered: boolean) => void;
+};
+
+type SidebarProviderProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
+  defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  hoverMode?: boolean;
+};
+
+type SidebarProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
+  side?: 'left' | 'right';
+  variant?: 'sidebar' | 'floating' | 'inset';
+  collapsible?: 'offcanvas' | 'icon' | 'none';
+};
+
+type SidebarDivProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
+};
+
+type SidebarButtonProps = JSX.IntrinsicElements['button'] & {
+  className?: string;
+};
+
+type SidebarMainProps = JSX.IntrinsicElements['main'] & {
+  className?: string;
+};
+
+type SidebarUlProps = JSX.IntrinsicElements['ul'] & {
+  className?: string;
+};
+
+type SidebarLiProps = JSX.IntrinsicElements['li'] & {
+  className?: string;
+};
+
+type SidebarTriggerProps = ComponentProps<typeof Button> & {
+  className?: string;
+};
+
+type SidebarInputProps = ComponentProps<typeof Input> & {
+  className?: string;
+};
+
+type SidebarSeparatorProps = ComponentProps<typeof Separator> & {
+  className?: string;
+};
+
+type SidebarGroupLabelProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
+  asChild?: boolean;
+};
+
+type SidebarGroupActionProps = JSX.IntrinsicElements['button'] & {
+  className?: string;
+  asChild?: boolean;
+};
+
+type SidebarMenuButtonProps = JSX.IntrinsicElements['button'] & {
+  className?: string;
+  asChild?: boolean;
+  isActive?: boolean;
+  tooltip?: string | ComponentProps<typeof TooltipContent>;
+} & VariantProps<typeof sidebarMenuButtonVariants>;
+
+type SidebarMenuActionProps = JSX.IntrinsicElements['button'] & {
+  className?: string;
+  asChild?: boolean;
+  showOnHover?: boolean;
+};
+
+type SidebarMenuSkeletonProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
+  showIcon?: boolean;
+};
+
+type SidebarMenuSubButtonProps = JSX.IntrinsicElements['a'] & {
+  className?: string;
+  asChild?: boolean;
+  size?: 'sm' | 'md';
+  isActive?: boolean;
 };

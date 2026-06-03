@@ -36,7 +36,7 @@ const ProjectRolePage = () => {
   ) : (
     <ProjectRoleDialog
       mode="create"
-      onSave={() => refetch()}
+      onSave={() => void refetch()}
       platformId={platform.id}
     >
       <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
@@ -65,12 +65,11 @@ const ProjectRolePage = () => {
         <ProjectRolesTable
           projectRoles={data}
           isLoading={isLoading}
-          refetch={refetch}
+          refetch={() => void refetch()}
         />
       </CenteredPage>
     </LockedFeatureGuard>
   );
 };
 
-ProjectRolePage.displayName = 'ProjectRolePage';
 export { ProjectRolePage };

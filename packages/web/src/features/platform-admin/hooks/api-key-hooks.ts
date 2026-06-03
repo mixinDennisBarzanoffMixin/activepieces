@@ -1,3 +1,4 @@
+import { ApiKeyResponseWithoutValue, SeekPage } from '@activepieces/shared';
 import {
   createMutation,
   createQuery,
@@ -12,7 +13,7 @@ export const apiKeyKeys = {
 
 export const apiKeyQueries = {
   useApiKeys: () =>
-    createQuery(() => ({
+    createQuery<SeekPage<ApiKeyResponseWithoutValue>>(() => ({
       queryKey: apiKeyKeys.all,
       gcTime: 0,
       staleTime: 0,
@@ -33,7 +34,7 @@ export const apiKeyMutations = {
     return createMutation(() => ({
       mutationFn: (keyId: string) => apiKeyApi.delete(keyId),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: apiKeyKeys.all });
+        void queryClient.invalidateQueries({ queryKey: apiKeyKeys.all });
       },
     }));
   },

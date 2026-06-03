@@ -1,5 +1,5 @@
-import { createEffect, createSignal } from 'solid-js';
 import { t } from 'i18next';
+import { createEffect, createSignal, For } from 'solid-js';
 
 import { ZapIcon, ZapIconHandle } from '@/components/icons/zap';
 import { cn } from '@/lib/utils';
@@ -14,89 +14,95 @@ function getBoltColor(passedCount: number) {
   return STEP_COLORS[passedCount - 1];
 }
 
-const PasswordStrengthBolt = ({ password }: { password: string }) => {
-  const results = passwordRules.map((rule) => ({
-    label: rule.label,
-    passed: rule.condition(password),
-  }));
-  const passedCount = results.filter((r) => r.passed).length;
-  const total = results.length;
-  const fillPercent = total === 0 ? 0 : (passedCount / total) * 100;
-  const isComplete = passedCount === total && total > 0;
-  const boltColor = getBoltColor(passedCount);
+const PasswordStrengthBolt = (props: { password: string }) => {
+  const results = () =>
+    passwordRules.map((rule) => ({
+      label: rule.label,
+      passed: rule.condition(props.password),
+    }));
+  const passed = () => results().filter((rule) => rule.passed).length;
+  const total = () => results().length;
+  const percent = () => (total() === 0 ? 0 : (passed() / total()) * 100);
+  const complete = () => passed() === total() && total() > 0;
+  const color = () => getBoltColor(passed());
 
   let glowRef: HTMLDivElement | undefined;
-  let iconRef: ZapIconHandle | undefined;
+  const iconRef: ZapIconHandle = {
+    startAnimation: () => undefined,
+    stopAnimation: () => undefined,
+  };
 
   createEffect(() => {
     if (!glowRef) return;
-    if (isComplete) {
+    if (complete()) {
       glowRef.style.animation = 'none';
       void glowRef.offsetWidth;
       glowRef.style.animation = 'boltGlow 0.6s ease-in forwards';
-      iconRef?.startAnimation();
+      iconRef.startAnimation();
     } else {
       glowRef.style.animation = '';
     }
   });
 
   return (
-    <div className="flex items-center justify-center">
+    <div class="flex items-center justify-center">
       <div ref={(el) => (glowRef = el)}>
         <ZapIcon
-          ref={(el) => (iconRef = el)}
+          ref={iconRef}
           size={20}
-          fillColor={boltColor}
-          fillPercent={fillPercent}
+          fillColor={color()}
+          fillPercent={percent()}
         />
       </div>
     </div>
   );
 };
 
-const PasswordRequirementsList = ({
-  password,
-  isSubmitted,
-}: {
+const PasswordRequirementsList = (props: {
   password: string;
   isSubmitted: boolean;
 }) => {
   const [hasReachedMin, setHasReachedMin] = createSignal(false);
 
   createEffect(() => {
-    if (password.length >= 8) {
+    if (props.password.length >= 8) {
       setHasReachedMin(true);
     }
-  }, [password]);
+  });
 
-  const isOverMaxLength = password.length > 64;
-  const isUnderAfterReaching = hasReachedMin && password.length < 8;
-  const results = passwordRules.map((rule, index) => ({
-    label: rule.label,
-    passed: rule.condition(password),
-    immediateError: index === 0 && (isOverMaxLength || isUnderAfterReaching),
-  }));
+  const results = () => {
+    const over = props.password.length > 64;
+    const under = hasReachedMin() && props.password.length < 8;
+    return passwordRules.map((rule, index) => ({
+      label: rule.label,
+      passed: rule.condition(props.password),
+      immediateError: index === 0 && (over || under),
+    }));
+  };
 
   return (
-    <div className="flex flex-col gap-1.5 mt-1">
-      {results.map((rule) => {
-        const isError = rule.immediateError || (isSubmitted && !rule.passed);
-        return (
-          <div key={rule.label} className="flex items-center gap-1.5 text-xs">
-            <div
-              className={cn(
-                'w-2 h-2 rounded-full shrink-0',
-                rule.passed
-                  ? 'bg-green-500'
-                  : isError
-                  ? 'bg-red-500'
-                  : 'bg-muted-foreground/40',
-              )}
-            />
-            <span className="text-foreground">{t(rule.label)}</span>
-          </div>
-        );
-      })}
+    <div class="flex flex-col gap-1.5 mt-1">
+      <For each={results()}>
+        {(rule) => {
+          const isError =
+            rule.immediateError || (props.isSubmitted && !rule.passed);
+          return (
+            <div class="flex items-center gap-1.5 text-xs">
+              <div
+                class={cn(
+                  'w-2 h-2 rounded-full shrink-0',
+                  rule.passed
+                    ? 'bg-green-500'
+                    : isError
+                    ? 'bg-red-500'
+                    : 'bg-muted-foreground/40',
+                )}
+              />
+              <span class="text-foreground">{t(rule.label)}</span>
+            </div>
+          );
+        }}
+      </For>
     </div>
   );
 };

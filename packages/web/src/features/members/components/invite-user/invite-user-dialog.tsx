@@ -4,7 +4,9 @@ import {
   InvitationType,
   Permission,
   PlatformRole,
+  ProjectRole,
   ProjectType,
+  SeekPage,
   UserInvitationWithLink,
   isNil,
 } from '@activepieces/shared';
@@ -18,6 +20,7 @@ import {
   createSignal,
   JSX,
   Show,
+  For,
 } from 'solid-js';
 import { toast } from 'solid-sonner';
 
@@ -71,11 +74,7 @@ const buildInvalidEmailsMessage = (emails: string[]): string => {
   });
 };
 
-export const InviteUserDialog = ({
-  open,
-  setOpen,
-  onInviteSuccess,
-}: {
+export const InviteUserDialog = (props: {
   open: boolean;
   setOpen: (_open: boolean) => void;
   onInviteSuccess?: () => void;
@@ -87,7 +86,7 @@ export const InviteUserDialog = ({
   const [suggestionsOpen, setSuggestionsOpen] = createSignal(false);
   const { platform } = platformHooks.useCurrentPlatform();
   const { data: isSmtpConfigured } = flagsHooks.useFlag<boolean>(
-    ApFlagId.SMTP_CONFIGURED
+    ApFlagId.SMTP_CONFIGURED,
   );
   const { refetch } = userInvitationsHooks.useInvitations();
   const { project } = projectCollectionUtils.useCurrentProject();
@@ -95,23 +94,28 @@ export const InviteUserDialog = ({
   const location = useLocation();
   const isPlatformPage = location.pathname.includes('/platform/');
   const userHasPermissionToInviteUser = checkAccess(
-    Permission.WRITE_INVITATION
+    Permission.WRITE_INVITATION,
   );
-  const { data: platformUsersData } = platformUserHooks.useUsers();
+  const platformUsersQuery = platformUserHooks.useUsers();
+  const platformUsersData = platformUsersQuery.data;
   const platformUserEmails = new Set(
-    platformUsersData?.data.map((u) => u.email.toLowerCase()) ?? []
+    platformUsersData?.data.map((u) => u.email.toLowerCase()) ?? [],
   );
-  const { projectMembers } = projectMembersHooks.useProjectMembers();
+  const membersQuery = projectMembersHooks.useProjectMembers();
+  const projectMembers = membersQuery.projectMembers;
   const projectMemberEmails = new Set(
-    projectMembers?.map((m) => m.user.email.toLowerCase()) ?? []
+    projectMembers?.map((m) => m.user.email.toLowerCase()) ?? [],
   );
-  const { data: rolesData, isPending: rolesLoading } = createQuery({
+  const { data: rolesData, isPending: rolesLoading } = createQuery<
+    SeekPage<ProjectRole>,
+    Error
+  >(() => ({
     queryKey: ['project-roles'],
     queryFn: () => projectRoleApi.list(),
     enabled:
       !isNil(platform.plan.projectRolesEnabled) &&
       platform.plan.projectRolesEnabled,
-  });
+  }));
 
   const defaultValues = () => ({
     emails: [],
@@ -128,11 +132,11 @@ export const InviteUserDialog = ({
   const roles = createMemo(() => rolesData?.data ?? []);
   const defaultRole = createMemo(
     () =>
-      roles().find((role) => role.name === 'Editor')?.name || roles()[0]?.name
+      roles().find((role) => role.name === 'Editor')?.name || roles()[0]?.name,
   );
   const invitationType = createMemo(() => form().type);
   const isPlatformInvite = createMemo(
-    () => invitationType() === InvitationType.PLATFORM
+    () => invitationType() === InvitationType.PLATFORM,
   );
 
   createEffect(() => {
@@ -143,21 +147,34 @@ export const InviteUserDialog = ({
   });
 
   const resultsWithLinks = createMemo(() =>
-    invitationResults().filter((r) => r.link)
+    invitationResults().filter((r) => r.link),
   );
   const hasLinks = createMemo(() => resultsWithLinks().length > 0);
   const addedMembersCount = createMemo(
     () =>
       invitationResults().filter((r) => r.status === InvitationStatus.ACCEPTED)
-        .length
+        .length,
+  );
+  const title = createMemo(() =>
+    hasLinks()
+      ? t('Invitation Links')
+      : isPlatformInvite()
+      ? t('Invite to platform')
+      : t('Add Members'),
+  );
+  const description = createMemo(() =>
+    getDialogDescription({
+      hasLinks: hasLinks(),
+      addedMembersCount: addedMembersCount(),
+      resultsWithLinksCount: resultsWithLinks().length,
+      invitationType: invitationType(),
+      isSmtpConfigured: Boolean(isSmtpConfigured),
+      projectName: project.displayName,
+    }),
   );
 
-  const { mutate, isPending } = createMutation<
-    UserInvitationWithLink[],
-    HttpError,
-    FormSchema
-  >({
-    mutationFn: async (data) => {
+  const { mutate, isPending } = createMutation(() => ({
+    mutationFn: async (data: FormSchema): Promise<UserInvitationWithLink[]> => {
       const promises = data.emails.map((email) =>
         data.type === InvitationType.PLATFORM
           ? userInvitationApi.invite({
@@ -165,21 +182,21 @@ export const InviteUserDialog = ({
               type: data.type,
               platformRole: data.platformRole,
             })
-          : inviteProjectUser({ email, data, projectId: project.id })
+          : inviteProjectUser({ email, data, projectId: project.id }),
       );
 
       return Promise.all(promises);
     },
-    onSuccess: (results) => {
+    onSuccess: (results: UserInvitationWithLink[]) => {
       const addedCount = results.filter(
-        (r) => r.status === InvitationStatus.ACCEPTED
+        (r) => r.status === InvitationStatus.ACCEPTED,
       ).length;
       const invitedCount = results.filter((r) => r.link).length;
 
       if (invitedCount > 0) {
         setInvitationResults(results);
       } else {
-        setOpen(false);
+        props.setOpen(false);
         setForm(defaultValues());
         setErrors({});
       }
@@ -193,15 +210,15 @@ export const InviteUserDialog = ({
       if (toastMessage) {
         toast.success(toastMessage, { duration: 3000 });
       }
-      refetch();
-      onInviteSuccess?.();
+      void refetch();
+      props.onInviteSuccess?.();
     },
-    onError: (error) => {
+    onError: (error: HttpError) => {
       toast.error(error.message || t('Failed to send invitations'), {
         duration: 4000,
       });
     },
-  });
+  }));
 
   const handleEmailsChange = (emails: ReadonlyArray<string>) => {
     const filtered = emails.filter((e) => {
@@ -239,7 +256,7 @@ export const InviteUserDialog = ({
     const text = resultsWithLinks()
       .map((r) => `${r.email}: ${r.link}`)
       .join('\n');
-    navigator.clipboard.writeText(text);
+    void navigator.clipboard.writeText(text);
     toast.success(t('All invitation links copied successfully'), {
       duration: 3000,
     });
@@ -249,7 +266,7 @@ export const InviteUserDialog = ({
     const rows = [
       'email,invitation_link',
       ...resultsWithLinks().map(
-        (r) => `${escapeCsvField(r.email)},${escapeCsvField(r.link!)}`
+        (r) => `${escapeCsvField(r.email)},${escapeCsvField(r.link!)}`,
       ),
     ].join('\n');
     const blob = new Blob([rows], { type: 'text/csv' });
@@ -261,133 +278,51 @@ export const InviteUserDialog = ({
     URL.revokeObjectURL(url);
   };
 
-  if (embedState.isEmbedded || !userHasPermissionToInviteUser) {
-    return null;
-  }
-
-  const dialogTitle = hasLinks()
-    ? t('Invitation Links')
-    : isPlatformInvite()
-    ? t('Invite to platform')
-    : t('Add Members');
-
-  const dialogDescription = getDialogDescription({
-    hasLinks: hasLinks(),
-    addedMembersCount: addedMembersCount(),
-    resultsWithLinksCount: resultsWithLinks().length,
-    invitationType: invitationType(),
-    isSmtpConfigured: Boolean(isSmtpConfigured),
-    projectName: project.displayName,
-  });
-
   return (
-    <>
-      {
-        <Dialog
-          open={open}
-          modal
-          onOpenChange={(open) => {
-            setOpen(open);
-            setForm(defaultValues());
-            setErrors({});
-            setInvitationResults([]);
-            setSuggestionsOpen(false);
+    <Show when={!embedState.isEmbedded && userHasPermissionToInviteUser}>
+      <Dialog
+        open={props.open}
+        modal
+        onOpenChange={(open) => {
+          props.setOpen(open);
+          setForm(defaultValues());
+          setErrors({});
+          setInvitationResults([]);
+          setSuggestionsOpen(false);
+        }}
+      >
+        <DialogContent
+          class="sm:max-w-[475px]"
+          onEscapeKeyDown={(e: KeyboardEvent) => {
+            if (suggestionsOpen()) e.preventDefault();
           }}
         >
-          <DialogContent
-            class="sm:max-w-[475px]"
-            onEscapeKeyDown={(e) => {
-              if (suggestionsOpen) e.preventDefault();
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>{dialogTitle}</DialogTitle>
-              <DialogDescription>{dialogDescription}</DialogDescription>
-            </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{title()}</DialogTitle>
+            <DialogDescription>{description()}</DialogDescription>
+          </DialogHeader>
 
-            {!hasLinks() ? (
-              <form onSubmit={onSubmit} className="flex flex-col gap-4">
-                <div class="grid gap-2">
-                  <Label for="emails">{t('Emails')}</Label>
-                  <UserSuggestionsPopover
-                    value={form().emails}
-                    onChange={handleEmailsChange}
-                    placeholder={t('Invite users by email')}
-                    invitationType={invitationType()}
-                    onOpenChange={setSuggestionsOpen}
-                  />
-                  <Show when={errors().emails}>
-                    <p class="text-sm font-medium text-destructive wrap-break-word">
-                      {errors().emails}
-                    </p>
-                  </Show>
-                </div>
-
-                {invitationType() === InvitationType.PLATFORM && (
-                  <div class="grid gap-3">
-                    <Label>{t('Platform Role')}</Label>
-                    <RoleSelector
-                      type="platform"
-                      value={form().platformRole}
-                      onValueChange={(value) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          platformRole: toPlatformRole(value),
-                        }))
-                      }
-                      placeholder={t('Select a platform role')}
-                    />
-                  </div>
-                )}
-                {invitationType() === InvitationType.PROJECT && (
-                  <div class="grid gap-3">
-                    <Label>{t('Project Role')}</Label>
-                    <RoleSelector
-                      type="project"
-                      value={form().projectRole || defaultRole() || ''}
-                      onValueChange={(value) =>
-                        setForm((prev) => ({ ...prev, projectRole: value }))
-                      }
-                      roles={roles()}
-                      placeholder={t('Select a project role')}
-                      isLoading={rolesLoading}
-                    />
-                    <Show when={errors().projectRole}>
-                      <p class="text-sm font-medium text-destructive wrap-break-word">
-                        {errors().projectRole}
-                      </p>
-                    </Show>
-                  </div>
-                )}
-
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button type="button" variant={'outline'}>
-                      {t('Cancel')}
-                    </Button>
-                  </DialogClose>
-                  <Button type="submit" loading={isPending}>
-                    {isPlatformInvite() ? t('Invite') : t('Add')}
-                  </Button>
-                </DialogFooter>
-              </form>
-            ) : (
-              <div className="flex flex-col gap-3">
+          <Show
+            when={!hasLinks()}
+            fallback={
+              <div class="flex flex-col gap-3">
                 <ScrollArea class="max-h-[300px]">
-                  <div className="flex flex-col gap-3">
-                    {resultsWithLinks().map((result) => (
-                      <div key={result.id} className="flex flex-col gap-1">
-                        <Label class="text-sm">{result.email}</Label>
-                        <CopyToClipboardInput
-                          useInput={true}
-                          textToCopy={result.link!}
-                        />
-                      </div>
-                    ))}
+                  <div class="flex flex-col gap-3">
+                    <For each={resultsWithLinks()}>
+                      {(result) => (
+                        <div class="flex flex-col gap-1">
+                          <Label class="text-sm">{result.email}</Label>
+                          <CopyToClipboardInput
+                            useInput={true}
+                            textToCopy={result.link}
+                          />
+                        </div>
+                      )}
+                    </For>
                   </div>
                 </ScrollArea>
-                {resultsWithLinks().length > 1 && (
-                  <div className="flex gap-2">
+                <Show when={resultsWithLinks().length > 1}>
+                  <div class="flex gap-2">
                     <Button
                       type="button"
                       variant="outline"
@@ -407,13 +342,79 @@ export const InviteUserDialog = ({
                       {t('Download CSV')}
                     </Button>
                   </div>
-                )}
+                </Show>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      }
-    </>
+            }
+          >
+            <form onSubmit={onSubmit} class="flex flex-col gap-4">
+              <div class="grid gap-2">
+                <Label for="emails">{t('Emails')}</Label>
+                <UserSuggestionsPopover
+                  value={form().emails}
+                  onInput={handleEmailsChange}
+                  placeholder={t('Invite users by email')}
+                  invitationType={invitationType()}
+                  onOpenChange={setSuggestionsOpen}
+                />
+                <Show when={errors().emails}>
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {errors().emails}
+                  </p>
+                </Show>
+              </div>
+
+              <Show when={invitationType() === InvitationType.PLATFORM}>
+                <div class="grid gap-3">
+                  <Label>{t('Platform Role')}</Label>
+                  <RoleSelector
+                    type="platform"
+                    value={form().platformRole}
+                    onValueChange={(value) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        platformRole: toPlatformRole(value),
+                      }))
+                    }
+                    placeholder={t('Select a platform role')}
+                  />
+                </div>
+              </Show>
+              <Show when={invitationType() === InvitationType.PROJECT}>
+                <div class="grid gap-3">
+                  <Label>{t('Project Role')}</Label>
+                  <RoleSelector
+                    type="project"
+                    value={form().projectRole || defaultRole() || ''}
+                    onValueChange={(value) =>
+                      setForm((prev) => ({ ...prev, projectRole: value }))
+                    }
+                    roles={roles()}
+                    placeholder={t('Select a project role')}
+                    isLoading={rolesLoading}
+                  />
+                  <Show when={errors().projectRole}>
+                    <p class="text-sm font-medium text-destructive wrap-break-word">
+                      {errors().projectRole}
+                    </p>
+                  </Show>
+                </div>
+              </Show>
+
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button type="button" variant={'outline'}>
+                    {t('Cancel')}
+                  </Button>
+                </DialogClose>
+                <Button type="submit" loading={isPending}>
+                  {isPlatformInvite() ? t('Invite') : t('Add')}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Show>
+        </DialogContent>
+      </Dialog>
+    </Show>
   );
 };
 
@@ -443,68 +444,72 @@ function getDialogDescription({
     const linkText =
       resultsWithLinksCount === 1
         ? t(
-            'Please copy the link below and share it with the user you want to invite. The invitation expires in 7 days.'
+            'Please copy the link below and share it with the user you want to invite. The invitation expires in 7 days.',
           )
         : t(
-            'Please copy the links below and share them with the users you want to invite. The invitations expire in 7 days.'
+            'Please copy the links below and share them with the users you want to invite. The invitations expire in 7 days.',
           );
     return addedPrefix + linkText;
   }
 
   if (invitationType === InvitationType.PLATFORM) {
     const base = t(
-      'Invite team members to collaborate and build amazing flows together.'
+      'Invite team members to collaborate and build amazing flows together.',
     );
     return isSmtpConfigured
       ? base
       : base +
           ' ' +
           t(
-            'Invitations will be shared via link since email is not configured.'
+            'Invitations will be shared via link since email is not configured.',
           );
   }
 
   return isSmtpConfigured
     ? t(
-        'Platform members get instant access. New users will receive an invitation email.'
+        'Platform members get instant access. New users will receive an invitation email.',
       )
     : t(
-        'Platform members get instant access. New users will need to visit the invitation link.'
+        'Platform members get instant access. New users will need to visit the invitation link.',
       );
 }
 
-function buildInviteToast({
-  addedCount,
-  invitedCount,
-  sentCount,
-  projectName,
-}: {
+function buildInviteToast(cfg: {
   addedCount: number;
   invitedCount: number;
   sentCount: number;
   projectName: string;
 }): JSX.Element | null {
   const lines: string[] = [];
-  if (addedCount > 0) {
-    lines.push(t('membersAddedCount', { count: addedCount, projectName }));
+  if (cfg.addedCount > 0) {
+    lines.push(
+      t('membersAddedCount', {
+        count: cfg.addedCount,
+        projectName: cfg.projectName,
+      }),
+    );
   }
-  if (invitedCount > 0) {
-    lines.push(t('invitationsLinkCount', { count: invitedCount }));
+  if (cfg.invitedCount > 0) {
+    lines.push(t('invitationsLinkCount', { count: cfg.invitedCount }));
   }
-  if (sentCount > 0) {
-    lines.push(t('invitationsSentCount', { count: sentCount }));
+  if (cfg.sentCount > 0) {
+    lines.push(t('invitationsSentCount', { count: cfg.sentCount }));
   }
   if (lines.length === 0) {
     return null;
   }
   return (
     <span>
-      {lines.map((line, i) => (
-        <span>
-          {i > 0 && <br />}
-          {line}
-        </span>
-      ))}
+      <For each={lines}>
+        {(line, i) => (
+          <span>
+            <Show when={i() > 0}>
+              <br />
+            </Show>
+            {line}
+          </span>
+        )}
+      </For>
     </span>
   );
 }
@@ -513,16 +518,16 @@ const escapeCsvField = (value: string) => `"${value.replace(/"/g, '""')}"`;
 function validateEmails(emails: ReadonlyArray<string>): string | undefined {
   if (emails.length === 0) return undefined;
   const invalid = emails.filter(
-    (email) => !formatUtils.emailRegex.test(email.trim())
+    (email) => !formatUtils.emailRegex.test(email.trim()),
   );
   if (invalid.length === 0) return undefined;
   return buildInvalidEmailsMessage(invalid);
 }
 
 function toPlatformRole(value: string): PlatformRole {
-  if (value === PlatformRole.ADMIN) return value;
-  if (value === PlatformRole.OPERATOR) return value;
-  if (value === PlatformRole.MEMBER) return value;
+  if (value === String(PlatformRole.ADMIN)) return PlatformRole.ADMIN;
+  if (value === String(PlatformRole.OPERATOR)) return PlatformRole.OPERATOR;
+  if (value === String(PlatformRole.MEMBER)) return PlatformRole.MEMBER;
   throw new Error('Invalid platform role');
 }
 

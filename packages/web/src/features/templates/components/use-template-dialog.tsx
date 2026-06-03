@@ -9,7 +9,7 @@ import {
 import { useNavigate } from '@solidjs/router';
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { createEffect, createSignal } from 'solid-js';
+import { createEffect, createSignal, For, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
@@ -42,44 +42,42 @@ type UseTemplateDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-export const UseTemplateDialog = ({
-  template,
-  open,
-  onOpenChange,
-}: UseTemplateDialogProps) => {
+export const UseTemplateDialog = (props: UseTemplateDialogProps) => {
   const navigate = useNavigate();
   const [selectedProjectId, setSelectedProjectId] = createSignal('');
   const [selectedFolderId, setSelectedFolderId] = createSignal('');
 
   const { data: projects } = projectCollectionUtils.useAll();
   const { folders } = foldersHooks.useFolders();
+  const projectList = () => projects ?? [];
+  const folderList = () => folders ?? [];
 
   createEffect(() => {
-    if (open) {
+    if (props.open) {
       const currentProjectId = authenticationSession.getProjectId();
       if (currentProjectId) {
         setSelectedProjectId(currentProjectId);
-      } else if (projects && projects.length > 0) {
-        setSelectedProjectId(projects[0].id);
+      } else if (projectList().length > 0) {
+        setSelectedProjectId(projectList()[0].id);
       }
       setSelectedFolderId(UncategorizedFolderId);
     }
-  }, [open, projects]);
+  });
 
-  const { mutate: createFlow, isPending } = createMutation<
-    PopulatedFlow[],
-    Error,
-    { projectId: string; folderId: string }
-  >({
-    mutationFn: async ({ projectId, folderId }) => {
-      const flows = template.flows || [];
+  const { mutate: createFlow, isPending } = createMutation(() => ({
+    mutationFn: async (params: {
+      projectId: string;
+      folderId: string;
+    }): Promise<PopulatedFlow[]> => {
+      const { projectId, folderId } = params;
+      const flows = props.template.flows || [];
       const hasMultipleFlows = flows.length > 1;
 
       let folderName: string | undefined;
 
       if (hasMultipleFlows) {
         const newFolder = await foldersApi.create({
-          displayName: template.name,
+          displayName: props.template.name,
           projectId: projectId,
         });
         folderName = newFolder.displayName;
@@ -88,14 +86,14 @@ export const UseTemplateDialog = ({
         folderName = folder.displayName;
       }
 
-      return await flowHooks.importFlowsFromTemplates({
-        templates: [template],
+      return flowHooks.importFlowsFromTemplates({
+        templates: [props.template],
         projectId,
         folderName,
       });
     },
-    onSuccess: (flows) => {
-      onOpenChange(false);
+    onSuccess: (flows: PopulatedFlow[]) => {
+      props.onOpenChange(false);
       if (flows.length === 1) {
         toast.success(t('Flow created successfully'));
         navigate(`/flows/${flows[0].id}`);
@@ -112,31 +110,34 @@ export const UseTemplateDialog = ({
       toast.error(t('Failed to create flow from template'));
       console.error('Error creating flow:', error);
     },
-  });
+  }));
 
   const handleConfirmUseTemplate = () => {
     if (!selectedProjectId()) {
       toast.error(t('Please select a project'));
       return;
     }
-    createFlow({ projectId: selectedProjectId(), folderId: selectedFolderId() });
+    createFlow({
+      projectId: selectedProjectId(),
+      folderId: selectedFolderId(),
+    });
 
     const userId = authenticationSession.getCurrentUserId();
 
-    if (template.type === TemplateType.OFFICIAL && userId) {
-      templatesTelemetryApi.sendEvent({
+    if (props.template.type === TemplateType.OFFICIAL && userId) {
+      void templatesTelemetryApi.sendEvent({
         eventType: TemplateTelemetryEventType.INSTALL,
-        templateId: template.id,
+        templateId: props.template.id,
         userId,
       });
     }
   };
 
-  const flowCount = template.flows?.length || 0;
+  const flowCount = props.template.flows?.length || 0;
   const hasMultipleFlows = flowCount > 1;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Use Template')}</DialogTitle>
@@ -151,57 +152,65 @@ export const UseTemplateDialog = ({
                 )}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="flex flex-col gap-2">
+        <div class="space-y-4 py-2">
+          <div class="flex flex-col gap-2">
             <Label for="project">{t('Project')}</Label>
             <Select
               value={selectedProjectId()}
               onValueChange={setSelectedProjectId}
             >
               <SelectTrigger id="project">
-                <SelectValue placeholder={t('Select a project')} />
+                <SelectValue placeholder={String(t('Select a project'))} />
               </SelectTrigger>
               <SelectContent>
-                {projects?.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    <ApProjectDisplay
-                      title={project.displayName}
-                      icon={project.icon}
-                      projectType={project.type}
-                    />
-                  </SelectItem>
-                ))}
+                {
+                  <For each={projectList()}>
+                    {(project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        <ApProjectDisplay
+                          title={project.displayName}
+                          icon={project.icon}
+                          projectType={project.type}
+                        />
+                      </SelectItem>
+                    )}
+                  </For>
+                }
               </SelectContent>
             </Select>
           </div>
-          {!hasMultipleFlows && (
-            <div className="flex flex-col gap-2">
+          <Show when={!hasMultipleFlows}>
+            <div class="flex flex-col gap-2">
               <Label for="folder">{t('Folder')}</Label>
               <Select
                 value={selectedFolderId()}
                 onValueChange={setSelectedFolderId}
               >
                 <SelectTrigger id="folder">
-                  <SelectValue placeholder={t('Select a folder')} />
+                  <SelectValue placeholder={String(t('Select a folder'))} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={UncategorizedFolderId}>
                     {t('Uncategorized')}
                   </SelectItem>
-                  {folders?.map((folder) => (
-                    <SelectItem key={folder.id} value={folder.id}>
-                      {folder.displayName}
-                    </SelectItem>
-                  ))}
+                  {
+                    <For each={folderList()}>
+                      {(folder) => (
+                        <SelectItem key={folder.id} value={folder.id}>
+                          {folder.displayName}
+                        </SelectItem>
+                      )}
+                    </For>
+                  }
                 </SelectContent>
               </Select>
             </div>
-          )}
+          </Show>
         </div>
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => props.onOpenChange(false)}
             disabled={isPending}
           >
             {t('Cancel')}

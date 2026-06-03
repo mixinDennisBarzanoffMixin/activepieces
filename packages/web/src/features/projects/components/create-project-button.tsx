@@ -5,7 +5,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Plus } from 'lucide-solid';
-import { JSX } from 'solid-js';
+import { createMemo, JSX, Match, Show, Switch } from 'solid-js';
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { PlusIcon } from '@/components/icons/plus';
@@ -35,15 +35,15 @@ function useIsCreateProjectDisabled({
   return false;
 }
 
-function UpgradeTooltip({ children }: { children: JSX.Element }) {
+function UpgradeTooltip(props: { children: JSX.Element }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipTrigger asChild>{props.children}</TooltipTrigger>
       <TooltipContent class="max-w-[250px]">
-        <p className="text-xs mb-1">
+        <p class="text-xs mb-1">
           {t('Upgrade your plan to create additional team projects.')}{' '}
           <button
-            className="text-xs text-primary underline hover:no-underline"
+            class="text-xs text-primary underline hover:no-underline"
             onClick={() =>
               window.open('https://www.activepieces.com/pricing', '_blank')
             }
@@ -56,15 +56,21 @@ function UpgradeTooltip({ children }: { children: JSX.Element }) {
   );
 }
 
-function IconVariant({
-  disabled,
-  onCreate,
-}: {
+function IconVariant(props: {
   disabled: boolean;
   onCreate?: (project: ProjectWithLimits) => void;
 }) {
-  if (disabled) {
-    return (
+  return (
+    <Show
+      when={props.disabled}
+      fallback={
+        <NewProjectDialog onCreate={props.onCreate}>
+          <Button variant="ghost" size="icon" class="h-6 w-6 hover:bg-accent">
+            <Plus />
+          </Button>
+        </NewProjectDialog>
+      }
+    >
       <UpgradeTooltip>
         <div>
           <Button variant="ghost" size="icon" disabled class="h-6 w-6">
@@ -72,20 +78,22 @@ function IconVariant({
           </Button>
         </div>
       </UpgradeTooltip>
-    );
-  }
-  return (
-    <NewProjectDialog onCreate={onCreate}>
-      <Button variant="ghost" size="icon" class="h-6 w-6 hover:bg-accent">
-        <Plus />
-      </Button>
-    </NewProjectDialog>
+    </Show>
   );
 }
 
-function FullVariant({ disabled }: { disabled: boolean }) {
-  if (disabled) {
-    return (
+function FullVariant(props: { disabled: boolean }) {
+  return (
+    <Show
+      when={props.disabled}
+      fallback={
+        <NewProjectDialog>
+          <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
+            {t('New Project')}
+          </AnimatedIconButton>
+        </NewProjectDialog>
+      }
+    >
       <UpgradeTooltip>
         <div>
           <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm" disabled>
@@ -93,59 +101,55 @@ function FullVariant({ disabled }: { disabled: boolean }) {
           </AnimatedIconButton>
         </div>
       </UpgradeTooltip>
-    );
-  }
-  return (
-    <NewProjectDialog>
-      <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
-        {t('New Project')}
-      </AnimatedIconButton>
-    </NewProjectDialog>
+    </Show>
   );
 }
 
-function SidebarMenuVariant({
-  disabled,
-  onCreate,
-}: {
+function SidebarMenuVariant(props: {
   disabled: boolean;
   onCreate?: (project: ProjectWithLimits) => void;
 }) {
-  if (disabled) {
-    return (
+  return (
+    <Show
+      when={props.disabled}
+      fallback={
+        <NewProjectDialog onCreate={props.onCreate}>
+          <SidebarMenuButton class="text-muted-foreground gap-2">
+            <Plus class="size-4" />
+            <span>{t('Add team project')}</span>
+          </SidebarMenuButton>
+        </NewProjectDialog>
+      }
+    >
       <UpgradeTooltip>
         <SidebarMenuButton disabled class="text-muted-foreground gap-2">
           <Plus class="size-4" />
           <span>{t('Add team project')}</span>
         </SidebarMenuButton>
       </UpgradeTooltip>
-    );
-  }
-  return (
-    <NewProjectDialog onCreate={onCreate}>
-      <SidebarMenuButton class="text-muted-foreground gap-2">
-        <Plus class="size-4" />
-        <span>{t('Add team project')}</span>
-      </SidebarMenuButton>
-    </NewProjectDialog>
+    </Show>
   );
 }
 
-export function CreateProjectButton({
-  variant,
-  projects,
-  onCreate,
-}: {
+export function CreateProjectButton(props: {
   variant: 'icon' | 'full' | 'sidebar-menu';
   projects: Pick<ProjectWithLimits, 'type'>[];
   onCreate?: (project: ProjectWithLimits) => void;
 }) {
-  const disabled = useIsCreateProjectDisabled({ projects });
-  if (variant === 'icon') {
-    return <IconVariant disabled={disabled} onCreate={onCreate} />;
-  }
-  if (variant === 'sidebar-menu') {
-    return <SidebarMenuVariant disabled={disabled} onCreate={onCreate} />;
-  }
-  return <FullVariant disabled={disabled} />;
+  const disabled = createMemo(() =>
+    useIsCreateProjectDisabled({ projects: props.projects }),
+  );
+  return (
+    <Switch>
+      <Match when={props.variant === 'icon'}>
+        <IconVariant disabled={disabled()} onCreate={props.onCreate} />
+      </Match>
+      <Match when={props.variant === 'sidebar-menu'}>
+        <SidebarMenuVariant disabled={disabled()} onCreate={props.onCreate} />
+      </Match>
+      <Match when={props.variant === 'full'}>
+        <FullVariant disabled={disabled()} />
+      </Match>
+    </Switch>
+  );
 }

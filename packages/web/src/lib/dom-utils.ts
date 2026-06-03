@@ -8,7 +8,8 @@ export const isStepFileUrl = (json: unknown): json is string => {
   );
 };
 
-export const parentWindow: Window = window.opener ?? window.parent;
+export const parentWindow: Window =
+  window.opener instanceof Window ? window.opener : window.parent;
 
 export const cleanLeadingSlash = (url: string) => {
   return url.startsWith('/') ? url.slice(1) : url;

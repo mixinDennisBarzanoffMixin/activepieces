@@ -6,7 +6,7 @@ import {
   useDroppable as useSolidDroppable,
 } from '@dnd-kit/solid';
 import { useSortable as useSolidSortable } from '@dnd-kit/solid/sortable';
-import { JSX } from 'solid-js';
+import { JSX, type Accessor } from 'solid-js';
 
 type Id = string | number;
 
@@ -30,7 +30,6 @@ type DndMonitor = {
 function DndContext(props: DndContextProps) {
   return (
     <DragDropProvider
-      {...props}
       onDragStart={(event) => props.onDragStart?.(eventOf(event))}
       onDragEnd={(event) => props.onDragEnd?.(eventOf(event))}
       onDragMove={() => {}}
@@ -40,7 +39,11 @@ function DndContext(props: DndContextProps) {
   );
 }
 
-function useDraggable(opts: { id: Id; disabled?: boolean; data?: Record<string, unknown> }) {
+function useDraggable(opts: {
+  id: Id;
+  disabled?: boolean;
+  data?: Record<string, unknown>;
+}) {
   const dnd = useSolidDraggable({
     id: opts.id,
     disabled: opts.disabled,
@@ -91,7 +94,7 @@ function defaultDropAnimationSideEffects() {
   return undefined;
 }
 
-function useSortable(opts: { id: Id }) {
+function useSortable(opts: { id: Accessor<Id> }) {
   const sortable = useSolidSortable({ id: opts.id, index: 0 });
   return {
     attributes: { role: 'button' },
@@ -104,7 +107,9 @@ function useSortable(opts: { id: Id }) {
 }
 
 function eventOf(event: unknown): DragEndEvent {
-  const operation = (event as { operation?: { source?: Source; target?: Source } }).operation;
+  const operation = (
+    event as { operation?: { source?: Source; target?: Source } }
+  ).operation;
   const active = sourceOf(operation?.source);
   const over = operation?.target ? sourceOf(operation.target) : null;
   return { active, over, collisions: over ? [{ id: over.id }] : [] };
@@ -113,7 +118,7 @@ function eventOf(event: unknown): DragEndEvent {
 function sourceOf(source: Source | undefined): Item {
   return {
     id: source?.id ?? '',
-    data: { current: source?.data as Record<string, unknown> | undefined },
+    data: { current: source?.data },
   };
 }
 
@@ -147,7 +152,9 @@ export type DndContextProps = {
 };
 export type DraggableSyntheticListeners = Record<string, unknown>;
 export type DropAnimation = unknown;
-export type PointerSensorOptions = { onActivation?: (event: { event: PointerEvent }) => void };
+export type PointerSensorOptions = {
+  onActivation?: (event: { event: PointerEvent }) => void;
+};
 export type UniqueIdentifier = Id;
 
 type Source = {

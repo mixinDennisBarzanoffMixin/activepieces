@@ -1,7 +1,7 @@
 import { FlowAction, ApFlagId, FlowTrigger } from '@activepieces/shared';
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { Show, createSignal } from 'solid-js';
+import { Match, Show, Switch, createSignal } from 'solid-js';
 import { z } from 'zod';
 
 import { BuilderField, createForm } from '@/app/builder/builder-form';
@@ -40,27 +40,34 @@ enum HttpMethod {
   HEAD = 'HEAD',
 }
 
-const BodyFormInput = ({
-  bodyType,
-  field,
-}: {
-  bodyType: BodyType;
-  field: BuilderField;
-}) => {
-  switch (bodyType) {
-    case BodyType.JSON:
-      return <JsonEditor field={field} readonly={false}></JsonEditor>;
-    case BodyType.TEXT:
-      return <Input {...field} />;
-    case BodyType.FORM_DATA:
-      return (
+const MethodOptions = Object.values(HttpMethod).map((method) => ({
+  value: method,
+  label: method,
+}));
+
+const BodyFormInput = (props: { bodyType: BodyType; field: BuilderField }) => {
+  return (
+    <Switch>
+      <Match when={props.bodyType === BodyType.JSON}>
+        <JsonEditor field={props.field} readonly={false} />
+      </Match>
+      <Match when={props.bodyType === BodyType.TEXT}>
+        <Input
+          value={String(props.field.value)}
+          onChange={props.field.onChange}
+          disabled={props.field.disabled}
+          ref={props.field.ref}
+        />
+      </Match>
+      <Match when={props.bodyType === BodyType.FORM_DATA}>
         <DictionaryInput
-          values={field.value}
-          onChange={field.onChange}
+          values={props.field.value}
+          onChange={props.field.onChange}
           disabled={false}
         />
-      );
-  }
+      </Match>
+    </Switch>
+  );
 };
 const WebhookRequest = z.object({
   bodyType: z.nativeEnum(BodyType),
@@ -87,14 +94,13 @@ type TestWebhookDialogProps =
   | TestWaitForNextWebhookDialogProps
   | TestTriggerWebhookDialogProps;
 
-const TestTriggerWebhookDialog = ({
-  open,
-  onOpenChange,
-}: TestTriggerWebhookDialogProps) => {
+const TestTriggerWebhookDialog = (props: TestTriggerWebhookDialogProps) => {
   const { data: webhookPrefixUrl } = flagsHooks.useFlag<string>(
     ApFlagId.WEBHOOK_URL_PREFIX,
   );
-  const flowId = useBuilderStateContext((state) => state.flow.id);
+  const flowId = useBuilderStateContext((state) => ({
+    value: state.flow.id,
+  })).value;
   const [isLoading, setIsLoading] = createSignal(false);
   const { mutate: sendRequest } = createMutation<
     unknown,
@@ -115,9 +121,9 @@ const TestTriggerWebhookDialog = ({
 
   return (
     <Dialog
-      open={open}
-      onOpenChange={(open) => {
-        onOpenChange(open);
+      open={props.open}
+      onOpenChange={(open: boolean) => {
+        props.onOpenChange(open);
       }}
     >
       <DialogContent>
@@ -134,16 +140,14 @@ const TestTriggerWebhookDialog = ({
   );
 };
 
-const TestWaitForNextWebhookDialog = ({
-  currentStep,
-  onOpenChange,
-  open,
-}: TestWaitForNextWebhookDialogProps) => {
+const TestWaitForNextWebhookDialog = (
+  props: TestWaitForNextWebhookDialogProps,
+) => {
   const [updateSampleData] = useBuilderStateContext((state) => [
     state.updateSampleData,
   ]);
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Send Sample Data to Webhook')}</DialogTitle>
@@ -153,7 +157,7 @@ const TestWaitForNextWebhookDialog = ({
           isLoading={false}
           onSubmit={(data) => {
             updateSampleData({
-              stepName: currentStep.name,
+              stepName: props.currentStep.name,
               output: {
                 body: data.body,
                 headers: data.headers,
@@ -176,7 +180,6 @@ type TestingWebhookFunctionalityFormProps = {
 const TestWebhookFunctionalityForm = (
   req: TestingWebhookFunctionalityFormProps,
 ) => {
-  const { showMethodDropdown, onSubmit, isLoading } = req;
   const form = createForm<z.infer<typeof WebhookRequest>>({
     defaultValues: {
       bodyType: BodyType.JSON,
@@ -189,20 +192,21 @@ const TestWebhookFunctionalityForm = (
 
   return (
     <Form {...form}>
-      <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-        <Show when={showMethodDropdown()}>
+      <form
+        class="space-y-4"
+        onSubmit={form.handleSubmit((data) => req.onSubmit(data))}
+      >
+        <Show when={req.showMethodDropdown}>
           <FormField
             control={form.control}
             name="method"
-            render={({ field }) => {
+            render={(args: FieldArgs<HttpMethod>) => {
+              const field = args.field;
               return (
                 <FormItem>
                   <FormLabel>{t('Method')}</FormLabel>
                   <SearchableSelect
-                    options={Object.values(HttpMethod).map((method) => ({
-                      value: method,
-                      label: method,
-                    }))}
+                    options={MethodOptions}
                     onChange={(val) => {
                       field.onChange(val);
                     }}
@@ -227,7 +231,8 @@ const TestWebhookFunctionalityForm = (
             <FormField
               control={form.control}
               name="queryParams"
-              render={({ field }) => {
+              render={(args: FieldArgs<Record<string, string>>) => {
+                const field = args.field;
                 return (
                   <FormItem>
                     <DictionaryInput
@@ -240,14 +245,15 @@ const TestWebhookFunctionalityForm = (
                   </FormItem>
                 );
               }}
-            ></FormField>
+            />
           </TabsContent>
 
           <TabsContent value="headers">
             <FormField
               control={form.control}
               name="headers"
-              render={({ field }) => {
+              render={(args: FieldArgs<Record<string, string>>) => {
+                const field = args.field;
                 return (
                   <FormItem>
                     <DictionaryInput
@@ -260,13 +266,14 @@ const TestWebhookFunctionalityForm = (
                   </FormItem>
                 );
               }}
-            ></FormField>
+            />
           </TabsContent>
           <TabsContent value="body">
             <>
               <FormField
                 name="bodyType"
-                render={({ field }) => {
+                render={(args: FieldArgs<BodyType>) => {
+                  const field = args.field;
                   return (
                     <FormItem>
                       <FormLabel>{t('Type')}</FormLabel>
@@ -301,26 +308,27 @@ const TestWebhookFunctionalityForm = (
                         disabled={false}
                         placeholder={t('Select an option')}
                         showDeselect={true}
-                      ></SearchableSelect>
+                      />
                     </FormItem>
                   );
                 }}
-              ></FormField>
+              />
               <FormField
                 control={form.control}
                 name="body"
-                render={({ field }) => {
+                render={(args: FieldArgs<unknown>) => {
+                  const field = args.field;
                   return (
                     <FormItem class="mt-4">
                       <FormLabel>{t('Body')}</FormLabel>
                       <BodyFormInput
                         bodyType={form.getValues('bodyType')}
                         field={field}
-                      ></BodyFormInput>
+                      />
                     </FormItem>
                   );
                 }}
-              ></FormField>
+              />
             </>
           </TabsContent>
         </Tabs>
@@ -331,7 +339,7 @@ const TestWebhookFunctionalityForm = (
               {t('Cancel')}
             </Button>
           </DialogClose>
-          <Button type="submit" loading={isLoading}>
+          <Button type="submit" loading={req.isLoading}>
             {t('Send')}
           </Button>
         </DialogFooter>
@@ -340,32 +348,41 @@ const TestWebhookFunctionalityForm = (
   );
 };
 
-TestWebhookFunctionalityForm.displayName = 'TestWebhookFunctionalityDialog';
-
 const TestWebhookDialog = (props: TestWebhookDialogProps) => {
-  const { testingMode, currentStep, open, onOpenChange } = props;
-
-  if (testingMode === 'returnResponseAndWaitForNextWebhook') {
-    return (
-      <TestWaitForNextWebhookDialog
-        currentStep={currentStep}
-        open={open}
-        onOpenChange={onOpenChange}
-        testingMode={testingMode}
-      />
-    );
-  }
-  if (testingMode === 'trigger') {
-    return (
-      <TestTriggerWebhookDialog
-        currentStep={currentStep}
-        open={open}
-        onOpenChange={onOpenChange}
-        testingMode={testingMode}
-      />
-    );
-  }
+  return (
+    <>
+      <Show
+        when={
+          props.testingMode === 'returnResponseAndWaitForNextWebhook'
+            ? props
+            : undefined
+        }
+      >
+        {(req) => (
+          <TestWaitForNextWebhookDialog
+            currentStep={req().currentStep}
+            open={req().open}
+            onOpenChange={req().onOpenChange}
+            testingMode={req().testingMode}
+          />
+        )}
+      </Show>
+      <Show when={props.testingMode === 'trigger' ? props : undefined}>
+        {(req) => (
+          <TestTriggerWebhookDialog
+            currentStep={req().currentStep}
+            open={req().open}
+            onOpenChange={req().onOpenChange}
+            testingMode={req().testingMode}
+          />
+        )}
+      </Show>
+    </>
+  );
 };
 
-TestWebhookDialog.displayName = 'TestWebhookDialog';
 export default TestWebhookDialog;
+
+type FieldArgs<T> = {
+  field: BuilderField<T>;
+};

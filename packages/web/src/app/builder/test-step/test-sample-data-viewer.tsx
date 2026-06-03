@@ -6,7 +6,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Loader2, Play } from 'lucide-solid';
-import { Show, createSignal } from 'solid-js';
+import { Show, createMemo, createSignal, mergeProps } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,7 +25,7 @@ type TestSampleDataViewerProps = {
   isTesting: boolean;
   agentResult?: AgentResult;
   sampleData?: unknown;
-  sampleDataInput?: unknown | null;
+  sampleDataInput?: unknown;
   errorMessage: string | null;
   lastTestDate: string | undefined;
   children?: any;
@@ -57,108 +57,97 @@ const isConsoleLogsValid = (value: unknown) => {
 };
 
 export const TestSampleDataViewer = (props: TestSampleDataViewerProps) => {
-  const {
-    isValid,
-    isTesting,
-    sampleData,
-    errorMessage,
-    lastTestDate,
-    currentStep,
-    children,
-    isSaving,
-    onRetest,
-    onCancelTesting,
-    hideCancel,
-    sampleDataInput,
-    consoleLogs,
-  } = props;
   const [requestedTab, setActiveTab] = createSignal<ActiveTab>('Output');
-  const hasInput = !isNil(sampleDataInput);
-  const hasLogs = isConsoleLogsValid(consoleLogs);
-  const activeTab: ActiveTab =
-    (requestedTab === 'Input' && !hasInput) ||
-    (requestedTab === 'Logs' && !hasLogs)
+  const hasInput = createMemo(() => !isNil(props.sampleDataInput));
+  const hasLogs = createMemo(() => isConsoleLogsValid(props.consoleLogs));
+  const activeTab = createMemo<ActiveTab>(() =>
+    (requestedTab() === 'Input' && !hasInput()) ||
+    (requestedTab() === 'Logs' && !hasLogs())
       ? 'Output'
-      : requestedTab;
-
-  const isFailed =
-    !isNil(errorMessage) ||
-    (isRunAgent(currentStep) &&
-      (sampleData as AgentResult | undefined)?.status ===
-        AgentTaskStatus.FAILED);
-
-  const status: 'success' | 'failed' | 'testing' | 'idle' = isTesting
-    ? 'testing'
-    : isFailed
-    ? 'failed'
-    : 'success';
-
-  const outputData = errorMessage ?? sampleData;
-  const activeData =
-    activeTab === 'Input'
-      ? sampleDataInput
-      : activeTab === 'Logs'
-      ? consoleLogs
-      : outputData;
-
-  const showAgentView = isRunAgent(currentStep) && !errorMessage;
+      : requestedTab(),
+  );
+  const agent = createMemo(() => getAgentResult(props.sampleData));
+  const failed = createMemo(
+    () =>
+      !isNil(props.errorMessage) ||
+      (isRunAgent(props.currentStep) &&
+        agent()?.status === AgentTaskStatus.FAILED),
+  );
+  const status = createMemo(() =>
+    props.isTesting ? 'testing' : failed() ? 'failed' : 'success',
+  );
+  const output = createMemo(() =>
+    !isNil(props.errorMessage) ? props.errorMessage : props.sampleData,
+  );
+  const data = createMemo(() =>
+    activeTab() === 'Input'
+      ? props.sampleDataInput
+      : activeTab() === 'Logs'
+      ? props.consoleLogs
+      : output(),
+  );
+  const agentView = createMemo(
+    () => isRunAgent(props.currentStep) && isNil(props.errorMessage),
+  );
 
   return (
-    <div className="flex flex-col h-full w-full min-h-0">
-      <TestPanelHeader status={status} lastTestDate={lastTestDate} />
-      <Show when={!isTesting()}>{children}</Show>
-      <div className="flex-1 flex flex-col w-full text-start min-h-0">
-        <Show when={errorMessage && !isTesting()}>
-          <div className="px-3 pt-2 text-xs text-muted-foreground shrink-0">
+    <div class="flex flex-col h-full w-full min-h-0">
+      <TestPanelHeader status={status()} lastTestDate={props.lastTestDate} />
+      <Show when={!props.isTesting}>{props.children}</Show>
+      <div class="flex-1 flex flex-col w-full text-start min-h-0">
+        <Show when={props.errorMessage && !props.isTesting}>
+          <div class="px-3 pt-2 text-xs text-muted-foreground shrink-0">
             {t('Errors are not saved on refresh')}
           </div>
         </Show>
-        <Show when={!showAgentView()}>
+        <Show when={!agentView()}>
           <TestPanelToolbar
-            activeTab={activeTab}
+            activeTab={activeTab()}
             setActiveTab={setActiveTab}
-            hasInput={hasInput}
-            hasLogs={hasLogs}
-            disabled={isTesting}
+            hasInput={hasInput()}
+            hasLogs={hasLogs()}
+            disabled={props.isTesting}
           />
         </Show>
-        <div className="flex-1 min-h-0 px-3 pb-3 overflow-auto">
+        <div class="flex-1 min-h-0 px-3 pb-3 overflow-auto">
           <Show
-            when={isTesting && !showAgentView()}
+            when={props.isTesting && !agentView()}
             fallback={
-              showAgentView ? (
+              agentView() ? (
                 <AgentTestStep
-                  agentResult={getAgentResult(sampleData)}
-                  errorMessage={errorMessage}
+                  agentResult={agent()}
+                  errorMessage={props.errorMessage}
                 />
               ) : (
                 <DataDisplayTabs
-                  data={activeData}
-                  title={t(activeTab)}
-                  copyableData={activeData}
+                  data={data()}
+                  title={t(activeTab())}
+                  copyableData={data()}
                   downloadFileName={`${
-                    currentStep?.name ?? 'output'
-                  }-${activeTab.toLowerCase()}`}
+                    props.currentStep?.name ?? 'output'
+                  }-${activeTab().toLowerCase()}`}
                 />
               )
             }
           >
-            <TestingPreviewContent data={activeData} />
+            <TestingPreviewContent data={data()} />
           </Show>
         </div>
       </div>
       <Show
-        when={isTesting()}
+        when={props.isTesting}
         fallback={
           <RetestActionBar
-            onRetest={onRetest}
-            disabled={!isValid || isSaving}
-            isValid={isValid}
-            isSaving={isSaving}
+            onRetest={props.onRetest}
+            disabled={!props.isValid || props.isSaving}
+            isValid={props.isValid}
+            isSaving={props.isSaving}
           />
         }
       >
-        <CancelTestingBar onCancel={hideCancel ? undefined : onCancelTesting} />
+        <CancelTestingBar
+          onCancel={props.hideCancel ? undefined : props.onCancelTesting}
+        />
       </Show>
     </div>
   );
@@ -172,60 +161,50 @@ type TestPanelToolbarProps = {
   disabled?: boolean;
 };
 
-const TestPanelToolbar = ({
-  activeTab,
-  setActiveTab,
-  hasInput,
-  hasLogs,
-  disabled = false,
-}: TestPanelToolbarProps) => (
-  <div className="flex items-center justify-between px-3 py-2 gap-2 shrink-0">
-    <SegmentedTabs
-      activeTab={activeTab}
-      setActiveTab={setActiveTab}
-      hasInput={hasInput}
-      hasLogs={hasLogs}
-      disabled={disabled}
-    />
-    <TestPanelViewToggle disabled={disabled} />
-  </div>
-);
-
+const TestPanelToolbar = (_props: TestPanelToolbarProps) => {
+  const props = mergeProps({ disabled: false }, _props);
+  return (
+    <div class="flex items-center justify-between px-3 py-2 gap-2 shrink-0">
+      <SegmentedTabs
+        activeTab={props.activeTab}
+        setActiveTab={props.setActiveTab}
+        hasInput={props.hasInput}
+        hasLogs={props.hasLogs}
+        disabled={props.disabled}
+      />
+      <TestPanelViewToggle disabled={props.disabled} />
+    </div>
+  );
+};
 type SegmentedTabsProps = TestPanelToolbarProps;
 
-const SegmentedTabs = ({
-  activeTab,
-  setActiveTab,
-  hasInput,
-  hasLogs,
-  disabled,
-}: SegmentedTabsProps) => (
+const SegmentedTabs = (props: SegmentedTabsProps) => (
   <div
-    className={cn(
+    class={cn(
       'inline-flex items-center rounded-md bg-muted p-0.5 gap-0.5',
-      disabled && 'opacity-50',
+      props.disabled && 'opacity-50',
     )}
   >
     <SegmentedTabsButton
       label={t('Output')}
-      active={activeTab === 'Output'}
-      onClick={() => setActiveTab('Output')}
-      disabled={disabled}
+      active={props.activeTab === 'Output'}
+      onClick={() => props.setActiveTab('Output')}
+      disabled={props.disabled}
     />
-    <Show when={hasInput()}>
+    <Show when={props.hasInput}>
       <SegmentedTabsButton
         label={t('Input')}
-        active={activeTab === 'Input'}
-        onClick={() => setActiveTab('Input')}
-        disabled={disabled}
+        active={props.activeTab === 'Input'}
+        onClick={() => props.setActiveTab('Input')}
+        disabled={props.disabled}
       />
     </Show>
-    <Show when={hasLogs()}>
+    <Show when={props.hasLogs}>
       <SegmentedTabsButton
         label={t('Logs')}
-        active={activeTab === 'Logs'}
-        onClick={() => setActiveTab('Logs')}
-        disabled={disabled}
+        active={props.activeTab === 'Logs'}
+        onClick={() => props.setActiveTab('Logs')}
+        disabled={props.disabled}
       />
     </Show>
   </div>
@@ -238,24 +217,19 @@ type SegmentedTabsButtonProps = {
   disabled?: boolean;
 };
 
-const SegmentedTabsButton = ({
-  label,
-  active,
-  onClick,
-  disabled,
-}: SegmentedTabsButtonProps) => (
+const SegmentedTabsButton = (props: SegmentedTabsButtonProps) => (
   <button
     type="button"
-    onClick={onClick}
-    disabled={disabled}
-    className={cn(
+    onClick={() => props.onClick()}
+    disabled={props.disabled}
+    class={cn(
       'px-3 py-1 text-xs font-medium rounded-sm transition-colors disabled:cursor-not-allowed',
-      active
+      props.active
         ? 'bg-background text-foreground shadow-sm'
         : 'text-muted-foreground hover:text-foreground',
     )}
   >
-    {label}
+    {props.label}
   </button>
 );
 
@@ -266,27 +240,22 @@ type RetestActionBarProps = {
   isSaving: boolean;
 };
 
-const RetestActionBar = ({
-  onRetest,
-  disabled,
-  isValid,
-  isSaving,
-}: RetestActionBarProps) => (
+const RetestActionBar = (props: RetestActionBarProps) => (
   <div
     data-test-panel-trigger
-    className="relative px-3 py-3 bg-background z-10 shrink-0"
+    class="relative px-3 py-3 bg-background z-10 shrink-0"
   >
     <div
       aria-hidden
-      className="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent"
+      class="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent"
     />
-    <TestButtonTooltip saving={isSaving} invalid={!isValid}>
+    <TestButtonTooltip saving={props.isSaving} invalid={!props.isValid}>
       <Button
         variant="outline"
-        onClick={onRetest}
-        disabled={disabled}
+        onClick={props.onRetest}
+        disabled={props.disabled}
         keyboardShortcut="G"
-        onKeyboardShortcut={onRetest}
+        onKeyboardShortcut={props.onRetest}
         class="w-full justify-center bg-primary/5 enabled:hover:bg-primary/15 enabled:hover:text-primary text-primary border-primary/20"
         size="sm"
       >
@@ -301,18 +270,18 @@ type CancelTestingBarProps = {
   onCancel?: () => void;
 };
 
-const CancelTestingBar = ({ onCancel }: CancelTestingBarProps) => (
+const CancelTestingBar = (props: CancelTestingBarProps) => (
   <div
     data-test-panel-trigger
-    className="relative px-3 py-3 bg-background z-10 shrink-0"
+    class="relative px-3 py-3 bg-background z-10 shrink-0"
   >
     <div
       aria-hidden
-      className="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent"
+      class="pointer-events-none absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-background to-transparent"
     />
     <Button
-      onClick={onCancel}
-      disabled={!onCancel}
+      onClick={props.onCancel}
+      disabled={!props.onCancel}
       variant="outline"
       class="w-full justify-center bg-primary/5 hover:bg-primary/10 text-primary border-primary/20"
       size="sm"
@@ -327,29 +296,28 @@ type TestingPreviewContentProps = {
   data: unknown;
 };
 
-const TestingPreviewContent = ({ data }: TestingPreviewContentProps) => {
-  if (!isNil(data)) {
-    return (
-      <div className="opacity-40 animate-pulse pointer-events-none select-none">
-        <DataDisplayTabs data={data} title={t('Output')} />
+const TestingPreviewContent = (props: TestingPreviewContentProps) => {
+  return (
+    <Show when={!isNil(props.data)} fallback={<JsonTreeSkeleton />}>
+      <div class="opacity-40 animate-pulse pointer-events-none select-none">
+        <DataDisplayTabs data={props.data} title={t('Output')} />
       </div>
-    );
-  }
-  return <JsonTreeSkeleton />;
+    </Show>
+  );
 };
 
 const JsonTreeSkeleton = () => (
-  <div className="flex flex-col gap-3 py-3 animate-pulse">
+  <div class="flex flex-col gap-3 py-3 animate-pulse">
     <Skeleton class="h-3 w-24" />
-    <div className="pl-4 flex flex-col gap-2.5">
+    <div class="pl-4 flex flex-col gap-2.5">
       <Skeleton class="h-3 w-32" />
-      <div className="pl-4 flex flex-col gap-2.5">
+      <div class="pl-4 flex flex-col gap-2.5">
         <Skeleton class="h-3 w-48" />
         <Skeleton class="h-3 w-40" />
         <Skeleton class="h-3 w-44" />
       </div>
       <Skeleton class="h-3 w-28" />
-      <div className="pl-4 flex flex-col gap-2.5">
+      <div class="pl-4 flex flex-col gap-2.5">
         <Skeleton class="h-3 w-36" />
         <Skeleton class="h-3 w-52" />
       </div>
@@ -357,8 +325,6 @@ const JsonTreeSkeleton = () => (
     </div>
   </div>
 );
-
-TestSampleDataViewer.displayName = 'TestSampleDataViewer';
 
 //In case the user has mangled sample data
 function getAgentResult(sampleData: unknown) {

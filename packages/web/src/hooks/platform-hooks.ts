@@ -38,7 +38,7 @@ export const platformHooks = {
     const query = createQuery(
       () => ({
         queryKey: ['platform', currentPlatformId],
-        queryFn: platformApi.getCurrentPlatform,
+        queryFn: () => platformApi.getCurrentPlatform(),
         staleTime: Infinity,
       }),
       () => queryClient,
@@ -66,10 +66,10 @@ export const platformHooks = {
           await platformApi.verifyLicenseKey(tempLicenseKey.trim());
         },
         onSuccess: () => {
-          queryClient.invalidateQueries({
+          void queryClient.invalidateQueries({
             queryKey: ['platform', currentPlatformId],
           });
-          queryClient.invalidateQueries({
+          void queryClient.invalidateQueries({
             queryKey: flagsHooks.queryKey,
           });
           toast.success(t('License activated successfully!'));

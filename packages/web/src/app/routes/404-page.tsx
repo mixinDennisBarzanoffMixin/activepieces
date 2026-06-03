@@ -13,30 +13,33 @@ interface NotFoundPageProps {
   icon?: LucideIcon;
 }
 
-const NotFoundPage: any = ({
-  title = 'Oops! Page Not Found',
-  description = "The page you're looking for isn't here. Want to try going back home?",
-  showHomeButton = true,
-  buttonText = 'Go Home',
-  icon: Icon = SearchX,
-}) => {
+const NotFoundPage = (_props: NotFoundPageProps) => {
+  const props: Required<NotFoundPageProps> = {
+    title: 'Oops! Page Not Found',
+    description:
+      "The page you're looking for isn't here. Want to try going back home?",
+    showHomeButton: true,
+    buttonText: 'Go Home',
+    icon: SearchX,
+    ..._props,
+  };
   return (
-    <div className="mx-auto max-w-(--breakpoint-xl) px-4 py-8 lg:px-6 lg:py-16 bg-background">
-      <div className="mx-auto max-w-(--breakpoint-sm) text-center">
-        <div className="mx-auto mb-8 flex justify-center">
-          <Icon class="h-24 w-24" />
+    <div class="mx-auto max-w-(--breakpoint-xl) px-4 py-8 lg:px-6 lg:py-16 bg-background">
+      <div class="mx-auto max-w-(--breakpoint-sm) text-center">
+        <div class="mx-auto mb-8 flex justify-center">
+          <props.icon class="h-24 w-24" />
         </div>
-        <p className="mb-4 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
-          {t(title)}
+        <p class="mb-4 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+          {t(props.title)}
         </p>
 
-        <p className="mb-4 text-lg font-light text-foreground">
-          {t(description)}
+        <p class="mb-4 text-lg font-light text-foreground">
+          {t(props.description)}
         </p>
-        <Show when={showHomeButton}>
+        <Show when={props.showHomeButton}>
           <Link href="/">
             <Button size="lg" variant={'default'}>
-              {t(buttonText)}
+              {t(props.buttonText)}
             </Button>
           </Link>
         </Show>

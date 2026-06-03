@@ -1,4 +1,4 @@
-import { createSignal, createEffect } from 'solid-js';
+import { createSignal, createEffect, Show, type JSX } from 'solid-js';
 
 import {
   Tooltip,
@@ -12,10 +12,7 @@ interface TextWithTooltipProps {
   tooltipMessage: string;
   children: JSX.Element;
 }
-export const TextWithTooltip = ({
-  tooltipMessage,
-  children,
-}: TextWithTooltipProps) => {
+export const TextWithTooltip = (props: TextWithTooltipProps) => {
   let textRef: HTMLDivElement | undefined;
   const [isTruncated, setIsTruncated] = createSignal(false);
 
@@ -31,32 +28,27 @@ export const TextWithTooltip = ({
     return () => window.removeEventListener('resize', checkTruncation);
   });
 
-  const childWithRef = () => {
-    const child = children as any;
-    return {
-      ...child,
-      props: {
-        ...child.props,
-        ref: (el: HTMLDivElement) => {
-          textRef = el;
-        },
-        class: cn('truncate', child.props?.class),
-      },
-    };
-  };
-
-  if (!isTruncated()) {
-    return childWithRef();
-  }
+  const child = () => (
+    <div
+      ref={(el) => {
+        textRef = el;
+      }}
+      class={cn('truncate')}
+    >
+      {props.children}
+    </div>
+  );
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>{childWithRef()}</TooltipTrigger>
-        <TooltipContent class="max-w-md wrap-break-word whitespace-normal">
-          <p>{tooltipMessage}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Show when={isTruncated()} fallback={child()}>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{child()}</TooltipTrigger>
+          <TooltipContent class="max-w-md wrap-break-word whitespace-normal">
+            <p>{props.tooltipMessage}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </Show>
   );
 };

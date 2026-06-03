@@ -9,11 +9,7 @@ type DataTableCheckboxProps = {
   handleCheckedChange: (checked: boolean) => void;
 };
 
-export function DataTableInputCheckbox({
-  label,
-  checked,
-  handleCheckedChange,
-}: DataTableCheckboxProps) {
+export function DataTableInputCheckbox(props: DataTableCheckboxProps) {
   return (
     <Button
       type="button"
@@ -21,13 +17,13 @@ export function DataTableInputCheckbox({
       class={cn(
         'flex items-center space-x-2 border-dashed rounded-md px-3 py-2 h-9',
         'hover:bg-accent/5',
-        checked && 'bg-accent/10 border-accent text-accent-foreground',
+        props.checked && 'bg-accent/10 border-accent text-accent-foreground',
       )}
-      onClick={() => handleCheckedChange(!checked)}
+      onClick={() => props.handleCheckedChange(!props.checked)}
     >
-      <Checkbox checked={checked} class="pointer-events-none" />
+      <Checkbox checked={props.checked} class="pointer-events-none" />
       <Label class="text-sm font-normal leading-none select-none cursor-pointer">
-        {label}
+        {props.label}
       </Label>
     </Button>
   );

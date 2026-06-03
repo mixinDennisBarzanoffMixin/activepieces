@@ -13,11 +13,7 @@ import { Label } from '@/components/ui/label';
 
 import { StepShell } from '../stepper';
 
-export const DnsStep = ({
-  subdomain,
-}: {
-  subdomain: EmbedSubdomain | undefined;
-}) => {
+export const DnsStep = (props: { subdomain: EmbedSubdomain | undefined }) => {
   return (
     <StepShell
       title={t('Verify the DNS records')}
@@ -25,15 +21,18 @@ export const DnsStep = ({
         "Add these records at your DNS provider. We'll detect them automatically — this usually takes a few minutes.",
       )}
     >
-      <Show when={subdomain}>
-        <div className="flex flex-col gap-4">
-          <EmbedStatusBadge status={subdomain.status} />
+      <Show when={props.subdomain}>
+        <div class="flex flex-col gap-4">
+          <EmbedStatusBadge status={props.subdomain?.status} />
           <Show
             when={
-              subdomain.status === EmbedSubdomainStatus.PENDING_VERIFICATION
+              props.subdomain?.status ===
+              EmbedSubdomainStatus.PENDING_VERIFICATION
             }
           >
-            <VerificationInstructions records={subdomain.verificationRecords} />
+            <VerificationInstructions
+              records={props.subdomain?.verificationRecords ?? []}
+            />
           </Show>
         </div>
       </Show>
@@ -41,25 +40,27 @@ export const DnsStep = ({
   );
 };
 
-const EmbedStatusBadge = ({ status }: { status: EmbedSubdomainStatus }) => {
-  switch (status) {
+const EmbedStatusBadge = (props: {
+  status: EmbedSubdomainStatus | undefined;
+}) => {
+  switch (props.status) {
     case EmbedSubdomainStatus.ACTIVE:
       return (
-        <div className="flex items-center gap-2 text-sm text-success-600">
+        <div class="flex items-center gap-2 text-sm text-success-600">
           <CheckCircle class="size-4" />
           {t('DNS verified — your domain is ready')}
         </div>
       );
     case EmbedSubdomainStatus.PENDING_VERIFICATION:
       return (
-        <div className="flex items-center gap-2 text-sm text-warning">
+        <div class="flex items-center gap-2 text-sm text-warning">
           <Loader2 class="size-4 animate-spin" />
           {t('Waiting for DNS')}
         </div>
       );
     case EmbedSubdomainStatus.FAILED:
       return (
-        <div className="flex items-center gap-2 text-sm text-destructive">
+        <div class="flex items-center gap-2 text-sm text-destructive">
           <XCircle class="size-4" />
           {t('Verification failed. Contact support to retry.')}
         </div>
@@ -67,17 +68,15 @@ const EmbedStatusBadge = ({ status }: { status: EmbedSubdomainStatus }) => {
   }
 };
 
-const VerificationInstructions = ({
-  records,
-}: {
+const VerificationInstructions = (props: {
   records: EmbedVerificationRecord[];
 }) => {
   return (
-    <div className="flex flex-col gap-6 rounded-md border p-4">
-      <For each={records}>
+    <div class="flex flex-col gap-6 rounded-md border p-4">
+      <For each={props.records}>
         {(record, index) => (
           <VerificationRow
-            key={`${record.type}-${record.name}-${index}`}
+            key={`${record.type}-${record.name}-${index()}`}
             record={record}
           />
         )}
@@ -86,25 +85,31 @@ const VerificationInstructions = ({
   );
 };
 
-const VerificationRow = ({ record }: { record: EmbedVerificationRecord }) => {
+const VerificationRow = (props: { record: EmbedVerificationRecord }) => {
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted">
-          {record.type}
+    <div class="flex flex-col gap-2">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-muted">
+          {props.record.type}
         </span>
-        <span className="text-xs text-muted-foreground">
-          {t(PURPOSE_LABELS[record.purpose])}
+        <span class="text-xs text-muted-foreground">
+          {t(PURPOSE_LABELS[props.record.purpose])}
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1.5 min-w-0">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col gap-1.5 min-w-0">
           <Label class="text-xs text-muted-foreground">{t('Name')}</Label>
-          <CopyToClipboardInput textToCopy={record.name} useInput={true} />
+          <CopyToClipboardInput
+            textToCopy={props.record.name}
+            useInput={true}
+          />
         </div>
-        <div className="flex flex-col gap-1.5 min-w-0">
+        <div class="flex flex-col gap-1.5 min-w-0">
           <Label class="text-xs text-muted-foreground">{t('Value')}</Label>
-          <CopyToClipboardInput textToCopy={record.value} useInput={true} />
+          <CopyToClipboardInput
+            textToCopy={props.record.value}
+            useInput={true}
+          />
         </div>
       </div>
     </div>

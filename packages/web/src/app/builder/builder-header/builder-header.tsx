@@ -81,7 +81,7 @@ export const BuilderHeader = () => {
     flowVersion.id === flow.publishedVersionId;
   const [isEditingFlowName, setIsEditingFlowName] = createSignal(false);
   createEffect(() => {
-    setIsEditingFlowName(queryParams.get(NEW_FLOW_QUERY_PARAM) === 'true');
+    setIsEditingFlowName(queryParams[NEW_FLOW_QUERY_PARAM] === 'true');
   });
 
   const goToFlowsPage = () => {
@@ -94,27 +94,29 @@ export const BuilderHeader = () => {
   };
 
   const titleContent = (
-    <div className="flex items-center gap-2 px-4">
+    <div class="flex items-center gap-2 px-4">
       <Breadcrumb>
         <BreadcrumbList>
-          <Show when={!embedState.disableNavigationInBuilder()}>
+          <Show when={!embedState.disableNavigationInBuilder && project}>
             <>
               <BreadcrumbItem>
                 <BreadcrumbLink
                   onClick={goToFlowsPage}
                   class="cursor-pointer text-sm"
                 >
-                  {getProjectName(project)}
+                  <Show when={project} keyed>
+                    {(item) => getProjectName(item)}
+                  </Show>
                 </BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
             </>
           </Show>
-          <Show when={!embedState.hideFlowNameInBuilder()}>
+          <Show when={!embedState.hideFlowNameInBuilder}>
             <BreadcrumbItem>
               <BreadcrumbPage>
                 <div
-                  className={cn('flex items-center gap-1 text-sm', {
+                  class={cn('flex items-center gap-1 text-sm', {
                     'max-w-[500px]': !isEditingFlowName,
                   })}
                 >
@@ -151,7 +153,9 @@ export const BuilderHeader = () => {
                     onRename={() => {
                       setIsEditingFlowName(true);
                     }}
-                    onMoveTo={(folderId) => moveToFolderClientSide(folderId)}
+                    onMoveTo={(folderId: string) =>
+                      moveToFolderClientSide(folderId)
+                    }
                     onDuplicate={() => {}}
                   >
                     <Button
@@ -171,19 +175,19 @@ export const BuilderHeader = () => {
   );
 
   const rightContent = (
-    <div className="flex items-center justify-center gap-4">
-      <Show when={showSupport()}>
+    <div class="flex items-center justify-center gap-4">
+      <Show when={showSupport}>
         <Button
           variant="ghost"
           class="gap-2 px-2"
           onClick={() => openNewWindow(supportUrl)}
         >
-          <CircleHelp class="w-4 h-4"></CircleHelp>
+          <CircleHelp class="w-4 h-4" />
           {t('Support')}
         </Button>
       </Show>
       <ActiveUsersWidget resourceId={flow.id} />
-      <Show when={hasPermissionToReadRuns()}>
+      <Show when={hasPermissionToReadRuns}>
         <Button
           variant="ghost"
           onClick={() => setRightSidebar(RightSideBarType.RUNS)}
@@ -194,7 +198,7 @@ export const BuilderHeader = () => {
         </Button>
       </Show>
 
-      <BuilderFlowStatusSection></BuilderFlowStatusSection>
+      <BuilderFlowStatusSection />
     </div>
   );
 

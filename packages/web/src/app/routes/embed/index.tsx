@@ -1,3 +1,4 @@
+import { AuthenticationResponse } from '@activepieces/shared';
 import { createMutation } from '@tanstack/solid-query';
 import {
   ActivepiecesClientAuthenticationFailed,
@@ -12,7 +13,6 @@ import {
 import i18n from 'i18next';
 import { createEffect } from 'solid-js';
 
-import { memoryRouter } from '@/app/guards';
 import { LoadingScreen } from '@/components/custom/loading-screen';
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { useTheme } from '@/components/providers/theme-provider';
@@ -51,14 +51,18 @@ const handleVendorNavigation = ({ projectId }: { projectId: string }) => {
         routesThatRequireProjectId,
       ).some((route) => targetRoute.includes(route));
       if (!targetRouteRequiresProjectId) {
-        memoryRouter.navigate(targetRoute);
+        window.history.pushState(null, '', targetRoute);
+        window.dispatchEvent(new PopStateEvent('popstate'));
       } else {
-        memoryRouter.navigate(
+        window.history.pushState(
+          null,
+          '',
           combinePaths({
             secondPath: targetRoute,
             firstPath: `/projects/${projectId}`,
           }),
         );
+        window.dispatchEvent(new PopStateEvent('popstate'));
       }
     }
   };
@@ -66,8 +70,8 @@ const handleVendorNavigation = ({ projectId }: { projectId: string }) => {
 };
 
 const handleClientNavigation = () => {
-  memoryRouter.subscribe((state) => {
-    const pathNameWithoutProjectOrProjectId = state.location.pathname.replace(
+  const handle = () => {
+    const pathNameWithoutProjectOrProjectId = window.location.pathname.replace(
       /\/projects\/[^/]+/,
       '',
     );
@@ -75,17 +79,25 @@ const handleClientNavigation = () => {
       {
         type: ActivepiecesClientEventName.CLIENT_ROUTE_CHANGED,
         data: {
-          route: pathNameWithoutProjectOrProjectId + state.location.search,
+          route: pathNameWithoutProjectOrProjectId + window.location.search,
         },
       },
       '*',
     );
-  });
+  };
+  window.addEventListener('popstate', handle);
 };
 
 const EmbedPage = () => {
   const { setEmbedState, embedState } = useEmbedding();
-  const { mutateAsync } = createMutation({
+  const { mutateAsync } = createMutation<
+    AuthenticationResponse,
+    Error,
+    {
+      externalAccessToken: string;
+      locale: string;
+    }
+  >({
     mutationFn: async ({
       externalAccessToken,
       locale,
@@ -111,7 +123,7 @@ const EmbedPage = () => {
         if (event.data.data.mode) {
           setTheme(event.data.data.mode);
         }
-        mutateAsync(
+        void mutateAsync(
           {
             externalAccessToken: event.data.data.jwtToken,
             locale: event.data.data.locale ?? 'en',
@@ -124,39 +136,37 @@ const EmbedPage = () => {
               const defaultRoute = determineDefaultRoute(checkAccess);
               const initialRoute =
                 configuredRoute === '/' ? defaultRoute : configuredRoute;
-              //must use it to ensure that the correct router in RouterProvider is used before navigation
-              flushSync(() => {
-                setEmbedState({
-                  hideSideNav: event.data.data.hideSidebar,
-                  isEmbedded: true,
-                  hideFlowNameInBuilder:
-                    event.data.data.hideFlowNameInBuilder ?? false,
-                  disableNavigationInBuilder:
-                    event.data.data.disableNavigationInBuilder !== false,
-                  hideFolders: event.data.data.hideFolders ?? false,
-                  hideTables: event.data.data.hideTables ?? false,
-                  sdkVersion: event.data.data.sdkVersion,
-                  fontUrl: event.data.data.fontUrl,
-                  fontFamily: event.data.data.fontFamily,
-                  useDarkBackground:
-                    initialRoute.startsWith('/embed/connections'),
-                  hideExportAndImportFlow:
-                    event.data.data.hideExportAndImportFlow ?? false,
-                  hideHomeButtonInBuilder:
-                    event.data.data.disableNavigationInBuilder ===
-                    'keep_home_button_only'
-                      ? false
-                      : event.data.data.disableNavigationInBuilder,
-                  emitHomeButtonClickedEvent:
-                    event.data.data.emitHomeButtonClickedEvent ?? false,
-                  homeButtonIcon: event.data.data.homeButtonIcon ?? 'logo',
-                  hideDuplicateFlow: event.data.data.hideDuplicateFlow ?? false,
-                  hideFlowsPageNavbar:
-                    event.data.data.hideFlowsPageNavbar ?? false,
-                  hidePageHeader: event.data.data.hidePageHeader ?? false,
-                });
+              setEmbedState({
+                hideSideNav: event.data.data.hideSidebar,
+                isEmbedded: true,
+                hideFlowNameInBuilder:
+                  event.data.data.hideFlowNameInBuilder ?? false,
+                disableNavigationInBuilder:
+                  event.data.data.disableNavigationInBuilder !== false,
+                hideFolders: event.data.data.hideFolders ?? false,
+                hideTables: event.data.data.hideTables ?? false,
+                sdkVersion: event.data.data.sdkVersion,
+                fontUrl: event.data.data.fontUrl,
+                fontFamily: event.data.data.fontFamily,
+                useDarkBackground:
+                  initialRoute.startsWith('/embed/connections'),
+                hideExportAndImportFlow:
+                  event.data.data.hideExportAndImportFlow ?? false,
+                hideHomeButtonInBuilder:
+                  event.data.data.disableNavigationInBuilder ===
+                  'keep_home_button_only'
+                    ? false
+                    : event.data.data.disableNavigationInBuilder,
+                emitHomeButtonClickedEvent:
+                  event.data.data.emitHomeButtonClickedEvent ?? false,
+                homeButtonIcon: event.data.data.homeButtonIcon ?? 'logo',
+                hideDuplicateFlow: event.data.data.hideDuplicateFlow ?? false,
+                hideFlowsPageNavbar:
+                  event.data.data.hideFlowsPageNavbar ?? false,
+                hidePageHeader: event.data.data.hidePageHeader ?? false,
               });
-              memoryRouter.navigate(initialRoute);
+              window.history.pushState(null, '', initialRoute);
+              window.dispatchEvent(new PopStateEvent('popstate'));
               if (data.projectId) {
                 handleVendorNavigation({ projectId: data.projectId });
               }
@@ -192,5 +202,4 @@ const EmbedPage = () => {
   return <LoadingScreen brightSpinner={embedState.useDarkBackground} />;
 };
 
-EmbedPage.displayName = 'EmbedPage';
 export { EmbedPage };

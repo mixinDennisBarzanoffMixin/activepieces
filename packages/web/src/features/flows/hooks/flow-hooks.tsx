@@ -23,6 +23,7 @@ import {
   createMutation,
   createQuery,
 } from '@tanstack/solid-query';
+import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
 import { toast } from 'solid-sonner';
 
@@ -47,7 +48,7 @@ import { flowsUtils } from '../utils/flows-utils';
 const createFlowsQueryKey = (projectId: string) => ['flows', projectId];
 export const flowHooks = {
   invalidateFlowsQuery: (queryClient: QueryClient) => {
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: createFlowsQueryKey(authenticationSession.getProjectId()!),
     });
   },
@@ -100,7 +101,7 @@ export const flowHooks = {
         if (change === 'publish') {
           setIsPublishing?.(false);
         }
-        onSuccess?.(flow);
+        onSuccess(flow);
       },
       onError: (error: unknown) => {
         if (change === 'publish') {
@@ -108,11 +109,10 @@ export const flowHooks = {
         }
         if (!api.isError(error)) {
           internalErrorToast();
-          return;
-        }
-        if (
+        } else if (
           !error.response ||
-          error.response.status === api.httpStatus.GatewayTimeout
+          Number(error.response.status) ===
+            Number(HttpStatusCode.GatewayTimeout)
         ) {
           toast.error(t('Request Timed Out'), {
             description: t(
@@ -121,10 +121,11 @@ export const flowHooks = {
             ),
             duration: 5000,
           });
-          return;
-        }
-        const apError = error.response.data as ApErrorParams;
-        if (apError.code === ErrorCode.TRIGGER_UPDATE_STATUS) {
+        } else if (
+          (error.response.data as ApErrorParams).code ===
+          ErrorCode.TRIGGER_UPDATE_STATUS
+        ) {
+          const apError = error.response.data as ApErrorParams;
           const params = apError.params as Record<string, string>;
           openDialog({
             title:
@@ -186,15 +187,15 @@ export const flowHooks = {
   }: {
     onSuccess: (flowVersion: FlowVersion) => void;
   }) => {
-    return createMutation<FlowVersion, Error, FlowVersionMetadata>({
-      mutationFn: async (flowVersion) => {
+    return createMutation<FlowVersion, Error, FlowVersionMetadata>(() => ({
+      mutationFn: async (flowVersion: FlowVersionMetadata) => {
         const result = await flowsApi.get(flowVersion.flowId, {
           versionId: flowVersion.id,
         });
         return result.version;
       },
       onSuccess,
-    });
+    }));
   },
   useOverWriteDraftWithVersion: ({
     onSuccess,
@@ -205,8 +206,14 @@ export const flowHooks = {
       PopulatedFlow,
       Error,
       { flowId: string; versionId: string }
-    >({
-      mutationFn: async ({ flowId, versionId }) => {
+    >(() => ({
+      mutationFn: async ({
+        flowId,
+        versionId,
+      }: {
+        flowId: string;
+        versionId: string;
+      }) => {
         const result = await flowsApi.update(flowId, {
           type: FlowOperationType.USE_AS_DRAFT,
           request: {
@@ -216,7 +223,7 @@ export const flowHooks = {
         return result;
       },
       onSuccess,
-    });
+    }));
   },
   useCreateMcpFlow: () => {
     const navigate = useNavigate();
@@ -230,9 +237,6 @@ export const flowHooks = {
           name: '@activepieces/piece-mcp',
         });
         const trigger = mcpPiece.triggers['mcp_tool'];
-        if (!trigger) {
-          throw new Error('MCP trigger not found');
-        }
         const stepData = pieceSelectorUtils.getDefaultStepValues({
           stepName: 'trigger',
           pieceSelectorItem: {
@@ -287,7 +291,13 @@ export const flowHooks = {
       Error,
       { flowId: string; ownerId: string }
     >({
-      mutationFn: async ({ flowId, ownerId }) => {
+      mutationFn: async ({
+        flowId,
+        ownerId,
+      }: {
+        flowId: string;
+        ownerId: string;
+      }) => {
         return await flowsApi.update(flowId, {
           type: FlowOperationType.UPDATE_OWNER,
           request: { ownerId },
@@ -311,7 +321,17 @@ export const flowHooks = {
         author: string;
       }
     >({
-      mutationFn: async ({ flowId, flowVersionId, description, author }) => {
+      mutationFn: async ({
+        flowId,
+        flowVersionId,
+        description,
+        author,
+      }: {
+        flowId: string;
+        flowVersionId: string;
+        description: string;
+        author: string;
+      }) => {
         const template = await flowsApi.getTemplate(flowId, {
           versionId: flowVersionId,
         });
@@ -342,7 +362,7 @@ export const flowHooks = {
     isForManualTrigger: boolean;
   }) => {
     const socket = useSocket();
-    return createMutation<void>({
+    return createMutation<void>(() => ({
       mutationFn: () =>
         flowRunsApi.subscribeToTestFlowOrManualRun(
           socket,
@@ -352,11 +372,11 @@ export const flowHooks = {
           onUpdateRun,
           isForManualTrigger,
         ),
-    });
+    }));
   },
 
   useListFlowVersions: (flowId: string) => {
-    return createQuery<SeekPage<FlowVersionMetadata>, Error>({
+    return createQuery<SeekPage<FlowVersionMetadata>, Error>(() => ({
       queryKey: ['flow-versions', flowId],
       queryFn: () =>
         flowsApi.listVersions(flowId, {
@@ -364,7 +384,7 @@ export const flowHooks = {
           cursor: undefined,
         }),
       staleTime: 0,
-    });
+    }));
   },
   useGetFlowVersionNumber: ({
     flowId,
@@ -373,15 +393,15 @@ export const flowHooks = {
     flowId: string;
     versionId: string;
   }) => {
-    const { data: flowVersions } = flowHooks.useListFlowVersions(flowId);
-    return flowVersions?.data
-      ? flowVersions.data.length -
-          flowVersions.data.findIndex((version) => version.id === versionId)
+    const query = flowHooks.useListFlowVersions(flowId);
+    return query.data?.data
+      ? query.data.data.length -
+          query.data.data.findIndex((version) => version.id === versionId)
       : '';
   },
   useStartFromScratch: (folderId: string) => {
     const navigate = useNavigate();
-    return createMutation<PopulatedFlow, Error, void>({
+    return createMutation<PopulatedFlow, Error, void>(() => ({
       mutationFn: async () => {
         const folder =
           folderId !== UncategorizedFolderId
@@ -394,10 +414,10 @@ export const flowHooks = {
         });
         return flow;
       },
-      onSuccess: (flow) => {
+      onSuccess: (flow: PopulatedFlow) => {
         navigate(`/flows/${flow.id}?${NEW_FLOW_QUERY_PARAM}=true`);
       },
-    });
+    }));
   },
   importFlowIntoExisting: async ({
     template,
@@ -422,7 +442,7 @@ export const flowHooks = {
       oldExternalId,
       flow.externalId,
     );
-    const updatedTrigger = JSON.parse(triggerString);
+    const updatedTrigger = JSON.parse(triggerString) as FlowTrigger;
 
     return await flowsApi.update(flow.id, {
       type: FlowOperationType.IMPORT_FLOW,
@@ -492,7 +512,7 @@ export const flowHooks = {
           triggerString = triggerString.replaceAll(oldId, newId);
         }
 
-        const updatedTrigger = JSON.parse(triggerString);
+        const updatedTrigger = JSON.parse(triggerString) as FlowTrigger;
 
         return await flowsApi.update(flow.id, {
           type: FlowOperationType.IMPORT_FLOW,

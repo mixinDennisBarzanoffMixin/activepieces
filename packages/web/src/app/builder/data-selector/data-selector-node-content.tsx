@@ -5,7 +5,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { ChevronDown, ChevronRight } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { Show, createMemo, untrack } from 'solid-js';
 
 import { TextWithTooltip } from '@/components/custom/text-with-tooltip';
 import { useApRipple } from '@/components/providers/theme-provider';
@@ -30,62 +30,75 @@ type DataSelectorNodeContentProps = {
 const handleKeyPress = (event: KeyboardEvent) => {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault();
-    if (event.target) {
-      (event.target as HTMLDivElement).click();
+    if (event.target instanceof HTMLElement) {
+      event.target.click();
     }
   }
 };
 
-const DataSelectorNodeContent = ({
-  node,
-  expanded,
-  setExpanded,
-  depth,
-}: DataSelectorNodeContentProps) => {
-  const flowVersion = useBuilderStateContext((state) => state.flowVersion);
-  const insertMention = useBuilderStateContext((state) => state.insertMention);
+const DataSelectorNodeContent = (props: DataSelectorNodeContentProps) => {
+  const [flowVersion, insertMention] = useBuilderStateContext((state) => [
+    state.flowVersion,
+    state.insertMention,
+  ]);
 
   const [ripple, rippleEvent] = useApRipple();
 
-  const stepForRoot =
-    depth === 0 && node.data.type === 'value'
-      ? flowStructureUtil.getStep(node.data.propertyPath, flowVersion.trigger)
-      : depth === 0 && node.data.type === 'test'
-      ? flowStructureUtil.getStep(node.data.stepName, flowVersion.trigger)
-      : undefined;
+  const stepForRoot = createMemo(() =>
+    props.depth === 0 && props.node.data.type === 'value'
+      ? flowStructureUtil.getStep(
+          props.node.data.propertyPath,
+          flowVersion.trigger,
+        )
+      : props.depth === 0 && props.node.data.type === 'test'
+      ? flowStructureUtil.getStep(props.node.data.stepName, flowVersion.trigger)
+      : undefined,
+  );
 
-  const isExpandable = !!node.children && node.children.length > 0;
-  const isStepRoot = depth === 0;
-  const isPrimitiveStepRoot = isStepRoot && !isExpandable;
-  const isLeafValue =
-    !isExpandable && node.data.type === 'value' && !isStepRoot;
-  const isInsertable =
-    node.data.type === 'value' && node.data.insertable && !node.isLoopStepNode;
-  const showInsertButton = isInsertable;
+  const isExpandable = createMemo(
+    () => !!props.node.children && props.node.children.length > 0,
+  );
+  const isStepRoot = createMemo(() => props.depth === 0);
+  const isPrimitiveStepRoot = createMemo(() => isStepRoot() && !isExpandable());
+  const isLeafValue = createMemo(
+    () => !isExpandable() && props.node.data.type === 'value' && !isStepRoot(),
+  );
+  const isInsertable = createMemo(
+    () =>
+      props.node.data.type === 'value' &&
+      props.node.data.insertable &&
+      !props.node.isLoopStepNode,
+  );
 
-  const arrayValue =
-    node.data.type === 'value' && Array.isArray(node.data.value)
-      ? (node.data.value as unknown[])
-      : null;
-  const showArrayCount = isExpandable && arrayValue !== null;
+  const arrayValue = createMemo(() =>
+    props.node.data.type === 'value' && Array.isArray(props.node.data.value)
+      ? props.node.data.value
+      : null,
+  );
+  const showArrayCount = createMemo(
+    () => isExpandable() && arrayValue() !== null,
+  );
 
   const handleClick = (e: MouseEvent) => {
-    if (isExpandable) {
+    if (isExpandable()) {
       rippleEvent(e);
-      setExpanded(!expanded);
+      props.setExpanded(!props.expanded);
       return;
     }
-    if (isInsertable && insertMention && node.data.type === 'value') {
+    if (isInsertable() && insertMention && props.node.data.type === 'value') {
       rippleEvent(e);
-      insertMention(node.data.propertyPath);
+      insertMention(props.node.data.propertyPath);
     }
   };
 
-  const showValuePreview = (isLeafValue || isPrimitiveStepRoot) && isInsertable;
-  const valuePreview =
-    showValuePreview && node.data.type === 'value'
-      ? formatValuePreview(node.data.value)
-      : '';
+  const showValuePreview = createMemo(
+    () => (isLeafValue() || isPrimitiveStepRoot()) && isInsertable(),
+  );
+  const valuePreview = createMemo(() =>
+    showValuePreview() && props.node.data.type === 'value'
+      ? formatValuePreview(props.node.data.value)
+      : '',
+  );
 
   return (
     <div
@@ -93,78 +106,78 @@ const DataSelectorNodeContent = ({
       onKeyDown={handleKeyPress}
       ref={ripple}
       onClick={handleClick}
-      className={cn(
+      class={cn(
         'w-full max-w-full select-none focus:outline-hidden cursor-pointer group transition-colors',
         'hover:bg-accent/60 focus:bg-accent dark:hover:bg-accent/20',
       )}
-      data-depth={depth}
+      data-depth={props.depth}
     >
       <div
-        className={cn(
+        class={cn(
           'flex items-center gap-1.5 pr-2 min-w-0',
-          isStepRoot ? 'min-h-[40px] py-1.5' : 'min-h-[32px]',
+          isStepRoot() ? 'min-h-[40px] py-1.5' : 'min-h-[32px]',
         )}
-        style={{ paddingLeft: depth * INDENT_PER_DEPTH + 12 }}
+        style={{ 'padding-left': props.depth * INDENT_PER_DEPTH + 12 }}
       >
-        <Show when={!isStepRoot && isExpandable()}>
+        <Show when={!isStepRoot() && isExpandable()}>
           <ChevronRight
             class={cn(
               'size-3.5 shrink-0 text-muted-foreground transition-transform',
-              expanded && 'rotate-90',
+              props.expanded && 'rotate-90',
             )}
           />
         </Show>
-        <Show when={!isStepRoot && !isExpandable()}>
-          <div className="size-3.5 shrink-0" aria-hidden />
+        <Show when={!isStepRoot() && !isExpandable()}>
+          <div class="size-3.5 shrink-0" aria-hidden />
         </Show>
 
-        <Show when={isStepRoot && stepForRoot()}>
-          <StepRootIcon step={stepForRoot} />
+        <Show when={isStepRoot() && stepForRoot()}>
+          <StepRootIcon step={stepForRoot()} />
         </Show>
 
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          <Show when={node.data.type !== 'test'()}>
+        <div class="flex items-center gap-1.5 min-w-0 flex-1">
+          <Show when={props.node.data.type !== 'test'}>
             <span
-              className={cn(
+              class={cn(
                 'truncate min-w-0 shrink-0 max-w-[40%]',
-                isStepRoot
+                isStepRoot()
                   ? 'font-medium text-foreground text-sm'
                   : 'text-foreground text-sm',
               )}
             >
-              {node.data.displayName}
+              {props.node.data.displayName}
             </span>
           </Show>
 
           <Show when={showArrayCount()}>
-            <span className="shrink-0 text-xs text-muted-foreground">
+            <span class="shrink-0 text-xs text-muted-foreground">
               {t('{count, plural, =1 {1 item} other {# items}}', {
-                count: arrayValue?.length ?? 0,
+                count: arrayValue()?.length ?? 0,
               })}
             </span>
           </Show>
 
-          <Show when={showValuePreview && valuePreview !== ''()}>
+          <Show when={showValuePreview() && valuePreview() !== ''}>
             <>
-              <span className="shrink-0 text-muted-foreground">:</span>
-              <TextWithTooltip tooltipMessage={String(valuePreview)}>
-                <span className="min-w-0 truncate text-primary text-sm flex-1">
-                  {valuePreview}
+              <span class="shrink-0 text-muted-foreground">:</span>
+              <TextWithTooltip tooltipMessage={String(valuePreview())}>
+                <span class="min-w-0 truncate text-primary text-sm flex-1">
+                  {valuePreview()}
                 </span>
               </TextWithTooltip>
             </>
           </Show>
         </div>
 
-        <Show when={showInsertButton()}>
+        <Show when={isInsertable()}>
           <Button
             variant="basic"
             size="sm"
             tabIndex={-1}
             onClick={(e) => {
               e.stopPropagation();
-              if (insertMention && node.data.type === 'value') {
-                insertMention(node.data.propertyPath);
+              if (insertMention && props.node.data.type === 'value') {
+                insertMention(props.node.data.propertyPath);
               }
             }}
             class={cn(
@@ -176,11 +189,11 @@ const DataSelectorNodeContent = ({
           </Button>
         </Show>
 
-        <Show when={isStepRoot && isExpandable()}>
+        <Show when={isStepRoot() && isExpandable()}>
           <ChevronDown
             class={cn(
               'size-4 shrink-0 text-muted-foreground transition-transform',
-              !expanded && '-rotate-90',
+              !props.expanded && '-rotate-90',
             )}
           />
         </Show>
@@ -189,19 +202,21 @@ const DataSelectorNodeContent = ({
   );
 };
 
-const StepRootIcon = ({ step }: { step: FlowAction | FlowTrigger }) => {
+const StepRootIcon = (props: { step: FlowAction | FlowTrigger }) => {
+  const step = untrack(() => props.step);
   const { stepMetadata } = stepsHooks.useStepMetadata({ step });
-  if (!stepMetadata) return null;
   return (
-    <div className="shrink-0">
-      <PieceIcon
-        displayName={stepMetadata.displayName}
-        logoUrl={stepMetadata.logoUrl}
-        showTooltip={false}
-        border={false}
-        size="xs"
-      />
-    </div>
+    <Show when={stepMetadata}>
+      <div class="shrink-0">
+        <PieceIcon
+          displayName={String(stepMetadata?.displayName ?? '')}
+          logoUrl={String(stepMetadata?.logoUrl ?? '')}
+          showTooltip={false}
+          border={false}
+          size="xs"
+        />
+      </div>
+    </Show>
   );
 };
 
@@ -222,5 +237,4 @@ const formatValuePreview = (value: unknown): string => {
     : json;
 };
 
-DataSelectorNodeContent.displayName = 'DataSelectorNodeContent';
 export { DataSelectorNodeContent };

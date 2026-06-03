@@ -6,8 +6,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
-export function McpFlows({ mcpServer }: McpFlowsProps) {
-  const flows = mcpServer?.flows ?? [];
+export function McpFlows(props: McpFlowsProps) {
+  const flows = props.mcpServer.flows ?? [];
 
   if (flows.length === 0) {
     return (
@@ -22,14 +22,14 @@ export function McpFlows({ mcpServer }: McpFlowsProps) {
   }
 
   return (
-    <div className="border rounded-lg overflow-hidden divide-y">
+    <div class="border rounded-lg overflow-hidden divide-y">
       {
         <For each={flows}>
           {(flow) => {
             const isEnabled = flow.status === FlowStatus.ENABLED;
             return (
-              <div className="flex items-center justify-between px-4 py-3">
-                <span className="text-sm font-medium">
+              <div class="flex items-center justify-between px-4 py-3">
+                <span class="text-sm font-medium">
                   {flow.version.displayName}
                 </span>
                 <Badge
@@ -37,7 +37,7 @@ export function McpFlows({ mcpServer }: McpFlowsProps) {
                   class="flex items-center gap-1.5"
                 >
                   <div
-                    className={cn(
+                    class={cn(
                       'w-2 h-2 rounded-full',
                       isEnabled ? 'bg-success' : 'bg-gray-400',
                     )}

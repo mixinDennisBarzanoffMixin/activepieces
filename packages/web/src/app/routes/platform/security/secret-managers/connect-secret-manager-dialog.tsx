@@ -1,7 +1,4 @@
-import { createMemo, createSignal, For, Show } from 'solid-js';
-import { createStore } from 'solid-js/store';
 import {
-  ConnectSecretManagerRequest,
   ConnectSecretManagerRequestSchema,
   SECRET_MANAGER_PROVIDERS_METADATA,
   SecretManagerConnectionScope,
@@ -10,8 +7,10 @@ import {
   ApErrorParams,
   ErrorCode,
   SecretManagerProviderConfig,
+  ConnectSecretManagerRequest,
 } from '@activepieces/shared';
 import { t } from 'i18next';
+import { createEffect, createMemo, createSignal, For, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -43,33 +42,33 @@ import { api } from '@/lib/api';
 
 import { secretManagersUtils } from './util';
 
-const AddEditSecretManagerConnectionDialog = ({
-  children,
-  connection,
-}: AddEditSecretManagerConnectionDialogProps) => {
+const AddEditSecretManagerConnectionDialog = (
+  props: AddEditSecretManagerConnectionDialogProps,
+) => {
   const [open, setOpen] = createSignal(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Tooltip>
         <TooltipTrigger asChild>
-          <DialogTrigger asChild>{children}</DialogTrigger>
+          <DialogTrigger asChild>{props.children}</DialogTrigger>
         </TooltipTrigger>
         <TooltipContent>{t('Edit')}</TooltipContent>
       </Tooltip>
       <DialogContent class="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {connection
-              ? `${t('Edit')} ${connection.name}`
+            {props.connection
+              ? `${t('Edit')} ${props.connection.name}`
               : t('New Secret Manager Connection')}
           </DialogTitle>
         </DialogHeader>
-        <AddEditSecretManagerForm
-          key={open ? 'open' : 'closed'}
-          connection={connection}
-          setOpen={setOpen}
-        />
+        <Show when={open()}>
+          <AddEditSecretManagerForm
+            connection={props.connection}
+            setOpen={setOpen}
+          />
+        </Show>
       </DialogContent>
     </Dialog>
   );
@@ -77,94 +76,96 @@ const AddEditSecretManagerConnectionDialog = ({
 
 export default AddEditSecretManagerConnectionDialog;
 
-const AddEditSecretManagerForm = ({
-  connection,
-  setOpen,
-}: {
+const AddEditSecretManagerForm = (props: {
   connection?: SecretManagerConnectionWithStatus;
   setOpen: (open: boolean) => void;
 }) => {
-  const isEdit = !!connection;
-  const [form, setForm] = createStore(
-    secretManagersUtils.getDefaultValues(connection)
+  const [form, setForm] = createSignal(
+    secretManagersUtils.getDefaultValues(undefined),
   );
   const [errors, setErrors] = createSignal<Record<string, string>>({});
   const [serverError, setServerError] = createSignal<string>();
   const selectedProvider = createMemo<
     SecretManagerProviderMetaData | undefined
   >(() =>
-    SECRET_MANAGER_PROVIDERS_METADATA.find((p) => p.id === form.providerId)
+    SECRET_MANAGER_PROVIDERS_METADATA.find((p) => p.id === form().providerId),
   );
+
+  createEffect(() => {
+    setForm(secretManagersUtils.getDefaultValues(props.connection));
+  });
 
   const { mutate: createConnection, isPending: isCreating } =
     secretManagersHooks.useCreateSecretManagerConnection({
-      onSuccess: () => setOpen(false),
+      onSuccess: () => props.setOpen(false),
       onError: (error) => handleMutationError(error, setServerError),
     });
 
   const { mutate: updateConnection, isPending: isUpdating } =
     secretManagersHooks.useUpdateSecretManagerConnection({
-      onSuccess: () => setOpen(false),
+      onSuccess: () => props.setOpen(false),
       onError: (error) => handleMutationError(error, setServerError),
     });
 
-  const isPending = isCreating || isUpdating;
+  const isPending = () => isCreating || isUpdating;
 
   const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();
     setServerError(undefined);
-    const parsed = ConnectSecretManagerRequestSchema.safeParse(form);
+    const parsed = ConnectSecretManagerRequestSchema.safeParse(form());
     if (!parsed.success) {
       setErrors(
         Object.fromEntries(
           parsed.error.issues.map((issue) => [
             issue.path.join('.'),
             issue.message,
-          ])
-        )
+          ]),
+        ),
       );
       return;
     }
     setErrors({});
-    if (isEdit && connection) {
-      updateConnection({ id: connection.id, config: parsed.data });
-    } else {
-      createConnection(parsed.data);
+    if (props.connection) {
+      updateConnection({ id: props.connection.id, config: parsed.data });
+      return;
     }
+    createConnection(parsed.data);
   };
 
   return (
     <form class="grid space-y-4" onSubmit={handleSubmit}>
       <ScrollArea class="max-h-[500px]">
         <div class="grid space-y-3">
-          <Show when={!isEdit}>
+          <Show when={!props.connection}>
             <div class="space-y-2">
               <Label for="provider-select" showRequiredIndicator>
                 {t('Provider')}
               </Label>
               <Select
-                value={form.providerId}
+                value={form().providerId}
                 onValueChange={(val) => {
                   const provider = SECRET_MANAGER_PROVIDERS_METADATA.find(
-                    (p) => p.id === val
+                    (p) => p.id === val,
                   );
                   if (!provider) {
                     return;
                   }
-                  setForm('providerId', provider.id);
-                  setForm(
-                    'config',
-                    secretManagersUtils.getEmptySecretManagerConfig(provider.id)
-                  );
+                  setForm((data) => ({
+                    ...data,
+                    providerId: provider.id,
+                    config: secretManagersUtils.getEmptySecretManagerConfig(
+                      provider.id,
+                    ),
+                  }));
                 }}
               >
                 <SelectTrigger id="provider-select">
-                  <SelectValue placeholder={t('Select a provider')} />
+                  <SelectValue placeholder={String(t('Select a provider'))} />
                 </SelectTrigger>
                 <SelectContent>
                   <For each={SECRET_MANAGER_PROVIDERS_METADATA}>
                     {(provider) => (
-                      <SelectItem key={provider.id} value={provider.id}>
+                      <SelectItem value={provider.id}>
                         <div class="flex items-center gap-2">
                           <img
                             src={provider.logo}
@@ -188,8 +189,10 @@ const AddEditSecretManagerForm = ({
             </Label>
             <Input
               id="connection-name"
-              value={form.name}
-              onInput={(e) => setForm('name', e.currentTarget.value)}
+              value={form().name}
+              onInput={(e) =>
+                setForm((data) => ({ ...data, name: e.currentTarget.value }))
+              }
               placeholder={t('e.g. Production HashiCorp')}
               class="rounded-sm"
             />
@@ -201,13 +204,25 @@ const AddEditSecretManagerForm = ({
               {t('Scope')}
             </Label>
             <Select
-              value={form.scope}
-              onValueChange={(val) =>
-                setForm('scope', val as SecretManagerConnectionScope)
-              }
+              value={form().scope}
+              onValueChange={(val) => {
+                if (val === SecretManagerConnectionScope.PLATFORM) {
+                  setForm((data) => ({
+                    ...data,
+                    scope: SecretManagerConnectionScope.PLATFORM,
+                  }));
+                  return;
+                }
+                if (val === SecretManagerConnectionScope.PROJECT) {
+                  setForm((data) => ({
+                    ...data,
+                    scope: SecretManagerConnectionScope.PROJECT,
+                  }));
+                }
+              }}
             >
               <SelectTrigger id="connection-scope">
-                <SelectValue placeholder={t('Select scope')} />
+                <SelectValue placeholder={String(t('Select scope'))} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={SecretManagerConnectionScope.PLATFORM}>
@@ -221,42 +236,48 @@ const AddEditSecretManagerForm = ({
             <FieldError message={errors().scope} />
           </div>
 
-          <Show when={form.scope === SecretManagerConnectionScope.PROJECT}>
+          <Show when={form().scope === SecretManagerConnectionScope.PROJECT}>
             <ProjectSelector
-              value={form.projectIds}
-              onChange={(ids) => setForm('projectIds', ids)}
+              value={form().projectIds}
+              onInput={(ids) =>
+                setForm((data) => ({ ...data, projectIds: ids }))
+              }
             />
           </Show>
 
           <Show when={selectedProvider()}>
-            {Object.entries(selectedProvider()?.fields ?? {}).map(
-              ([fieldId, field]) => (
-                <div class="space-y-2" key={fieldId}>
-                  <Label for={fieldId} showRequiredIndicator={!field.optional}>
-                    {field.displayName}
-                  </Label>
-                  <div class="flex gap-2 items-center justify-center">
-                    <Input
-                      id={fieldId}
-                      placeholder={field.placeholder}
-                      class="rounded-sm"
-                      type={field.type}
-                      value={String(
-                        form.config[
-                          fieldId as keyof SecretManagerProviderConfig
-                        ] ?? ''
-                      )}
-                      onInput={(e) =>
-                        setForm('config', (cfg) => ({
-                          ...cfg,
-                          [fieldId]: e.currentTarget.value,
-                        }))
-                      }
-                    />
+            {(provider) => (
+              <For each={Object.entries(provider().fields)}>
+                {([fieldId, field]) => (
+                  <div class="space-y-2">
+                    <Label
+                      for={fieldId}
+                      showRequiredIndicator={!field.optional}
+                    >
+                      {field.displayName}
+                    </Label>
+                    <div class="flex gap-2 items-center justify-center">
+                      <Input
+                        id={fieldId}
+                        placeholder={field.placeholder}
+                        class="rounded-sm"
+                        type={field.type}
+                        value={String(
+                          form().config[
+                            fieldId as keyof SecretManagerProviderConfig
+                          ],
+                        )}
+                        onInput={(e) =>
+                          setForm((data) =>
+                            updateConfig(data, fieldId, e.currentTarget.value),
+                          )
+                        }
+                      />
+                    </div>
+                    <FieldError message={errors()[`config.${fieldId}`]} />
                   </div>
-                  <FieldError message={errors()[`config.${fieldId}`]} />
-                </div>
-              )
+                )}
+              </For>
             )}
           </Show>
         </div>
@@ -270,12 +291,12 @@ const AddEditSecretManagerForm = ({
           onClick={(e) => {
             e.stopPropagation();
             e.preventDefault();
-            setOpen(false);
+            props.setOpen(false);
           }}
         >
           {t('Cancel')}
         </Button>
-        <Button loading={isPending} type="submit">
+        <Button loading={isPending()} type="submit">
           {t('Save')}
         </Button>
       </DialogFooter>
@@ -283,31 +304,47 @@ const AddEditSecretManagerForm = ({
   );
 };
 
+function updateConfig(
+  data: ConnectSecretManagerRequest,
+  key: string,
+  value: string,
+): ConnectSecretManagerRequest {
+  return {
+    ...data,
+    config: {
+      ...data.config,
+      [key]: value,
+    },
+  };
+}
+
 function handleMutationError(
   error: Error,
-  setServerError: (message: string) => void
+  setServerError: (message: string) => void,
 ): void {
   if (api.isError(error)) {
     const apError = error.response?.data as ApErrorParams;
-    if (apError?.code === ErrorCode.SECRET_MANAGER_CONNECTION_FAILED) {
+    if (apError.code === ErrorCode.SECRET_MANAGER_CONNECTION_FAILED) {
       setServerError(
         t('Failed to connect to secret manager with error: "{msg}"', {
-          msg: apError.params?.message,
-        })
+          msg: apError.params.message,
+        }),
       );
     }
   } else {
     setServerError(
-      t('Failed to connect to secret manager, please check console')
+      t('Failed to connect to secret manager, please check console'),
     );
   }
 }
 
-const FieldError = ({ message }: { message?: string }) => (
-  <Show when={message}>
-    <p class="text-sm font-medium text-destructive wrap-break-word">
-      {t(message ?? '')}
-    </p>
+const FieldError = (props: { message?: string }) => (
+  <Show when={props.message}>
+    {(msg) => (
+      <p class="text-sm font-medium text-destructive wrap-break-word">
+        {t(msg())}
+      </p>
+    )}
   </Show>
 );
 

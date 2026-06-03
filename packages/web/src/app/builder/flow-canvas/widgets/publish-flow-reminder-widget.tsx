@@ -97,17 +97,17 @@ const PublishFlowReminderWidget = () => {
   });
   return (
     <LargeWidgetWrapper>
-      <div className="flex items-center gap-2">
+      <div class="flex items-center gap-2">
         <Info class="size-5" />
-        <Show when={showLoading()} fallback={t('You have unpublished changes')}>
+        <Show when={showLoading} fallback={t('You have unpublished changes')}>
           {loadingText}
         </Show>
       </div>
       <Show
-        when={showLoading()}
+        when={showLoading}
         fallback={
-          <div className="flex items-center gap-2">
-            <Show when={!isNil(flow.publishedVersionId) && !isSaving()}>
+          <div class="flex items-center gap-2">
+            <Show when={!isNil(flow.publishedVersionId) && !isSaving}>
               <Button
                 size="sm"
                 variant="ghost"
@@ -120,7 +120,7 @@ const PublishFlowReminderWidget = () => {
 
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="tooltip-wrapper">
+                <div class="tooltip-wrapper">
                   <Button
                     size="sm"
                     variant="default"
@@ -128,17 +128,17 @@ const PublishFlowReminderWidget = () => {
                     loading={isSaving}
                     //for e2e tests
                     name="Publish"
-                    onClick={() => publish()}
+                    onClick={() => void publish()}
                     disabled={!isValid}
                   >
                     {t('Publish')}
                   </Button>
                 </div>
               </TooltipTrigger>
-              <Show when={isSaving()}>
+              <Show when={isSaving}>
                 <TooltipContent>{t('Saving...')}</TooltipContent>
               </Show>
-              <Show when={!isValid()}>
+              <Show when={!isValid}>
                 <TooltipContent>
                   {t('You have incomplete steps')}
                 </TooltipContent>
@@ -153,7 +153,6 @@ const PublishFlowReminderWidget = () => {
   );
 };
 
-PublishFlowReminderWidget.displayName = 'PublishFlowReminderWidget';
 export { PublishFlowReminderWidget };
 
 const useShouldShowPublishButton = ({

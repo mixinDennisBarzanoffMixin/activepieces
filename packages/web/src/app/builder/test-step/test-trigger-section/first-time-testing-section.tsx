@@ -1,6 +1,6 @@
 import { isNil } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Show, useContext } from 'solid-js';
+import { Match, Show, Switch, useContext } from 'solid-js';
 
 import { Dot } from '@/components/custom/dot';
 import { Button } from '@/components/ui/button';
@@ -22,93 +22,91 @@ type FirstTimeTestingSectionProps = {
   onSaveMockAsSampleData: (mockData: unknown) => void;
 };
 
-export const FirstTimeTestingSection = ({
-  isValid,
-  testType,
-  mockData,
-  isSaving,
-  isTesting,
-  onSimulateTrigger,
-  onPollTrigger,
-  onMcpToolTesting,
-  onSaveMockAsSampleData,
-}: FirstTimeTestingSectionProps) => {
+export const FirstTimeTestingSection = (
+  props: FirstTimeTestingSectionProps,
+) => {
   const { isLoadingDynamicProperties } = useContext(DynamicPropertiesContext);
-  if (
-    testType === 'simulation' ||
-    testType === 'webhook' ||
-    testType === 'chat-trigger'
-  ) {
-    return (
-      <div className="flex justify-center flex-col gap-2 items-center">
-        <TestButtonTooltip saving={isSaving} invalid={!isValid}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onSimulateTrigger}
-            keyboardShortcut="G"
-            onKeyboardShortcut={onSimulateTrigger}
-            disabled={!isValid || isLoadingDynamicProperties}
-            loading={isSaving}
-          >
-            <Dot animation={true} variant={'primary'}></Dot>
-            {t('Test Trigger')}
-          </Button>
-        </TestButtonTooltip>
 
-        <Show when={!isNil(mockData) && JSON.stringify(mockData) !== '{}'()}>
-          <>
-            {t('Or')}
+  return (
+    <Switch>
+      <Match
+        when={
+          props.testType === 'simulation' ||
+          props.testType === 'webhook' ||
+          props.testType === 'chat-trigger'
+        }
+      >
+        <div class="flex justify-center flex-col gap-2 items-center">
+          <TestButtonTooltip saving={props.isSaving} invalid={!props.isValid}>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => onSaveMockAsSampleData(mockData)}
-              loading={isSaving}
+              onClick={props.onSimulateTrigger}
+              keyboardShortcut="G"
+              onKeyboardShortcut={props.onSimulateTrigger}
+              disabled={!props.isValid || isLoadingDynamicProperties}
+              loading={props.isSaving}
             >
-              {t('Use Mock Data')}
+              <Dot animation={true} variant={'primary'} />
+              {t('Test Trigger')}
             </Button>
-          </>
-        </Show>
-      </div>
-    );
-  }
+          </TestButtonTooltip>
 
-  if (testType === 'mcp-tool') {
-    return (
-      <div className="flex justify-center">
-        <TestButtonTooltip saving={isSaving} invalid={!isValid}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onMcpToolTesting}
-            keyboardShortcut="G"
-            onKeyboardShortcut={onMcpToolTesting}
-            loading={isTesting}
-            disabled={!isValid || isLoadingDynamicProperties}
+          <Show
+            when={
+              !isNil(props.mockData) && JSON.stringify(props.mockData) !== '{}'
+            }
           >
-            <Dot animation={true} variant={'primary'}></Dot>
-            {t('Test Tool')}
-          </Button>
-        </TestButtonTooltip>
-      </div>
-    );
-  }
-  return (
-    <div className="flex justify-center">
-      <TestButtonTooltip saving={isSaving} invalid={!isValid}>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onPollTrigger}
-          keyboardShortcut="G"
-          onKeyboardShortcut={onPollTrigger}
-          loading={isTesting}
-          disabled={!isValid || isLoadingDynamicProperties}
-        >
-          <Dot animation={true} variant={'primary'}></Dot>
-          {t('Load Sample Data')}
-        </Button>
-      </TestButtonTooltip>
-    </div>
+            <>
+              {t('Or')}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => props.onSaveMockAsSampleData(props.mockData)}
+                loading={props.isSaving}
+              >
+                {t('Use Mock Data')}
+              </Button>
+            </>
+          </Show>
+        </div>
+      </Match>
+      <Match when={props.testType === 'mcp-tool'}>
+        <div class="flex justify-center">
+          <TestButtonTooltip saving={props.isSaving} invalid={!props.isValid}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={props.onMcpToolTesting}
+              keyboardShortcut="G"
+              onKeyboardShortcut={props.onMcpToolTesting}
+              loading={props.isTesting}
+              disabled={!props.isValid || isLoadingDynamicProperties}
+            >
+              <Dot animation={true} variant={'primary'} />
+              {t('Test Tool')}
+            </Button>
+          </TestButtonTooltip>
+        </div>
+      </Match>
+      <Match when={true}>
+        <div class="flex justify-center">
+          <TestButtonTooltip saving={props.isSaving} invalid={!props.isValid}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={props.onPollTrigger}
+              keyboardShortcut="G"
+              onKeyboardShortcut={props.onPollTrigger}
+              loading={props.isTesting}
+              disabled={!props.isValid || isLoadingDynamicProperties}
+            >
+              <Dot animation={true} variant={'primary'} />
+              {t('Load Sample Data')}
+            </Button>
+          </TestButtonTooltip>
+        </div>
+      </Match>
+    </Switch>
   );
 };

@@ -1,5 +1,5 @@
 import { isNil } from '@activepieces/shared';
-import { createSignal } from 'solid-js';
+import { createEffect, createSignal, Show, mergeProps } from 'solid-js';
 
 import {
   Tooltip,
@@ -18,39 +18,40 @@ type EditableTextProps = {
   setIsEditing: (isEditing: boolean) => void;
 };
 
-const EditableText = ({
-  value: initialValue,
-  className = '',
-  readonly = false,
-  onValueChange,
-  tooltipContent,
-  disallowEditingOnClick,
-  isEditing,
-  setIsEditing,
-}: EditableTextProps) => {
-  const [value, setValue] = createSignal(initialValue);
+const EditableText = (_props: EditableTextProps) => {
+  const props = mergeProps({ className: '', readonly: false }, _props);
+  const [value, setValue] = createSignal<EditableTextProps['value']>();
   let isEditingPreviousRef = false;
-  let valueOnEditingStartedRef = initialValue;
+  let valueOnEditingStartedRef = '';
 
-  if (value() !== initialValue) {
-    setValue(initialValue);
-  }
   let editableTextRef: HTMLDivElement | undefined;
 
+  createEffect(() => {
+    if (value() !== props.value) {
+      setValue(props.value);
+    }
+  });
+
   const emitChangedValue = () => {
-    const nodeValue = (editableTextRef?.textContent ?? '').trim();
+    const text = editableTextRef?.textContent;
+    if (!text) {
+      setValue(valueOnEditingStartedRef);
+      return;
+    }
+
+    const nodeValue = text.trim();
     const shouldUpdateValue =
       nodeValue.length > 0 && nodeValue !== valueOnEditingStartedRef;
 
     setValue(shouldUpdateValue ? nodeValue : valueOnEditingStartedRef);
     if (shouldUpdateValue) {
-      onValueChange(nodeValue);
+      props.onValueChange(nodeValue);
     }
   };
 
   const setSelectionToValue = () => {
     requestAnimationFrame(() => {
-      if (editableTextRef && window.getSelection && document.createRange) {
+      if (editableTextRef) {
         const range = document.createRange();
         const sel = window.getSelection();
         range.selectNodeContents(editableTextRef);
@@ -60,34 +61,38 @@ const EditableText = ({
     });
   };
 
-  if (isEditing && !isEditingPreviousRef) {
-    valueOnEditingStartedRef = value() ? value().trim() : '';
+  createEffect(() => {
+    if (props.isEditing && !isEditingPreviousRef) {
+      const text = value();
+      valueOnEditingStartedRef = text ? text.trim() : '';
 
-    setSelectionToValue();
-  }
-  isEditingPreviousRef = isEditing;
+      setSelectionToValue();
+    }
+    isEditingPreviousRef = props.isEditing;
+  });
 
   return (
     <Show
-      when={!isEditing}
+      when={!props.isEditing}
       fallback={
         <div
-          key={'editable'}
-          ref={(el) => (editableTextRef = el)}
+          ref={(el) => {
+            editableTextRef = el;
+          }}
           contentEditable
           suppressContentEditableWarning={true}
-          className={`${className}  focus:outline-hidden break-all`}
+          class={`${props.className}  focus:outline-hidden break-all`}
           onBlur={() => {
             emitChangedValue();
-            setIsEditing(false);
+            props.setIsEditing(false);
           }}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               setValue(valueOnEditingStartedRef);
-              setIsEditing(false);
+              props.setIsEditing(false);
             } else if (event.key === 'Enter') {
               emitChangedValue();
-              setIsEditing(false);
+              props.setIsEditing(false);
             }
           }}
         >
@@ -98,22 +103,27 @@ const EditableText = ({
       <Tooltip>
         <TooltipTrigger
           disabled={
-            readonly ||
-            isEditing ||
-            disallowEditingOnClick ||
-            isNil(tooltipContent)
+            props.readonly ||
+            props.isEditing ||
+            props.disallowEditingOnClick ||
+            isNil(props.tooltipContent)
           }
           asChild
         >
           <div
             onClick={() => {
-              if (!isEditing && !readonly && !disallowEditingOnClick) {
-                setIsEditing(true);
+              if (
+                !props.isEditing &&
+                !props.readonly &&
+                !props.disallowEditingOnClick
+              ) {
+                props.setIsEditing(true);
               }
             }}
-            ref={(el) => (editableTextRef = el)}
-            key={'viewed'}
-            className={`${className} truncate `}
+            ref={(el) => {
+              editableTextRef = el;
+            }}
+            class={`${props.className} truncate `}
             title={
               editableTextRef &&
               editableTextRef.scrollWidth > editableTextRef.clientWidth &&
@@ -125,9 +135,9 @@ const EditableText = ({
             {value()}
           </div>
         </TooltipTrigger>
-        <Show when={tooltipContent}>
+        <Show when={props.tooltipContent}>
           <TooltipContent class="font-normal z-50" side="bottom">
-            {tooltipContent}
+            {props.tooltipContent}
           </TooltipContent>
         </Show>
       </Tooltip>
@@ -135,5 +145,4 @@ const EditableText = ({
   );
 };
 
-EditableText.displayName = 'EditableText';
 export default EditableText;

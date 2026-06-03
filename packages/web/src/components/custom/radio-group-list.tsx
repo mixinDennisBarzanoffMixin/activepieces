@@ -1,3 +1,5 @@
+import { For, type JSXElement } from 'solid-js';
+
 import { cn } from '@/lib/utils';
 
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
@@ -7,16 +9,10 @@ import { CardListItem } from './card-list';
 export type RadioGroupListItem<T> = {
   label: string;
   value: T;
-  labelExtra?: any;
+  labelExtra?: JSXElement;
   description?: string;
 };
-const RadioGroupList = <T,>({
-  items,
-  onChange,
-  value,
-  onHover,
-  className,
-}: {
+const RadioGroupList = <T,>(props: {
   items: RadioGroupListItem<T>[];
   onChange: (value: T) => void;
   value: T | null;
@@ -24,11 +20,11 @@ const RadioGroupList = <T,>({
   className?: string;
 }) => {
   return (
-    <div className={cn('space-y-4', className)}>
-      <RadioGroup value={JSON.stringify(value)}>
-        <For each={items}>
-          {(item, index) => {
-            const selected = item.value === value;
+    <div class={cn('space-y-4', props.className)}>
+      <RadioGroup value={JSON.stringify(props.value)}>
+        <For each={props.items}>
+          {(item) => {
+            const selected = item.value === props.value;
             return (
               <CardListItem
                 class={cn(
@@ -37,23 +33,23 @@ const RadioGroupList = <T,>({
                     'border-primary bg-primary/5': selected,
                   },
                 )}
-                onClick={() => onChange(item.value)}
-                onMouseEnter={() => onHover && onHover(item.value)}
-                onMouseLeave={() => onHover && onHover(null)}
+                onClick={() => props.onChange(item.value)}
+                onMouseEnter={() => props.onHover && props.onHover(item.value)}
+                onMouseLeave={() => props.onHover && props.onHover(null)}
               >
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="text-md font-medium flex items-center gap-2">
+                <div class="flex justify-between items-center mb-2">
+                  <h4 class="text-md font-medium flex items-center gap-2">
                     {item.label}
                     {item.labelExtra}
                   </h4>
-                  <div className="shrink-0 w-5 h-5">
+                  <div class="shrink-0 w-5 h-5">
                     <RadioGroupItem
                       value={JSON.stringify(item.value)}
                       class="scale-125"
-                    ></RadioGroupItem>
+                    />
                   </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div class="text-sm text-muted-foreground">
                   {item.description}
                 </div>
               </CardListItem>
@@ -65,5 +61,4 @@ const RadioGroupList = <T,>({
   );
 };
 
-RadioGroupList.displayName = 'RadioGroupList';
 export { RadioGroupList };

@@ -1,5 +1,6 @@
 import { t } from 'i18next';
 import { Columns2, Rows2 } from 'lucide-solid';
+import { mergeProps } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { Button } from '@/components/ui/button';
@@ -10,10 +11,8 @@ type TestPanelViewToggleProps = {
   className?: string;
 };
 
-const TestPanelViewToggle = ({
-  disabled = false,
-  className,
-}: TestPanelViewToggleProps) => {
+const TestPanelViewToggle = (_props: TestPanelViewToggleProps) => {
+  const props = mergeProps({ disabled: false }, _props);
   const [testPanelView, setTestPanelView] = useBuilderStateContext((state) => [
     state.testPanelView,
     state.setTestPanelView,
@@ -29,8 +28,8 @@ const TestPanelViewToggle = ({
       variant="ghost"
       size="sm"
       onClick={() => setTestPanelView(isSplit ? 'drawer' : 'split')}
-      disabled={disabled}
-      class={cn('text-sm shrink-0', className)}
+      disabled={props.disabled}
+      class={cn('text-sm shrink-0', props.className)}
       aria-label={toggleLabel}
     >
       <ToggleIcon class="size-4" />
@@ -39,5 +38,4 @@ const TestPanelViewToggle = ({
   );
 };
 
-TestPanelViewToggle.displayName = 'TestPanelViewToggle';
 export { TestPanelViewToggle };

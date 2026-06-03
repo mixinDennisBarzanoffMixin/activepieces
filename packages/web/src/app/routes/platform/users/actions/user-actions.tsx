@@ -30,20 +30,20 @@ type UserActionsProps = {
   onUpdate: () => void;
 };
 
-export const UserActions = ({
-  row,
-  isUpdatingStatus,
-  onDelete,
-  onToggleStatus,
-  onUpdate,
-}: UserActionsProps) => {
+export const UserActions = (props: UserActionsProps) => {
   const [open, setOpen] = createSignal(false);
-  const isInvitation = row.type === 'invitation';
-  const isAdmin = !isInvitation && row.data.platformRole === PlatformRole.ADMIN;
-  const isActive = !isInvitation && row.data.status === UserStatus.ACTIVE;
+  const isInvitation = props.row.type === 'invitation';
+  const isAdmin =
+    !isInvitation && props.row.data.platformRole === PlatformRole.ADMIN;
+  const isActive = !isInvitation && props.row.data.status === UserStatus.ACTIVE;
+  const message = String(
+    isInvitation
+      ? t('This invitation will be permanently deleted.')
+      : t('This user and all their data will be permanently deleted.'),
+  );
 
   return (
-    <div className="flex justify-end">
+    <div class="flex justify-end">
       <DropdownMenu modal={true} open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" class="h-8 w-8 p-0">
@@ -53,12 +53,16 @@ export const UserActions = ({
         <DropdownMenuContent>
           <Show when={!isInvitation}>
             <UpdateUserDialog
-              userId={row.data.id}
-              role={row.data.platformRole}
-              externalId={row.data.externalId ?? undefined}
-              onUpdate={onUpdate}
+              userId={props.row.data.id}
+              role={props.row.data.platformRole}
+              externalId={
+                props.row.type === 'user'
+                  ? props.row.data.externalId ?? undefined
+                  : undefined
+              }
+              onUpdate={props.onUpdate}
             >
-              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+              <DropdownMenuItem onSelect={(e: Event) => e.preventDefault()}>
                 <Pencil class="h-4 w-4" />
                 {t('Edit')}
               </DropdownMenuItem>
@@ -66,9 +70,9 @@ export const UserActions = ({
           </Show>
           <Show when={!isInvitation}>
             <DropdownMenuItem
-              disabled={isAdmin || isUpdatingStatus}
+              disabled={isAdmin || props.isUpdatingStatus}
               onSelect={() => {
-                onToggleStatus(row.data.id, row.data.status);
+                props.onToggleStatus(props.row.data.id, props.row.data.status);
                 setOpen(false);
               }}
             >
@@ -80,21 +84,20 @@ export const UserActions = ({
           </Show>
           <ConfirmationDeleteDialog
             title={isInvitation ? t('Delete Invitation') : t('Delete User')}
-            message={
-              isInvitation
-                ? t('This invitation will be permanently deleted.')
-                : t('This user and all their data will be permanently deleted.')
-            }
+            message={message}
             entityName={`${isInvitation ? t('Invitation') : t('User')} ${
-              row.data.email
+              props.row.data.email
             }`}
-            mutationFn={async () => {
-              onDelete(isInvitation ? row.id : row.data.id, isInvitation);
+            mutationFn={() => {
+              props.onDelete(
+                isInvitation ? props.row.id : props.row.data.id,
+                isInvitation,
+              );
             }}
           >
             <DropdownMenuItem
               variant="destructive"
-              onSelect={(e) => e.preventDefault()}
+              onSelect={(e: Event) => e.preventDefault()}
             >
               <Trash class="h-4 w-4" />
               {t('Delete')}

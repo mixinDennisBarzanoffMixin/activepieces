@@ -26,8 +26,6 @@ export interface PeriodSelectorProps {
 export const TimePeriodSelect = (
   props: PeriodSelectorProps & { ref?: HTMLButtonElement },
 ) => {
-  let ref: HTMLButtonElement | undefined;
-
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'ArrowRight') props.onRightFocus?.();
     if (e.key === 'ArrowLeft') props.onLeftFocus?.();
@@ -53,13 +51,12 @@ export const TimePeriodSelect = (
     }
   };
   return (
-    <div className="flex h-10 items-center">
+    <div class="flex h-10 items-center">
       <Select
         value={props.period}
         onValueChange={(value: Period) => handleValueChange(value)}
       >
         <SelectTrigger
-          ref={(el) => (ref = el)}
           class={cn(
             ' hover:bg-accent w-[73px] h-[29px] focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1  rounded-xs justify-center p-0 transition-all border-none text-sm shadow-none gap-3 ',
             {

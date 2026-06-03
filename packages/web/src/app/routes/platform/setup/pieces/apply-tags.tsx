@@ -32,11 +32,11 @@ type ApplyTagsProps = {
   onApplyTags: () => void;
 };
 
-const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
+const ApplyTags = (props: ApplyTagsProps) => {
   const { data: tags = [] } = piecesTagQueries.useTags();
   const [open, setOpen] = createSignal(false);
   const [selectedTags, setSelectedTags] = createSignal<Set<string>>(new Set());
-  let tagsThatHaveBeenClickedRef = new Set();
+  let clicked = new Set<string>();
   const [createDialogOpen, setCreateDialogOpen] = createSignal(false);
   createEffect(() => {
     setSelectedTags(
@@ -44,18 +44,18 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
         tags
           .map((tag) => tag.name)
           .filter((tag) =>
-            selectedPieces.every((piece) => piece.tags?.includes(tag)),
+            props.selectedPieces.every((piece) => piece.tags?.includes(tag)),
           ),
       ),
     );
   });
 
   const { mutate: applyTags } = piecesTagMutations.useApplyTags({
-    onSuccess: () => onApplyTags(),
+    onSuccess: () => props.onApplyTags(),
   });
 
   const { mutate: deleteTag } = piecesTagMutations.useDeleteTag({
-    onSuccess: () => onApplyTags(),
+    onSuccess: () => props.onApplyTags(),
   });
 
   const [tagOptions, setTagOptions] = createSignal<
@@ -76,14 +76,14 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
       open={open}
       onOpenChange={(open) => {
         setOpen(open);
-        tagsThatHaveBeenClickedRef = new Set();
+        clicked = new Set<string>();
       }}
     >
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
           size="sm"
-          disabled={selectedPieces.length === 0}
+          disabled={props.selectedPieces.length === 0}
         >
           {t('Apply Tags')}
         </Button>
@@ -92,27 +92,27 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
         <Command>
           <CommandList>
             <Show
-              when={tagOptions.length === 0}
+              when={tagOptions().length === 0}
               fallback={
                 <ScrollArea viewPortClassName="max-h-[200px]">
                   <CommandGroup>
-                    <For each={tagOptions}>
+                    <For each={tagOptions()}>
                       {(option) => {
-                        const isSelected = selectedTags.has(option.value);
+                        const isSelected = selectedTags().has(option.value);
                         const isIndeterminate =
-                          selectedPieces.some((piece) =>
+                          props.selectedPieces.some((piece) =>
                             piece.tags?.includes(option.value),
                           ) &&
-                          !selectedPieces.every((piece) =>
+                          !props.selectedPieces.every((piece) =>
                             piece.tags?.includes(option.value),
                           ) &&
-                          !tagsThatHaveBeenClickedRef.has(option.value);
+                          !clicked.has(option.value);
                         return (
                           <CommandItem
                             key={option.value}
                             onSelect={() => {
-                              tagsThatHaveBeenClickedRef.add(option.value);
-                              const newSelectedTags = new Set(selectedTags);
+                              clicked.add(option.value);
+                              const newSelectedTags = new Set(selectedTags());
                               if (isSelected && !isIndeterminate) {
                                 newSelectedTags.delete(option.value);
                               } else {
@@ -126,17 +126,19 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
                                 isIndeterminate ? 'indeterminate' : isSelected
                               }
                               class="mr-2"
-                            ></Checkbox>
+                            />
 
-                            <span className="flex-grow">{option.label}</span>
+                            <span class="flex-grow">{option.label}</span>
                             <ConfirmationDeleteDialog
                               title={t('Delete Tag')}
-                              message={t(
-                                'Are you sure you want to delete the tag "{tagName}"? It will be removed from all pieces.',
-                                { tagName: option.label },
+                              message={String(
+                                t(
+                                  'Are you sure you want to delete the tag "{tagName}"? It will be removed from all pieces.',
+                                  { tagName: option.label },
+                                ),
                               )}
                               entityName={option.label}
-                              mutationFn={async () => {
+                              mutationFn={() => {
                                 deleteTag(option.id);
                                 setTagOptions((prev) =>
                                   prev.filter((o) => o.id !== option.id),
@@ -145,7 +147,7 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
                             >
                               <button
                                 onClick={(e) => e.stopPropagation()}
-                                className="hover:text-destructive"
+                                class="hover:text-destructive"
                               >
                                 <Trash2 class="size-4" />
                               </button>
@@ -163,11 +165,11 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
 
             <CreateTagDialog
               onTagCreated={(tag) => {
-                if (tagOptions.some((option) => option.value === tag.name)) {
+                if (tagOptions().some((option) => option.value === tag.name)) {
                   return;
                 }
                 setTagOptions([
-                  ...tagOptions,
+                  ...tagOptions(),
                   { id: tag.id, label: tag.name, value: tag.name },
                 ]);
               }}
@@ -190,8 +192,8 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
                 onSelect={() => {
                   toast(t('Applying Tags...'), {});
                   applyTags({
-                    piecesName: selectedPieces.map((piece) => piece.name),
-                    tags: Array.from(selectedTags),
+                    piecesName: props.selectedPieces.map((piece) => piece.name),
+                    tags: Array.from(selectedTags()),
                   });
                   setOpen(false);
                 }}
@@ -206,5 +208,4 @@ const ApplyTags = ({ selectedPieces, onApplyTags }: ApplyTagsProps) => {
   );
 };
 
-ApplyTags.displayName = 'ApplyTags';
 export { ApplyTags };

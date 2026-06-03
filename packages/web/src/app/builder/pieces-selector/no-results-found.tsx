@@ -15,11 +15,11 @@ const NoResultsFound = () => {
   const showRequestPieceButton = showCommunityLinks && !isEmbedding;
 
   return (
-    <div className="flex flex-col gap-2 items-center justify-center h-full ">
+    <div class="flex flex-col gap-2 items-center justify-center h-full ">
       <SearchX class="w-14 h-14" />
-      <div className="text-sm ">{t('No pieces found')}</div>
-      <div className="text-sm ">{t('Try adjusting your search')}</div>
-      <Show when={showRequestPieceButton()}>
+      <div class="text-sm ">{t('No pieces found')}</div>
+      <div class="text-sm ">{t('Try adjusting your search')}</div>
+      <Show when={showRequestPieceButton}>
         <Button
           variant="default"
           size="sm"

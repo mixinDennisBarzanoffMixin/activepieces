@@ -5,9 +5,9 @@ import {
 } from '@activepieces/pieces-framework';
 import { isNil, PropertySettings } from '@activepieces/shared';
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { BuilderField, BuilderForm } from '@/app/builder/builder-form';
-import { SecretInput } from '@/app/connections/secret-input';
 import { ColorPicker } from '@/components/custom/color-picker';
 import { DictionaryInput } from '@/components/custom/dictionary-input';
 import { JsonEditor } from '@/components/custom/json-editor';
@@ -16,6 +16,7 @@ import { MultiSelectPieceProperty } from '@/components/custom/multi-select-piece
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { FormControl } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
+import { SecretInput } from '@/features/connections/components/secret-input';
 
 import { ArrayPieceProperty } from './array-property';
 import { AutoFormFieldWrapper } from './auto-form-field-wrapper';
@@ -25,67 +26,56 @@ import { DynamicDropdownPieceProperty } from './dynamic-dropdown-piece-property'
 import { DynamicProperties } from './dynamic-piece-property';
 import { TextInputWithMentions } from './text-input-with-mentions';
 
-export const selectGenericFormComponentForProperty = ({
-  field,
-  propertyName,
-  inputName,
-  property,
-  allowDynamicValues,
-  markdownVariables,
-  useMentionTextInput,
-  disabled,
-  dynamicInputModeToggled,
-  form,
-  dynamicPropsInfo,
-  propertySettings,
-  hideLabel,
-  enableMarkdownForInputWithMention,
-}: SelectGenericFormComponentForPropertyParams) => {
-  switch (property.type) {
+export const selectGenericFormComponentForProperty = (
+  props: SelectGenericFormComponentForPropertyParams,
+) => {
+  switch (props.property.type) {
     case PropertyType.ARRAY:
       return (
         <AutoFormFieldWrapper
-          property={property}
-          hideLabel={hideLabel}
-          propertyName={propertyName}
-          field={field}
-          disabled={disabled}
-          inputName={inputName}
-          allowDynamicValues={allowDynamicValues}
-          dynamicInputModeToggled={dynamicInputModeToggled}
+          property={props.property}
+          hideLabel={props.hideLabel}
+          propertyName={props.propertyName}
+          field={props.field}
+          disabled={props.disabled}
+          inputName={props.inputName}
+          allowDynamicValues={props.allowDynamicValues}
+          dynamicInputModeToggled={props.dynamicInputModeToggled}
         >
           <ArrayPieceProperty
-            disabled={disabled}
-            arrayProperty={property}
-            inputName={inputName}
-            useMentionTextInput={useMentionTextInput}
-          ></ArrayPieceProperty>
+            disabled={props.disabled}
+            arrayProperty={props.property}
+            inputName={props.inputName}
+            useMentionTextInput={props.useMentionTextInput}
+          />
         </AutoFormFieldWrapper>
       );
     case PropertyType.OBJECT:
       return (
         <AutoFormFieldWrapper
-          property={property}
-          propertyName={propertyName}
-          field={field}
-          hideLabel={hideLabel}
-          inputName={inputName}
-          disabled={disabled}
-          allowDynamicValues={allowDynamicValues}
-          dynamicInputModeToggled={dynamicInputModeToggled}
+          property={props.property}
+          propertyName={props.propertyName}
+          field={props.field}
+          hideLabel={props.hideLabel}
+          inputName={props.inputName}
+          disabled={props.disabled}
+          allowDynamicValues={props.allowDynamicValues}
+          dynamicInputModeToggled={props.dynamicInputModeToggled}
         >
           <DictionaryInput
-            disabled={disabled}
-            values={field.value}
-            onChange={field.onChange}
-            keyInputClassName={useMentionTextInput ? 'h-[38px]' : undefined}
+            disabled={props.disabled}
+            values={props.field.value}
+            onChange={props.field.onChange}
+            keyInputClassName={
+              props.useMentionTextInput ? 'h-[38px]' : undefined
+            }
             renderValueInput={
-              useMentionTextInput
-                ? ({ value, onChange, disabled }) => (
+              props.useMentionTextInput
+                ? (props) => (
                     <TextInputWithMentions
-                      initialValue={value}
-                      disabled={disabled}
-                      onChange={onChange}
+                      initialValue={props.value}
+                      disabled={props.disabled}
+                      onChange={props.onChange}
                     />
                   )
                 : undefined
@@ -96,22 +86,22 @@ export const selectGenericFormComponentForProperty = ({
     case PropertyType.CHECKBOX:
       return (
         <AutoFormFieldWrapper
-          property={property}
-          propertyName={propertyName}
-          disabled={disabled}
-          hideLabel={hideLabel}
-          field={field}
-          inputName={inputName}
-          allowDynamicValues={allowDynamicValues}
+          property={props.property}
+          propertyName={props.propertyName}
+          disabled={props.disabled}
+          hideLabel={props.hideLabel}
+          field={props.field}
+          inputName={props.inputName}
+          allowDynamicValues={props.allowDynamicValues}
           placeBeforeLabelText={true}
-          dynamicInputModeToggled={dynamicInputModeToggled}
+          dynamicInputModeToggled={props.dynamicInputModeToggled}
         >
           <FormControl>
             <Switch
-              id={propertyName}
-              checked={field.value}
-              disabled={disabled}
-              onCheckedChange={field.onChange}
+              id={props.propertyName}
+              checked={props.field.value}
+              disabled={props.disabled}
+              onCheckedChange={props.field.onChange}
             />
           </FormControl>
         </AutoFormFieldWrapper>
@@ -119,113 +109,125 @@ export const selectGenericFormComponentForProperty = ({
     case PropertyType.MARKDOWN:
       return (
         <ApMarkdown
-          markdown={property.description}
-          variables={markdownVariables}
-          variant={property.variant}
+          markdown={props.property.description}
+          variables={props.markdownVariables}
+          variant={props.property.variant}
         />
       );
     case PropertyType.STATIC_DROPDOWN:
       return (
         <AutoFormFieldWrapper
-          property={property}
-          propertyName={propertyName}
-          inputName={inputName}
-          field={field}
-          hideLabel={hideLabel}
-          disabled={disabled}
-          allowDynamicValues={allowDynamicValues}
-          dynamicInputModeToggled={dynamicInputModeToggled}
+          property={props.property}
+          propertyName={props.propertyName}
+          inputName={props.inputName}
+          field={props.field}
+          hideLabel={props.hideLabel}
+          disabled={props.disabled}
+          allowDynamicValues={props.allowDynamicValues}
+          dynamicInputModeToggled={props.dynamicInputModeToggled}
         >
           <SearchableSelect
-            options={property.options.options}
-            onChange={field.onChange}
-            value={field.value}
-            disabled={disabled}
-            placeholder={property.options.placeholder ?? t('Select an option')}
-            showDeselect={!property.required}
-          ></SearchableSelect>
+            options={props.property.options.options}
+            onChange={props.field.onChange}
+            value={props.field.value}
+            disabled={props.disabled}
+            placeholder={
+              props.property.options.placeholder ?? t('Select an option')
+            }
+            showDeselect={!props.property.required}
+          />
         </AutoFormFieldWrapper>
       );
     case PropertyType.JSON:
       return (
         <AutoFormFieldWrapper
-          propertyName={propertyName}
-          inputName={inputName}
-          property={property}
-          field={field}
-          hideLabel={hideLabel}
-          disabled={disabled}
-          allowDynamicValues={allowDynamicValues}
-          dynamicInputModeToggled={dynamicInputModeToggled}
+          propertyName={props.propertyName}
+          inputName={props.inputName}
+          property={props.property}
+          field={props.field}
+          hideLabel={props.hideLabel}
+          disabled={props.disabled}
+          allowDynamicValues={props.allowDynamicValues}
+          dynamicInputModeToggled={props.dynamicInputModeToggled}
         >
-          {useMentionTextInput ? (
+          <Show
+            when={props.useMentionTextInput}
+            fallback={
+              <JsonEditor field={props.field} readonly={props.disabled} />
+            }
+          >
             <BuilderJsonEditorWrapper
-              field={field}
-              disabled={disabled}
-            ></BuilderJsonEditorWrapper>
-          ) : (
-            <JsonEditor field={field} readonly={disabled}></JsonEditor>
-          )}
+              field={props.field}
+              disabled={props.disabled}
+            />
+          </Show>
         </AutoFormFieldWrapper>
       );
     case PropertyType.STATIC_MULTI_SELECT_DROPDOWN:
       return (
         <AutoFormFieldWrapper
-          property={property}
-          inputName={inputName}
-          propertyName={propertyName}
-          field={field}
-          hideLabel={hideLabel}
-          disabled={disabled}
-          allowDynamicValues={allowDynamicValues}
-          dynamicInputModeToggled={dynamicInputModeToggled}
+          property={props.property}
+          inputName={props.inputName}
+          propertyName={props.propertyName}
+          field={props.field}
+          hideLabel={props.hideLabel}
+          disabled={props.disabled}
+          allowDynamicValues={props.allowDynamicValues}
+          dynamicInputModeToggled={props.dynamicInputModeToggled}
         >
           <MultiSelectPieceProperty
-            placeholder={property.options.placeholder ?? t('Select an option')}
-            options={property.options.options}
-            onChange={field.onChange}
-            initialValues={field.value}
-            disabled={disabled}
-            showDeselect={
-              !isNil(field.value) &&
-              field.value.length > 0 &&
-              !property.required
+            placeholder={
+              props.property.options.placeholder ?? t('Select an option')
             }
-          ></MultiSelectPieceProperty>
+            options={props.property.options.options}
+            onChange={props.field.onChange}
+            initialValues={props.field.value}
+            disabled={props.disabled}
+            showDeselect={
+              !isNil(props.field.value) &&
+              props.field.value.length > 0 &&
+              !props.property.required
+            }
+          />
         </AutoFormFieldWrapper>
       );
     case PropertyType.MULTI_SELECT_DROPDOWN:
     case PropertyType.DROPDOWN:
       return (
         <AutoFormFieldWrapper
-          inputName={inputName}
-          property={property}
-          propertyName={propertyName}
-          field={field}
-          hideLabel={hideLabel}
-          disabled={disabled}
-          allowDynamicValues={allowDynamicValues}
-          dynamicInputModeToggled={dynamicInputModeToggled}
+          inputName={props.inputName}
+          property={props.property}
+          propertyName={props.propertyName}
+          field={props.field}
+          hideLabel={props.hideLabel}
+          disabled={props.disabled}
+          allowDynamicValues={props.allowDynamicValues}
+          dynamicInputModeToggled={props.dynamicInputModeToggled}
         >
-          {isNil(dynamicPropsInfo) ? (
+          <Show
+            when={isNil(props.dynamicPropsInfo)}
+            fallback={
+              <DynamicDropdownPieceProperty
+                refreshers={props.property.refreshers}
+                value={props.field.value}
+                actionOrTriggerName={props.dynamicPropsInfo.actionOrTriggerName}
+                pieceName={props.dynamicPropsInfo.pieceName}
+                pieceVersion={props.dynamicPropsInfo.pieceVersion}
+                form={props.form}
+                placedInside={props.dynamicPropsInfo.placedInside}
+                onChange={props.field.onChange}
+                disabled={props.disabled}
+                propertyName={props.propertyName}
+                multiple={
+                  props.property.type === PropertyType.MULTI_SELECT_DROPDOWN
+                }
+                showDeselect={!props.property.required}
+                shouldRefreshOnSearch={props.property.refreshOnSearch ?? false}
+              />
+            }
+          >
             <div>Error: dynamicPropsInfo is required</div>
-          ) : (
-            <DynamicDropdownPieceProperty
-              refreshers={property.refreshers}
-              value={field.value}
-              actionOrTriggerName={dynamicPropsInfo.actionOrTriggerName}
-              pieceName={dynamicPropsInfo.pieceName}
-              pieceVersion={dynamicPropsInfo.pieceVersion}
-              form={form}
-              placedInside={dynamicPropsInfo.placedInside}
-              onChange={field.onChange}
-              disabled={disabled}
-              propertyName={propertyName}
-              multiple={property.type === PropertyType.MULTI_SELECT_DROPDOWN}
-              showDeselect={!property.required}
-              shouldRefreshOnSearch={property.refreshOnSearch ?? false}
-            ></DynamicDropdownPieceProperty>
-          )}
+          </Show>
         </AutoFormFieldWrapper>
       );
     case PropertyType.DATE_TIME:
@@ -236,51 +238,56 @@ export const selectGenericFormComponentForProperty = ({
     case PropertyType.SECRET_TEXT:
       return (
         <AutoFormFieldWrapper
-          property={property}
-          inputName={inputName}
-          field={field}
-          hideLabel={hideLabel}
-          propertyName={propertyName}
-          disabled={disabled}
+          property={props.property}
+          inputName={props.inputName}
+          field={props.field}
+          hideLabel={props.hideLabel}
+          propertyName={props.propertyName}
+          disabled={props.disabled}
           allowDynamicValues={false}
-          dynamicInputModeToggled={dynamicInputModeToggled}
+          dynamicInputModeToggled={props.dynamicInputModeToggled}
         >
-          {useMentionTextInput ? (
+          <Show
+            when={props.useMentionTextInput}
+            fallback={
+              <SecretInput
+                ref={props.field.ref}
+                value={props.field.value}
+                onChange={props.field.onChange}
+                disabled={props.disabled}
+                type={
+                  props.property.type === PropertyType.SECRET_TEXT
+                    ? 'password'
+                    : 'text'
+                }
+              />
+            }
+          >
             <TextInputWithMentions
-              disabled={disabled}
-              initialValue={field.value}
-              onChange={field.onChange}
-              enableMarkdown={enableMarkdownForInputWithMention}
-            ></TextInputWithMentions>
-          ) : (
-            <SecretInput
-              ref={field.ref}
-              value={field.value}
-              onChange={field.onChange}
-              disabled={disabled}
-              type={
-                property.type === PropertyType.SECRET_TEXT ? 'password' : 'text'
-              }
-            ></SecretInput>
-          )}
+              disabled={props.disabled}
+              initialValue={props.field.value}
+              onChange={props.field.onChange}
+              enableMarkdown={props.enableMarkdownForInputWithMention}
+            />
+          </Show>
         </AutoFormFieldWrapper>
       );
     case PropertyType.DYNAMIC:
-      return dynamicPropsInfo ? (
+      return props.dynamicPropsInfo ? (
         <DynamicProperties
-          refreshers={property.refreshers}
-          propertyName={propertyName}
-          disabled={disabled}
-          pieceName={dynamicPropsInfo.pieceName}
-          pieceVersion={dynamicPropsInfo.pieceVersion}
-          actionOrTriggerName={dynamicPropsInfo.actionOrTriggerName}
-          placedInside={dynamicPropsInfo.placedInside}
-          propertySettings={propertySettings}
-          updateFormSchema={dynamicPropsInfo.updateFormSchema}
+          refreshers={props.property.refreshers}
+          propertyName={props.propertyName}
+          disabled={props.disabled}
+          pieceName={props.dynamicPropsInfo.pieceName}
+          pieceVersion={props.dynamicPropsInfo.pieceVersion}
+          actionOrTriggerName={props.dynamicPropsInfo.actionOrTriggerName}
+          placedInside={props.dynamicPropsInfo.placedInside}
+          propertySettings={props.propertySettings}
+          updateFormSchema={props.dynamicPropsInfo.updateFormSchema}
           updatePropertySettingsSchema={
-            dynamicPropsInfo.updatePropertySettingsSchema
+            props.dynamicPropsInfo.updatePropertySettingsSchema
           }
-        ></DynamicProperties>
+        />
       ) : (
         <div>Error: dynamicPropsInfo is required</div>
       );
@@ -291,26 +298,29 @@ export const selectGenericFormComponentForProperty = ({
     case PropertyType.CUSTOM:
       return (
         <CustomProperty
-          code={property.code}
-          value={field.value}
-          onChange={field.onChange}
-          disabled={disabled}
-          property={property}
-        ></CustomProperty>
+          code={props.property.code}
+          value={props.field.value}
+          onChange={props.field.onChange}
+          disabled={props.disabled}
+          property={props.property}
+        />
       );
     case PropertyType.COLOR:
       return (
         <AutoFormFieldWrapper
-          property={property}
-          inputName={inputName}
-          propertyName={propertyName}
-          field={field}
-          hideLabel={hideLabel}
-          disabled={disabled}
-          allowDynamicValues={allowDynamicValues}
-          dynamicInputModeToggled={dynamicInputModeToggled}
+          property={props.property}
+          inputName={props.inputName}
+          propertyName={props.propertyName}
+          field={props.field}
+          hideLabel={props.hideLabel}
+          disabled={props.disabled}
+          allowDynamicValues={props.allowDynamicValues}
+          dynamicInputModeToggled={props.dynamicInputModeToggled}
         >
-          <ColorPicker value={field.value} onChange={field.onChange} />
+          <ColorPicker
+            value={props.field.value}
+            onChange={props.field.onChange}
+          />
         </AutoFormFieldWrapper>
       );
   }

@@ -1,4 +1,5 @@
 import { createMemo, createSignal } from 'solid-js';
+
 import { SelectableItemType, SelectedItemsMap, TreeItem } from '../lib/types';
 import { getItemKey } from '../lib/utils';
 
@@ -16,7 +17,7 @@ export function useAutomationsSelection(treeItems: TreeItem[]) {
       }
       return map;
     }, new Map<string, TreeItem[]>());
-  }, [treeItems]);
+  });
 
   const toggleItemSelection = (item: TreeItem) => {
     const key = getItemKey(item);
@@ -64,9 +65,8 @@ export function useAutomationsSelection(treeItems: TreeItem[]) {
     });
   };
 
-  const selectableItems = createMemo(
-    () => treeItems.filter((item) => item.type !== 'load-more-folder'),
-    [treeItems],
+  const selectableItems = createMemo(() =>
+    treeItems.filter((item) => item.type !== 'load-more-folder'),
   );
 
   const toggleAllSelection = () => {

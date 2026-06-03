@@ -24,37 +24,33 @@ type EditTimeSavedPopoverProps = {
   children: JSX.Element;
 };
 
-export function EditTimeSavedPopover({
-  flowId,
-  currentValue,
-  children,
-}: EditTimeSavedPopoverProps) {
+export function EditTimeSavedPopover(props: EditTimeSavedPopoverProps) {
   const { setTimeSavedPerRunOverride } = useContext(RefreshAnalyticsContext);
-  let previousValueRef = currentValue;
+  let previousValueRef: number | null | undefined;
   const [isOpen, setIsOpen] = createSignal(false);
 
   const [hms, setHms] = createSignal({ hours: '', mins: '', secs: '' });
-  let minsRef = null;
-  let secsRef = null;
+  let minsRef: HTMLInputElement | undefined;
+  let secsRef: HTMLInputElement | undefined;
 
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      setHms(secondsToHMS(currentValue));
-      previousValueRef = currentValue;
+      setHms(secondsToHMS(props.currentValue));
+      previousValueRef = props.currentValue;
     }
     setIsOpen(open);
   };
 
-  const { mutate, isPending } = createMutation({
+  const { mutate, isPending } = createMutation(() => ({
     mutationFn: async (timeSavedPerRun: number | null) => {
-      await flowsApi.update(flowId, {
+      await flowsApi.update(props.flowId, {
         type: FlowOperationType.UPDATE_MINUTES_SAVED,
         request: { timeSavedPerRun },
       });
       await analyticsApi.markAsOutdated();
     },
-    onMutate: async (timeSavedPerRun: number | null) => {
-      setTimeSavedPerRunOverride(flowId, timeSavedPerRun);
+    onMutate: (timeSavedPerRun: number | null) => {
+      setTimeSavedPerRunOverride(props.flowId, timeSavedPerRun);
       setIsOpen(false);
     },
     onSuccess: () => {
@@ -69,13 +65,14 @@ export function EditTimeSavedPopover({
       );
     },
     onError: () => {
-      setTimeSavedPerRunOverride(flowId, previousValueRef ?? null);
+      setTimeSavedPerRunOverride(props.flowId, previousValueRef ?? null);
       toast.error(t('Failed to update time saved'));
     },
-  });
+  }));
 
   const handleSave = () => {
-    mutate(hmsToSeconds(hms.hours, hms.mins, hms.secs));
+    const time = hms();
+    mutate(hmsToSeconds(time.hours, time.mins, time.secs));
   };
 
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -85,9 +82,9 @@ export function EditTimeSavedPopover({
 
   const handleTimeInput = (
     value: string,
-    field: keyof typeof hms,
+    field: keyof ReturnType<typeof hms>,
     max: number,
-    nextRef: RefObject<HTMLInputElement | null> | null,
+    nextRef?: HTMLInputElement,
   ) => {
     const numericValue = value.replace(/\D/g, '');
 
@@ -108,8 +105,8 @@ export function EditTimeSavedPopover({
       const digit = parseInt(numericValue, 10);
       if (digit >= 6) {
         setHms((prev) => ({ ...prev, [field]: '0' + numericValue }));
-        nextRef?.current?.focus();
-        nextRef?.current?.select();
+        nextRef?.focus();
+        nextRef?.select();
         return;
       }
       setHms((prev) => ({ ...prev, [field]: numericValue }));
@@ -120,8 +117,8 @@ export function EditTimeSavedPopover({
     const num = parseInt(clamped, 10);
     if (num >= 0 && num <= max) {
       setHms((prev) => ({ ...prev, [field]: clamped }));
-      nextRef?.current?.focus();
-      nextRef?.current?.select();
+      nextRef?.focus();
+      nextRef?.select();
     }
   };
 
@@ -136,69 +133,69 @@ export function EditTimeSavedPopover({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={handleOpenChange}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
+    <Popover open={isOpen()} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>{props.children}</PopoverTrigger>
       <PopoverContent class="w-[260px] p-4" align="start">
-        <div className="flex flex-col gap-4">
-          <div className="text-sm font-semibold">{t('Time Saved Per Run')}</div>
+        <div class="flex flex-col gap-4">
+          <div class="text-sm font-semibold">{t('Time Saved Per Run')}</div>
 
-          <div className="flex items-center rounded-md border border-input bg-background px-3 py-1.5 gap-1 focus-within:ring-1 focus-within:ring-ring">
-            <div className="flex flex-col items-center gap-0.5 flex-1">
+          <div class="flex items-center rounded-md border border-input bg-background px-3 py-1.5 gap-1 focus-within:ring-1 focus-within:ring-ring">
+            <div class="flex flex-col items-center gap-0.5 flex-1">
               <input
                 type="text"
                 inputMode="numeric"
                 placeholder="hh"
-                value={hms.hours}
+                value={hms().hours}
                 onChange={(e) =>
-                  handleTimeInput(e.target.value, 'hours', 1000, minsRef)
+                  handleTimeInput(e.currentTarget.value, 'hours', 1000, minsRef)
                 }
                 onKeyDown={handleKeyDown}
-                className="w-full text-center text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
+                class="w-full text-center text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
                 maxLength={4}
                 autoFocus
               />
             </div>
-            <span className="text-muted-foreground font-medium">:</span>
-            <div className="flex flex-col items-center gap-0.5 flex-1">
+            <span class="text-muted-foreground font-medium">:</span>
+            <div class="flex flex-col items-center gap-0.5 flex-1">
               <input
                 ref={(el) => (minsRef = el)}
                 type="text"
                 inputMode="numeric"
                 placeholder="mm"
-                value={hms.mins}
+                value={hms().mins}
                 onChange={(e) =>
-                  handleTimeInput(e.target.value, 'mins', 59, secsRef)
+                  handleTimeInput(e.currentTarget.value, 'mins', 59, secsRef)
                 }
                 onBlur={() => padOnBlur('mins')}
                 onKeyDown={handleKeyDown}
-                className="w-full text-center text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
+                class="w-full text-center text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
                 maxLength={2}
               />
             </div>
-            <span className="text-muted-foreground font-medium">:</span>
-            <div className="flex flex-col items-center gap-0.5 flex-1">
+            <span class="text-muted-foreground font-medium">:</span>
+            <div class="flex flex-col items-center gap-0.5 flex-1">
               <input
                 ref={(el) => (secsRef = el)}
                 type="text"
                 inputMode="numeric"
                 placeholder="ss"
-                value={hms.secs}
+                value={hms().secs}
                 onChange={(e) =>
-                  handleTimeInput(e.target.value, 'secs', 59, null)
+                  handleTimeInput(e.currentTarget.value, 'secs', 59)
                 }
                 onBlur={() => padOnBlur('secs')}
                 onKeyDown={handleKeyDown}
-                className="w-full text-center text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
+                class="w-full text-center text-sm bg-transparent outline-none placeholder:text-muted-foreground/50"
                 maxLength={2}
               />
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground">
+          <p class="text-xs text-muted-foreground">
             {t('How long this task takes without automation.')}
           </p>
 
-          <div className="flex gap-2 justify-end">
+          <div class="flex gap-2 justify-end">
             <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
               {t('Cancel')}
             </Button>

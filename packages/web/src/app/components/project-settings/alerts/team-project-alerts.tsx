@@ -41,7 +41,7 @@ export const TeamProjectAlerts = () => {
     <>
       <Alert variant="default">
         <Bell class="inline w-4 h-4 text-amber-900" />
-        <div className="flex flex-col gap-1">
+        <div class="flex flex-col gap-1">
           <AlertTitle>{t('Frequency')}</AlertTitle>
           <AlertDescription class="text-sm">
             {t(
@@ -53,21 +53,21 @@ export const TeamProjectAlerts = () => {
       <div>
         {
           <Show when={alertsLoading}>
-            <div className="flex items-center justify-center py-8">
+            <div class="flex items-center justify-center py-8">
               <LoadingSpinner class="w-6 h-6" />
             </div>
           </Show>
         }
         {
           <Show when={alertsError}>
-            <div className="text-center text-destructive py-8 text-sm">
+            <div class="text-center text-destructive py-8 text-sm">
               {t('Error, please try again.')}
             </div>
           </Show>
         }
         {
           <Show when={alertsData && alertsData.length === 0}>
-            <div className="text-center text-muted-foreground py-8 text-sm">
+            <div class="text-center text-muted-foreground py-8 text-sm">
               {t('No emails added yet.')}
             </div>
           </Show>

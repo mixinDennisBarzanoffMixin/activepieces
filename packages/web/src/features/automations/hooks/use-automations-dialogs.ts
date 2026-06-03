@@ -14,8 +14,10 @@ export function useAutomationsDialogs({
   selectedItems,
 }: DialogsDeps) {
   const [isFolderDialogOpen, setIsFolderDialogOpen] = createSignal(false);
-  const [isImportFlowDialogOpen, setIsImportFlowDialogOpen] = createSignal(false);
-  const [isImportTableDialogOpen, setIsImportTableDialogOpen] = createSignal(false);
+  const [isImportFlowDialogOpen, setIsImportFlowDialogOpen] =
+    createSignal(false);
+  const [isImportTableDialogOpen, setIsImportTableDialogOpen] =
+    createSignal(false);
   const [importTargetFolderId, setImportTargetFolderId] = createSignal<
     string | undefined
   >(undefined);

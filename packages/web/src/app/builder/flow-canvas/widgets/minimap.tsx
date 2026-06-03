@@ -1,5 +1,4 @@
-import { flowStructureUtil, isNil, Step } from '@activepieces/shared';
-import { MiniMap, MiniMapNodeProps } from '../solid-flow-adapter';
+import { flowStructureUtil, Step } from '@activepieces/shared';
 import { Show } from 'solid-js';
 
 import { useTheme } from '@/components/providers/theme-provider';
@@ -7,6 +6,7 @@ import { stepsHooks, StepMetadata } from '@/features/pieces';
 import { colorsUtils } from '@/lib/color-utils';
 
 import { useBuilderStateContext } from '../../builder-hooks';
+import { MiniMap, MiniMapNodeProps } from '../solid-flow-adapter';
 
 const Minimap = () => {
   const [showMinimap] = useBuilderStateContext((state) => [state.showMinimap]);
@@ -14,7 +14,7 @@ const Minimap = () => {
   const maskTransparency = theme === 'dark' ? 0.8 : 0.055;
   return (
     <>
-      <Show when={showMinimap()}>
+      <Show when={showMinimap}>
         <MiniMap
           position="bottom-left"
           class="!rounded-md border border-border !left-0 !ml-2 overflow-hidden !bottom-[45px] animate-in fade-in duration-300"
@@ -23,63 +23,59 @@ const Minimap = () => {
           zoomStep={0.3}
           bgColor="var(--background)"
           maskColor={`rgba(0, 0, 0, ${maskTransparency})`}
-          nodeComponent={(node) => <MinimapNode node={node} />}
+          nodeComponent={(node: MiniMapNodeProps) => (
+            <MinimapNode node={node} />
+          )}
         />
       </Show>
     </>
   );
 };
 
-const MinimapNodeContent = ({
-  stepMetadata,
-  node,
-}: {
+const MinimapNodeContent = (props: {
   stepMetadata: StepMetadata;
   node: MiniMapNodeProps;
 }) => {
   const nodeColor = colorsUtils.useAverageColorInImage({
-    imgUrl: stepMetadata.logoUrl ?? '',
+    imgUrl: props.stepMetadata.logoUrl ?? '',
     transparency: 50,
   });
   const defaultColor = 'oklch(92.8% 0.006 264.531)';
 
   return (
     <rect
-      width={node.width}
-      key={node.id}
-      height={node.height}
-      x={node.x}
-      y={node.y}
+      width={props.node.width}
+      height={props.node.height}
+      x={props.node.x}
+      y={props.node.y}
       fill={nodeColor ?? defaultColor}
-    ></rect>
+    />
   );
 };
 
-const MinimapContentGuard = ({
-  step,
-  node,
-}: {
-  step: Step;
-  node: MiniMapNodeProps;
-}) => {
+const MinimapContentGuard = (props: { step: Step; node: MiniMapNodeProps }) => {
   const { stepMetadata } = stepsHooks.useStepMetadata({
-    step,
+    step: props.step,
   });
-  if (isNil(stepMetadata)) {
-    return null;
-  }
-  return <MinimapNodeContent stepMetadata={stepMetadata} node={node} />;
+  return (
+    <Show when={stepMetadata} keyed>
+      {(metadata) => (
+        <MinimapNodeContent stepMetadata={metadata} node={props.node} />
+      )}
+    </Show>
+  );
 };
 
-const MinimapNode = ({ node }: { node: MiniMapNodeProps }) => {
+const MinimapNode = (props: { node: MiniMapNodeProps }) => {
   const [trigger] = useBuilderStateContext((state) => [
     state.flowVersion.trigger,
   ]);
-  const step = flowStructureUtil.getStep(node.id, trigger);
-  if (isNil(step)) {
-    return null;
-  }
+  const step = flowStructureUtil.getStep(props.node.id, trigger);
 
-  return <MinimapContentGuard step={step} node={node} />;
+  return (
+    <Show when={step} keyed>
+      {(value) => <MinimapContentGuard step={value} node={props.node} />}
+    </Show>
+  );
 };
 export default Minimap;

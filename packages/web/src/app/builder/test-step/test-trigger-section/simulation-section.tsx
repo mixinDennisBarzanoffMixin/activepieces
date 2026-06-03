@@ -1,49 +1,46 @@
 import { t } from 'i18next';
 import { AlertCircle } from 'lucide-solid';
 import { Show } from 'solid-js';
+import type { Accessor } from 'solid-js';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 type SimulationSectionProps = {
-  note: any;
+  note: Accessor<string | null | undefined>;
   resetSimulation: () => void;
-  abortControllerRef: AbortController | undefined;
+  abortControllerRef: { current: AbortController };
 };
 
-export const SimulationNote = ({
-  note,
-  resetSimulation,
-  abortControllerRef,
-}: SimulationSectionProps) => {
+export const SimulationNote = (props: SimulationSectionProps) => {
   return (
-    <div className="flex flex-col gap-4 w-full px-3 pt-3">
-      <div className="flex gap-2 items-center justify-center w-full">
-        <LoadingSpinner class="size-4"></LoadingSpinner>
+    <div class="flex flex-col gap-4 w-full px-3 pt-3">
+      <div class="flex gap-2 items-center justify-center w-full">
+        <LoadingSpinner class="size-4" />
         <div>{t('Testing Trigger')}</div>
-        <div className="grow"></div>
+        <div class="grow" />
 
         <Button
           variant="outline"
           size="sm"
           onClick={() => {
-            resetSimulation();
-            abortControllerRef.current.abort();
-            abortControllerRef.current = new AbortController();
+            props.resetSimulation();
+            props.abortControllerRef.current.abort();
+            props.abortControllerRef.current = new AbortController();
           }}
         >
           {t('Cancel')}
         </Button>
       </div>
 
-      <Show when={note()}>
+      <Show when={props.note()}>
         <Alert>
           <AlertCircle class="h-4 w-4 text-warning" />
-          <div className="flex flex-col gap-1">
+          <div class="flex flex-col gap-1">
             <AlertTitle>{t('Action Required')}:</AlertTitle>
             <AlertDescription>
-              <div className="break-wrods">{note}</div>
+              <div class="break-wrods">{props.note()}</div>
             </AlertDescription>
           </div>
         </Alert>

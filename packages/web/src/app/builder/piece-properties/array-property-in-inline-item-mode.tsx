@@ -45,19 +45,19 @@ const ArrayPiecePropertyInInlineItemMode = (
   });
   useFixInlineArrayPropertyValue(inputName, props);
   return (
-    <div className="w-full" ref={(el) => (containerRef = el)}>
+    <div class="w-full" ref={(el) => (containerRef = el)}>
       <Show
-        when={props.arrayProperties()}
+        when={props.arrayProperties}
         fallback={
           <TextInputWithMentions
             disabled={disabled}
-            onChange={props.onChange}
-            initialValue={props.value ?? null}
+            onChange={'onChange' in props ? props.onChange : () => undefined}
+            initialValue={'value' in props ? props.value : null}
           />
         }
       >
         <div
-          className={cn(
+          class={cn(
             'p-4 border rounded-md flex flex-col',
             GAP_SIZE_FOR_STEP_SETTINGS,
           )}
@@ -76,8 +76,6 @@ const ArrayPiecePropertyInInlineItemMode = (
   );
 };
 
-ArrayPiecePropertyInInlineItemMode.displayName =
-  'ArrayPiecePropertyInInlineItemMode';
 export { ArrayPiecePropertyInInlineItemMode };
 
 /**
@@ -90,7 +88,7 @@ const useFixInlineArrayPropertyValue = (
 ) => {
   const form = useFormContext();
   createEffect(() => {
-    const value = form.getValues(inputName);
+    const value: unknown = form.getValues(inputName);
     if (
       props.arrayProperties &&
       (isNil(value) || typeof value !== 'object' || Array.isArray(value))

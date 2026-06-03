@@ -33,15 +33,15 @@ const ViewingOldVersionWidget = () => {
   return (
     <LargeWidgetWrapper>
       <>
-        <div className="flex items-center gap-2">
+        <div class="flex items-center gap-2">
           <Info class="size-5" />
           <span>
             {t('Viewing version')} #{versionNumber}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Show when={hasPermissionToWriteFlow()}>
+        <div class="flex items-center gap-2">
+          <Show when={hasPermissionToWriteFlow}>
             <OverwriteDraftDialog
               versionId={version.id}
               versionNumber={versionNumber}
@@ -52,9 +52,7 @@ const ViewingOldVersionWidget = () => {
               </Button>
             </OverwriteDraftDialog>
           </Show>
-          <EditFlowOrViewDraftButton
-            onCanvas={false}
-          ></EditFlowOrViewDraftButton>
+          <EditFlowOrViewDraftButton onCanvas={false} />
         </div>
       </>
     </LargeWidgetWrapper>

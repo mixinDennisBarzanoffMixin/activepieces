@@ -1,33 +1,28 @@
-import { Show } from 'solid-js';
+import { Show, type JSXElement } from 'solid-js';
 
 import { Separator } from '@/components/ui/separator';
 
-export const CenteredPage = ({
-  title,
-  description,
-  actions,
-  children,
-}: {
+export const CenteredPage = (props: {
   title: string;
-  description: JSX.Element;
-  actions?: JSX.Element;
-  children: JSX.Element;
+  description: JSXElement;
+  actions?: JSXElement;
+  children: JSXElement;
 }) => {
   return (
-    <div className="w-full max-w-[40rem] mx-auto py-6">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-medium">{title}</h1>
-          <div className="text-sm text-muted-foreground">{description}</div>
+    <div class="w-full max-w-[40rem] mx-auto py-6">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex flex-col gap-1">
+          <h1 class="text-xl font-medium">{props.title}</h1>
+          <div class="text-sm text-muted-foreground">{props.description}</div>
         </div>
         {
-          <Show when={actions}>
-            <div className="shrink-0">{actions}</div>
+          <Show when={props.actions}>
+            <div class="shrink-0">{props.actions}</div>
           </Show>
         }
       </div>
       <Separator class="my-4" />
-      {children}
+      {props.children}
     </div>
   );
 };

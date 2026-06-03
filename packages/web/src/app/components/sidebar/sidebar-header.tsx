@@ -18,19 +18,19 @@ import { flagsHooks } from '@/hooks/flags-hooks';
 import { platformHooks } from '@/hooks/platform-hooks';
 import { determineDefaultRoute } from '@/lib/route-utils';
 
-function SidebarLogoCollapsed({ linkTo }: { linkTo?: string }) {
+function SidebarLogoCollapsed(props: { linkTo?: string }) {
   const branding = flagsHooks.useWebsiteBranding();
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => (window.location.href = linkTo || '/')}
+      onClick={() => (window.location.href = props.linkTo || '/')}
       class="h-10! w-8! p-0! group-data-[collapsible=icon]:h-10! items-center justify-center"
     >
       <img
         src={branding()?.logos.logoIconUrl}
         alt={t('home')}
-        className="h-5! w-5! shrink-0"
+        class="h-5! w-5! shrink-0"
         draggable={false}
       />
     </Button>
@@ -50,11 +50,11 @@ export const AppSidebarHeader = () => {
   if (!showSwitcher) {
     return (
       <SidebarHeader class="pb-0">
-        <div className="w-full flex items-center gap-2">
+        <div class="w-full flex items-center gap-2">
           <SidebarLogoCollapsed linkTo={defaultRoute} />
           {
             <Show when={state !== 'collapsed'}>
-              <h1 className="truncate text-sm font-medium">
+              <h1 class="truncate text-sm font-medium">
                 {branding()?.websiteName}
               </h1>
             </Show>
@@ -71,10 +71,10 @@ export const AppSidebarHeader = () => {
           <SidebarLogoCollapsed linkTo={defaultRoute} />
           {
             <Show when={state !== 'collapsed'}>
-              <div className="flex-1 min-w-0">
+              <div class="flex-1 min-w-0">
                 <PlatformSwitcher>
                   <SidebarMenuButton class="h-10! w-full">
-                    <span className="truncate font-medium flex-1 text-left text-sm">
+                    <span class="truncate font-medium flex-1 text-left text-sm">
                       {currentPlatform?.name ?? t('platform')}
                     </span>
                     <ChevronsUpDown class="ml-auto size-3! shrink-0" />

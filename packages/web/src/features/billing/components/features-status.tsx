@@ -4,6 +4,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Check, Lock } from 'lucide-solid';
+import { For, Show } from 'solid-js';
 
 const LICENSE_PROPS_MAP = {
   environmentsEnabled: {
@@ -65,31 +66,35 @@ const LICENSE_PROPS_MAP = {
   },
 };
 
-export const FeatureStatus = ({
-  platform,
-}: {
+export const FeatureStatus = (props: {
   platform: PlatformWithoutSensitiveData;
 }) => {
   return (
-    <div className="grid grid-cols-2 gap-x-6 gap-y-2">
-      {Object.entries(LICENSE_PROPS_MAP)
-        .sort(([aKey], [bKey]) => {
-          const aEnabled = platform?.plan?.[aKey as keyof PlatformPlanLimits];
-          const bEnabled = platform?.plan?.[bKey as keyof PlatformPlanLimits];
+    <div class="grid grid-cols-2 gap-x-6 gap-y-2">
+      <For
+        each={Object.entries(LICENSE_PROPS_MAP).sort(([aKey], [bKey]) => {
+          const aEnabled =
+            props.platform.plan[aKey as keyof PlatformPlanLimits];
+          const bEnabled =
+            props.platform.plan[bKey as keyof PlatformPlanLimits];
           return (aEnabled ? 0 : 1) - (bEnabled ? 0 : 1);
-        })
-        .map(([key, value]) => {
+        })}
+      >
+        {([key, value]) => {
           const featureEnabled =
-            platform?.plan?.[key as keyof PlatformPlanLimits];
+            props.platform.plan[key as keyof PlatformPlanLimits];
           return (
-            <div key={key} className="flex items-center gap-2">
-              {featureEnabled ? (
+            <div class="flex items-center gap-2">
+              <Show
+                when={featureEnabled}
+                fallback={
+                  <Lock class="size-4 text-muted-foreground shrink-0" />
+                }
+              >
                 <Check class="size-4 text-success shrink-0" />
-              ) : (
-                <Lock class="size-4 text-muted-foreground shrink-0" />
-              )}
+              </Show>
               <span
-                className={`text-sm ${
+                class={`text-sm ${
                   featureEnabled ? '' : 'text-muted-foreground'
                 }`}
               >
@@ -97,7 +102,8 @@ export const FeatureStatus = ({
               </span>
             </div>
           );
-        })}
+        }}
+      </For>
     </div>
   );
 };

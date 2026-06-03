@@ -1,41 +1,46 @@
-import { Button } from '@/components/ui/button';
+import { type Component, createSignal, splitProps } from 'solid-js';
 
-const AnimatedIconButton = (
-  props: any & { icon: any; iconSize?: number; ref?: HTMLButtonElement },
-) => {
-  let ref: HTMLButtonElement | undefined;
-  let iconRef: any;
+import { Button, ButtonProps } from '@/components/ui/button';
+
+const AnimatedIconButton = (props: AnimatedIconButtonProps) => {
+  const [local, rest] = splitProps(props, ['icon', 'iconSize', 'children']);
+  const [icon, setIcon] = createSignal<AnimatedIconHandle>();
 
   const handleMouseEnter = (e: MouseEvent) => {
-    iconRef?.startAnimation();
+    icon()?.startAnimation();
     props.onMouseEnter?.(e);
   };
 
   const handleMouseLeave = (e: MouseEvent) => {
-    iconRef?.stopAnimation();
+    icon()?.stopAnimation();
     props.onMouseLeave?.(e);
   };
 
-  const { icon: Icon, iconSize = 16, children, ...buttonProps } = props;
+  const Icon = local.icon;
 
   return (
     <Button
-      ref={(el) => (ref = el)}
-      {...buttonProps}
+      {...rest}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <Icon ref={(el) => (iconRef = el)} size={iconSize} />
-      {children}
+      <Icon ref={setIcon} size={local.iconSize || 16} />
+      {local.children}
     </Button>
   );
 };
-
-AnimatedIconButton.displayName = 'AnimatedIconButton';
 
 export { AnimatedIconButton };
 
 type AnimatedIconHandle = {
   startAnimation: () => void;
   stopAnimation: () => void;
+};
+
+type AnimatedIconButtonProps = ButtonProps & {
+  icon: Component<{
+    ref?: (handle: AnimatedIconHandle) => void;
+    size?: number;
+  }>;
+  iconSize?: number;
 };

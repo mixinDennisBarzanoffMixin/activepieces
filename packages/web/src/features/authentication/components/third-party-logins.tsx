@@ -5,6 +5,8 @@ import {
   ThirdPartyAuthnProvidersToShowMap,
 } from '@activepieces/shared';
 import { t } from 'i18next';
+import { Show } from 'solid-js';
+import type { JSX } from 'solid-js';
 
 import { authenticationApi } from '@/api/authentication-api';
 import GoogleIcon from '@/assets/img/custom/auth/google-icon.svg';
@@ -15,11 +17,13 @@ import { SamlDomainDialog } from '@/features/authentication/components/saml-doma
 import { oauth2Utils } from '@/features/connections/utils/oauth2-utils';
 import { flagsHooks } from '@/hooks/flags-hooks';
 
-const ThirdPartyIcon = ({ icon }: { icon: string }) => {
-  return <img src={icon} alt="icon" width={24} height={24} class="mr-2" />;
+const ThirdPartyIcon = (props: { icon: string }) => {
+  return (
+    <img src={props.icon} alt="icon" width={24} height={24} class="mr-2" />
+  );
 };
 
-const ThirdPartyLogin = ({ isSignUp }: { isSignUp: boolean }) => {
+const ThirdPartyLogin = (props: { isSignUp: boolean }) => {
   const { data: thirdPartyAuthProviders } =
     flagsHooks.useFlag<ThirdPartyAuthnProvidersToShowMap>(
       ApFlagId.THIRD_PARTY_AUTH_PROVIDERS_TO_SHOW_MAP,
@@ -32,7 +36,7 @@ const ThirdPartyLogin = ({ isSignUp }: { isSignUp: boolean }) => {
   const thirdPartyLogin = oauth2Utils.useThirdPartyLogin();
 
   const handleProviderClick = async (
-    event: MouseEvent<HTMLButtonElement, MouseEvent>,
+    event: MouseEvent & { currentTarget: HTMLButtonElement },
     providerName: ThirdPartyAuthnProviderEnum,
   ) => {
     event.preventDefault();
@@ -50,31 +54,36 @@ const ThirdPartyLogin = ({ isSignUp }: { isSignUp: boolean }) => {
 
   return (
     <div class="flex flex-col gap-4">
-      {thirdPartyAuthProviders?.google && (
+      <Show when={thirdPartyAuthProviders?.google}>
         <Button
           variant="outline"
           class="w-full rounded-sm"
-          onClick={(e) =>
-            handleProviderClick(e, ThirdPartyAuthnProviderEnum.GOOGLE)
+          onClick={
+            ((event) => {
+              void handleProviderClick(
+                event,
+                ThirdPartyAuthnProviderEnum.GOOGLE,
+              );
+            }) satisfies JSX.EventHandler<HTMLButtonElement, MouseEvent>
           }
         >
           <ThirdPartyIcon icon={GoogleIcon} />
-          {isSignUp
+          {props.isSignUp
             ? `${t(`Sign up With`)} ${t('Google')}`
             : `${t(`Sign in With`)} ${t('Google')}`}
         </Button>
-      )}
-      {isCloud && (
+      </Show>
+      <Show when={isCloud}>
         <SamlDomainDialog>
           <Button variant="outline" class="w-full rounded-sm">
             <ThirdPartyIcon icon={SamlIcon} />
-            {isSignUp
+            {props.isSignUp
               ? `${t(`Sign up With`)} ${t('SAML')}`
               : `${t(`Sign in With`)} ${t('SAML')}`}
           </Button>
         </SamlDomainDialog>
-      )}
-      {!isCloud && thirdPartyAuthProviders?.saml && (
+      </Show>
+      <Show when={!isCloud && thirdPartyAuthProviders?.saml}>
         <Button
           variant="outline"
           class="w-full rounded-sm"
@@ -83,11 +92,11 @@ const ThirdPartyLogin = ({ isSignUp }: { isSignUp: boolean }) => {
           }}
         >
           <ThirdPartyIcon icon={SamlIcon} />
-          {isSignUp
+          {props.isSignUp
             ? `${t(`Sign up With`)} ${t('SAML')}`
             : `${t(`Sign in With`)} ${t('SAML')}`}
         </Button>
-      )}
+      </Show>
     </div>
   );
 };

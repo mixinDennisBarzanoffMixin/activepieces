@@ -5,7 +5,10 @@ import { JSX } from 'solid-js';
 import { useAuthorization } from '@/hooks/authorization-hooks';
 import { flagsHooks } from '@/hooks/flags-hooks';
 
-import { ClientRecordData } from '../stores/store/ap-tables-client-state';
+import {
+  ClientField,
+  ClientRecordData,
+} from '../stores/store/ap-tables-client-state';
 import { Row } from '../types/types';
 
 import { ApFieldHeader } from './ap-field-header';
@@ -17,10 +20,22 @@ import { SelectCell, SelectHeaderCell } from './select-column';
 export type TableColumn = {
   key: string;
   name: string;
+  minWidth?: number;
+  maxWidth?: number;
   width?: number;
+  minHeight?: number;
+  resizable?: boolean;
+  sortable?: boolean;
+  frozen?: boolean;
   renderHeaderCell?: () => JSX.Element;
-  renderCell?: (props: { row: Row; column: { key: string; idx: number }; rowIdx: number }) => JSX.Element;
+  renderCell?: (props: TableCellProps) => JSX.Element;
   renderSummaryCell?: () => JSX.Element;
+};
+
+type TableCellProps = {
+  row: Row;
+  column: { key: string; idx: number };
+  rowIdx: number;
 };
 
 export function useTableColumns(createEmptyRecord: () => void) {
@@ -48,7 +63,7 @@ export function useTableColumns(createEmptyRecord: () => void) {
     width: 67,
     name: '',
     renderHeaderCell: () => <AddFieldButton />,
-    renderCell: () => <div className="empty-cell"></div>,
+    renderCell: () => <div class="empty-cell" />,
   };
 
   const columns: TableColumn[] = [
@@ -80,39 +95,37 @@ export function useTableColumns(createEmptyRecord: () => void) {
         />
       ),
     },
-    ...(fields.map((field, index) => ({
-      key: field.uuid,
-      minWidth: 207,
-      width: 207,
-      minHeight: 37,
-      resizable: true,
-      name: '',
-      renderHeaderCell: () => <ApFieldHeader field={{ ...field, index }} />,
-      renderCell: ({
-        row,
-        column,
-        rowIdx,
-      }) => (
-        <EditableCell
-          key={row.id + '_' + field.uuid}
-          field={field}
-          value={row[field.uuid]}
-          row={row}
-          column={column}
-          rowIdx={rowIdx}
-          disabled={!canEdit}
-          locked={row.locked}
-          onClick={() => {
-            if (row.locked && row.agentRunId) {
-              setSelectedAgentRunId(row.agentRunId);
-            }
-          }}
-        />
-      ),
-      renderSummaryCell: () => (
-        <AddRecordButton handleClick={createEmptyRecord} />
-      ),
-    })) ?? []),
+    ...fields.map(
+      (field, index): TableColumn => ({
+        key: field.uuid,
+        minWidth: 207,
+        width: 207,
+        minHeight: 37,
+        resizable: true,
+        name: '',
+        renderHeaderCell: () => <ApFieldHeader field={{ ...field, index }} />,
+        renderCell: (props) => (
+          <EditableCell
+            key={props.row.id + '_' + field.uuid}
+            field={field}
+            value={getCellValue(props.row[field.uuid])}
+            row={props.row}
+            column={props.column}
+            rowIdx={props.rowIdx}
+            disabled={!canEdit}
+            locked={props.row.locked}
+            onClick={() => {
+              if (props.row.locked && props.row.agentRunId) {
+                setSelectedAgentRunId(props.row.agentRunId);
+              }
+            }}
+          />
+        ),
+        renderSummaryCell: () => (
+          <AddRecordButton handleClick={createEmptyRecord} />
+        ),
+      }),
+    ),
   ];
 
   if (isAllowedToCreateField) {
@@ -123,7 +136,7 @@ export function useTableColumns(createEmptyRecord: () => void) {
 
 export function mapRecordsToRows(
   records: ClientRecordData[],
-  fields: any[],
+  fields: ClientField[],
 ): Row[] {
   if (!records || records.length === 0) return [];
   return records.map((record: ClientRecordData) => {
@@ -142,18 +155,24 @@ export function mapRecordsToRows(
   });
 }
 
+function getCellValue(value: unknown) {
+  return typeof value === 'string' ? value : undefined;
+}
+
 type AddRecordButtonProps = {
   handleClick: () => void;
   icon?: JSX.Element | string | number | null | undefined;
 };
 
-function AddRecordButton({ handleClick, icon }: AddRecordButtonProps) {
+function AddRecordButton(props: AddRecordButtonProps) {
   return (
     <div
-      className="w-full h-full border-t border-border  flex items-center justify-start cursor-pointer pl-4"
-      onClick={handleClick}
+      class="w-full h-full border-t border-border  flex items-center justify-start cursor-pointer pl-4"
+      onClick={() => {
+        props.handleClick();
+      }}
     >
-      {icon}
+      {props.icon}
     </div>
   );
 }
@@ -161,7 +180,7 @@ function AddRecordButton({ handleClick, icon }: AddRecordButtonProps) {
 function AddFieldButton() {
   return (
     <NewFieldPopup>
-      <div className="w-full h-full flex items-center justify-center cursor-pointer new-field">
+      <div class="w-full h-full flex items-center justify-center cursor-pointer new-field">
         <Plus class="h-4 w-4" />
       </div>
     </NewFieldPopup>

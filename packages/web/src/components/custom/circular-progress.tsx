@@ -1,19 +1,21 @@
-const ProgressCircularComponent = ({
-  data,
-  size = 'big',
-}: {
+import { createMemo, mergeProps } from 'solid-js';
+
+const ProgressCircularComponent = (_props: {
   data: {
     plan: number;
     usage: number;
   };
   size?: 'big' | 'small';
 }) => {
-  const px = size === 'big' ? 40 : 25;
+  const props = mergeProps({ size: 'big' as const }, _props);
+  const px = createMemo(() => (props.size === 'big' ? 40 : 25));
   const radius = 16;
   const circumference = 2 * Math.PI * radius;
-  const percent = Math.min(data.usage / data.plan, 1);
+  const percent = createMemo(() =>
+    Math.min(props.data.usage / props.data.plan, 1),
+  );
   return (
-    <svg width={px} height={px} viewBox="0 0 40 40" class="-rotate-90">
+    <svg width={px()} height={px()} viewBox="0 0 40 40" class="-rotate-90">
       <circle
         cx="20"
         cy="20"
@@ -31,9 +33,9 @@ const ProgressCircularComponent = ({
         stroke-width="6"
         stroke-linecap="round"
         stroke-dasharray={circumference}
-        stroke-dashoffset={circumference * (1 - percent)}
+        stroke-dashoffset={circumference * (1 - percent())}
       >
-        <title>{`${data.usage} / ${data.plan}`}</title>
+        <title>{`${props.data.usage} / ${props.data.plan}`}</title>
       </circle>
     </svg>
   );

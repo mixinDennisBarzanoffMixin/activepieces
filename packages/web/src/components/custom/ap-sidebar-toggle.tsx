@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { PanelLeftCloseIcon } from '@/components/icons/panel-left-close';
 import { PanelLeftOpenIcon } from '@/components/icons/panel-left-open';
@@ -16,11 +17,9 @@ export const ApSidebarToggle = () => {
     <Tooltip>
       <TooltipTrigger asChild>
         <Button variant="ghost" size="icon" onClick={() => setOpen(!open)}>
-          {open() ? (
+          <Show when={open()} fallback={<PanelLeftOpenIcon size={16} />}>
             <PanelLeftCloseIcon size={16} />
-          ) : (
-            <PanelLeftOpenIcon size={16} />
-          )}
+          </Show>
         </Button>
       </TooltipTrigger>
       <TooltipContent>

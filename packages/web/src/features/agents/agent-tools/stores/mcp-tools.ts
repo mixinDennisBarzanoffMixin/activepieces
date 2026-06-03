@@ -15,20 +15,22 @@ const initialState = {
   editingMcpTool: null,
 };
 
-export const useMcpToolDialogStore = createWithStore<McpToolDialogState>((set, get) => ({
-  ...initialState,
+export const useMcpToolDialogStore = createWithStore<McpToolDialogState>(
+  (set, get) => ({
+    ...initialState,
 
-  setShowAddMcpDialog: (show, tool) =>
-    set({ showAddMcpDialog: show, editingMcpTool: tool }),
+    setShowAddMcpDialog: (show, tool) =>
+      set({ showAddMcpDialog: show, editingMcpTool: tool }),
 
-  resetDialogState: () => {
-    set({
-      editingMcpTool: null,
-    });
-  },
+    resetDialogState: () => {
+      set({
+        editingMcpTool: null,
+      });
+    },
 
-  closeMcpDialog: () => {
-    get().resetDialogState();
-    set({ showAddMcpDialog: false });
-  },
-}));
+    closeMcpDialog: () => {
+      get().resetDialogState();
+      set({ showAddMcpDialog: false });
+    },
+  }),
+);

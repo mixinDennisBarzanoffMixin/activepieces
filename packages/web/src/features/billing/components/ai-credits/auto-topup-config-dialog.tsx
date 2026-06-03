@@ -5,7 +5,7 @@ import {
 import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { Loader2 } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, mergeProps, untrack, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -30,21 +30,17 @@ interface AutoTopUpConfigDialogProps {
   isEditing?: boolean;
 }
 
-export function AutoTopUpConfigDialog({
-  isOpen,
-  onOpenChange,
-  currentThreshold,
-  currentCreditsToAdd,
-  currentMaxMonthlyLimit,
-  isEditing = false,
-}: AutoTopUpConfigDialogProps) {
+export function AutoTopUpConfigDialog(_props: AutoTopUpConfigDialogProps) {
+  const props = mergeProps({ isEditing: false }, _props);
   const queryClient = useQueryClient();
-  const [threshold, setThreshold] = createSignal(currentThreshold ?? 1000);
+  const [threshold, setThreshold] = createSignal(
+    untrack(() => props.currentThreshold ?? 1000),
+  );
   const [creditsToAdd, setCreditsToAdd] = createSignal(
-    currentCreditsToAdd ?? 10000,
+    untrack(() => props.currentCreditsToAdd ?? 10000),
   );
   const [maxMonthlyLimit, setMaxMonthlyLimit] = createSignal<number | null>(
-    currentMaxMonthlyLimit ?? null,
+    untrack(() => props.currentMaxMonthlyLimit ?? null),
   );
 
   const { mutate: updateAutoTopUp, isPending: isUpdating } =
@@ -54,25 +50,25 @@ export function AutoTopUpConfigDialog({
 
   const handleSave = () => {
     const params: UpdateAICreditsAutoTopUpParamsSchema = {
-      minThreshold: threshold,
-      creditsToAdd: creditsToAdd,
-      maxMonthlyLimit: maxMonthlyLimit,
+      minThreshold: threshold(),
+      creditsToAdd: creditsToAdd(),
+      maxMonthlyLimit: maxMonthlyLimit(),
       state: AiCreditsAutoTopUpState.ENABLED,
     };
 
     const onSuccess = () => {
-      onOpenChange(false);
+      props.onOpenChange(false);
     };
 
     updateAutoTopUp(params, { onSuccess });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={props.isOpen} onOpenChange={props.onOpenChange}>
       <DialogContent class="max-w-[480px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing
+            {props.isEditing
               ? t('Edit Auto Top-up Configuration')
               : t('Enable Auto Top-up')}
           </DialogTitle>
@@ -81,98 +77,96 @@ export function AutoTopUpConfigDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
+        <div class="space-y-6 py-4">
+          <div class="space-y-6">
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
                 <Label>{t('When credits fall below')}</Label>
-                <span className="text-sm font-medium text-primary">
+                <span class="text-sm font-medium text-primary">
                   {t('{threshold} credits', {
-                    threshold: threshold.toLocaleString(),
+                    threshold: threshold().toLocaleString(),
                   })}
                 </span>
               </div>
               <Slider
-                value={[threshold]}
-                onValueChange={(v) => setThreshold(v[0])}
+                value={[threshold()]}
+                onInput={(v) => setThreshold(v[0] ?? 0)}
                 min={0}
                 max={100000}
                 step={1000}
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div class="flex justify-between text-xs text-muted-foreground">
                 <span>{t('0')}</span>
                 <span>{t('100,000')}</span>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
                 <Label>{t('Add this many credits')}</Label>
-                <span className="text-sm font-medium text-primary">
+                <span class="text-sm font-medium text-primary">
                   {t('{creditsToAdd} credits', {
-                    creditsToAdd: creditsToAdd.toLocaleString(),
+                    creditsToAdd: creditsToAdd().toLocaleString(),
                   })}
                 </span>
               </div>
               <Slider
-                value={[creditsToAdd]}
-                onValueChange={(v) => setCreditsToAdd(v[0])}
+                value={[creditsToAdd()]}
+                onInput={(v) => setCreditsToAdd(v[0] ?? 1000)}
                 min={1000}
                 max={500000}
                 step={1000}
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div class="flex justify-between text-xs text-muted-foreground">
                 <span>{t('1,000')}</span>
                 <span>{t('500,000')}</span>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <div className="flex flex-col gap-0.5">
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <div class="flex flex-col gap-0.5">
                   <Label>{t('Monthly spending limit')}</Label>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                  <span class="text-xs text-muted-foreground whitespace-nowrap">
                     {t('Maximum credits to add per month')}
                   </span>
                 </div>
-                <span className="text-sm font-medium text-primary">
-                  {maxMonthlyLimit
+                <span class="text-sm font-medium text-primary">
+                  {maxMonthlyLimit()
                     ? t('{maxMonthlyLimit} credits (${usd})', {
-                        maxMonthlyLimit: maxMonthlyLimit.toLocaleString(),
-                        usd: ((maxMonthlyLimit / 1000) * 1).toFixed(2),
+                        maxMonthlyLimit: maxMonthlyLimit()!.toLocaleString(),
+                        usd: (maxMonthlyLimit()! / 1000).toFixed(2),
                       })
                     : t('No limit')}
                 </span>
               </div>
               <Slider
-                value={[maxMonthlyLimit ?? 0]}
-                onValueChange={(v) =>
-                  setMaxMonthlyLimit(v[0] === 0 ? null : v[0])
-                }
+                value={[maxMonthlyLimit() ?? 0]}
+                onInput={(v) => setMaxMonthlyLimit(!v[0] ? null : v[0])}
                 min={0}
                 max={2000000}
                 step={10000}
               />
-              <div className="flex justify-between text-xs text-muted-foreground">
+              <div class="flex justify-between text-xs text-muted-foreground">
                 <span>{t('No limit')}</span>
                 <span>{t('2,000,000')}</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg border p-4 bg-primary/5 border-primary/30">
-            <div className="space-y-3 animate-in fade-in duration-300">
-              <div className="flex justify-between items-baseline">
-                <span className="text-sm font-semibold">
+          <div class="rounded-lg border p-4 bg-primary/5 border-primary/30">
+            <div class="space-y-3 animate-in fade-in duration-300">
+              <div class="flex justify-between items-baseline">
+                <span class="text-sm font-semibold">
                   {t('Payment per top-up')}
                 </span>
-                <span className="text-2xl font-bold text-primary">
+                <span class="text-2xl font-bold text-primary">
                   {t('${totalCost}', {
-                    totalCost: ((creditsToAdd / 1000) * 1).toFixed(2),
+                    totalCost: (creditsToAdd() / 1000).toFixed(2),
                   })}
                 </span>
               </div>
-              <div className="text-xs text-muted-foreground text-right">
+              <div class="text-xs text-muted-foreground text-right">
                 {t('$1 per 1000 credits')}
               </div>
             </div>
@@ -182,13 +176,15 @@ export function AutoTopUpConfigDialog({
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => props.onOpenChange(false)}
             disabled={isPending}
           >
             {t('Cancel')}
           </Button>
           <Button onClick={handleSave} disabled={isPending}>
-            {isPending && <Loader2 class="w-4 h-4 animate-spin mr-2" />}
+            <Show when={isPending}>
+              <Loader2 class="w-4 h-4 animate-spin mr-2" />
+            </Show>
             {t('Save Configuration')}
           </Button>
         </DialogFooter>

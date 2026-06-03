@@ -1,6 +1,7 @@
 import * as CheckboxPrimitive from '@kobalte/core/checkbox';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { CheckIcon, MinusIcon } from 'lucide-solid';
+import { splitProps, type ComponentProps, Show } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -21,23 +22,25 @@ const checkboxVariants = cva(
   },
 );
 
-function Checkbox({ className, variant, checked, ...props }: CheckboxProps) {
+function Checkbox(_props: CheckboxProps) {
+  const [local, rest] = splitProps(_props, ['className', 'variant', 'checked']);
   return (
     <CheckboxPrimitive.Root
       data-slot="checkbox"
-      checked={checked}
-      class={cn(checkboxVariants({ variant }), className)}
-      {...props}
+      checked={local.checked}
+      class={cn(checkboxVariants({ variant: local.variant }), local.className)}
+      {...rest}
     >
       <CheckboxPrimitive.Indicator
         data-slot="checkbox-indicator"
         class="grid place-content-center text-current transition-none"
       >
-        {checked === 'indeterminate' ? (
+        <Show
+          when={local.checked === 'indeterminate'}
+          fallback={<CheckIcon class="size-3.5 text-current" />}
+        >
           <MinusIcon class="size-3.5 text-current" />
-        ) : (
-          <CheckIcon class="size-3.5 text-current" />
-        )}
+        </Show>
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );
@@ -45,7 +48,13 @@ function Checkbox({ className, variant, checked, ...props }: CheckboxProps) {
 
 export { Checkbox, checkboxVariants };
 
-type CheckboxProps = ComponentProps<typeof CheckboxPrimitive.Root> &
-  VariantProps<typeof checkboxVariants>;
+type CheckboxProps = Omit<
+  ComponentProps<typeof CheckboxPrimitive.Root>,
+  'checked' | 'className'
+> &
+  VariantProps<typeof checkboxVariants> & {
+    checked?: boolean | 'indeterminate';
+    className?: string;
+  };
 
 export type { CheckboxProps };

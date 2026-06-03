@@ -1,5 +1,4 @@
 import { isNil } from '@activepieces/shared';
-import { useReactFlow } from '../../solid-flow-adapter';
 import { createSignal } from 'solid-js';
 
 import { SIDEBAR_ID } from '@/app/components/sidebar/dashboard';
@@ -10,6 +9,7 @@ import {
   useCursorPosition,
   useCursorPositionEffect,
 } from '../../cursor-position-context';
+import { useReactFlow } from '../../solid-flow-adapter';
 import { flowCanvasConsts } from '../../utils/consts';
 
 import { NoteContent } from '.';
@@ -56,7 +56,7 @@ const NoteDragOverlay = () => {
   }
   return (
     <div
-      className={'absolute !cursor-grabbing note-drag-overlay'}
+      class={'absolute !cursor-grabbing note-drag-overlay'}
       ref={(el) => (containerRef = el)}
       onClick={() => {
         if (noteDragOverlayMode === NoteDragOverlayMode.CREATE) {
@@ -81,7 +81,7 @@ const NoteDragOverlay = () => {
         height: `${draggedNote.size.height}px`,
         width: `${draggedNote.size.width}px`,
         transform: `scale(${reactFlow.getZoom()})`,
-        transformOrigin: '0 0',
+        'transform-origin': '0 0',
       }}
     >
       <NoteContent
@@ -89,7 +89,7 @@ const NoteDragOverlay = () => {
         note={{
           ...draggedNote,
         }}
-      ></NoteContent>
+      />
     </div>
   );
 };

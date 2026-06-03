@@ -1,3 +1,5 @@
+import { mergeProps } from 'solid-js';
+
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { cn } from '@/lib/utils';
 
@@ -5,22 +7,23 @@ type LoadingScreenProps = {
   brightSpinner?: boolean;
   mode?: 'fullscreen' | 'container';
 };
-export const LoadingScreen = ({
-  brightSpinner = false,
-  mode = 'fullscreen',
-}: LoadingScreenProps) => {
+export const LoadingScreen = (_props: LoadingScreenProps) => {
+  const props = mergeProps(
+    { brightSpinner: false, mode: 'fullscreen' },
+    _props,
+  );
   return (
     <div
-      className={cn('flex h-screen w-screen items-center justify-center', {
-        'h-full w-full': mode === 'container',
+      class={cn('flex h-screen w-screen items-center justify-center', {
+        'h-full w-full': props.mode === 'container',
       })}
     >
       <LoadingSpinner
-        class={cn({
-          'stroke-background!': brightSpinner,
-        })}
+        classlist={{
+          'stroke-background!': props.brightSpinner,
+        }}
         isLarge={true}
-      ></LoadingSpinner>
+      />
     </div>
   );
 };

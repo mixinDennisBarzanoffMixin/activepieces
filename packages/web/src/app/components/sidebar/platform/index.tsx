@@ -47,7 +47,7 @@ export function PlatformSidebar() {
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
   const { checkAccess } = useAuthorization();
   const defaultRoute = determineDefaultRoute(checkAccess);
-  let chevronRef = undefined;
+  let chevronRef: AnimatedIconHandle | undefined;
 
   const setupItems = [
     {
@@ -103,7 +103,7 @@ export function PlatformSidebar() {
     items: {
       to: string;
       label: string;
-      icon?: Component<any>;
+      icon?: Component<IconProps>;
       locked?: boolean;
     }[];
   }[] = [
@@ -209,25 +209,31 @@ export function PlatformSidebar() {
             buttonVariants({ variant: 'ghost' }),
             'w-full justify-start gap-2 px-2',
           )}
-          onMouseEnter={() => chevronRef?.startAnimation()}
-          onMouseLeave={() => chevronRef?.stopAnimation()}
+          onMouseEnter={() => {
+            chevronRef?.startAnimation();
+          }}
+          onMouseLeave={() => {
+            chevronRef?.stopAnimation();
+          }}
         >
           <ChevronLeftIcon
-            ref={(el) => (chevronRef = el)}
+            ref={(handle: AnimatedIconHandle) => {
+              chevronRef = handle;
+            }}
             class="size-4"
             size={16}
           />
-          <span className="truncate text-sm">{t('Back to app')}</span>
+          <span class="truncate text-sm">{t('Back to app')}</span>
         </a>
       </SidebarHeader>
-      <div className="flex-1 overflow-y-auto">
+      <div class="flex-1 overflow-y-auto">
         <SidebarContent class="gap-0">
           {
             <For each={groups}>
               {(group, idx) => (
                 <SidebarGroup class="cursor-default shrink-0">
                   {
-                    <Show when={idx > 0}>
+                    <Show when={idx() > 0}>
                       <SidebarSeparator class="mb-3" />
                     </Show>
                   }
@@ -262,3 +268,13 @@ export function PlatformSidebar() {
     </Sidebar>
   );
 }
+
+type AnimatedIconHandle = {
+  startAnimation: () => void;
+  stopAnimation: () => void;
+};
+
+type IconProps = {
+  class?: string;
+  ref?: (handle: AnimatedIconHandle) => void;
+};

@@ -2,9 +2,12 @@ import {
   createSignal,
   createEffect,
   createContext,
+  mergeProps,
   useContext,
   onCleanup,
   JSX,
+  Show,
+  splitProps,
 } from 'solid-js';
 
 import { cn } from '@/lib/utils';
@@ -26,24 +29,19 @@ export type FileUploadProps = {
   disabled?: boolean;
 };
 
-function FileUpload({
-  onFilesAdded,
-  children,
-  multiple = true,
-  accept,
-  disabled = false,
-}: FileUploadProps) {
+function FileUpload(_props: FileUploadProps) {
+  const props = mergeProps({ multiple: true, disabled: false }, _props);
   let input: HTMLInputElement | undefined;
   const [isDragging, setIsDragging] = createSignal(false);
   let drag = 0;
 
   const handleFiles = (files: FileList) => {
     const added = Array.from(files);
-    if (multiple) {
-      onFilesAdded(added);
+    if (props.multiple) {
+      props.onFilesAdded(added);
       return;
     }
-    onFilesAdded(added.slice(0, 1));
+    props.onFilesAdded(added.slice(0, 1));
   };
 
   createEffect(() => {
@@ -95,67 +93,70 @@ function FileUpload({
 
   return (
     <FileUploadContext.Provider
-      value={{ isDragging, input: () => input, multiple, disabled }}
+      value={{
+        isDragging,
+        input: () => input,
+        get multiple() {
+          return props.multiple;
+        },
+        get disabled() {
+          return props.disabled;
+        },
+      }}
     >
       <input
         type="file"
-        ref={input}
-        onChange={handleFileSelect}
-        className="hidden"
-        multiple={multiple}
-        accept={accept}
+        ref={(el) => {
+          input = el;
+        }}
+        onInput={handleFileSelect}
+        class="hidden"
+        multiple={props.multiple}
+        accept={props.accept}
         aria-hidden
-        disabled={disabled}
+        disabled={props.disabled}
       />
-      {children}
+      {props.children}
     </FileUploadContext.Provider>
   );
 }
 
-export type FileUploadTriggerProps = ComponentPropsWithoutRef<'button'> & {
+export type FileUploadTriggerProps = {
+  children?: JSX.Element;
+  className?: string;
   asChild?: boolean;
-};
+} & Omit<JSX.ButtonHTMLAttributes<HTMLButtonElement>, 'children' | 'className'>;
 
-function FileUploadTrigger({
-  asChild = false,
-  className,
-  children,
-  ...props
-}: FileUploadTriggerProps) {
+function FileUploadTrigger(_props: FileUploadTriggerProps) {
+  const merged = mergeProps({ asChild: false }, _props);
+  const [local, props] = splitProps(merged, [
+    'asChild',
+    'className',
+    'children',
+  ]);
   const context = useContext(FileUploadContext);
   const handleClick = () => context?.input()?.click();
 
-  if (asChild) {
-    const child = Children.only(children) as JSX.Element<
-      JSX.HTMLAttributes<HTMLElement>
-    >;
-    return cloneElement(child, {
-      ...props,
-      role: 'button',
-      className: cn(className, child.props.className),
-      onClick: (e: MouseEvent) => {
-        e.stopPropagation();
-        handleClick();
-        child.props.onClick?.(e as MouseEvent<HTMLElement>);
-      },
-    });
-  }
-
   return (
-    <button
-      type="button"
-      className={className}
-      onClick={handleClick}
-      {...props}
-    >
-      {children}
-    </button>
+    <Show when={!local.asChild} fallback={local.children}>
+      <button
+        type="button"
+        class={local.className}
+        onClick={handleClick}
+        {...props}
+      >
+        {local.children}
+      </button>
+    </Show>
   );
 }
 
-type FileUploadContentProps = JSX.HTMLAttributes<HTMLDivElement>;
+type FileUploadContentProps = {
+  className?: string;
+} & Omit<JSX.HTMLAttributes<HTMLDivElement>, 'className'>;
 
-function FileUploadContent({ className, ...props }: FileUploadContentProps) {
+function FileUploadContent(_props: FileUploadContentProps) {
+  const [local, props] = splitProps(_props, ['className']);
   const context = useContext(FileUploadContext);
   const [mounted, setMounted] = createSignal(false);
 
@@ -164,22 +165,18 @@ function FileUploadContent({ className, ...props }: FileUploadContentProps) {
     onCleanup(() => setMounted(false));
   });
 
-  if (!context?.isDragging() || !mounted() || context?.disabled) {
-    return null;
-  }
-
-  const content = (
-    <div
-      className={cn(
-        'bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm',
-        'animate-in fade-in-0 slide-in-from-bottom-10 zoom-in-90 duration-150',
-        className,
-      )}
-      {...props}
-    />
+  return (
+    <Show when={context?.isDragging() && mounted() && !context.disabled}>
+      <div
+        class={cn(
+          'bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm',
+          'animate-in fade-in-0 slide-in-from-bottom-10 zoom-in-90 duration-150',
+          local.className,
+        )}
+        {...props}
+      />
+    </Show>
   );
-
-  return content;
 }
 
 export { FileUpload, FileUploadTrigger, FileUploadContent };

@@ -1,6 +1,7 @@
 import { ProjectMemberWithUser, Permission } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Trash } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
@@ -19,10 +20,7 @@ type ProjectMemberCardProps = {
   onUpdate: () => void;
 };
 
-export function ProjectMemberCard({
-  member,
-  onUpdate,
-}: ProjectMemberCardProps) {
+export function ProjectMemberCard(props: ProjectMemberCardProps) {
   const { refetch } = projectMembersHooks.useProjectMembers();
   const { checkAccess } = useAuthorization();
   const userHasPermissionToRemoveMember = checkAccess(
@@ -30,50 +28,47 @@ export function ProjectMemberCard({
   );
   const { project } = projectCollectionUtils.useCurrentProject();
   const deleteMember = async () => {
-    await projectMembersApi.delete(member.id);
-    refetch();
-    onUpdate();
+    await projectMembersApi.delete(props.member.id);
+    void refetch();
+    props.onUpdate();
   };
 
   return (
-    <div
-      className="w-full flex items-center justify-between space-x-4"
-      key={member.id}
-    >
-      <div className="flex items-center space-x-4">
+    <div class="w-full flex items-center justify-between space-x-4">
+      <div class="flex items-center space-x-4">
         <UserAvatar
-          name={member.user.firstName + ' ' + member.user.lastName}
-          email={member.user.email}
+          name={props.member.user.firstName + ' ' + props.member.user.lastName}
+          email={props.member.user.email}
           size={32}
           disableTooltip={true}
-        ></UserAvatar>
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium leading-none">
-            {member.user.firstName} {member.user.lastName} (
-            {member.projectRole.name})
+        />
+        <div class="flex flex-col gap-1">
+          <p class="text-sm font-medium leading-none">
+            {props.member.user.firstName} {props.member.user.lastName} (
+            {props.member.projectRole.name})
           </p>
-          <p className="text-sm text-muted-foreground">{member.user.email}</p>
+          <p class="text-sm text-muted-foreground">{props.member.user.email}</p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        {project.ownerId !== member.userId && (
+      <div class="flex items-center gap-2">
+        <Show when={project.ownerId !== props.member.userId}>
           <PermissionNeededTooltip
             hasPermission={userHasPermissionToRemoveMember}
           >
             <EditRoleDialog
-              member={member}
+              member={props.member}
               onSave={() => {
-                refetch();
+                void refetch();
               }}
               disabled={!userHasPermissionToRemoveMember}
             />
             <ConfirmationDeleteDialog
               title={t('Remove Member')}
-              message={t(
-                'This member will lose access to the project immediately.',
+              message={String(
+                t('This member will lose access to the project immediately.'),
               )}
               mutationFn={() => deleteMember()}
-              entityName={`${member.user.firstName} ${member.user.lastName}`}
+              entityName={`${props.member.user.firstName} ${props.member.user.lastName}`}
             >
               <Button
                 disabled={!userHasPermissionToRemoveMember}
@@ -84,7 +79,7 @@ export function ProjectMemberCard({
               </Button>
             </ConfirmationDeleteDialog>
           </PermissionNeededTooltip>
-        )}
+        </Show>
       </div>
     </div>
   );

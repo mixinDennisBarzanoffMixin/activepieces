@@ -32,7 +32,7 @@ export default function SettingsHealthPage() {
       isChecked: isVersionUpToDate,
       message: (
         <div>
-          <div className="flex flex-row gap-4 items-center">
+          <div class="flex flex-row gap-4 items-center">
             <span>
               <b>{t('Current Version')}</b>: {currentVersion || t('Unknown')}
             </span>
@@ -40,7 +40,7 @@ export default function SettingsHealthPage() {
               <b>{t('Latest Version')}</b>: {latestVersion || t('Unknown')}
             </span>
           </div>
-          <div className="mt-2 flex flex-col gap-1">
+          <div class="mt-2 flex flex-col gap-1">
             <Show when={!isVersionUpToDate} fallback={null}>
               <>
                 <span>
@@ -51,7 +51,7 @@ export default function SettingsHealthPage() {
                 <span>
                   {t('See the')}{' '}
                   <a
-                    className="font-medium text-blue-600 dark:text-blue-500 hover:underline"
+                    class="font-medium text-blue-600 dark:text-blue-500 hover:underline"
                     href="https://github.com/activepieces/activepieces/releases"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -137,7 +137,7 @@ export default function SettingsHealthPage() {
       title={t('System Health Status')}
       description={t('Check the status of your platform and its components')}
     >
-      <div className="flex flex-col gap-4">
+      <div class="flex flex-col gap-4">
         <For each={technicalChecks}>
           {(check) => (
             <CheckItem

@@ -1,6 +1,6 @@
-import { createEffect, createSignal, For, Show } from "solid-js";
 import { t } from 'i18next';
 import { ArrowUp, Mic, Paperclip, Square, X } from 'lucide-solid';
+import { createEffect, createSignal, For, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import {
@@ -18,14 +18,7 @@ import { Button } from '@/components/ui/button';
 import { VoiceWaveformBars } from '@/features/chat/components/voice-waveform';
 import { useVoiceInput } from '@/features/chat/lib/use-voice-input';
 
-export function ChatInput({
-  isStreaming,
-  onSend,
-  onStop,
-  placeholder,
-  leftActions,
-  rightActions,
-}: {
+export function ChatInput(props: {
   isStreaming: boolean;
   onSend: (text: string, files?: File[]) => void;
   onStop?: () => void;
@@ -38,17 +31,17 @@ export function ChatInput({
   const [interimText, setInterimText] = createSignal('');
 
   const handleTranscript = (text: string) => {
-      setValue((prev) => {
-        const separator = prev.length > 0 ? ' ' : '';
-        return prev + separator + text;
-      });
-      setInterimText('');
-    };
+    setValue((prev) => {
+      const separator = prev.length > 0 ? ' ' : '';
+      return prev + separator + text;
+    });
+    setInterimText('');
+  };
 
   const handleVoiceError = (messageKey: string) => {
-      toast.error(t(messageKey));
-      setInterimText('');
-    };
+    toast.error(t(messageKey));
+    setInterimText('');
+  };
 
   const {
     isRecording,
@@ -63,7 +56,7 @@ export function ChatInput({
   });
 
   createEffect(() => {
-    if (!isRecording) return;
+    if (!isRecording()) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -78,71 +71,75 @@ export function ChatInput({
   });
 
   const handleSubmit = () => {
-      if (!isStreaming && (value.trim() || attachedFiles.length > 0)) {
-        onSend(
-          value.trim(),
-          attachedFiles.length > 0 ? attachedFiles : undefined,
-        );
-        setValue('');
-        setAttachedFiles([]);
-      }
-    };
+    if (!props.isStreaming && (value().trim() || attachedFiles().length > 0)) {
+      props.onSend(
+        value().trim(),
+        attachedFiles().length > 0 ? attachedFiles() : undefined,
+      );
+      setValue('');
+      setAttachedFiles([]);
+    }
+  };
 
   const handleFilesAdded = (files: File[]) => {
-      setAttachedFiles((prev) => [...prev, ...files]);
-    };
+    setAttachedFiles((prev) => [...prev, ...files]);
+  };
 
-  const canSend = value.trim().length > 0 || attachedFiles.length > 0;
+  const canSend = () => value().trim().length > 0 || attachedFiles().length > 0;
 
   return (
     <FileUpload onFilesAdded={handleFilesAdded} multiple>
       <PromptInput
-        isLoading={isStreaming}
-        value={value}
+        isLoading={props.isStreaming}
+        value={value()}
         onValueChange={setValue}
         onSubmit={handleSubmit}
         class="border-0 rounded-none shadow-none"
       >
-        <Show when={attachedFiles.length > 0}>
-                                                    <div class="flex flex-wrap gap-2 px-3 pt-2">
-                                                      <For each={attachedFiles}>{(file) => (
-                                                                                                    <div
-                                                                                                      key={file.name}
-                                                                                                      class="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm"
-                                                                                                      onClick={(e) => e.stopPropagation()}
-                                                                                                    >
-                                                                                                      <Paperclip class="size-3.5 shrink-0 text-muted-foreground" />
-                                                                                                      <span class="max-w-[150px] truncate text-foreground/80">
-                                                                                                        {file.name}
-                                                                                                      </span>
-                                                                                                      <button
-                                                                                                        type="button"
-                                                                                                        onClick={() =>
-                                                                                                          setAttachedFiles((prev) =>
-                                                                                                            prev.filter((f) => f.name !== file.name),
-                                                                                                          )
-                                                                                                        }
-                                                                                                        class="text-muted-foreground hover:text-foreground rounded-full p-0.5 transition-colors"
-                                                                                                      >
-                                                                                                        <X class="size-3.5" />
-                                                                                                      </button>
-                                                                                                    </div>
-                                                                                                  )}</For>
-                                                    </div>
-                                                  </Show>
-        <Show when={isRecording} fallback={(
-                                                    <PromptInputTextarea
-                                                      autoFocus
-                                                      placeholder={placeholder ?? t('Tell me what you need...')}
-                                                      class="min-h-[44px] text-sm"
-                                                    />
-                                                  )}>
-                                                    <div class="min-h-[44px] px-3 py-2 text-sm text-foreground whitespace-pre-wrap break-words">
-                                                      {interimText || (
-                                                        <span class="text-muted-foreground">{t('Listening...')}</span>
-                                                      )}
-                                                    </div>
-                                                  </Show>
+        <Show when={attachedFiles().length > 0}>
+          <div class="flex flex-wrap gap-2 px-3 pt-2">
+            <For each={attachedFiles()}>
+              {(file) => (
+                <div
+                  class="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-1.5 text-sm"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Paperclip class="size-3.5 shrink-0 text-muted-foreground" />
+                  <span class="max-w-[150px] truncate text-foreground/80">
+                    {file.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAttachedFiles((prev) =>
+                        prev.filter((f) => f.name !== file.name),
+                      )
+                    }
+                    class="text-muted-foreground hover:text-foreground rounded-full p-0.5 transition-colors"
+                  >
+                    <X class="size-3.5" />
+                  </button>
+                </div>
+              )}
+            </For>
+          </div>
+        </Show>
+        <Show
+          when={isRecording()}
+          fallback={
+            <PromptInputTextarea
+              autoFocus
+              placeholder={props.placeholder ?? t('Tell me what you need...')}
+              class="min-h-[44px] text-sm"
+            />
+          }
+        >
+          <div class="min-h-[44px] px-3 py-2 text-sm text-foreground whitespace-pre-wrap break-words">
+            {interimText() || (
+              <span class="text-muted-foreground">{t('Listening...')}</span>
+            )}
+          </div>
+        </Show>
         <PromptInputActions class="flex items-center justify-between">
           <div class="flex items-center gap-1">
             <PromptInputAction tooltip={t('Attach files')}>
@@ -152,68 +149,77 @@ export function ChatInput({
                 </div>
               </FileUploadTrigger>
             </PromptInputAction>
-            {leftActions}
+            {props.leftActions}
           </div>
           <div class="flex items-center gap-1">
-            {rightActions}
-            <Show when={isStreaming && onStop} fallback={<Show when={isRecording} fallback={canSend ? (
-                                                                                                      <PromptInputAction tooltip={t('Send message')}>
-                                                                                                        <Button
-                                                                                                          variant="default"
-                                                                                                          size="icon"
-                                                                                                          class="h-7 w-7 rounded-full"
-                                                                                                          onClick={handleSubmit}
-                                                                                                          disabled={isStreaming}
-                                                                                                        >
-                                                                                                          <ArrowUp class="size-4" />
-                                                                                                        </Button>
-                                                                                                      </PromptInputAction>
-                                                                                                    ) : isVoiceSupported ? (
-                                                                                                      <PromptInputAction tooltip={t('Voice input')}>
-                                                                                                        <button
-                                                                                                          type="button"
-                                                                                                          onClick={startRecording}
-                                                                                                          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                                                                                                        >
-                                                                                                          <Mic class="size-4" />
-                                                                                                        </button>
-                                                                                                      </PromptInputAction>
-                                                                                                    ) : (
-                                                                                                      <PromptInputAction tooltip={t('Send message')}>
-                                                                                                        <Button
-                                                                                                          variant="default"
-                                                                                                          size="icon"
-                                                                                                          class="h-7 w-7 rounded-full"
-                                                                                                          onClick={handleSubmit}
-                                                                                                          disabled={true}
-                                                                                                        >
-                                                                                                          <ArrowUp class="size-4" />
-                                                                                                        </Button>
-                                                                                                      </PromptInputAction>
-                                                                                                     )}>
-                                                                                                       <PromptInputAction tooltip={t('Stop recording')}>
-                                                                                                        <Button
-                                                                                                          variant="outline"
-                                                                                                          class="h-7 gap-1.5 rounded-full px-3"
-                                                                                                          onClick={stopRecording}
-                                                                                                        >
-                                                                                                          <VoiceWaveformBars />
-                                                                                                          <span class="text-xs font-medium">{t('Stop')}</span>
-                                                                                                        </Button>
-                                                                                                      </PromptInputAction>
-                                                                                                    </Show>}
+            {props.rightActions}
+            <Show
+              when={props.isStreaming && props.onStop}
+              fallback={
+                <Show
+                  when={isRecording()}
+                  fallback={
+                    canSend() ? (
+                      <PromptInputAction tooltip={t('Send message')}>
+                        <Button
+                          variant="default"
+                          size="icon"
+                          class="h-7 w-7 rounded-full"
+                          onClick={handleSubmit}
+                          disabled={props.isStreaming}
+                        >
+                          <ArrowUp class="size-4" />
+                        </Button>
+                      </PromptInputAction>
+                    ) : isVoiceSupported ? (
+                      <PromptInputAction tooltip={t('Voice input')}>
+                        <button
+                          type="button"
+                          onClick={startRecording}
+                          class="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        >
+                          <Mic class="size-4" />
+                        </button>
+                      </PromptInputAction>
+                    ) : (
+                      <PromptInputAction tooltip={t('Send message')}>
+                        <Button
+                          variant="default"
+                          size="icon"
+                          class="h-7 w-7 rounded-full"
+                          onClick={handleSubmit}
+                          disabled={true}
+                        >
+                          <ArrowUp class="size-4" />
+                        </Button>
+                      </PromptInputAction>
+                    )
+                  }
+                >
+                  <PromptInputAction tooltip={t('Stop recording')}>
+                    <Button
+                      variant="outline"
+                      class="h-7 gap-1.5 rounded-full px-3"
+                      onClick={stopRecording}
+                    >
+                      <VoiceWaveformBars />
+                      <span class="text-xs font-medium">{t('Stop')}</span>
+                    </Button>
+                  </PromptInputAction>
+                </Show>
+              }
             >
-                                                                                <PromptInputAction tooltip={t('Stop')}>
-                                                                                  <Button
-                                                                                    variant="default"
-                                                                                    size="icon"
-                                                                                    class="h-7 w-7 rounded-full"
-                                                                                    onClick={onStop}
-                                                                                  >
-                                                                                    <Square class="size-3 fill-current" />
-                                                                                  </Button>
-                                                                                                      </PromptInputAction>
-                                                                              </Show>
+              <PromptInputAction tooltip={t('Stop')}>
+                <Button
+                  variant="default"
+                  size="icon"
+                  class="h-7 w-7 rounded-full"
+                  onClick={props.onStop}
+                >
+                  <Square class="size-3 fill-current" />
+                </Button>
+              </PromptInputAction>
+            </Show>
           </div>
         </PromptInputActions>
       </PromptInput>

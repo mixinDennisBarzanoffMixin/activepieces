@@ -2,9 +2,9 @@ import { colorsUtils } from '@/lib/color-utils';
 
 import { ItemMedia } from './item';
 
-function ItemMediaImage({ src, alt }: ItemMediaImageProps) {
+function ItemMediaImage(props: ItemMediaImageProps) {
   const backgroundColor = colorsUtils.useAverageColorInImage({
-    imgUrl: src,
+    imgUrl: props.src,
     transparency: 10,
   });
 
@@ -13,7 +13,7 @@ function ItemMediaImage({ src, alt }: ItemMediaImageProps) {
       variant="icon"
       style={backgroundColor ? { backgroundColor } : undefined}
     >
-      <img src={src} alt={alt} className="size-6" />
+      <img src={props.src} alt={props.alt} class="size-6" />
     </ItemMedia>
   );
 }

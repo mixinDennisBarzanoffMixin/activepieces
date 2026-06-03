@@ -197,13 +197,13 @@ function mapHistoryToUIMessages(
     return mapPersistedToUIMessages(data);
   }
 
-  const legacyData = data as ChatHistoryMessage[];
+  const legacyData = data;
   const result: ChatUIMessage[] = [];
   for (let i = 0; i < legacyData.length; i++) {
     const msg = legacyData[i];
     const parts = historyMsgToParts(msg);
     const lastResult = result[result.length - 1];
-    if (msg.role === 'assistant' && lastResult?.role === 'assistant') {
+    if (msg.role === 'assistant' && lastResult.role === 'assistant') {
       lastResult.parts.push(...parts);
     } else {
       result.push({ id: `hist-${i}`, role: msg.role, parts });

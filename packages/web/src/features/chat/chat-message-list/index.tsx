@@ -5,7 +5,7 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { BotIcon } from 'lucide-solid';
-import { JSX } from 'solid-js';
+import { For, JSX, Show, splitProps } from 'solid-js';
 import { z } from 'zod';
 
 import { cn } from '@/lib/utils';
@@ -30,7 +30,8 @@ export const Messages = z.array(
 export type Messages = z.infer<typeof Messages>;
 
 interface ChatMessageListProps extends JSX.HTMLAttributes<HTMLDivElement> {
-  messagesRef?: any;
+  className?: string;
+  messagesRef?: HTMLDivElement | ((el: HTMLDivElement) => void);
   messages?: Messages;
   chatUI?: ChatUIResponse | null | undefined;
   sendingError?: ApErrorParams | null;
@@ -41,43 +42,56 @@ interface ChatMessageListProps extends JSX.HTMLAttributes<HTMLDivElement> {
 }
 
 function ChatMessageList(props: ChatMessageListProps) {
-    const {
-      className,
-      children,
-      messagesRef,
-      messages,
-      chatUI,
-      sendingError,
-      isSending,
-      flowId,
-      sendMessage,
-      setSelectedImage,
-      ref,
-      ...rest
-    } = props;
-    if (messages && messages.length > 0) {
-      return (
-        <div className="h-full w-full max-w-3xl flex items-center justify-center overflow-y-auto">
+  const [local, rest] = splitProps(props, [
+    'className',
+    'children',
+    'messagesRef',
+    'messages',
+    'chatUI',
+    'sendingError',
+    'isSending',
+    'flowId',
+    'sendMessage',
+    'setSelectedImage',
+    'ref',
+  ]);
+  return (
+    <Show
+      when={local.messages && local.messages.length > 0}
+      fallback={
+        <div class="h-full w-full flex items-center justify-center overflow-y-auto">
           <div
-            className={cn('flex flex-col w-full h-full p-4 gap-2', className)}
-            ref={messagesRef || ref}
+            class={cn('flex flex-col w-full h-full p-4 gap-2', local.className)}
+            ref={local.ref}
             {...rest}
           >
-            {messages.map((message, index) => {
-              const isLastMessage = index === messages.length - 1;
+            {local.children}
+          </div>
+        </div>
+      }
+    >
+      <div class="h-full w-full max-w-3xl flex items-center justify-center overflow-y-auto">
+        <div
+          class={cn('flex flex-col w-full h-full p-4 gap-2', local.className)}
+          ref={local.messagesRef || local.ref}
+          {...rest}
+        >
+          <For each={local.messages}>
+            {(message, index) => {
+              const isLastMessage = () =>
+                index() === (local.messages?.length ?? 0) - 1;
               return (
                 <ChatBubble
-                  id={isLastMessage ? 'last-message' : undefined}
-                  key={index}
+                  id={isLastMessage() ? 'last-message' : undefined}
                   variant={message.role === 'user' ? 'sent' : 'received'}
-                  class={cn('flex items-start', isLastMessage ? 'pb-8' : '')}
+                  class={cn('flex items-start', isLastMessage() ? 'pb-8' : '')}
                 >
-                  {message.role === 'bot' && (
+                  <Show when={message.role === 'bot'}>
                     <ChatBubbleAvatar
-                      src={chatUI?.platformLogoUrl}
+                      src={local.chatUI?.platformLogoUrl}
                       fallback={<BotIcon class="size-5" />}
                     />
-                  )}
+                  </Show>
                   <ChatBubbleMessage
                     class={cn(
                       'flex flex-col gap-2',
@@ -88,54 +102,51 @@ function ChatMessageList(props: ChatMessageListProps) {
                       textContent={message.textContent}
                       attachments={message.files}
                       role={message.role}
-                      setSelectedImage={setSelectedImage || (() => {})}
+                      setSelectedImage={local.setSelectedImage || (() => {})}
                     />
                   </ChatBubbleMessage>
                 </ChatBubble>
               );
-            })}
-            {sendingError && !isSending && flowId && sendMessage && (
-              <ErrorBubble
-                chatUI={chatUI}
-                flowId={flowId}
-                sendingError={sendingError}
-                sendMessage={(arg0) => {
-                  if (!isNil(arg0.message)) {
-                    sendMessage({
-                      isRetrying: false,
-                      message: arg0.message!,
-                    });
-                  }
-                }}
+            }}
+          </For>
+          <Show
+            when={
+              local.sendingError &&
+              !local.isSending &&
+              local.flowId &&
+              local.sendMessage
+            }
+          >
+            <ErrorBubble
+              chatUI={local.chatUI}
+              flowId={local.flowId}
+              sendingError={local.sendingError}
+              sendMessage={(arg0: {
+                isRetrying: boolean;
+                message?: ChatMessage;
+              }) => {
+                if (!isNil(arg0.message)) {
+                  local.sendMessage?.({
+                    isRetrying: false,
+                    message: arg0.message,
+                  });
+                }
+              }}
+            />
+          </Show>
+          <Show when={local.isSending}>
+            <ChatBubble variant="received" class="pb-8">
+              <ChatBubbleAvatar
+                src={local.chatUI?.platformLogoUrl}
+                fallback={<BotIcon class="size-5" />}
               />
-            )}
-            {isSending && (
-              <ChatBubble variant="received" class="pb-8">
-                <ChatBubbleAvatar
-                  src={chatUI?.platformLogoUrl}
-                  fallback={<BotIcon class="size-5" />}
-                />
-                <ChatBubbleMessage isLoading />
-              </ChatBubble>
-            )}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="h-full w-full flex items-center justify-center overflow-y-auto">
-        <div
-          className={cn('flex flex-col w-full h-full p-4 gap-2', className)}
-          ref={ref}
-          {...rest}
-        >
-          {children}
+              <ChatBubbleMessage isLoading />
+            </ChatBubble>
+          </Show>
         </div>
       </div>
-    );
+    </Show>
+  );
 }
-
-ChatMessageList.displayName = 'ChatMessageList';
 
 export { ChatMessageList };

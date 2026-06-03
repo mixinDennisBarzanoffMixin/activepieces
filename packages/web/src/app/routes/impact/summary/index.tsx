@@ -1,4 +1,5 @@
 import { PlatformAnalyticsReport } from '@activepieces/shared';
+import { createMemo } from 'solid-js';
 
 import { ActiveFlowsMetric } from './active-flows-metric';
 import { ActiveUsersMetric } from './active-users-metric';
@@ -9,16 +10,16 @@ type SummaryProps = {
   report?: PlatformAnalyticsReport;
 };
 
-export function Summary({ report }: SummaryProps) {
-  const isLoading = !report;
+export function Summary(props: SummaryProps) {
+  const isLoading = createMemo(() => !props.report);
 
   return (
     <div>
-      <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <TimeSavedMetric isLoading={isLoading} report={report} />
-        <ActiveFlowsMetric report={report} />
-        <ActiveUsersMetric report={report} />
-        <FlowRunsMetric report={report} />
+      <div class="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <TimeSavedMetric isLoading={isLoading()} report={props.report} />
+        <ActiveFlowsMetric report={props.report} />
+        <ActiveUsersMetric report={props.report} />
+        <FlowRunsMetric report={props.report} />
       </div>
     </div>
   );

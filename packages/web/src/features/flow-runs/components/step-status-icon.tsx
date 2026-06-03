@@ -1,5 +1,7 @@
 import { StepOutputStatus } from '@activepieces/shared';
 import { t } from 'i18next';
+import { createMemo, Match, mergeProps, Switch, Show } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import {
@@ -24,32 +26,40 @@ const statusText = {
   [StepOutputStatus.FAILED]: t('Step Failed'),
 };
 
-const StepStatusIcon = ({
-  status,
-  size,
-  hideTooltip = false,
-}: StepStatusIconProps) => {
-  const { Icon, extraClassName } = flowRunUtils.getStatusIconForStep(status);
-  const sizeClassName = {
-    'size-3': size === '3',
-    'size-4.5': size === '4.5',
-    'size-4': size === '4',
-    'size-5': size === '5',
-  };
-  const className = cn(extraClassName, sizeClassName);
-  if (status === StepOutputStatus.RUNNING) {
-    return <LoadingSpinner class={className}></LoadingSpinner>;
-  }
+const StepStatusIcon = (_props: StepStatusIconProps) => {
+  const props = mergeProps({ hideTooltip: false }, _props);
+  const state = createMemo(() => {
+    const { Icon, extraClassName } = flowRunUtils.getStatusIconForStep(
+      props.status,
+    );
+    return {
+      Icon,
+      className: cn(extraClassName, {
+        'size-3': props.size === '3',
+        'size-4.5': props.size === '4.5',
+        'size-4': props.size === '4',
+        'size-5': props.size === '5',
+      }),
+    };
+  });
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Icon class={className}></Icon>
-      </TooltipTrigger>
-      {!hideTooltip && (
-        <TooltipContent side="bottom">{statusText[status]}</TooltipContent>
-      )}
-    </Tooltip>
+    <Switch>
+      <Match when={props.status === StepOutputStatus.RUNNING}>
+        <LoadingSpinner class={state().className} />
+      </Match>
+      <Match when={props.status !== StepOutputStatus.RUNNING}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Dynamic component={state().Icon} class={state().className} />
+          </TooltipTrigger>
+          <Show when={!props.hideTooltip}>
+            <TooltipContent side="bottom">
+              {statusText[props.status]}
+            </TooltipContent>
+          </Show>
+        </Tooltip>
+      </Match>
+    </Switch>
   );
 };
-StepStatusIcon.displayName = 'StepStatusIcon';
 export { StepStatusIcon };

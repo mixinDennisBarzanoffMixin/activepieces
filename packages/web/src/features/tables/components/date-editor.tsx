@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { createEffect, createSignal } from 'solid-js';
+import { createEffect, createSignal, Show } from 'solid-js';
 
 import { Calendar } from '@/components/ui/calendar';
 import {
@@ -19,107 +19,109 @@ function getFormattedDate(date: string) {
   return isValidDate(date) ? formatUtils.formatDateOnly(new Date(date)) : '';
 }
 function DateEditor() {
-  const { value, handleCellChange, setIsEditing, isEditing } = useCellContext();
+  const cell = useCellContext();
   const [date, setDate] = createSignal<Date | undefined>(
-    isValidDate(value) ? new Date(value) : undefined,
+    isValidDate(cell.value) ? new Date(cell.value) : undefined,
   );
   const [month, setMonth] = createSignal<Date | undefined>(
-    isValidDate(value) ? new Date(value) : undefined,
+    isValidDate(cell.value) ? new Date(cell.value) : undefined,
   );
-  const [inputValue, setInputValue] = createSignal(getFormattedDate(value));
+  const [inputValue, setInputValue] = createSignal(
+    getFormattedDate(cell.value),
+  );
   const handleSelect = (newDate: Date | undefined) => {
     setDate(newDate);
     if (newDate) {
       setInputValue(formatUtils.formatDateOnly(newDate));
-      handleCellChange(newDate.toISOString());
-      setIsEditing(false);
+      cell.handleCellChange(newDate.toISOString());
+      cell.setIsEditing(false);
     }
   };
 
-  const inputRef = null;
-  const containerRef = null;
+  let inputRef: HTMLInputElement | undefined;
+  let containerRef: HTMLDivElement | undefined;
   createEffect(() => {
-    if (isEditing) {
+    if (cell.isEditing) {
       requestAnimationFrame(() => {
-        inputRef.current?.focus();
+        inputRef?.focus();
       });
     } else {
-      setInputValue(getFormattedDate(value));
+      setInputValue(getFormattedDate(cell.value));
     }
   });
   return (
-    <div className="h-full w-full" ref={containerRef}>
+    <div class="h-full w-full" ref={containerRef}>
       <Popover
-        open={isEditing}
+        open={cell.isEditing}
         onOpenChange={(open) => {
           if (!open) {
-            setIsEditing(false);
+            cell.setIsEditing(false);
           }
         }}
       >
         <PopoverTrigger asChild>
           <button
-            className={cn(
+            class={cn(
               'w-full h-full flex items-center justify-between gap-2',
               'bg-background text-sm px-2',
               'focus:outline-hidden',
               {
-                'border-2 border-primary': isEditing,
-                'border-transparent bg-transparent!': !isEditing,
+                'border-2 border-primary': cell.isEditing,
+                'border-transparent bg-transparent!': !cell.isEditing,
               },
             )}
           >
-            {isEditing && (
+            <Show when={cell.isEditing}>
               <input
                 ref={inputRef}
                 placeholder={t('mm/dd/yyy')}
-                value={inputValue}
+                value={inputValue()}
                 type="text"
                 onClick={(e) => {
                   e.stopPropagation();
                 }}
-                onChange={(e) => {
-                  setInputValue(e.target.value);
-                  if (isValidDate(e.target.value)) {
-                    setDate(new Date(e.target.value));
-                    setMonth(new Date(e.target.value));
+                onInput={(e) => {
+                  setInputValue(e.currentTarget.value);
+                  if (isValidDate(e.currentTarget.value)) {
+                    setDate(new Date(e.currentTarget.value));
+                    setMonth(new Date(e.currentTarget.value));
                   } else {
                     setDate(undefined);
                   }
                 }}
                 onBlur={(e) => {
-                  if (!containerRef.current?.contains(e.target as Node)) {
-                    handleCellChange(date?.toISOString() ?? '');
+                  if (!containerRef?.contains(e.target)) {
+                    cell.handleCellChange(date()?.toISOString() ?? '');
                   }
                 }}
                 onKeyDown={(e) => {
                   e.stopPropagation();
                   if (e.key === 'Enter') {
-                    handleCellChange(date?.toISOString() ?? '');
+                    cell.handleCellChange(date()?.toISOString() ?? '');
                     e.preventDefault();
                   }
                   if (e.key === 'Escape') {
-                    setIsEditing(false);
+                    cell.setIsEditing(false);
                     e.preventDefault();
                   }
                 }}
-                className={cn(
+                class={cn(
                   'flex-1 h-full min-w-0',
                   'border-none text-sm px-2',
                   'focus:outline-hidden',
                   'placeholder:text-muted-foreground',
                   {
-                    'border-transparent bg-transparent!': !isEditing,
+                    'border-transparent bg-transparent!': !cell.isEditing,
                   },
                 )}
                 autoComplete="off"
               />
-            )}
-            {!isEditing && (
-              <div className="flex grow h-full min-w-0">
-                {getFormattedDate(value)}
+            </Show>
+            <Show when={!cell.isEditing}>
+              <div class="flex grow h-full min-w-0">
+                {getFormattedDate(cell.value)}
               </div>
-            )}
+            </Show>
           </button>
         </PopoverTrigger>
         <PopoverContent class="w-auto p-0" align="start">

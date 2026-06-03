@@ -80,7 +80,7 @@ function groupByCategory(data: FlowRunCountByStatus[]) {
   })).filter((cat) => cat.count > 0);
 }
 
-export const DEFAULT_DATE_PRESET = '7days' as const;
+export const DEFAULT_DATE_PRESET = '7days';
 
 export const flowRunQueries = {
   useFlowRun: (runId: string) =>
@@ -105,13 +105,9 @@ export const flowRunQueries = {
       refetchInterval: 15000,
     }));
 
-    const categories = createMemo(
-      () => groupByCategory(data?.data ?? []),
-      [data],
-    );
-    const total = createMemo(
-      () => categories.reduce((sum, c) => sum + c.count, 0),
-      [categories],
+    const categories = createMemo(() => groupByCategory(data?.data ?? []));
+    const total = createMemo(() =>
+      categories().reduce((sum, c) => sum + c.count, 0),
     );
 
     return { categories, total, isLoading, dataUpdatedAt, refetch };
@@ -126,17 +122,18 @@ export const flowRunMutations = {
   }: {
     onSuccess: (result: { run: FlowRun; populatedFlow: PopulatedFlow }) => void;
   }) => {
-    return createMutation<
-      { run: FlowRun; populatedFlow: PopulatedFlow },
-      Error,
-      {
+    return createMutation(() => ({
+      mutationFn: async ({
+        runId,
+        flowId,
+        projectId,
+        retryStrategy,
+      }: {
         runId: string;
         flowId: string;
         projectId: string;
         retryStrategy: FlowRetryStrategy;
-      }
-    >({
-      mutationFn: async ({ runId, flowId, projectId, retryStrategy }) => {
+      }): Promise<{ run: FlowRun; populatedFlow: PopulatedFlow }> => {
         const updatedRun = await flowRunsApi.retry(runId, {
           projectId,
           strategy: retryStrategy,
@@ -167,7 +164,7 @@ export const flowRunMutations = {
         }
         internalErrorToast();
       },
-    });
+    }));
   },
   useBulkRetryRuns: ({
     onSuccess,

@@ -2,32 +2,27 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../../ui/tooltip';
 
 import { CopyButton } from './copy-button';
 
-const CopyTextTooltip = ({
-  text,
-  title,
-  children,
-}: {
+const CopyTextTooltip = (props: {
   text: string;
   title: string;
   children: any;
 }) => {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipTrigger asChild>{props.children}</TooltipTrigger>
       <TooltipContent>
-        <div className="flex text-xs gap-2 items-center">
-          {title}: {text || '-'}{' '}
+        <div class="flex text-xs gap-2 items-center">
+          {props.title}: {props.text || '-'}{' '}
           <CopyButton
             withoutTooltip={true}
             variant="ghost"
             class="hover:text-background"
-            textToCopy={text || ''}
-          ></CopyButton>
+            textToCopy={props.text || ''}
+          />
         </div>
       </TooltipContent>
     </Tooltip>
   );
 };
 
-CopyTextTooltip.displayName = 'CopyTextTooltip';
 export { CopyTextTooltip };

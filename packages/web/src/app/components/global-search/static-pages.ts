@@ -1,4 +1,3 @@
-import { Component } from 'solid-js';
 import {
   Bot,
   ChartLine,
@@ -23,6 +22,7 @@ import {
   Webhook,
   Workflow,
 } from 'lucide-solid';
+import { Component } from 'solid-js';
 
 export type StaticPage = {
   id: string;

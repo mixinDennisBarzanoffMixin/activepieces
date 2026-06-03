@@ -17,10 +17,14 @@ import {
   ApEnvironment,
   TelemetryEventName,
 } from '@activepieces/shared';
-import { createMutation, createQueries, createQuery } from '@tanstack/solid-query';
+import {
+  createMutation,
+  createQueries,
+  createQuery,
+} from '@tanstack/solid-query';
 import i18n, { t } from 'i18next';
 import semver from 'semver';
-import { createMemo } from 'solid-js';
+import { createMemo, untrack, type Accessor } from 'solid-js';
 
 import { useTelemetry } from '@/components/providers/telemetry-provider';
 import { appConnectionsApi } from '@/features/connections/api/app-connections';
@@ -117,7 +121,6 @@ export const piecesHooks = {
     };
   },
   useMultiplePieces: ({ names }: UseMultiplePiecesProps) => {
-    const { i18n } = useTranslation();
     return createQueries(() => ({
       queries: names.map((name) => ({
         queryKey: ['piece', name, undefined],
@@ -131,7 +134,12 @@ export const piecesHooks = {
       })),
     }));
   },
-  usePieceSummariesByNames: ({ names }: UseMultiplePiecesProps) => {
+  usePieceSummariesByNames: ({
+    names,
+  }: UseMultiplePiecesProps): {
+    summaries: Accessor<PieceMetadataModelSummary[]>;
+    isLoading: boolean;
+  } => {
     const { pieces, isLoading } = piecesHooks.usePieces({});
     const summaries = createMemo(() => {
       if (!pieces) return [];
@@ -139,15 +147,19 @@ export const piecesHooks = {
       return names
         .map((name) => byName.get(name))
         .filter((p): p is PieceMetadataModelSummary => !!p);
-    }, [pieces, names]);
+    });
     return { summaries, isLoading };
   },
-  usePieceSummary: ({ name }: { name: string }) => {
+  usePieceSummary: ({
+    name,
+  }: {
+    name: string;
+  }): {
+    summary: Accessor<PieceMetadataModelSummary | undefined>;
+    isLoading: boolean;
+  } => {
     const { pieces, isLoading } = piecesHooks.usePieces({});
-    const summary = createMemo(
-      () => pieces?.find((p) => p.name === name),
-      [pieces, name],
-    );
+    const summary = createMemo(() => pieces?.find((p) => p.name === name));
     return { summary, isLoading };
   },
   usePieces: ({
@@ -156,7 +168,6 @@ export const piecesHooks = {
     includeTags = false,
     isTableQuery = false,
   }: UsePiecesProps) => {
-    const { i18n } = useTranslation();
     const query = createQuery<PieceMetadataModelSummary[], Error>(() => ({
       queryKey: [
         isTableQuery ? 'pieces-table' : 'pieces',
@@ -188,6 +199,9 @@ export const piecesHooks = {
     isLoading: boolean;
     data: CategorizedStepMetadataWithSuggestions[];
   } => {
+    const search = untrack(() => props.searchQuery);
+    const type = untrack(() => props.type);
+    const shouldCaptureEvent = untrack(() => props.shouldCaptureEvent);
     const { selectedTab } = usePieceSelectorTabs();
     const { capture } = useTelemetry();
     const { data: environment } = flagsHooks.useFlag<ApEnvironment>(
@@ -257,7 +271,7 @@ export const piecesHooks = {
           data: getExploreTabContent(
             piecesMetadataWithoutEmptySuggestions,
             platform,
-            props.type,
+            type,
             environment,
           ),
         };
@@ -295,12 +309,12 @@ export const piecesHooks = {
       }
 
       case PieceSelectorTabType.NONE: {
-        if (props.shouldCaptureEvent && props.searchQuery.length > 3) {
+        if (shouldCaptureEvent && search.length > 3) {
           capture({
             name: TelemetryEventName.PIECE_SELECTOR_SEARCH,
             payload: {
-              search: props.searchQuery,
-              isTrigger: props.type === 'trigger',
+              search,
+              isTrigger: type === 'trigger',
               selectedActionOrTriggerName: null,
             },
           });

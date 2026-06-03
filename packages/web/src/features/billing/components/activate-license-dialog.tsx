@@ -1,6 +1,7 @@
 import { createForm, reset, zodForm } from '@modular-forms/solid';
+import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { createMemo } from 'solid-js';
+import { createMemo, Show } from 'solid-js';
 import { z } from 'zod';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
@@ -14,7 +15,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { queryClient } from '@/app/query-client';
 import { Input } from '@/components/ui/input';
 import { platformHooks } from '@/hooks/platform-hooks';
 
@@ -29,10 +29,7 @@ interface ActivateLicenseDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export const ActivateLicenseDialog = ({
-  isOpen,
-  onOpenChange,
-}: ActivateLicenseDialogProps) => {
+export const ActivateLicenseDialog = (props: ActivateLicenseDialogProps) => {
   const [form, { Form, Field }] = createForm<LicenseKeySchema>({
     initialValues: {
       tempLicenseKey: '',
@@ -42,6 +39,7 @@ export const ActivateLicenseDialog = ({
   const key = createMemo(
     () => form.internal.fields.tempLicenseKey?.value.get() ?? '',
   );
+  const queryClient = useQueryClient();
 
   const { mutate: activateLicenseKey, isPending } =
     platformHooks.useUpdateLisenceKey(queryClient);
@@ -54,11 +52,11 @@ export const ActivateLicenseDialog = ({
 
   const handleClose = () => {
     reset(form);
-    onOpenChange(false);
+    props.onOpenChange(false);
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
+    <Dialog open={props.isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Activate License Key')}</DialogTitle>
@@ -67,31 +65,26 @@ export const ActivateLicenseDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <Form
-          class="space-y-4"
-          onSubmit={handleSubmit}
-        >
-            <Field
-              name="tempLicenseKey"
-            >
-              {(field, props) => (
-                <div class="space-y-1">
-                  <Input
-                    {...props}
-                    value={field.value ?? ''}
-                    required
-                    type="text"
-                    placeholder={t('Enter your license key')}
-                    disabled={isPending}
-                  />
-                  {field.error && (
-                    <p class="text-sm font-medium text-destructive wrap-break-word">
-                      {t(field.error)}
-                    </p>
-                  )}
-                </div>
-              )}
-            </Field>
+        <Form class="space-y-4" onSubmit={handleSubmit}>
+          <Field name="tempLicenseKey">
+            {(field, props) => (
+              <div class="space-y-1">
+                <Input
+                  {...props}
+                  value={field.value ?? ''}
+                  required
+                  type="text"
+                  placeholder={t('Enter your license key')}
+                  disabled={isPending}
+                />
+                <Show when={field.error}>
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {t(field.error)}
+                  </p>
+                </Show>
+              </div>
+            )}
+          </Field>
         </Form>
 
         <DialogFooter class="gap-2">
@@ -109,7 +102,9 @@ export const ActivateLicenseDialog = ({
             disabled={isPending || !key().trim()}
             class="min-w-20"
           >
-            {isPending ? <LoadingSpinner class="size-4" /> : t('Activate')}
+            <Show when={isPending} fallback={t('Activate')}>
+              <LoadingSpinner class="size-4" />
+            </Show>
           </Button>
         </DialogFooter>
       </DialogContent>

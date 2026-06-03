@@ -37,22 +37,26 @@ export const projectsTableColumns = ({
     {
       accessorKey: 'displayName',
       size: 270,
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Name')} icon={Tag} />
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title={t('Name')}
+          icon={Tag}
+        />
       ),
-      cell: ({ row }) => {
-        const locked = row.original.plan.locked;
-        const isPersonal = row.original.type === ProjectType.PERSONAL;
+      cell: (props) => {
+        const locked = props.row.original.plan.locked;
+        const isPersonal = props.row.original.type === ProjectType.PERSONAL;
 
         return (
-          <div className="text-left flex items-center justify-start ">
+          <div class="text-left flex items-center justify-start ">
             <Show when={locked}>
               <Lock class="size-3 mr-1.5" strokeWidth={2.5} />
             </Show>
             <Show when={isPersonal}>
-              <User class="size-4 mr-1.5"></User>
+              <User class="size-4 mr-1.5" />
             </Show>
-            <span className="font-medium">{row.original.displayName}</span>
+            <span class="font-medium">{props.row.original.displayName}</span>
           </div>
         );
       },
@@ -64,22 +68,22 @@ export const projectsTableColumns = ({
     {
       accessorKey: 'users',
       size: 120,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Active Users')}
           icon={Users}
           class="w-full"
         />
       ),
-      cell: ({ row }) => {
+      cell: (props) => {
         return (
-          <div className="text-left tabular-nums">
-            <span className="font-medium">
-              {row.original.analytics.activeUsers}
+          <div class="text-left tabular-nums">
+            <span class="font-medium">
+              {props.row.original.analytics.activeUsers}
             </span>
-            <span className="text-muted-foreground">
-              {` / ${row.original.analytics.totalUsers}`}
+            <span class="text-muted-foreground">
+              {` / ${props.row.original.analytics.totalUsers}`}
             </span>
           </div>
         );
@@ -88,22 +92,22 @@ export const projectsTableColumns = ({
     {
       accessorKey: 'flows',
       size: 120,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Active Flows')}
           icon={Workflow}
           class="w-full"
         />
       ),
-      cell: ({ row }) => {
+      cell: (props) => {
         return (
-          <div className="text-left tabular-nums">
-            <span className="font-medium">
-              {row.original.analytics.activeFlows}
+          <div class="text-left tabular-nums">
+            <span class="font-medium">
+              {props.row.original.analytics.activeFlows}
             </span>
-            <span className="text-muted-foreground">
-              {` / ${row.original.analytics.totalFlows}`}
+            <span class="text-muted-foreground">
+              {` / ${props.row.original.analytics.totalFlows}`}
             </span>
           </div>
         );
@@ -115,20 +119,20 @@ export const projectsTableColumns = ({
     columns.push({
       accessorKey: 'externalId',
       size: 150,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('External ID')}
           icon={Hash}
         />
       ),
-      cell: ({ row }) => {
+      cell: (props) => {
         const displayValue =
-          isNil(row.original.externalId) ||
-          row.original.externalId?.length === 0
+          isNil(props.row.original.externalId) ||
+          props.row.original.externalId.length === 0
             ? '-'
-            : row.original.externalId;
-        return <div className="text-left truncate">{displayValue}</div>;
+            : props.row.original.externalId;
+        return <div class="text-left truncate">{displayValue}</div>;
       },
     });
   }
@@ -136,18 +140,18 @@ export const projectsTableColumns = ({
     columns.push({
       accessorKey: 'globalConnectionsCount',
       size: 135,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Global Connections')}
           icon={Link2}
           class="w-full"
         />
       ),
-      cell: ({ row }) => {
+      cell: (props) => {
         return (
-          <div className="text-left tabular-nums">
-            {row.original.globalConnectionsCount}
+          <div class="text-left tabular-nums">
+            {props.row.original.globalConnectionsCount}
           </div>
         );
       },
@@ -157,17 +161,17 @@ export const projectsTableColumns = ({
   columns.push({
     accessorKey: 'createdAt',
     size: 110,
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Created')}
         icon={Clock}
       />
     ),
-    cell: ({ row }) => {
+    cell: (props) => {
       return (
-        <div className="text-left">
-          <FormattedDate date={new Date(row.original.created)} />
+        <div class="text-left">
+          <FormattedDate date={new Date(props.row.original.created)} />
         </div>
       );
     },

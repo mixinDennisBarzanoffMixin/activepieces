@@ -4,36 +4,44 @@ import {
   type BundledLanguage,
   type ThemedToken,
 } from 'shiki';
-import { createSignal, createEffect, JSX } from 'solid-js';
+import {
+  createEffect,
+  createSignal,
+  For,
+  JSX,
+  mergeProps,
+  splitProps,
+} from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
-function CodeBlock({ children, className, ...props }: CodeBlockProps) {
+function CodeBlock(_props: CodeBlockProps) {
+  const [local, props] = splitProps(_props, ['children', 'className']);
   return (
     <div
-      className={cn(
+      class={cn(
         'not-prose flex w-full flex-col overflow-clip border',
         'border-border bg-card text-card-foreground rounded-xl',
-        className,
+        local.className,
       )}
       {...props}
     >
-      {children}
+      {local.children}
     </div>
   );
 }
 
-function CodeBlockCode({
-  code,
-  language = 'tsx',
-  theme,
-  className,
-  ...props
-}: CodeBlockCodeProps) {
+function CodeBlockCode(_props: CodeBlockCodeProps) {
+  const [local, props] = splitProps(mergeProps({ language: 'tsx' }, _props), [
+    'code',
+    'language',
+    'theme',
+    'className',
+  ]);
   const [tokenResult, setTokenResult] = createSignal<TokenResult | null>(null);
 
   createEffect(() => {
-    if (!code) {
+    if (!local.code) {
       setTokenResult(null);
       return;
     }
@@ -41,22 +49,24 @@ function CodeBlockCode({
     let cancelled = false;
 
     async function highlight() {
-      const themeOptions = theme
-        ? { theme }
+      const themeOptions = local.theme
+        ? { theme: local.theme }
         : {
             themes: { light: 'vitesse-light', dark: 'vitesse-dark' },
             defaultColor: false as const,
           };
 
-      const lang = isBundledLanguage(language) ? language : 'plaintext';
+      const lang = isBundledLanguage(local.language)
+        ? local.language
+        : 'plaintext';
 
       let result;
       try {
-        result = await codeToTokens(code, { lang, ...themeOptions });
+        result = await codeToTokens(local.code, { lang, ...themeOptions });
       } catch {
         if (lang === 'plaintext') return;
         try {
-          result = await codeToTokens(code, {
+          result = await codeToTokens(local.code, {
             lang: 'plaintext',
             ...themeOptions,
           });
@@ -81,60 +91,59 @@ function CodeBlockCode({
       });
     }
 
-    highlight();
+    void highlight();
     return () => {
       cancelled = true;
     };
-  }, [code, language, theme]);
+  });
 
   const classNames = cn(
     'w-full overflow-x-auto text-[13px] [&>pre]:px-4 [&>pre]:py-4',
-    className,
+    local.className,
   );
 
-  if (!tokenResult) {
+  const result = tokenResult();
+
+  if (!result) {
     return (
-      <div className={classNames} {...props}>
+      <div class={classNames} {...props}>
         <pre>
-          <code>{code}</code>
+          <code>{local.code}</code>
         </pre>
       </div>
     );
   }
 
-  const lastLineIndex = tokenResult.lines.length - 1;
+  const lastLineIndex = result.lines.length - 1;
 
   return (
-    <div className={classNames} {...props}>
-      <pre className="shiki" style={tokenResult.preStyle}>
+    <div class={classNames} {...props}>
+      <pre class="shiki" style={result.preStyle}>
         <code>
-          {tokenResult.lines.map((line, lineIndex) => (
-            <span key={lineIndex} className="line">
-              {line.map((token, tokenIndex) => (
-                <span key={tokenIndex} style={token.style}>
-                  {token.content}
-                </span>
-              ))}
-              {lineIndex < lastLineIndex ? '\n' : ''}
-            </span>
-          ))}
+          <For each={result.lines}>
+            {(line, index) => (
+              <span class="line">
+                <For each={line}>
+                  {(token) => <span style={token.style}>{token.content}</span>}
+                </For>
+                {index() < lastLineIndex ? '\n' : ''}
+              </span>
+            )}
+          </For>
         </code>
       </pre>
     </div>
   );
 }
 
-function CodeBlockGroup({
-  children,
-  className,
-  ...props
-}: CodeBlockGroupProps) {
+function CodeBlockGroup(_props: CodeBlockGroupProps) {
+  const [local, props] = splitProps(_props, ['children', 'className']);
   return (
     <div
-      className={cn('flex items-center justify-between', className)}
+      class={cn('flex items-center justify-between', local.className)}
       {...props}
     >
-      {children}
+      {local.children}
     </div>
   );
 }
@@ -202,15 +211,18 @@ type TokenResult = {
 export type CodeBlockProps = {
   children?: JSX.Element;
   className?: string;
-} & JSX.HTMLAttributes<HTMLDivElement>;
+} & Omit<JSX.HTMLAttributes<HTMLDivElement>, 'children' | 'className'>;
 
 export type CodeBlockCodeProps = {
   code: string;
   language?: string;
   theme?: string;
   className?: string;
-} & JSX.HTMLAttributes<HTMLDivElement>;
+} & Omit<JSX.HTMLAttributes<HTMLDivElement>, 'children' | 'className'>;
 
-export type CodeBlockGroupProps = JSX.HTMLAttributes<HTMLDivElement>;
+export type CodeBlockGroupProps = {
+  children?: JSX.Element;
+  className?: string;
+} & Omit<JSX.HTMLAttributes<HTMLDivElement>, 'children' | 'className'>;
 
 export { CodeBlockGroup, CodeBlockCode, CodeBlock };

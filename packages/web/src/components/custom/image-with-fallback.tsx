@@ -1,18 +1,20 @@
-import { createSignal } from 'solid-js';
+import { createSignal, Show, splitProps, type JSX } from 'solid-js';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
-interface ImageWithFallbackProps extends any {
-  fallback?: any;
+interface ImageWithFallbackProps
+  extends Omit<JSX.IntrinsicElements['img'], 'alt' | 'className' | 'src'> {
+  alt?: string;
+  className?: string;
+  fallback?: JSX.Element;
+  src?: string;
 }
 
-const ImageWithFallback = ({
-  src,
-  alt,
-  fallback,
-  ...props
-}: ImageWithFallbackProps) => {
+const ImageWithFallback = (_props: ImageWithFallbackProps) => {
+  const split = splitProps(_props, ['src', 'alt', 'fallback', 'className']);
+  const props = split[0];
+  const rest = split[1];
   const [hasError, setHasError] = createSignal(false);
   const [isLoading, setIsLoading] = createSignal(true);
 
@@ -25,35 +27,33 @@ const ImageWithFallback = ({
     setIsLoading(false);
   };
 
-  const { className, ...rest } = props;
-
   return (
-    <span className={cn('relative inline-block h-full w-full', className)}>
+    <span class={cn('relative inline-block h-full w-full', props.className)}>
       <Show when={isLoading() && !hasError()}>
-        <span className="absolute inset-0 flex items-center justify-center">
-          {fallback ?? <Skeleton class="w-full h-full" />}
+        <span class="absolute inset-0 flex items-center justify-center">
+          {props.fallback ?? <Skeleton class="w-full h-full" />}
         </span>
       </Show>
       <Show
         when={!hasError()}
         fallback={
-          <span className="absolute inset-0 flex items-center justify-center">
-            {fallback ?? <Skeleton class="w-full h-full" />}
+          <span class="absolute inset-0 flex items-center justify-center">
+            {props.fallback ?? <Skeleton class="w-full h-full" />}
           </span>
         }
       >
         <img
-          src={src}
-          alt={alt}
+          src={props.src}
+          alt={props.alt}
           onLoad={handleLoad}
           onError={handleError}
-          className={cn(
-            `transition-opacity duration-500 w-full h-full object-contain`,
+          class={cn(
+            'transition-opacity duration-500 w-full h-full object-contain',
             {
               'opacity-0': isLoading(),
               'opacity-100': !isLoading(),
             },
-            className,
+            props.className,
           )}
           {...rest}
         />

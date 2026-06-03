@@ -3,11 +3,14 @@ import {
   AgentTool,
   AgentToolType,
   KnowledgeBaseSourceType,
+  KnowledgeBaseFile,
+  SeekPage,
+  Table,
 } from '@activepieces/shared';
 import { createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { Upload } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createMemo, createSignal, untrack, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { SearchableSelect } from '@/components/custom/searchable-select';
@@ -32,10 +35,7 @@ import {
   useUploadKnowledgeBaseFile,
 } from './knowledge-base-hooks';
 
-function AgentKnowledgeBaseDialog({
-  tools,
-  onToolsUpdate,
-}: AgentKnowledgeBaseDialogProps) {
+function AgentKnowledgeBaseDialog(props: AgentKnowledgeBaseDialogProps) {
   const { showAddKbDialog, editingKbTool, initialSourceType, closeKbDialog } =
     useKnowledgeBaseToolDialogStore();
 
@@ -43,8 +43,8 @@ function AgentKnowledgeBaseDialog({
     <Dialog open={showAddKbDialog} onOpenChange={closeKbDialog}>
       <KnowledgeBaseDialogContent
         key={`kb-dialog-${showAddKbDialog}-${editingKbTool?.toolName ?? 'new'}`}
-        tools={tools}
-        onToolsUpdate={onToolsUpdate}
+        tools={props.tools}
+        onToolsUpdate={props.onToolsUpdate}
         editingKbTool={editingKbTool}
         initialSourceType={initialSourceType}
         closeKbDialog={closeKbDialog}
@@ -53,61 +53,74 @@ function AgentKnowledgeBaseDialog({
   );
 }
 
-function KnowledgeBaseDialogContent({
-  tools,
-  onToolsUpdate,
-  editingKbTool,
-  initialSourceType,
-  closeKbDialog,
-}: {
+function KnowledgeBaseDialogContent(props: {
   tools: AgentTool[];
   onToolsUpdate: (tools: AgentTool[]) => void;
   editingKbTool: AgentKnowledgeBaseTool | null;
   initialSourceType: KnowledgeBaseSourceType | null;
   closeKbDialog: () => void;
 }) {
-  const sourceType =
-    editingKbTool?.sourceType ??
-    initialSourceType ??
-    KnowledgeBaseSourceType.FILE;
+  const sourceType = untrack(
+    () =>
+      props.editingKbTool?.sourceType ??
+      props.initialSourceType ??
+      KnowledgeBaseSourceType.FILE,
+  );
 
-  const [toolName, setToolName] = createSignal(editingKbTool?.toolName ?? '');
-  const [sourceId, setSourceId] = createSignal(editingKbTool?.sourceId ?? '');
-  const [sourceName, setSourceName] = createSignal(editingKbTool?.sourceName ?? '');
+  const [toolName, setToolName] = createSignal(
+    untrack(() => props.editingKbTool?.toolName ?? ''),
+  );
+  const [sourceId, setSourceId] = createSignal(
+    untrack(() => props.editingKbTool?.sourceId ?? ''),
+  );
+  const [sourceName, setSourceName] = createSignal(
+    untrack(() => props.editingKbTool?.sourceName ?? ''),
+  );
 
-  let fileInputRef = null;
+  let fileInputRef: HTMLInputElement | undefined;
   const uploadMutation = useUploadKnowledgeBaseFile();
   const deleteMutation = useDeleteKnowledgeBaseFile();
-  const { data: kbFiles, isLoading: kbFilesLoading } = useKnowledgeBaseFiles();
+  const kbFilesQuery = useKnowledgeBaseFiles();
 
   const projectId = authenticationSession.getProjectId()!;
-  const { data: tablesData, isLoading: tablesLoading } = createQuery(() => ({
+  const tablesQuery = createQuery<SeekPage<Table>, Error>(() => ({
     queryKey: ['tables-for-kb', projectId],
     queryFn: () => tablesApi.list({ projectId, limit: 1000 }),
     enabled: sourceType === KnowledgeBaseSourceType.TABLE,
   }));
 
-  const fileOptions = (kbFiles ?? []).map((f) => ({
-    value: f.id,
-    label: f.displayName,
-  }));
+  const kbFiles = createMemo<KnowledgeBaseFile[]>(
+    () =>
+      (kbFilesQuery.data as unknown as KnowledgeBaseFile[] | undefined) ?? [],
+  );
 
-  const tableOptions = (tablesData?.data ?? []).map((table) => ({
-    value: table.id,
-    label: table.name,
-  }));
+  const fileOptions = createMemo(() =>
+    kbFiles().map((f) => ({
+      value: f.id,
+      label: f.displayName,
+    })),
+  );
+
+  const tableOptions = createMemo(() =>
+    (tablesQuery.data?.data ?? []).map((table) => ({
+      value: table.id,
+      label: table.name,
+    })),
+  );
 
   const handleSourceSelect = (id: string | null, name: string) => {
     if (!id) return;
     setSourceId(id);
     setSourceName(name);
-    if (!editingKbTool) {
+    if (!props.editingKbTool) {
       setToolName(slugify(name));
     }
   };
 
   const handleFileUpload = (e: Event) => {
-    const file = e.target.files?.[0];
+    const input = e.currentTarget;
+    if (!(input instanceof HTMLInputElement)) return;
+    const file = input.files?.[0];
     if (!file) return;
 
     const formData = new FormData();
@@ -124,21 +137,22 @@ function KnowledgeBaseDialogContent({
       },
     });
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    if (fileInputRef) {
+      fileInputRef.value = '';
     }
   };
 
   const handleAdd = () => {
-    if (!toolName.trim() || !sourceId.trim()) {
+    if (!toolName().trim() || !sourceId().trim()) {
       toast.error(t('Please select a source and ensure tool name is filled'));
       return;
     }
 
-    const isDuplicate = tools.some(
+    const isDuplicate = props.tools.some(
       (tool) =>
-        tool.toolName === toolName.trim() &&
-        (!editingKbTool || editingKbTool.toolName !== toolName.trim()),
+        tool.toolName === toolName().trim() &&
+        (!props.editingKbTool ||
+          props.editingKbTool.toolName !== toolName().trim()),
     );
     if (isDuplicate) {
       toast.error(t('A tool with this name already exists'));
@@ -147,34 +161,36 @@ function KnowledgeBaseDialogContent({
 
     const newTool: AgentKnowledgeBaseTool = {
       type: AgentToolType.KNOWLEDGE_BASE,
-      toolName: toolName.trim(),
+      toolName: toolName().trim(),
       sourceType,
-      sourceId: sourceId.trim(),
-      sourceName: sourceName.trim(),
+      sourceId: sourceId().trim(),
+      sourceName: sourceName().trim(),
     };
 
-    if (editingKbTool) {
-      const updatedTools = tools.map((tool) =>
+    if (props.editingKbTool) {
+      const updatedTools = props.tools.map((tool) =>
         tool.type === AgentToolType.KNOWLEDGE_BASE &&
-        tool.toolName === editingKbTool.toolName
+        tool.toolName === props.editingKbTool.toolName
           ? newTool
           : tool,
       );
-      onToolsUpdate(updatedTools);
+      props.onToolsUpdate(updatedTools);
       toast(t('Knowledge source updated successfully'));
     } else {
-      onToolsUpdate([...tools, newTool]);
+      props.onToolsUpdate([...props.tools, newTool]);
       toast(t('Knowledge source added successfully'));
     }
 
-    closeKbDialog();
+    props.closeKbDialog();
   };
 
-  const dialogTitle = editingKbTool
-    ? t('Edit Knowledge Source')
-    : sourceType === KnowledgeBaseSourceType.FILE
-    ? t('Add File Source')
-    : t('Add Table Source');
+  const dialogTitle = untrack(() =>
+    props.editingKbTool
+      ? t('Edit Knowledge Source')
+      : sourceType === KnowledgeBaseSourceType.FILE
+      ? t('Add File Source')
+      : t('Add Table Source'),
+  );
 
   return (
     <DialogContent class="sm:max-w-md gap-3">
@@ -189,26 +205,42 @@ function KnowledgeBaseDialogContent({
               ? t('Knowledge Base File')
               : t('Table')}
           </Label>
-          {sourceType === KnowledgeBaseSourceType.FILE ? (
+          <Show
+            when={sourceType === KnowledgeBaseSourceType.FILE}
+            fallback={
+              <SearchableSelect
+                options={tableOptions()}
+                value={sourceId() || undefined}
+                onInput={(id) => {
+                  const selected = tablesQuery.data?.data.find(
+                    (item) => item.id === id,
+                  );
+                  handleSourceSelect(id, selected?.name ?? '');
+                }}
+                placeholder={t('Select a table')}
+                loading={tablesQuery.isLoading}
+              />
+            }
+          >
             <div class="flex flex-col gap-2">
               <SearchableSelect
-                options={fileOptions}
-                value={sourceId || undefined}
-                onChange={(id) => {
-                  const file = kbFiles?.find((f) => f.id === id);
+                options={fileOptions()}
+                value={sourceId() || undefined}
+                onInput={(id) => {
+                  const file = kbFiles().find((f) => f.id === id);
                   handleSourceSelect(id, file?.displayName ?? '');
                 }}
                 placeholder={t('Select a knowledge base file')}
-                loading={kbFilesLoading}
+                loading={kbFilesQuery.isLoading}
                 onOptionDelete={(fileId) => {
                   if (deleteMutation.isPending) return;
                   deleteMutation.mutate(fileId, {
                     onSuccess: () => {
                       toast(t('File deleted successfully'));
-                      if (sourceId === fileId) {
+                      if (sourceId() === fileId) {
                         setSourceId('');
                         setSourceName('');
-                        if (!editingKbTool) {
+                        if (!props.editingKbTool) {
                           setToolName('');
                         }
                       }
@@ -224,14 +256,14 @@ function KnowledgeBaseDialogContent({
                 type="file"
                 accept=".pdf,.txt,.csv,.docx"
                 class="hidden"
-                onChange={handleFileUpload}
+                onInput={handleFileUpload}
               />
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
                 class="self-start"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => fileInputRef?.click()}
                 disabled={uploadMutation.isPending}
               >
                 <Upload class="mr-2 h-4 w-4" />
@@ -240,20 +272,7 @@ function KnowledgeBaseDialogContent({
                   : t('Upload new file')}
               </Button>
             </div>
-          ) : (
-            <SearchableSelect
-              options={tableOptions}
-              value={sourceId || undefined}
-              onChange={(id) => {
-                const selected = tablesData?.data?.find(
-                  (item) => item.id === id,
-                );
-                handleSourceSelect(id, selected?.name ?? '');
-              }}
-              placeholder={t('Select a table')}
-              loading={tablesLoading}
-            />
-          )}
+          </Show>
         </div>
 
         <div class="space-y-1.5">
@@ -263,8 +282,8 @@ function KnowledgeBaseDialogContent({
               : t('Table Name')}
           </Label>
           <Input
-            value={toolName}
-            onChange={(e) => setToolName(e.target.value)}
+            value={toolName()}
+            onInput={(e) => setToolName(e.currentTarget.value)}
             placeholder={
               sourceType === KnowledgeBaseSourceType.FILE
                 ? t('e.g., company_docs')
@@ -280,11 +299,11 @@ function KnowledgeBaseDialogContent({
       </div>
 
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={closeKbDialog}>
+        <Button type="button" variant="outline" onClick={props.closeKbDialog}>
           {t('Cancel')}
         </Button>
         <Button onClick={handleAdd}>
-          {editingKbTool ? t('Update') : t('Add')}
+          {props.editingKbTool ? t('Update') : t('Add')}
         </Button>
       </DialogFooter>
     </DialogContent>

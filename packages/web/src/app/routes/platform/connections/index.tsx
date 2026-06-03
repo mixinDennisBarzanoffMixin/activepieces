@@ -49,6 +49,10 @@ export default function PlatformConnectionsPage() {
   const { data: owners } = platformAppConnectionsQueries.useOwners();
   const { data: projects } = projectCollectionUtils.useAllPlatformProjects();
   const { pieces } = piecesHooks.usePieces({});
+  const title = String(t('Connections'));
+  const desc = String(
+    t('All app connections across every project on this platform'),
+  );
 
   const filters: DataTableFilters<
     keyof PlatformAppConnectionsListItem | 'ownerIds'
@@ -107,27 +111,27 @@ export default function PlatformConnectionsPage() {
     {
       accessorKey: 'displayName',
       size: 280,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Name')}
           icon={Unplug}
         />
       ),
-      cell: ({ row }) => (
+      cell: (props) => (
         <CopyTextTooltip
           title={t('External ID')}
-          text={row.original.externalId || ''}
+          text={props.row.original.externalId || ''}
         >
-          <div className="flex items-center gap-2 w-fit min-w-0">
+          <div class="flex items-center gap-2 w-fit min-w-0">
             <PieceIconWithPieceName
-              pieceName={row.original.pieceName}
+              pieceName={props.row.original.pieceName}
               showTooltip={false}
               size="sm"
             />
-            <TextWithTooltip tooltipMessage={row.original.displayName}>
-              <span className="truncate max-w-[160px] 2xl:max-w-[260px]">
-                {row.original.displayName}
+            <TextWithTooltip tooltipMessage={props.row.original.displayName}>
+              <span class="truncate max-w-[160px] 2xl:max-w-[260px]">
+                {props.row.original.displayName}
               </span>
             </TextWithTooltip>
           </div>
@@ -137,98 +141,72 @@ export default function PlatformConnectionsPage() {
     {
       accessorKey: 'status',
       size: 130,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Status')}
           icon={Activity}
         />
       ),
-      cell: ({ row }) => {
-        const status = row.original.status;
-        const { variant, icon: Icon } =
-          appConnectionUtils.getStatusIcon(status);
-        return (
-          <StatusIconWithText
-            icon={Icon}
-            text={formatUtils.convertEnumToHumanReadable(status)}
-            variant={variant}
-          />
-        );
-      },
+      cell: (props) => <StatusCell status={props.row.original.status} />,
     },
     {
       accessorKey: 'projects',
       size: 220,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Project')}
           icon={Folder}
         />
       ),
-      cell: ({ row }) => <ProjectsCell projects={row.original.projects} />,
+      cell: (props) => <ProjectsCell projects={props.row.original.projects} />,
     },
     {
       accessorKey: 'scope',
       size: 120,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Scope')}
           icon={Shield}
         />
       ),
-      cell: ({ row }) => <ScopeBadge scope={row.original.scope} />,
+      cell: (props) => <ScopeBadge scope={props.row.original.scope} />,
     },
     {
       accessorKey: 'owner',
       size: 200,
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Owner')} icon={User} />
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title={t('Owner')}
+          icon={User}
+        />
       ),
-      cell: ({ row }) => {
-        const owner = row.original.owner;
-        if (!owner) {
-          return <span className="text-muted-foreground">{t('N/A')}</span>;
-        }
-        const fullName = [owner.firstName, owner.lastName]
-          .filter(Boolean)
-          .join(' ');
-        const label = fullName || owner.email;
-        return (
-          <TextWithTooltip tooltipMessage={owner.email}>
-            <span className="truncate max-w-[180px]">{label}</span>
-          </TextWithTooltip>
-        );
-      },
+      cell: (props) => <OwnerCell owner={props.row.original.owner} />,
     },
     {
       accessorKey: 'updated',
       size: 150,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Connected At')}
           icon={Clock}
         />
       ),
-      cell: ({ row }) => (
-        <FormattedDate date={new Date(row.original.updated)} />
+      cell: (props) => (
+        <FormattedDate date={new Date(props.row.original.updated)} />
       ),
     },
   ];
 
   return (
-    <div className="flex flex-col w-full">
-      <DashboardPageHeader
-        title={t('Connections')}
-        description={t(
-          'All app connections across every project on this platform',
-        )}
-      />
+    <div class="flex flex-col w-full">
+      <DashboardPageHeader title={title} description={desc} />
       <Show when={owners?.truncated}>
-        <div className="px-6 pb-2 text-xs text-muted-foreground">
+        <div class="px-6 pb-2 text-xs text-muted-foreground">
           {t('Owner filter is limited to the first {count} owners', {
             count: MAX_PLATFORM_APP_CONNECTION_OWNERS,
           })}
@@ -249,60 +227,105 @@ export default function PlatformConnectionsPage() {
   );
 }
 
-const ScopeBadge = ({ scope }: { scope: AppConnectionScope }) => {
-  if (scope === AppConnectionScope.PLATFORM) {
+const StatusCell = (props: { status: AppConnectionStatus }) => {
+  const icon = () => appConnectionUtils.getStatusIcon(props.status);
+  return (
+    <StatusIconWithText
+      icon={icon().icon}
+      text={formatUtils.convertEnumToHumanReadable(props.status)}
+      variant={icon().variant}
+    />
+  );
+};
+
+const OwnerCell = (props: {
+  owner: PlatformAppConnectionsListItem['owner'];
+}) => {
+  const label = () => {
+    if (!props.owner) {
+      return '';
+    }
     return (
+      [props.owner.firstName, props.owner.lastName].filter(Boolean).join(' ') ||
+      props.owner.email
+    );
+  };
+  return (
+    <Show
+      when={props.owner}
+      fallback={<span class="text-muted-foreground">{t('N/A')}</span>}
+    >
+      {(owner) => (
+        <TextWithTooltip tooltipMessage={owner().email}>
+          <span class="truncate max-w-[180px]">{label()}</span>
+        </TextWithTooltip>
+      )}
+    </Show>
+  );
+};
+
+const ScopeBadge = (props: { scope: AppConnectionScope }) => (
+  <Show
+    when={props.scope === AppConnectionScope.PLATFORM}
+    fallback={<Badge variant="outline">{t('Project')}</Badge>}
+  >
+    {
       <Badge variant="accent">
         <Globe />
         {t('Global')}
       </Badge>
-    );
-  }
-  return <Badge variant="outline">{t('Project')}</Badge>;
-};
+    }
+  </Show>
+);
 
-const ProjectsCell = ({
-  projects,
-}: {
+const ProjectsCell = (props: {
   projects: PlatformAppConnectionsListItem['projects'];
+}) => (
+  <Show
+    when={props.projects.length > 0}
+    fallback={<span class="text-muted-foreground">{t('N/A')}</span>}
+  >
+    <Show
+      when={props.projects.length === 1}
+      fallback={<ProjectList {...props} />}
+    >
+      <ProjectLink project={props.projects[0]} />
+    </Show>
+  </Show>
+);
+
+const ProjectLink = (props: {
+  project: PlatformAppConnectionsListItem['projects'][number];
 }) => {
-  if (projects.length === 0) {
-    return <span className="text-muted-foreground">{t('N/A')}</span>;
-  }
-  if (projects.length === 1) {
-    const project = projects[0];
-    const name = getProjectName(project);
-    return (
-      <Link href={`/projects/${project.id}`}>
-        <TextWithTooltip tooltipMessage={name}>
-          <span className="truncate max-w-[200px] text-primary hover:underline">
-            {name}
-          </span>
-        </TextWithTooltip>
-      </Link>
-    );
-  }
-  const label = t('{count, plural, =1 {1 project} other {# projects}}', {
-    count: projects.length,
-  });
+  const name = () => getProjectName(props.project);
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="cursor-default underline decoration-dashed underline-offset-2">
-          {label}
+    <Link href={`/projects/${props.project.id}`}>
+      <TextWithTooltip tooltipMessage={name()}>
+        <span class="truncate max-w-[200px] text-primary hover:underline">
+          {name()}
         </span>
-      </TooltipTrigger>
-      <TooltipContent>
-        <ul className="flex flex-col gap-1 max-w-[260px]">
-          <For each={projects}>
-            {(project) => (
-              <li key={project.id} className="truncate">
-                {getProjectName(project)}
-              </li>
-            )}
-          </For>
-        </ul>
-      </TooltipContent>
-    </Tooltip>
+      </TextWithTooltip>
+    </Link>
   );
 };
+
+const ProjectList = (props: {
+  projects: PlatformAppConnectionsListItem['projects'];
+}) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span class="cursor-default underline decoration-dashed underline-offset-2">
+        {t('{count, plural, =1 {1 project} other {# projects}}', {
+          count: props.projects.length,
+        })}
+      </span>
+    </TooltipTrigger>
+    <TooltipContent>
+      <ul class="flex flex-col gap-1 max-w-[260px]">
+        <For each={props.projects}>
+          {(project) => <li class="truncate">{getProjectName(project)}</li>}
+        </For>
+      </ul>
+    </TooltipContent>
+  </Tooltip>
+);

@@ -1,5 +1,9 @@
 export { appConnectionsApi } from './api/app-connections';
 export { ProjectSelector } from '../projects/components/projects-selector';
+export {
+  CreateOrEditConnectionDialog,
+  CreateOrEditConnectionDialogContent,
+} from './components/create-edit-connection-dialog';
 export { EditGlobalConnectionDialog } from './components/edit-global-connection-dialog';
 export { RenameConnectionDialog } from './components/rename-connection-dialog';
 export {

@@ -29,12 +29,7 @@ import { useAuthorization } from '@/hooks/authorization-hooks';
 
 import { OverwriteDraftDialog } from './overwrite-draft-dialog';
 
-const FlowVersionDetailsCard = ({
-  flowVersion,
-  selected,
-  publishedVersionId,
-  flowVersionNumber,
-}: FlowVersionDetailsCardProps) => {
+const FlowVersionDetailsCard = (props: FlowVersionDetailsCardProps) => {
   const { checkAccess } = useAuthorization();
   const userHasPermissionToWriteFlow = checkAccess(Permission.WRITE_FLOW);
   const [setVersion, setReadonly] = useBuilderStateContext((state) => [
@@ -56,35 +51,35 @@ const FlowVersionDetailsCard = ({
 
   return (
     <CardListItem interactive={false} class="px-4">
-      <Show when={showAvatar && flowVersion.updatedByUser()}>
+      <Show when={showAvatar && props.flowVersion.updatedByUser}>
         <UserAvatar
           size={45}
           withoutBorder={true}
           name={
-            flowVersion.updatedByUser.firstName +
+            props.flowVersion.updatedByUser.firstName +
             ' ' +
-            flowVersion.updatedByUser.lastName
+            props.flowVersion.updatedByUser.lastName
           }
-          email={flowVersion.updatedByUser.email}
+          email={props.flowVersion.updatedByUser.email}
         />
       </Show>
-      <div className="grid gap-2">
+      <div class="grid gap-2">
         <FormattedDate
-          date={new Date(flowVersion.created)}
+          date={new Date(props.flowVersion.created)}
           includeTime={true}
           class="text-sm font-medium leading-none select-none cursor-default"
-        ></FormattedDate>
-        <p className="flex gap-1 text-xs text-muted-foreground">
-          {t('Version')} #{flowVersionNumber}
+        />
+        <p class="flex gap-1 text-xs text-muted-foreground">
+          {t('Version')} #{props.flowVersionNumber}
         </p>
       </div>
-      <div className="grow"></div>
-      <div className="flex font-medium gap-2 justify-center items-center">
-        <Show when={selected()}>
+      <div class="grow" />
+      <div class="flex font-medium gap-2 justify-center items-center">
+        <Show when={props.selected}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <div className="size-10 flex justify-center items-center">
-                <EyeIcon class="w-5 h-5 "></EyeIcon>
+              <div class="size-10 flex justify-center items-center">
+                <EyeIcon class="w-5 h-5 " />
               </div>
             </TooltipTrigger>
             <TooltipContent>{t('Viewing')}</TooltipContent>
@@ -92,10 +87,10 @@ const FlowVersionDetailsCard = ({
         </Show>
 
         <FlowVersionStateDot
-          state={flowVersion.state}
-          versionId={flowVersion.id}
-          publishedVersionId={publishedVersionId}
-        ></FlowVersionStateDot>
+          state={props.flowVersion.state}
+          versionId={props.flowVersion.id}
+          publishedVersionId={props.publishedVersionId}
+        />
 
         <DropdownMenu
           onOpenChange={(open) => setDropdownMenuOpen(open)}
@@ -108,23 +103,23 @@ const FlowVersionDetailsCard = ({
           </DropdownMenuTrigger>
           <DropdownMenuContent class="w-40">
             <DropdownMenuItem
-              onClick={() => viewVersion(flowVersion)}
+              onClick={() => viewVersion(props.flowVersion)}
               class="w-full"
             >
               <Eye class="mr-2 h-4 w-4" />
               <span>{t('View')}</span>
             </DropdownMenuItem>
-            <Show when={flowVersion.state !== FlowVersionState.DRAFT()}>
+            <Show when={props.flowVersion.state !== FlowVersionState.DRAFT}>
               <OverwriteDraftDialog
-                versionNumber={flowVersionNumber.toString()}
-                versionId={flowVersion.id}
+                versionNumber={props.flowVersionNumber.toString()}
+                versionId={props.flowVersion.id}
                 onConfirm={() => {
                   setDropdownMenuOpen(false);
                 }}
               >
                 <DropdownMenuItem
                   class="w-full"
-                  onSelect={(e) => {
+                  onSelect={(e: Event) => {
                     e.preventDefault();
                   }}
                   disabled={!userHasPermissionToWriteFlow}
@@ -141,7 +136,6 @@ const FlowVersionDetailsCard = ({
   );
 };
 
-FlowVersionDetailsCard.displayName = 'FlowVersionDetailsCard';
 export { FlowVersionDetailsCard };
 
 type FlowVersionDetailsCardProps = {

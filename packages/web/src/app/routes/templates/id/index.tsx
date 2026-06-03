@@ -9,7 +9,6 @@ import {
   Template,
 } from '@activepieces/shared';
 import { useLocation, useNavigate } from '@solidjs/router';
-import { ReactFlowProvider } from '../../../builder/flow-canvas/solid-flow-adapter';
 import { t } from 'i18next';
 import { ArrowLeft, ArrowRight, Link, ExternalLink } from 'lucide-solid';
 import { createMemo, createSignal, createEffect, For, Show } from 'solid-js';
@@ -27,6 +26,8 @@ import { authenticationSession } from '@/lib/authentication-session';
 import { formatUtils } from '@/lib/format-utils';
 import { FROM_QUERY_PARAM } from '@/lib/navigation-utils';
 
+import { ReactFlowProvider } from '../../../builder/flow-canvas/solid-flow-adapter';
+
 import { FlowCard } from './flow-card';
 import { PieceCard } from './piece-card';
 
@@ -34,13 +35,13 @@ type TemplateDetailsPageProps = {
   template: Template;
 };
 
-const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
+const TemplateDetailsPage = (props: TemplateDetailsPageProps) => {
   const token = authenticationSession.getToken();
   const location = useLocation();
   const navigate = useNavigate();
   const [hasCanvasBeenInitialised, setHasCanvasBeenInitialised] =
     createSignal(false);
-  let canvasContainerRef = null;
+  let canvasContainerRef: HTMLDivElement | undefined;
   const [isDialogOpen, setIsDialogOpen] = createSignal(false);
   const [selectedFlowIndex, setSelectedFlowIndex] = createSignal(0);
   const [renderKey, setRenderKey] = createSignal(0);
@@ -49,11 +50,15 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
   const isNotAuthenticated = isNil(token);
 
   const mockFlow = createMemo<PopulatedFlow | null>(() => {
-    if (!template || !template.flows || template.flows.length === 0) {
+    if (
+      !props.template ||
+      !props.template.flows ||
+      props.template.flows.length === 0
+    ) {
       return null;
     }
 
-    const selectedFlow = template.flows[selectedFlowIndex];
+    const selectedFlow = props.template.flows[selectedFlowIndex()];
     if (!selectedFlow) {
       return null;
     }
@@ -68,19 +73,19 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
       publishedVersionId: null,
       metadata: null,
       operationStatus: FlowOperationStatus.NONE,
-      created: template.created,
-      updated: template.updated,
+      created: props.template.created,
+      updated: props.template.updated,
       version: {
         ...selectedFlow,
         id: apId(),
         flowId: flowId,
-        created: template.created,
-        updated: template.updated,
+        created: props.template.created,
+        updated: props.template.updated,
         state: FlowVersionState.LOCKED,
         updatedBy: null,
         agentIds: [],
         connectionIds: [],
-        notes: selectedFlow.notes ?? [],
+        notes: selectedFlow.notes || [],
       },
     };
   });
@@ -111,18 +116,18 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
   };
 
   const handleUseWithGuide = () => {
-    if (template.blogUrl) {
+    if (props.template.blogUrl) {
       const url =
-        template.blogUrl.startsWith('http://') ||
-        template.blogUrl.startsWith('https://')
-          ? template.blogUrl
-          : `https://${template.blogUrl}`;
+        props.template.blogUrl.startsWith('http://') ||
+        props.template.blogUrl.startsWith('https://')
+          ? props.template.blogUrl
+          : `https://${props.template.blogUrl}`;
       window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
   const handleShare = async () => {
-    const shareUrl = `${window.location.origin}/templates/${template.id}`;
+    const shareUrl = `${window.location.origin}/templates/${props.template.id}`;
     try {
       await navigator.clipboard.writeText(shareUrl);
       toast.success(t('Link copied to clipboard!'));
@@ -132,10 +137,10 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col overflow-hidden absolute inset-0">
-      <Show when={template.type !== TemplateType.SHARED}>
-        <div className="border-b py-4 px-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
+    <div class="h-screen w-full flex flex-col overflow-hidden absolute inset-0">
+      <Show when={props.template.type !== TemplateType.SHARED}>
+        <div class="border-b py-4 px-6 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-2 min-w-0">
             <Button
               variant="ghost"
               size="sm"
@@ -143,26 +148,34 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
               class="flex items-center gap-2"
             >
               <ArrowLeft class="w-4 h-4" />
-              <span className="text-sm font-medium whitespace-nowrap">
+              <span class="text-sm font-medium whitespace-nowrap">
                 {t('All Templates')}
               </span>
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={handleShare}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => void handleShare()}
+          >
             <Link class="w-4 h-4" />
             {t('Share')}
           </Button>
         </div>
       </Show>
-      <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] h-full w-full overflow-hidden">
+      <div class="flex-1 min-h-0 min-w-0 overflow-hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-[2fr_3fr] h-full w-full overflow-hidden">
           <ScrollArea class="h-full w-full">
-            <div className="flex flex-col gap-4 px-6 mt-6 min-w-0">
-              <span className="text-xl font-medium">{template.name}</span>
+            <div class="flex flex-col gap-4 px-6 mt-6 min-w-0">
+              <span class="text-xl font-medium">{props.template.name}</span>
 
-              <Show when={!isNil(template.tags) && template.tags.length > 0}>
-                <div className="flex gap-2 flex-wrap min-w-0">
-                  <For each={template.tags}>
+              <Show
+                when={
+                  !isNil(props.template.tags) && props.template.tags.length > 0
+                }
+              >
+                <div class="flex gap-2 flex-wrap min-w-0">
+                  <For each={props.template.tags}>
                     {(tag, index) => (
                       <TagWithBright
                         index={index}
@@ -177,13 +190,13 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
                 </div>
               </Show>
 
-              <div className="flex flex-col gap-8 min-w-0">
-                <div className="flex flex-row justify-center gap-3 min-w-0">
+              <div class="flex flex-col gap-8 min-w-0">
+                <div class="flex flex-row justify-center gap-3 min-w-0">
                   <Button onClick={handleUseTemplate} size="xl" class="flex-1">
                     {t('Use Template')}
                     <ArrowRight class="w-4 h-4 ml-2" />
                   </Button>
-                  <Show when={template.type !== TemplateType.SHARED}>
+                  <Show when={props.template.type !== TemplateType.SHARED}>
                     <Button
                       variant="outline"
                       onClick={handleUseWithGuide}
@@ -196,36 +209,36 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
                   </Show>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">
+                <div class="flex flex-col gap-2">
+                  <span class="text-sm font-medium">
                     {t('About this template')}
                   </span>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {template.description}
+                  <p class="text-sm text-muted-foreground leading-relaxed">
+                    {props.template.description}
                   </p>
                 </div>
 
-                <Show when={template.flows}>
-                  <div className="flex flex-col gap-2">
-                    <span className="text-sm font-medium">
+                <Show when={props.template.flows}>
+                  <div class="flex flex-col gap-2">
+                    <span class="text-sm font-medium">
                       {t("What's included?")}
                     </span>
 
-                    <div className="grid grid-cols-1 gap-3">
-                      <For each={template.flows}>
+                    <div class="grid grid-cols-1 gap-3">
+                      <For each={props.template.flows}>
                         {(flow, index) => (
                           <FlowCard
                             key={index}
                             flow={flow}
-                            isSelected={selectedFlowIndex === index}
+                            isSelected={selectedFlowIndex() === index()}
                             singleFlow={
                               !(
-                                template &&
-                                template.flows &&
-                                template.flows.length > 1
+                                props.template &&
+                                props.template.flows &&
+                                props.template.flows.length > 1
                               )
                             }
-                            onClick={() => setSelectedFlowIndex(index)}
+                            onClick={() => setSelectedFlowIndex(index())}
                           />
                         )}
                       </For>
@@ -233,12 +246,10 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
                   </div>
                 </Show>
 
-                <div className="flex flex-col gap-2">
-                  <span className="text-sm font-medium">
-                    {t('Used Pieces')}
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    <For each={template.pieces}>
+                <div class="flex flex-col gap-2">
+                  <span class="text-sm font-medium">{t('Used Pieces')}</span>
+                  <div class="flex flex-wrap gap-2">
+                    <For each={props.template.pieces}>
                       {(pieceName: string, index: number) => (
                         <PieceCard key={index} pieceName={pieceName} />
                       )}
@@ -246,44 +257,44 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 text-xs">
+                <div class="flex items-center gap-1 text-xs">
                   <span>{t('By')}</span>
-                  <span className="font-medium">{template.author}</span>
+                  <span class="font-medium">{props.template.author}</span>
                   <span>•</span>
                   <span>
-                    {formatUtils.formatDate(new Date(template.created))}
+                    {formatUtils.formatDate(new Date(props.template.created))}
                   </span>
                 </div>
 
-                <div className="mb-12" />
+                <div class="mb-12" />
               </div>
             </div>
           </ScrollArea>
 
           <div
             ref={(el) => (canvasContainerRef = el)}
-            className="bg-muted/30 h-full w-full relative overflow-hidden border-l"
+            class="bg-muted/30 h-full w-full relative overflow-hidden border-l"
           >
             <Show
-              when={mockFlow && renderKey > 0}
+              when={mockFlow() && renderKey() > 0}
               fallback={
                 <Show
-                  when={mockFlow}
+                  when={mockFlow()}
                   fallback={
-                    <div className="text-muted-foreground text-sm flex items-center justify-center h-full">
+                    <div class="text-muted-foreground text-sm flex items-center justify-center h-full">
                       {t('No flow preview available')}
                     </div>
                   }
                 >
-                  <div className="text-muted-foreground text-sm flex items-center justify-center h-full" />
+                  <div class="text-muted-foreground text-sm flex items-center justify-center h-full" />
                 </Show>
               }
             >
-              <div key={renderKey} className="h-full w-full">
+              <div class="h-full w-full">
                 <ReactFlowProvider>
                   <BuilderStateProvider
-                    flow={mockFlow}
-                    flowVersion={mockFlow.version}
+                    flow={mockFlow()!}
+                    flowVersion={mockFlow()!.version}
                     readonly={true}
                     hideTestWidget={true}
                     run={null}
@@ -293,7 +304,9 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
                     <FlowCanvas
                       setHasCanvasBeenInitialised={setHasCanvasBeenInitialised}
                     />
-                    <Show when={canvasContainerRef && hasCanvasBeenInitialised}>
+                    <Show
+                      when={canvasContainerRef && hasCanvasBeenInitialised()}
+                    >
                       <CanvasControls
                         canvasHeight={canvasContainerRef.clientHeight}
                         canvasWidth={canvasContainerRef.clientWidth}
@@ -310,7 +323,7 @@ const TemplateDetailsPage = ({ template }: TemplateDetailsPageProps) => {
       </div>
       <Show when={!isNotAuthenticated}>
         <UseTemplateDialog
-          template={template}
+          template={props.template}
           open={isDialogOpen}
           onOpenChange={setIsDialogOpen}
         />

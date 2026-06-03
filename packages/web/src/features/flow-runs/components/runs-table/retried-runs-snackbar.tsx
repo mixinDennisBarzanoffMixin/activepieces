@@ -8,25 +8,22 @@ import { authenticationSession } from '@/lib/authentication-session';
 
 export const RUN_IDS_QUERY_PARAM = 'flowRunIds';
 
-export const RetriedRunsSnackbar = ({
-  retriedRunsIds,
-  clearRetriedRuns,
-}: {
+export const RetriedRunsSnackbar = (props: {
   retriedRunsIds: string[];
   clearRetriedRuns: () => void;
 }) => {
   const [, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  if (retriedRunsIds.length === 0) {
+  if (props.retriedRunsIds.length === 0) {
     return null;
   }
   return (
-    <div className="fixed bottom-5 p-4 left-1/2 transform -translate-x-1/2  w-[480px]  animate-slide-in-from-bottom  bg-background shadow-lg border rounded-lg z-9999">
-      <div className="flex items-center justify-between animate-fade">
-        <div className="flex items-center gap-2">
+    <div class="fixed bottom-5 p-4 left-1/2 transform -translate-x-1/2  w-[480px]  animate-slide-in-from-bottom  bg-background shadow-lg border rounded-lg z-9999">
+      <div class="flex items-center justify-between animate-fade">
+        <div class="flex items-center gap-2">
           <Info class="size-5" />
           {t('runsRetriedNote', {
-            runsCount: retriedRunsIds.length,
+            runsCount: props.retriedRunsIds.length,
           })}
         </div>
 
@@ -36,10 +33,10 @@ export const RetriedRunsSnackbar = ({
           onClick={() => {
             navigate(authenticationSession.appendProjectRoutePrefix(`/runs`));
             setSearchParams({
-              [RUN_IDS_QUERY_PARAM]: retriedRunsIds,
-              [LIMIT_QUERY_PARAM]: retriedRunsIds.length.toString(),
+              [RUN_IDS_QUERY_PARAM]: props.retriedRunsIds,
+              [LIMIT_QUERY_PARAM]: props.retriedRunsIds.length.toString(),
             });
-            clearRetriedRuns();
+            props.clearRetriedRuns();
           }}
         >
           {t('View')}

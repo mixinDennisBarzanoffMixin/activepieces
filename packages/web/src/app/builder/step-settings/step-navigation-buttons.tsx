@@ -1,11 +1,7 @@
-import {
-  FlowTriggerType,
-  flowStructureUtil,
-  isNil,
-} from '@activepieces/shared';
+import { flowStructureUtil, isNil } from '@activepieces/shared';
 import { t } from 'i18next';
 import { ChevronLeft, ChevronRight } from 'lucide-solid';
-import { createMemo } from 'solid-js';
+import { Show, createMemo } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { Button } from '@/components/ui/button';
@@ -27,63 +23,71 @@ const StepNavigationButtons = () => {
 
   const currentIndex = createMemo(() => {
     if (isNil(selectedStep)) return -1;
-    return orderedSteps.findIndex((step) => step.name === selectedStep);
+    return orderedSteps().findIndex((step) => step.name === selectedStep);
   });
 
-  if (currentIndex === -1) {
-    return null;
-  }
+  const prevStep = createMemo(() =>
+    currentIndex() > 0 ? orderedSteps()[currentIndex() - 1] : null,
+  );
+  const nextStep = createMemo(() =>
+    currentIndex() < orderedSteps().length - 1
+      ? orderedSteps()[currentIndex() + 1]
+      : null,
+  );
 
-  const prevStep = currentIndex > 0 ? orderedSteps[currentIndex - 1] : null;
-  const nextStep =
-    currentIndex < orderedSteps.length - 1
-      ? orderedSteps[currentIndex + 1]
-      : null;
-
-  const prevDisabled = isNil(prevStep) || isEmptyStep(prevStep.type);
-  const nextDisabled = isNil(nextStep) || isEmptyStep(nextStep.type);
+  const prevDisabled = createMemo(
+    () => isNil(prevStep()) || isEmptyStep(prevStep().type),
+  );
+  const nextDisabled = createMemo(
+    () => isNil(nextStep()) || isEmptyStep(nextStep().type),
+  );
 
   return (
-    <TooltipProvider>
-      <div className="flex items-center">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={prevDisabled}
-              onClick={() =>
-                !prevDisabled && prevStep && selectStepByName(prevStep.name)
-              }
-              aria-label={t('Previous step')}
-            >
-              <ChevronLeft class="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{t('Previous step')}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={nextDisabled}
-              onClick={() =>
-                !nextDisabled && nextStep && selectStepByName(nextStep.name)
-              }
-              aria-label={t('Next step')}
-            >
-              <ChevronRight class="size-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">{t('Next step')}</TooltipContent>
-        </Tooltip>
-      </div>
-    </TooltipProvider>
+    <Show when={currentIndex() !== -1}>
+      <TooltipProvider>
+        <div class="flex items-center">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={prevDisabled()}
+                onClick={() =>
+                  !prevDisabled() &&
+                  prevStep() &&
+                  selectStepByName(prevStep().name)
+                }
+                aria-label={t('Previous step')}
+              >
+                <ChevronLeft class="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t('Previous step')}</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={nextDisabled()}
+                onClick={() =>
+                  !nextDisabled() &&
+                  nextStep() &&
+                  selectStepByName(nextStep().name)
+                }
+                aria-label={t('Next step')}
+              >
+                <ChevronRight class="size-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t('Next step')}</TooltipContent>
+          </Tooltip>
+        </div>
+      </TooltipProvider>
+    </Show>
   );
 };
 
-const isEmptyStep = (type: string) => type === FlowTriggerType.EMPTY;
+const isEmptyStep = (type: string) => type === 'EMPTY';
 
-StepNavigationButtons.displayName = 'StepNavigationButtons';
 export { StepNavigationButtons };

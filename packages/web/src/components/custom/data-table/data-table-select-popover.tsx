@@ -1,4 +1,6 @@
 import { CheckIcon, ListFilterIcon } from 'lucide-solid';
+import { Show, For, type Component } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -26,42 +28,36 @@ type DataTableSelectPopoverProps = {
   options: readonly {
     label: string;
     value: string;
-    icon?: any | string;
+    icon?: Component<{ class?: string }> | string;
   }[];
-  facets?: Map<any, number>;
+  facets?: Map<string, number>;
   handleFilterChange: (filterValue: string[]) => void;
 };
 
-const DataTableSelectPopover = ({
-  title,
-  selectedValues,
-  options,
-  handleFilterChange,
-  facets,
-}: DataTableSelectPopoverProps) => {
+const DataTableSelectPopover = (props: DataTableSelectPopoverProps) => {
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" class="border-dashed">
           <ListFilterIcon class="mr-2 size-4" />
-          {title}
-          <Show when={selectedValues?.size > 0}>
+          {props.title}
+          <Show when={props.selectedValues.size > 0}>
             <>
               <Separator orientation="vertical" class="mx-2 h-4" />
               <Badge
                 variant="accent"
                 class="rounded-sm px-1 font-normal lg:hidden"
               >
-                {selectedValues.size}
+                {props.selectedValues.size}
               </Badge>
-              <div className="hidden space-x-1 lg:flex">
+              <div class="hidden space-x-1 lg:flex">
                 <Show
-                  when={selectedValues.size > 2}
+                  when={props.selectedValues.size > 2}
                   fallback={
                     <>
                       <For
-                        each={options.filter((option) =>
-                          selectedValues.has(option.value),
+                        each={props.options.filter((option) =>
+                          props.selectedValues.has(option.value),
                         )}
                       >
                         {(option) => (
@@ -77,7 +73,7 @@ const DataTableSelectPopover = ({
                   }
                 >
                   <Badge variant="accent" class="rounded-sm px-1 font-normal">
-                    {selectedValues.size} selected
+                    {props.selectedValues.size} selected
                   </Badge>
                 </Show>
               </div>
@@ -90,30 +86,30 @@ const DataTableSelectPopover = ({
         align="start"
       >
         <Command>
-          <CommandInput placeholder={title} />
+          <CommandInput placeholder={props.title} />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
 
             <CommandGroup>
               <ScrollArea viewPortClassName="max-h-[200px]">
-                <For each={options}>
+                <For each={props.options}>
                   {(option, index) => {
-                    const isSelected = selectedValues.has(option.value);
+                    const isSelected = props.selectedValues.has(option.value);
                     return (
                       <CommandItem
                         value={option.value}
                         onSelect={() => {
                           if (isSelected) {
-                            selectedValues.delete(option.value);
+                            props.selectedValues.delete(option.value);
                           } else {
-                            selectedValues.add(option.value);
+                            props.selectedValues.add(option.value);
                           }
-                          const filterValues = Array.from(selectedValues);
-                          handleFilterChange(filterValues);
+                          const filterValues = Array.from(props.selectedValues);
+                          props.handleFilterChange(filterValues);
                         }}
                       >
                         <div
-                          className={cn(
+                          class={cn(
                             'mr-2 flex h-4 w-4 items-center justify-center rounded border border-secondary',
                             isSelected
                               ? 'bg-secondary text-secondary-foreground'
@@ -123,26 +119,36 @@ const DataTableSelectPopover = ({
                           <CheckIcon class={cn('h-4 w-4')} />
                         </div>
                         <Show
-                          when={typeof option.icon === 'string'}
+                          when={
+                            typeof option.icon === 'string'
+                              ? option.icon
+                              : undefined
+                          }
+                          keyed
                           fallback={
                             <Show when={option.icon}>
-                              <option.icon class="mr-2 size-4 text-muted-foreground" />
+                              <Dynamic
+                                component={option.icon}
+                                class="mr-2 size-4 text-muted-foreground"
+                              />
                             </Show>
                           }
                         >
-                          <img
-                            src={option.icon as string}
-                            alt={option.label}
-                            className="mr-2 size-4 object-contain"
-                          />
+                          {(src) => (
+                            <img
+                              src={src}
+                              alt={option.label}
+                              class="mr-2 size-4 object-contain"
+                            />
+                          )}
                         </Show>
                         <div>
                           <span>{option.label}</span>
-                          <span className="hidden">{index()}</span>
+                          <span class="hidden">{index()}</span>
                         </div>
-                        <Show when={facets?.get(option.value)}>
-                          <span className="ml-auto flex size-4 items-center justify-center font-mono text-xs">
-                            {facets.get(option.value)}
+                        <Show when={props.facets?.get(option.value)}>
+                          <span class="ml-auto flex size-4 items-center justify-center font-mono text-xs">
+                            {props.facets.get(option.value)}
                           </span>
                         </Show>
                       </CommandItem>
@@ -151,12 +157,12 @@ const DataTableSelectPopover = ({
                 </For>
               </ScrollArea>
             </CommandGroup>
-            <Show when={selectedValues.size > 0}>
+            <Show when={props.selectedValues.size > 0}>
               <>
                 <CommandSeparator />
                 <CommandGroup>
                   <CommandItem
-                    onSelect={() => handleFilterChange([])}
+                    onSelect={() => props.handleFilterChange([])}
                     class="justify-center text-center"
                   >
                     Clear filters

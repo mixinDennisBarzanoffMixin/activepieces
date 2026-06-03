@@ -1,6 +1,7 @@
 import { FolderDto, UncategorizedFolderId } from '@activepieces/shared';
 import { t } from 'i18next';
 import { FolderIcon } from 'lucide-solid';
+import { For } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -30,17 +31,9 @@ type MoveToFolderDialogProps = {
   isMoving: boolean;
 };
 
-export const MoveToFolderDialog = ({
-  open,
-  onOpenChange,
-  folders,
-  selectedFolderId,
-  onFolderChange,
-  onConfirm,
-  isMoving,
-}: MoveToFolderDialogProps) => {
+export const MoveToFolderDialog = (props: MoveToFolderDialogProps) => {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Move to Folder')}</DialogTitle>
@@ -48,34 +41,41 @@ export const MoveToFolderDialog = ({
             {t('Choose a destination folder for the selected items.')}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-2">
+        <div class="grid gap-2">
           <Label>{t('Folder')}</Label>
-          <Select value={selectedFolderId} onValueChange={onFolderChange}>
+          <Select
+            value={props.selectedFolderId}
+            onValueChange={props.onFolderChange}
+          >
             <SelectTrigger class="w-full">
-              <SelectValue placeholder={t('Select a folder')} />
+              <SelectValue placeholder={t('Select a folder').toString()} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={UncategorizedFolderId}>
                 <FolderIcon class="mr-2 h-4 w-4" />
                 {t('Uncategorized (No Folder)')}
               </SelectItem>
-              {folders?.map((folder) => (
-                <SelectItem key={folder.id} value={folder.id}>
-                  <FolderIcon class="mr-2 h-4 w-4" />
-                  {folder.displayName}
-                </SelectItem>
-              ))}
+              {
+                <For each={props.folders}>
+                  {(folder) => (
+                    <SelectItem key={folder.id} value={folder.id}>
+                      <FolderIcon class="mr-2 h-4 w-4" />
+                      {folder.displayName}
+                    </SelectItem>
+                  )}
+                </For>
+              }
             </SelectContent>
           </Select>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => props.onOpenChange(false)}>
             {t('Cancel')}
           </Button>
           <Button
-            onClick={onConfirm}
-            disabled={!selectedFolderId || isMoving}
-            loading={isMoving}
+            onClick={props.onConfirm}
+            disabled={!props.selectedFolderId || props.isMoving}
+            loading={props.isMoving}
           >
             {t('Move')}
           </Button>

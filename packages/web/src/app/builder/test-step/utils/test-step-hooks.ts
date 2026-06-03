@@ -11,8 +11,8 @@ import {
 import { createMutation } from '@tanstack/solid-query';
 import deepEqual from 'deep-equal';
 import { t } from 'i18next';
-import { useFormContext } from '@/app/builder/builder-form';
 
+import { useFormContext } from '@/app/builder/builder-form';
 import { internalErrorToast } from '@/components/ui/sonner';
 import { flowRunsApi } from '@/features/flow-runs';
 import { triggerEventsApi } from '@/features/flows';
@@ -81,12 +81,12 @@ export const testStepHooks = {
           }
           return [];
         },
-        onSuccess: async (results) => {
+        onSuccess: (results) => {
           if (results.length > 0) {
             onSuccess();
           }
         },
-        onError: async (error) => {
+        onError: (error) => {
           console.error(error);
           setErrorMessage?.(
             testStepUtils.formatErrorMessage(
@@ -147,7 +147,7 @@ export const testStepHooks = {
         }
         return data;
       },
-      onSuccess: async (data) => {
+      onSuccess: (data) => {
         if (data.length > 0) {
           onSuccess();
         }

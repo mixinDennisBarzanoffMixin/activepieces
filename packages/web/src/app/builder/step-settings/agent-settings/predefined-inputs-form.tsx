@@ -1,4 +1,7 @@
-import { PieceProperty, PropertyType } from '@activepieces/pieces-framework';
+import {
+  PropertyType,
+  PieceMetadataModelSummary,
+} from '@activepieces/pieces-framework';
 import {
   FieldControlMode,
   isNil,
@@ -8,7 +11,11 @@ import { t } from 'i18next';
 import { For, Show, createEffect, createMemo } from 'solid-js';
 import { z } from 'zod';
 
-import { createForm, zodResolver } from '@/app/builder/builder-form';
+import {
+  BuilderField,
+  createForm,
+  zodResolver,
+} from '@/app/builder/builder-form';
 import { ApMarkdown } from '@/components/custom/markdown';
 import { Form, FormField } from '@/components/ui/form';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -47,23 +54,25 @@ export const PredefinedInputsForm = () => {
     selectedAction,
     selectedPiece: piece,
   } = usePieceToolsDialogStore();
-  const { pieces } = piecesHooks.usePieces({});
-  const selectedPiece = pieces?.find((p) => p.name === piece?.pieceName);
-  const requireAuth = selectedAction?.requireAuth ?? true;
-  const formSchema = createMemo(() =>
-    createPredefinedInputsFormSchema(requireAuth),
+  const usePieces = piecesHooks.usePieces as (props: Record<string, never>) => {
+    pieces: PieceMetadataModelSummary[] | undefined;
+  };
+  const { pieces } = usePieces({});
+  const selectedPiece = createMemo(() =>
+    pieces?.find((p) => p.name === piece?.pieceName),
   );
+  const requireAuth = selectedAction?.requireAuth ?? true;
   const properties = createMemo(() =>
     selectedAction
       ? Object.fromEntries(
           Object.entries(selectedAction.props).map(([name, prop]) => [
             name,
-            prop as PieceProperty,
+            prop,
           ]),
         )
       : {},
   );
-  const defaultValues = createMemo<PredefinedInputsFormValues>(() => {
+  const getDefaultValues = () => {
     const values: PredefinedInputsFormValues = {};
     if (requireAuth && predefinedInputs?.auth) {
       values.auth = predefinedInputs.auth;
@@ -79,15 +88,23 @@ export const PredefinedInputsForm = () => {
       });
     }
     return values;
-  });
+  };
   const form = createForm<PredefinedInputsFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues,
+    resolver: zodResolver(createPredefinedInputsFormSchema(requireAuth)),
+    defaultValues: getDefaultValues(),
     mode: 'onChange',
     reValidateMode: 'onChange',
   });
+  const getValue = form.getValues as (name: string) => unknown;
   createEffect(() => {
-    const subscription = form.watch((values, { name }) => {
+    const watch = form.watch as (
+      callback: (
+        values: PredefinedInputsFormValues,
+        info: { name?: unknown },
+      ) => void,
+    ) => { unsubscribe: () => void };
+    const subscription = watch((values, info) => {
+      const name = typeof info.name === 'string' ? info.name : undefined;
       if (!name || name === 'auth') return;
 
       const currentPredefined =
@@ -96,7 +113,7 @@ export const PredefinedInputsForm = () => {
       const currentFields = currentPredefined?.fields ?? {};
       const newFields = { ...currentFields };
 
-      if (newFields[name]?.mode === FieldControlMode.CHOOSE_YOURSELF) {
+      if (newFields[name].mode === FieldControlMode.CHOOSE_YOURSELF) {
         newFields[name] = {
           ...newFields[name],
           value: values[name],
@@ -120,7 +137,7 @@ export const PredefinedInputsForm = () => {
     form.setValue('auth', value ?? '');
   };
   const getModeForProperty = (propertyName: string): FieldControlMode =>
-    predefinedInputs?.fields?.[propertyName]?.mode ??
+    predefinedInputs?.fields[propertyName]?.mode ??
     FieldControlMode.AGENT_DECIDE;
   const handleModeChange = (
     propertyName: string,
@@ -132,7 +149,7 @@ export const PredefinedInputsForm = () => {
       mode: newMode,
       value:
         newMode === FieldControlMode.CHOOSE_YOURSELF
-          ? prevField?.value ?? form.getValues(propertyName)
+          ? prevField.value ?? form.getValues(propertyName)
           : undefined,
     };
     setPredefinedInputs({
@@ -148,41 +165,39 @@ export const PredefinedInputsForm = () => {
       form.setValue(propertyName, undefined, { shouldDirty: false });
     }
   };
-  const pieceHasAuth = requireAuth && selectedPiece?.auth;
+  const pieceHasAuth = createMemo(() => requireAuth && selectedPiece()?.auth);
   return (
     <Form {...form}>
       <ScrollArea class="h-full">
-        <div className="flex items-start border-b gap-3 p-4">
-          <div className="flex size-11 shrink-0 items-center justify-center rounded-sm border bg-background">
+        <div class="flex items-start border-b gap-3 p-4">
+          <div class="flex size-11 shrink-0 items-center justify-center rounded-sm border bg-background">
             <img
-              className="size-8 object-contain"
-              src={selectedPiece?.logoUrl}
-              alt={selectedPiece?.displayName}
+              class="size-8 object-contain"
+              src={selectedPiece()?.logoUrl}
+              alt={selectedPiece()?.displayName}
             />
           </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium">
-              {selectedAction?.displayName}
-            </div>
-            <Show when={selectedAction?.description()}>
-              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+          <div class="min-w-0 flex-1">
+            <div class="text-sm font-medium">{selectedAction?.displayName}</div>
+            <Show when={selectedAction?.description}>
+              <p class="mt-0.5 text-xs text-muted-foreground line-clamp-2">
                 {selectedAction.description}
               </p>
             </Show>
           </div>
         </div>
-        <div className="space-y-6 p-4">
-          <Show when={pieceHasAuth && !isNil(selectedPiece)()}>
+        <div class="space-y-6 p-4">
+          <Show when={pieceHasAuth() && !isNil(selectedPiece())}>
             <ConnectionDropdown
-              piece={selectedPiece}
-              value={form.watch('auth') as string | null}
+              piece={selectedPiece()}
+              value={getStringOrNull(getValue('auth'))}
               onChange={handleAuthChange}
               placeholder={t('Connect your account')}
             />
           </Show>
-          <Show when={Object.keys(properties).length > 0()}>
-            <div className="space-y-5">
-              <For each={Object.entries(properties)}>
+          <Show when={Object.keys(properties()).length > 0}>
+            <div class="space-y-5">
+              <For each={Object.entries(properties())}>
                 {([propertyName, property]) => {
                   const isMarkdown = property.type === PropertyType.MARKDOWN;
 
@@ -200,18 +215,18 @@ export const PredefinedInputsForm = () => {
                   const mode = getModeForProperty(propertyName);
                   const showInput = mode === FieldControlMode.CHOOSE_YOURSELF;
                   return (
-                    <div key={propertyName} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-medium">
+                    <div class="space-y-2">
+                      <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-medium">
                           {property.displayName}{' '}
-                          <Show when={property.required()}>{'*'}</Show>
+                          <Show when={property.required}>{'*'}</Show>
                         </h3>
                         <Select
                           value={mode}
                           onValueChange={(v) =>
                             handleModeChange(
                               propertyName,
-                              v as FieldControlMode,
+                              getFieldControlMode(v),
                             )
                           }
                         >
@@ -227,7 +242,7 @@ export const PredefinedInputsForm = () => {
                             >
                               {t('Set value myself')}
                             </SelectItem>
-                            <Show when={!property.required()}>
+                            <Show when={!property.required}>
                               <SelectItem value={FieldControlMode.LEAVE_EMPTY}>
                                 {t('Leave empty')}
                               </SelectItem>
@@ -235,11 +250,11 @@ export const PredefinedInputsForm = () => {
                           </SelectContent>
                         </Select>
                       </div>
-                      <Show when={showInput()}>
+                      <Show when={showInput}>
                         <FormField
                           name={propertyName}
                           control={form.control}
-                          render={({ field }) =>
+                          render={({ field }: { field: BuilderField }) =>
                             selectGenericFormComponentForProperty({
                               field,
                               hideLabel: true,
@@ -253,8 +268,8 @@ export const PredefinedInputsForm = () => {
                               dynamicInputModeToggled: false,
                               form,
                               dynamicPropsInfo: {
-                                pieceName: selectedPiece?.name ?? '',
-                                pieceVersion: selectedPiece?.version ?? '',
+                                pieceName: selectedPiece()?.name ?? '',
+                                pieceVersion: selectedPiece()?.version ?? '',
                                 actionOrTriggerName: selectedAction?.name ?? '',
                                 placedInside: 'predefinedAgentInputs',
                                 updateFormSchema: null,
@@ -276,3 +291,13 @@ export const PredefinedInputsForm = () => {
     </Form>
   );
 };
+
+function getFieldControlMode(value: unknown) {
+  return Object.values(FieldControlMode).includes(value as FieldControlMode)
+    ? (value as FieldControlMode)
+    : FieldControlMode.AGENT_DECIDE;
+}
+
+function getStringOrNull(value: unknown) {
+  return typeof value === 'string' ? value : null;
+}

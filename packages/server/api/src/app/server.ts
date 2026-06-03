@@ -165,7 +165,8 @@ async function setupBaseApp(): Promise<FastifyInstance> {
     await app.register(formBody, { parser: (str) => qs.parse(str) })
     app.setErrorHandler(errorHandler)
     await app.register(cors, {
-        origin: '*',
+        origin: (origin, callback) => callback(null, origin ?? '*'),
+        credentials: true,
         exposedHeaders: ['*'],
         methods: ['*'],
     })
@@ -220,5 +221,4 @@ function convertDatesToStrings(data: unknown): unknown {
     }
     return data
 }
-
 

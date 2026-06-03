@@ -105,13 +105,14 @@ const createStepGraph: (
     selectable: false,
   };
 
+  const next = getNextAction(step);
   const straightLineEdge: ApStraightLineEdge = {
-    id: `${step.name}-${step.nextAction?.name ?? 'graph-end'}-edge`,
+    id: `${step.name}-${next?.name ?? 'graph-end'}-edge`,
     source: step.name,
     target: `${step.name}-subgraph-end`,
     type: ApEdgeType.STRAIGHT_LINE as const,
     data: {
-      drawArrowHead: !isNil(step.nextAction),
+      drawArrowHead: !isNil(next),
       parentStepName: step.name,
     },
   };
@@ -148,7 +149,7 @@ const buildFlowGraph: (
       : null;
 
   const graphWithChild = childGraph ? mergeGraph(graph, childGraph) : graph;
-  const nextStepGraph = buildFlowGraph(step.nextAction);
+  const nextStepGraph = buildFlowGraph(getNextAction(step));
   return mergeGraph(
     graphWithChild,
     offsetGraph(nextStepGraph, {
@@ -183,6 +184,24 @@ function mergeGraph(graph1: ApGraph, graph2: ApGraph): ApGraph {
     nodes: [...graph1.nodes, ...graph2.nodes],
     edges: [...graph1.edges, ...graph2.edges],
   };
+}
+
+function getNextAction(step: FlowAction | FlowTrigger): FlowAction | undefined {
+  if (!('nextAction' in step)) {
+    return undefined;
+  }
+  const next: unknown = step.nextAction;
+  return isFlowAction(next) ? next : undefined;
+}
+
+function isFlowAction(value: unknown): value is FlowAction {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    typeof value.name === 'string' &&
+    'type' in value
+  );
 }
 
 function createFocusStepInGraphParams(stepName: string) {
@@ -540,8 +559,9 @@ export const flowCanvasUtils = {
     const stepsGraph = buildFlowGraph(version.trigger);
     const notesGraph = buildNotesGraph(notes);
     const graphEndWidget = stepsGraph.nodes.findLast(
-      (node) => node.type === ApNodeType.GRAPH_END_WIDGET,
-    ) as ApGraphEndNode;
+      (node): node is ApGraphEndNode =>
+        node.type === ApNodeType.GRAPH_END_WIDGET,
+    );
     if (graphEndWidget) {
       graphEndWidget.data.showWidget = true;
     } else {

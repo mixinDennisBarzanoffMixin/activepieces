@@ -21,30 +21,26 @@ import {
 import { VirtualizedScrollArea } from '@/components/ui/virtualized-scroll-area';
 import { projectRoleQueries } from '@/features/platform-admin';
 
-export const ProjectRoleUsersSheet = ({
-  projectRole,
-  isOpen,
-  onOpenChange,
-}: ProjectRoleUsersSheetProps) => {
+export const ProjectRoleUsersSheet = (props: ProjectRoleUsersSheetProps) => {
   const { data, isLoading } = projectRoleQueries.useProjectRoleMembers(
-    projectRole?.id,
-    isOpen && projectRole !== null,
+    props.projectRole?.id,
+    props.isOpen && props.projectRole !== null,
   );
 
   const users = data?.data ?? [];
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+    <Sheet open={props.isOpen} onOpenChange={props.onOpenChange}>
       <SheetContent class="w-[600px] sm:max-w-[600px] flex flex-col p-0">
         <SheetHeader class="px-6 py-4 border-b shrink-0">
           <SheetTitle class="text-base">
-            {projectRole?.name} {t('Role')} {t('Users')}
+            {props.projectRole?.name} {t('Role')} {t('Users')}
           </SheetTitle>
           <SheetDescription>
             {t('View the users assigned to this role')}
           </SheetDescription>
         </SheetHeader>
-        <div className="flex-1 overflow-hidden">
+        <div class="flex-1 overflow-hidden">
           <Show
             when={isLoading}
             fallback={
@@ -59,17 +55,17 @@ export const ProjectRoleUsersSheet = ({
                   />
                 }
               >
-                <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+                <div class="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
                   <Users class="size-14" />
-                  <p className="text-sm font-medium">{t('No users found')}</p>
-                  <p className="text-xs">
+                  <p class="text-sm font-medium">{t('No users found')}</p>
+                  <p class="text-xs">
                     {t('Start by assigning users to this role')}
                   </p>
                 </div>
               </Show>
             }
           >
-            <div className="flex items-center justify-center h-full">
+            <div class="flex items-center justify-center h-full">
               <Loader2 class="size-8 animate-spin text-muted-foreground" />
             </div>
           </Show>

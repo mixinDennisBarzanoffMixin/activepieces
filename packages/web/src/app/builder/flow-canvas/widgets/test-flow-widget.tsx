@@ -3,8 +3,10 @@ import {
   FlowTriggerType,
   UpdateRunProgressRequest,
   assertNotNullOrUndefined,
+  FlowRun,
 } from '@activepieces/shared';
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { EditFlowOrViewDraftButton } from '@/app/builder/builder-header/flow-status/view-draft-or-edit-flow-button';
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
@@ -33,21 +35,22 @@ const TestFlowWidget = () => {
     state.setRun,
     state.flow.publishedVersionId,
   ]);
-  let runRef: any | undefined;
-  runRef = run;
+  const runRef: FlowRun | null = run;
 
-  const triggerHasSampleData =
-    flowVersion.trigger.type === FlowTriggerType.PIECE &&
-    !isNil(flowVersion.trigger.settings.sampleData?.lastTestDate);
-
-  const isChatTrigger = pieceSelectorUtils.isChatTrigger(
-    flowVersion.trigger.settings.pieceName,
-    flowVersion.trigger.settings.triggerName,
-  );
-  const isManualTrigger = pieceSelectorUtils.isManualTrigger({
-    pieceName: flowVersion.trigger.settings.pieceName,
-    triggerName: flowVersion.trigger.settings.triggerName,
-  });
+  const isPieceTrigger = flowVersion.trigger.type === FlowTriggerType.PIECE;
+  const value: unknown = flowVersion.trigger.settings;
+  const settings =
+    isPieceTrigger && isPieceTriggerSettings(value) ? value : undefined;
+  const triggerHasSampleData = !isNil(settings?.sampleData?.lastTestDate);
+  const isChatTrigger =
+    !isNil(settings) &&
+    pieceSelectorUtils.isChatTrigger(settings.pieceName, settings.triggerName);
+  const isManualTrigger =
+    !isNil(settings) &&
+    pieceSelectorUtils.isManualTrigger({
+      pieceName: settings.pieceName,
+      triggerName: settings.triggerName,
+    });
 
   const { mutate: runFlow, isPending: isTestingFlow } =
     flowHooks.useTestFlowOrStartManualTrigger({
@@ -60,9 +63,9 @@ const TestFlowWidget = () => {
         if (!isNil(response.step)) {
           const updatedSteps = flowRunUtils.updateRunSteps(
             steps,
-            response.step?.name,
-            response.step?.path,
-            response.step?.output,
+            response.step.name,
+            response.step.path,
+            response.step.output,
           );
           setRun(
             { ...response.flowRun, startTime, steps: updatedSteps },
@@ -73,50 +76,67 @@ const TestFlowWidget = () => {
       },
     });
 
-  if (!flowVersion.valid) {
-    return null;
-  }
-
-  if (hideTestWidget) {
-    return null;
-  }
-  if (
-    isManualTrigger &&
-    (publishedVersionId !== flowVersion.id || isNil(publishedVersionId))
-  ) {
-    return null;
-  }
-
-  if (readonly) {
-    return (
-      <EditFlowOrViewDraftButton onCanvas={true}></EditFlowOrViewDraftButton>
-    );
-  }
-
-  if (isChatTrigger) {
-    return (
-      <AboveTriggerButton
-        onClick={() => {
-          setChatDrawerOpenSource(ChatDrawerSource.TEST_FLOW);
-        }}
-        text={t('Open Chat')}
-        loading={isTestingFlow}
-      />
-    );
-  }
-
   return (
-    <AboveTriggerButton
-      onClick={() => {
-        runFlow();
-      }}
-      text={isManualTrigger ? t('Run Flow') : t('Test Flow')}
-      disable={!triggerHasSampleData && !isManualTrigger}
-      loading={isTestingFlow}
-    />
+    <Show
+      when={
+        flowVersion.valid &&
+        !hideTestWidget &&
+        (!isManualTrigger ||
+          (publishedVersionId === flowVersion.id && !isNil(publishedVersionId)))
+      }
+    >
+      <Show
+        when={!readonly}
+        fallback={<EditFlowOrViewDraftButton onCanvas={true} />}
+      >
+        <Show
+          when={!isChatTrigger}
+          fallback={
+            <AboveTriggerButton
+              onClick={() => {
+                setChatDrawerOpenSource(ChatDrawerSource.TEST_FLOW);
+              }}
+              text={t('Open Chat')}
+              loading={isTestingFlow}
+            />
+          }
+        >
+          <AboveTriggerButton
+            onClick={() => {
+              runFlow();
+            }}
+            text={isManualTrigger ? t('Run Flow') : t('Test Flow')}
+            disable={!triggerHasSampleData && !isManualTrigger}
+            loading={isTestingFlow}
+          />
+        </Show>
+      </Show>
+    </Show>
   );
 };
 
-TestFlowWidget.displayName = 'TestFlowWidget';
+function isPieceTriggerSettings(
+  settings: unknown,
+): settings is PieceTriggerSettings {
+  if (!settings || typeof settings !== 'object') {
+    return false;
+  }
+  if (!('pieceName' in settings) || !('triggerName' in settings)) {
+    return false;
+  }
+  if (
+    typeof settings.pieceName !== 'string' ||
+    typeof settings.triggerName !== 'string'
+  ) {
+    return false;
+  }
+  return true;
+}
 
 export { TestFlowWidget };
+
+type PieceTriggerSettings = {
+  pieceName: string;
+  triggerName: string;
+  sampleData?: { lastTestDate?: unknown };
+};

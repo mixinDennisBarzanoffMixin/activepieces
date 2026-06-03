@@ -19,7 +19,7 @@ import { passwordValidation } from '@/features/authentication/utils/password-val
 import { authMutations } from '../hooks/auth-hooks';
 
 const ChangePasswordForm = () => {
-  const queryParams = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(window.location.search);
   const [serverError, setServerError] = createSignal('');
   const [isPasswordFocused, setPasswordFocused] = createSignal(false);
   const [submitted, setSubmitted] = createSignal(false);
@@ -53,8 +53,8 @@ const ChangePasswordForm = () => {
     }
 
     mutate({
-      otp: queryParams.get('otpcode') || '',
-      identityId: queryParams.get('identityId') || '',
+      otp: params.get('otpcode') || '',
+      identityId: params.get('identityId') || '',
       newPassword: password(),
     } satisfies ResetPasswordRequestBody);
   };
@@ -66,44 +66,35 @@ const ChangePasswordForm = () => {
         <CardDescription>{t('Enter your new password')}</CardDescription>
       </CardHeader>
       <CardContent>
-          <form className="grid gap-2" onSubmit={onSubmit}>
-            <div
-              class="grid space-y-2"
-              onFocus={() => setPasswordFocused(true)}
-            >
-              <Label for="newPassword">{t('Password')}</Label>
-              <Input
-                required
-                id="newPassword"
-                type="password"
-                value={password()}
-                placeholder={'********'}
-                class="rounded-sm"
-                onBlur={() => setPasswordFocused(false)}
-                onInput={(e) => setPassword(e.currentTarget.value)}
-              />
-              <Show when={isPasswordFocused() || submitted()}>
-                <div class="border-2 bg-background p-2 rounded-md flex flex-col">
-                  <PasswordRequirementsList
-                    password={password()}
-                    isSubmitted={submitted()}
-                  />
-                </div>
-              </Show>
-            </div>
-            <Show when={serverError}>
-              <p class="text-sm font-medium text-destructive">
-                {serverError()}
-              </p>
+        <form class="grid gap-2" onSubmit={onSubmit}>
+          <div class="grid space-y-2" onFocus={() => setPasswordFocused(true)}>
+            <Label for="newPassword">{t('Password')}</Label>
+            <Input
+              required
+              id="newPassword"
+              type="password"
+              value={password()}
+              placeholder={'********'}
+              class="rounded-sm"
+              onBlur={() => setPasswordFocused(false)}
+              onInput={(e) => setPassword(e.currentTarget.value)}
+            />
+            <Show when={isPasswordFocused() || submitted()}>
+              <div class="border-2 bg-background p-2 rounded-md flex flex-col">
+                <PasswordRequirementsList
+                  password={password()}
+                  isSubmitted={submitted()}
+                />
+              </div>
             </Show>
-            <Button
-              type="submit"
-              class="w-full mt-2"
-              loading={isPending}
-            >
-              {t('Confirm')}
-            </Button>
-          </form>
+          </div>
+          <Show when={serverError}>
+            <p class="text-sm font-medium text-destructive">{serverError()}</p>
+          </Show>
+          <Button type="submit" class="w-full mt-2" loading={isPending}>
+            {t('Confirm')}
+          </Button>
+        </form>
       </CardContent>
     </Card>
   );

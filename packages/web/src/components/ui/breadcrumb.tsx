@@ -1,101 +1,90 @@
 import { ChevronRight, MoreHorizontal } from 'lucide-solid';
+import { splitProps, type JSX } from 'solid-js';
 
-import { Slot } from '@/components/ui/slot';
 import { cn } from '@/lib/utils';
 
-function Breadcrumb({ ...props }: JSX.IntrinsicElements['nav']) {
-  return <nav aria-label="breadcrumb" data-slot="breadcrumb" {...props} />;
+function Breadcrumb(_props: JSX.IntrinsicElements['nav']) {
+  return <nav aria-label="breadcrumb" data-slot="breadcrumb" {..._props} />;
 }
 
-function BreadcrumbList({ className, ...props }: JSX.IntrinsicElements['ol']) {
+function BreadcrumbList(_props: ClassName<JSX.IntrinsicElements['ol']>) {
+  const [local, rest] = splitProps(_props, ['className']);
   return (
     <ol
       data-slot="breadcrumb-list"
-      className={cn(
+      class={cn(
         'flex flex-wrap items-center gap-1.5 text-sm break-words text-muted-foreground sm:gap-2.5',
-        className,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function BreadcrumbItem({ className, ...props }: JSX.IntrinsicElements['li']) {
+function BreadcrumbItem(_props: ClassName<JSX.IntrinsicElements['li']>) {
+  const [local, rest] = splitProps(_props, ['className']);
   return (
     <li
       data-slot="breadcrumb-item"
-      className={cn('inline-flex items-center gap-1.5', className)}
-      {...props}
+      class={cn('inline-flex items-center gap-1.5', local.className)}
+      {...rest}
     />
   );
 }
 
-function BreadcrumbLink({
-  asChild,
-  className,
-  ...props
-}: JSX.IntrinsicElements['a'] & {
-  asChild?: boolean;
-}) {
-  const Comp = asChild ? Slot.Root : 'a';
+function BreadcrumbLink(_props: BreadcrumbLinkProps) {
+  const [local, rest] = splitProps(_props, ['className']);
 
   return (
-    <Comp
+    <a
       data-slot="breadcrumb-link"
-      class={cn('transition-colors hover:text-foreground', className)}
-      {...props}
+      class={cn('transition-colors hover:text-foreground', local.className)}
+      {...rest}
     />
   );
 }
 
-function BreadcrumbPage({
-  className,
-  ...props
-}: JSX.IntrinsicElements['span']) {
+function BreadcrumbPage(_props: ClassName<JSX.IntrinsicElements['span']>) {
+  const [local, rest] = splitProps(_props, ['className']);
   return (
     <span
       data-slot="breadcrumb-page"
       role="link"
       aria-disabled="true"
       aria-current="page"
-      className={cn('font-normal text-foreground', className)}
-      {...props}
+      class={cn('font-normal text-foreground', local.className)}
+      {...rest}
     />
   );
 }
 
-function BreadcrumbSeparator({
-  children,
-  className,
-  ...props
-}: JSX.IntrinsicElements['li']) {
+function BreadcrumbSeparator(_props: ClassName<JSX.IntrinsicElements['li']>) {
+  const [local, rest] = splitProps(_props, ['children', 'className']);
   return (
     <li
       data-slot="breadcrumb-separator"
       role="presentation"
       aria-hidden="true"
-      className={cn('[&>svg]:size-3.5', className)}
-      {...props}
+      class={cn('[&>svg]:size-3.5', local.className)}
+      {...rest}
     >
-      {children ?? <ChevronRight />}
+      {local.children ?? <ChevronRight />}
     </li>
   );
 }
 
-function BreadcrumbEllipsis({
-  className,
-  ...props
-}: JSX.IntrinsicElements['span']) {
+function BreadcrumbEllipsis(_props: ClassName<JSX.IntrinsicElements['span']>) {
+  const [local, rest] = splitProps(_props, ['className']);
   return (
     <span
       data-slot="breadcrumb-ellipsis"
       role="presentation"
       aria-hidden="true"
-      className={cn('flex size-9 items-center justify-center', className)}
-      {...props}
+      class={cn('flex size-9 items-center justify-center', local.className)}
+      {...rest}
     >
       <MoreHorizontal class="size-4" />
-      <span className="sr-only">More</span>
+      <span class="sr-only">More</span>
     </span>
   );
 }
@@ -108,4 +97,12 @@ export {
   BreadcrumbPage,
   BreadcrumbSeparator,
   BreadcrumbEllipsis,
+};
+
+type ClassName<T> = Omit<T, 'className'> & {
+  className?: string;
+};
+
+type BreadcrumbLinkProps = ClassName<JSX.IntrinsicElements['a']> & {
+  asChild?: boolean;
 };

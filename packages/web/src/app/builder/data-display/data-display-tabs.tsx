@@ -1,6 +1,6 @@
 import { t } from 'i18next';
 import { Copy, Download } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { Show, mergeProps } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { JsonViewer } from '@/components/custom/json-viewer';
@@ -21,48 +21,44 @@ type DataDisplayTabsProps = {
   downloadFileName?: string;
 };
 
-const DataDisplayTabs = ({
-  data,
-  title,
-  className,
-  copyableData,
-  downloadFileName = 'data',
-}: DataDisplayTabsProps) => {
-  const canActOnData = copyableData !== undefined && copyableData !== null;
+const DataDisplayTabs = (_props: DataDisplayTabsProps) => {
+  const props = mergeProps({ downloadFileName: 'data' }, _props);
+  const canActOnData =
+    props.copyableData !== undefined && props.copyableData !== null;
 
   const handleCopy = () => {
     if (!canActOnData) return;
-    navigator.clipboard.writeText(
-      typeof copyableData === 'string'
-        ? copyableData
-        : JSON.stringify(copyableData, null, 2),
+    void navigator.clipboard.writeText(
+      typeof props.copyableData === 'string'
+        ? props.copyableData
+        : JSON.stringify(props.copyableData, null, 2),
     );
     toast.success(t('Copied to clipboard'), { duration: 1000 });
   };
 
   const handleDownload = () => {
     if (!canActOnData) return;
-    const isPlainString = typeof copyableData === 'string';
+    const isPlainString = typeof props.copyableData === 'string';
     const text = isPlainString
-      ? copyableData
-      : JSON.stringify(copyableData, null, 2);
+      ? props.copyableData
+      : JSON.stringify(props.copyableData, null, 2);
     const mimeType = isPlainString ? 'text/plain' : 'application/json';
     const extension = isPlainString ? 'txt' : 'json';
     const blob = new Blob([text], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${downloadFileName}.${extension}`;
+    link.download = `${props.downloadFileName}.${extension}`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
   return (
-    <div className={cn('group flex flex-col gap-2', className)}>
-      <Show when={canActOnData()}>
+    <div class={cn('group flex flex-col gap-2', props.className)}>
+      <Show when={canActOnData}>
         <TooltipProvider>
-          <div className="sticky top-0 z-10 flex justify-end pointer-events-none">
-            <div className="flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md border border-border shadow-sm pointer-events-auto opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+          <div class="sticky top-0 z-10 flex justify-end pointer-events-none">
+            <div class="flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md border border-border shadow-sm pointer-events-auto opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -100,8 +96,8 @@ const DataDisplayTabs = ({
         </TooltipProvider>
       </Show>
       <JsonViewer
-        json={data}
-        title={title}
+        json={props.data}
+        title={props.title}
         hideHeader
         hideDownload
         class="border-0 rounded-none"
@@ -110,5 +106,4 @@ const DataDisplayTabs = ({
   );
 };
 
-DataDisplayTabs.displayName = 'DataDisplayTabs';
 export { DataDisplayTabs };

@@ -12,13 +12,14 @@ import { flowRunUtils } from '@/features/flow-runs';
 import { useBuilderStateContext } from '../../../builder-hooks';
 import { flowCanvasUtils } from '../../utils/flow-canvas-utils';
 
-const ApStepNodeSkippedStatus = ({ stepName }: { stepName: string }) => {
+const ApStepNodeSkippedStatus = (props: { stepName: string }) => {
   const [run, stepType, isInDraft, isSkipped] = useBuilderStateContext(
     (state) => [
       state.run,
-      flowStructureUtil.getStep(stepName, state.flowVersion.trigger)?.type,
+      flowStructureUtil.getStep(props.stepName, state.flowVersion.trigger)
+        ?.type,
       state.flowVersion.state === FlowVersionState.DRAFT,
-      flowCanvasUtils.isSkipped(stepName, state.flowVersion.trigger),
+      flowCanvasUtils.isSkipped(props.stepName, state.flowVersion.trigger),
     ],
   );
 
@@ -31,10 +32,8 @@ const ApStepNodeSkippedStatus = ({ stepName }: { stepName: string }) => {
   }
 
   return (
-    <div className="absolute right-[1px] h-[20px] -top-[28px]">
-      <div
-        className={flowRunUtils.getStatusContainerClassName('default', true)}
-      >
+    <div class="absolute right-[1px] h-[20px] -top-[28px]">
+      <div class={flowRunUtils.getStatusContainerClassName('default', true)}>
         <RouteOff class="size-3" />
         <div>{t('Skipped')}</div>
       </div>
@@ -42,5 +41,4 @@ const ApStepNodeSkippedStatus = ({ stepName }: { stepName: string }) => {
   );
 };
 
-ApStepNodeSkippedStatus.displayName = 'ApStepNodeSkippedStatus';
 export { ApStepNodeSkippedStatus };

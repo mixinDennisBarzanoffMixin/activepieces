@@ -2,10 +2,14 @@ import { formErrors, PieceAction, PieceTrigger } from '@activepieces/shared';
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { ArrowUp, ArrowUpDown } from 'lucide-solid';
-import { Show, createSignal } from 'solid-js';
+import { Show, createMemo, createSignal, untrack } from 'solid-js';
 import { z } from 'zod';
 
-import { createForm, zodResolver } from '@/app/builder/builder-form';
+import {
+  BuilderField,
+  createForm,
+  zodResolver,
+} from '@/app/builder/builder-form';
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,24 +40,32 @@ import { UpgradePieceVersionContent } from './upgrade-piece-version-dialog';
 
 type DialogView = 'upgrade' | 'advanced';
 
-const UpdatePieceVersionDialog: any = ({ step, currentVersion }) => {
+const UpdatePieceVersionDialog = (props: UpdatePieceVersionDialogProps) => {
+  const step = untrack(() => props.step);
+  const currentVersion = untrack(() => props.currentVersion);
   const [view, setView] = createSignal<DialogView | null>(null);
-  const pieceName = step.settings.pieceName;
-  const { pieceVersions, isLoading } = piecesHooks.usePieceVersions(pieceName);
-  const latestVersion = changeVersionUtils.getLatestVersion({
-    currentVersion,
-    versions: pieceVersions ?? [],
-  });
-  const hasNewerVersion = latestVersion !== undefined;
-  const isLatestMinorOrMajor =
-    latestVersion !== undefined &&
-    changeVersionUtils.getVersionChangeType({
+  const usePieceVersions = piecesHooks.usePieceVersions as (
+    pieceName: string,
+  ) => PieceVersionsResult;
+  const { pieceVersions, isLoading } = usePieceVersions(getPieceName(step));
+  const latestVersion = createMemo(() =>
+    changeVersionUtils.getLatestVersion({
       currentVersion,
-      selectedVersion: latestVersion,
-    }) === VersionChangeType.MINOR_OR_MAJOR;
+      versions: pieceVersions ?? [],
+    }),
+  );
+  const hasNewerVersion = createMemo(() => latestVersion() !== undefined);
+  const isLatestMinorOrMajor = createMemo(
+    () =>
+      latestVersion() !== undefined &&
+      changeVersionUtils.getVersionChangeType({
+        currentVersion,
+        selectedVersion: latestVersion(),
+      }) === VersionChangeType.MINOR_OR_MAJOR,
+  );
 
   const handleOpen = () => {
-    setView(hasNewerVersion ? 'upgrade' : 'advanced');
+    setView(hasNewerVersion() ? 'upgrade' : 'advanced');
   };
 
   return (
@@ -84,38 +96,38 @@ const UpdatePieceVersionDialog: any = ({ step, currentVersion }) => {
       </Tooltip>
 
       <Dialog
-        open={view !== null}
-        onOpenChange={(open) => !open && setView(null)}
+        open={view() !== null}
+        onOpenChange={(open: boolean) => !open && setView(null)}
       >
         <DialogContent>
           <DialogHeader class="mb-0">
             <DialogTitle>
               <Show
-                when={view === 'upgrade'()}
+                when={view() === 'upgrade'}
                 fallback={t('Update Piece Version')}
               >
                 {t('New Version Available')}
               </Show>
             </DialogTitle>
           </DialogHeader>
-          <Show when={view === 'upgrade' && latestVersion()}>
+          <Show when={view() === 'upgrade' && latestVersion()}>
             <UpgradePieceVersionContent
               key="upgrade"
               step={step}
               currentVersion={currentVersion}
-              latestVersion={latestVersion}
-              isLatestMinorOrMajor={isLatestMinorOrMajor}
+              latestVersion={latestVersion()!}
+              isLatestMinorOrMajor={isLatestMinorOrMajor()}
               onClose={() => setView(null)}
               onOpenAdvanced={() => setView('advanced')}
             />
           </Show>
-          <Show when={view === 'advanced'()}>
+          <Show when={view() === 'advanced'}>
             <AdvancedForm
               key="advanced"
               step={step}
               currentVersion={currentVersion}
               onClose={() => setView(null)}
-              onBack={hasNewerVersion ? () => setView('upgrade') : undefined}
+              onBack={hasNewerVersion() ? () => setView('upgrade') : undefined}
             />
           </Show>
         </DialogContent>
@@ -131,54 +143,68 @@ type UpdatePieceVersionDialogProps = {
   currentVersion: string;
 };
 
-const AdvancedForm: any = ({ step, currentVersion, onClose, onBack }) => {
-  const pieceName = step.settings.pieceName;
-
-  const { pieceVersions, isLoading } = piecesHooks.usePieceVersions(pieceName);
-  const applyOperation = useBuilderStateContext(
-    (state) => state.applyOperation,
-  );
+const AdvancedForm = (props: AdvancedFormProps) => {
+  const step = untrack(() => props.step);
+  const currentVersion = untrack(() => props.currentVersion);
+  const usePieceVersions = piecesHooks.usePieceVersions as (
+    pieceName: string,
+  ) => PieceVersionsResult;
+  const { pieceVersions, isLoading } = usePieceVersions(getPieceName(step));
+  const applyOperation = useBuilderStateContext((state) => ({
+    value: state.applyOperation,
+  })).value;
   const [showAllVersions, setShowAllVersions] = createSignal(false);
   const [versionSelectOpen, setVersionSelectOpen] = createSignal(false);
+  const [selectedVersion, setSelectedVersion] = createSignal(currentVersion);
 
-  const patchVersions = (pieceVersions ?? []).filter((p) => {
-    const changeType = changeVersionUtils.getVersionChangeType({
+  const patchVersions = createMemo(() =>
+    (pieceVersions ?? []).filter((p) => {
+      const changeType = changeVersionUtils.getVersionChangeType({
+        currentVersion,
+        selectedVersion: p.version,
+      });
+      return changeType !== VersionChangeType.MINOR_OR_MAJOR;
+    }),
+  );
+
+  const visibleVersions = createMemo(() =>
+    showAllVersions() ? pieceVersions ?? [] : patchVersions(),
+  );
+
+  const latestVersion = createMemo(() =>
+    changeVersionUtils.getLatestVersion({
       currentVersion,
-      selectedVersion: p.version,
-    });
-    return changeType !== VersionChangeType.MINOR_OR_MAJOR;
-  });
+      versions: pieceVersions ?? [],
+    }),
+  );
+  const latestPatchVersion = createMemo(() => patchVersions()[0]?.version);
 
-  const visibleVersions = showAllVersions ? pieceVersions ?? [] : patchVersions;
-
-  const latestVersion = changeVersionUtils.getLatestVersion({
-    currentVersion,
-    versions: pieceVersions ?? [],
-  });
-  const latestPatchVersion = patchVersions[0]?.version;
-
-  const versionOptions = visibleVersions.map((p) => {
-    const isCurrent = p.version === currentVersion;
-    const isLatest =
-      latestVersion !== undefined && p.version === latestVersion && !isCurrent;
-    const isLatestPatch =
-      latestPatchVersion !== undefined &&
-      p.version === latestPatchVersion &&
-      p.version !== currentVersion &&
-      !isLatest;
-    return {
-      value: p.version,
-      label: `${p.version} ${
-        isCurrent
-          ? `(${t('Current')})`
-          : isLatest
-          ? `(${t('Latest')})`
-          : isLatestPatch
-          ? `(${t('Latest patch')})`
-          : ''
-      }`,
-    };
-  });
+  const versionOptions = createMemo(() =>
+    visibleVersions().map((p) => {
+      const isCurrent = p.version === currentVersion;
+      const isLatest =
+        latestVersion() !== undefined &&
+        p.version === latestVersion() &&
+        !isCurrent;
+      const isLatestPatch =
+        latestPatchVersion() !== undefined &&
+        p.version === latestPatchVersion() &&
+        p.version !== currentVersion &&
+        !isLatest;
+      return {
+        value: p.version,
+        label: `${p.version} ${
+          isCurrent
+            ? `(${t('Current')})`
+            : isLatest
+            ? `(${t('Latest')})`
+            : isLatestPatch
+            ? `(${t('Latest patch')})`
+            : ''
+        }`,
+      };
+    }),
+  );
 
   const form = createForm<FormSchema>({
     resolver: zodResolver(FormSchema),
@@ -186,17 +212,23 @@ const AdvancedForm: any = ({ step, currentVersion, onClose, onBack }) => {
     mode: 'onChange',
   });
 
-  const selectedVersion = form.watch('version');
-  const versionChangeType = changeVersionUtils.getVersionChangeType({
-    currentVersion,
-    selectedVersion,
-  });
-  const isMinorOrMajor = versionChangeType === VersionChangeType.MINOR_OR_MAJOR;
-  const isPatchDowngrade =
-    versionChangeType === VersionChangeType.PATCH_DOWNGRADE;
-  const isPatchUpgrade =
-    versionChangeType === VersionChangeType.PATCH_UPGRADE &&
-    selectedVersion !== currentVersion;
+  const versionChangeType = createMemo(() =>
+    changeVersionUtils.getVersionChangeType({
+      currentVersion,
+      selectedVersion: selectedVersion(),
+    }),
+  );
+  const isMinorOrMajor = createMemo(
+    () => versionChangeType() === VersionChangeType.MINOR_OR_MAJOR,
+  );
+  const isPatchDowngrade = createMemo(
+    () => versionChangeType() === VersionChangeType.PATCH_DOWNGRADE,
+  );
+  const isPatchUpgrade = createMemo(
+    () =>
+      versionChangeType() === VersionChangeType.PATCH_UPGRADE &&
+      selectedVersion() !== currentVersion,
+  );
 
   const { mutate: applyVersionChange, isPending: isApplyPending } =
     createMutation(() => ({
@@ -209,12 +241,12 @@ const AdvancedForm: any = ({ step, currentVersion, onClose, onBack }) => {
         });
       },
       onSuccess: () => {
-        onClose();
+        props.onClose();
       },
       onError: (error) => {
         form.setError('root.serverError', {
           type: 'manual',
-          message: error.message,
+          message: error instanceof Error ? error.message : t('Unknown error'),
         });
       },
     }));
@@ -222,16 +254,16 @@ const AdvancedForm: any = ({ step, currentVersion, onClose, onBack }) => {
   return (
     <Form {...form}>
       <form
-        className="flex flex-col gap-4"
+        class="flex flex-col gap-4"
         onSubmit={form.handleSubmit((data) => applyVersionChange(data))}
       >
         <FormField
           control={form.control}
           name="version"
-          render={({ field }) => (
+          render={({ field }: { field: BuilderField<string> }) => (
             <FormItem class="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{t('Version')}</span>
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-medium">{t('Version')}</span>
                 <Button
                   type="button"
                   variant="link"
@@ -251,7 +283,7 @@ const AdvancedForm: any = ({ step, currentVersion, onClose, onBack }) => {
                 </Button>
               </div>
               <SearchableSelect
-                options={versionOptions}
+                options={versionOptions()}
                 value={field.value}
                 loading={isLoading}
                 openState={{
@@ -260,6 +292,7 @@ const AdvancedForm: any = ({ step, currentVersion, onClose, onBack }) => {
                 }}
                 onChange={(v) => {
                   if (v) {
+                    setSelectedVersion(v);
                     field.onChange(v);
                   }
                 }}
@@ -282,30 +315,30 @@ const AdvancedForm: any = ({ step, currentVersion, onClose, onBack }) => {
           <PatchDowngradeInfoAlert />
         </Show>
 
-        <Show when={form.formState.errors.root?.serverError()}>
-          <p className="text-sm font-medium text-destructive">
-            {form.formState.errors.root.serverError.message}
+        <Show when={getServerErrorMessage(form.formState.errors)}>
+          <p class="text-sm font-medium text-destructive">
+            {getServerErrorMessage(form.formState.errors)}
           </p>
         </Show>
 
         <DialogFooter>
-          <Show when={onBack()}>
+          <Show when={props.onBack}>
             <Button
               type="button"
               variant="outline"
               class="mr-auto"
-              onClick={onBack}
+              onClick={() => props.onBack?.()}
             >
               {t('Back')}
             </Button>
           </Show>
-          <Button type="button" variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={props.onClose}>
             {t('Cancel')}
           </Button>
           <Button
             type="submit"
             loading={isApplyPending}
-            disabled={selectedVersion === currentVersion}
+            disabled={selectedVersion() === props.currentVersion}
           >
             {t('Apply')}
           </Button>
@@ -322,8 +355,30 @@ type AdvancedFormProps = {
   onBack?: () => void;
 };
 
+type PieceVersionsResult = {
+  pieceVersions: { version: string }[] | undefined;
+  isLoading: boolean;
+};
+
+function getPieceName(step: PieceAction | PieceTrigger) {
+  return step.settings.pieceName;
+}
+
 const FormSchema = z.object({
   version: z.string().min(1, formErrors.required),
 });
+
+function getServerErrorMessage(errors: unknown) {
+  if (!isRecord(errors)) return undefined;
+  const root = errors.root;
+  if (!isRecord(root)) return undefined;
+  const error = root.serverError;
+  if (!isRecord(error)) return undefined;
+  return typeof error.message === 'string' ? error.message : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
 
 type FormSchema = z.infer<typeof FormSchema>;

@@ -1,5 +1,12 @@
 import { t } from 'i18next';
 import { Plus, TrashIcon } from 'lucide-solid';
+import {
+  createEffect,
+  createSignal,
+  For,
+  type JSXElement,
+  Show,
+} from 'solid-js';
 
 import { TextWithIcon } from '@/components/custom/text-with-icon';
 import { Button } from '@/components/ui/button';
@@ -12,56 +19,32 @@ type DictionaryInputItem = {
   id: string;
 };
 
-export const DictionaryInput = ({
-  values,
-  onChange,
-  disabled,
-  renderValueInput,
-  keyInputClassName,
-  keyPlaceholder,
-  valuePlaceholder,
-}: DictionaryInputProps) => {
+export const DictionaryInput = (props: DictionaryInputProps) => {
   let id = 1;
-  const valuesArray = Object.entries(values ?? {}).map((el) => {
-    id++;
-    return {
-      key: el[0],
-      value: el[1],
-      id: `${id}`,
-    };
-  });
-  let valuesArrayRef = valuesArray;
-  // To allow keys that have the same prefix to be added in any order
-  const valuesArrayRefUnique = valuesArrayRef
-    .toReversed()
-    .filter(
-      (el, index, self) => self.findIndex((t) => t.key === el.key) === index,
-    )
-    .toReversed();
-  const haveValuesChangedFromOutside =
-    valuesArrayRefUnique.length !== valuesArray.length ||
-    valuesArray.reduce((acc, _, index) => {
-      return (
-        acc ||
-        valuesArrayRefUnique[index].key !== valuesArray[index].key ||
-        valuesArrayRefUnique[index].value !== valuesArray[index].value
-      );
-    }, false);
+  const next = () => `${++id}`;
+  const values = () => {
+    if (props.values === undefined) {
+      return [];
+    }
+    return Object.entries(props.values).map(([key, value]) => ({
+      key,
+      value,
+      id: next(),
+    }));
+  };
+  const [items, setItems] = createSignal<DictionaryInputItem[]>(values());
 
-  if (haveValuesChangedFromOutside) {
-    valuesArrayRef = valuesArray;
-  }
+  createEffect(() => setItems(values()));
 
   const remove = (index: number) => {
-    const newValues = valuesArrayRef.filter((_, i) => i !== index);
-    valuesArrayRef = newValues;
-    updateValue(newValues);
+    const next = items().filter((_, i) => i !== index);
+    setItems(next);
+    updateValue(next);
   };
   const add = () => {
-    id++;
-    const newValues = [...valuesArrayRef, { key: '', value: '', id: `${id}` }];
-    valuesArrayRef = newValues;
-    updateValue(newValues);
+    const list = [...items(), { key: '', value: '', id: next() }];
+    setItems(list);
+    updateValue(list);
   };
 
   const onChangeValue = (
@@ -69,58 +52,61 @@ export const DictionaryInput = ({
     value: string | undefined,
     key: string | undefined,
   ) => {
-    const newValues = [...valuesArrayRef];
-    if (value !== undefined) {
-      newValues[index].value = value;
-    }
-    if (key !== undefined) {
-      newValues[index].key = key;
-    }
-    valuesArrayRef = newValues;
-    updateValue(newValues);
+    const next = items().map((item, i) => {
+      if (i !== index) {
+        return item;
+      }
+      return {
+        ...item,
+        key: key === undefined ? item.key : key,
+        value: value === undefined ? item.value : value,
+      };
+    });
+    setItems(next);
+    updateValue(next);
   };
 
   const updateValue = (items: DictionaryInputItem[]) => {
     const value = items.reduce((acc, current) => {
       return { ...acc, [current.key]: current.value };
     }, {});
-    onChange({ target: { value } } as unknown as Record<string, string>);
+    props.onChange(value);
   };
 
   return (
-    <div className={cn('flex w-full flex-col gap-2')}>
-      <For each={valuesArrayRef}>
-        {({ key, value, id }, index) => (
-          <div
-            key={'dictionary-input-' + id}
-            className="flex items-center gap-3 items-center"
-          >
+    <div class={cn('flex w-full flex-col gap-2')}>
+      <For each={items()}>
+        {({ key, value }, index) => (
+          <div class="flex items-center gap-3 items-center">
             <Input
               value={key}
-              disabled={disabled}
-              placeholder={keyPlaceholder}
-              class={cn('basis-[50%] max-w-[50%]', keyInputClassName)}
+              disabled={props.disabled}
+              placeholder={props.keyPlaceholder}
+              class={cn('basis-[50%] max-w-[50%]', props.keyInputClassName)}
               onChange={(e) =>
-                onChangeValue(index(), undefined, e.target.value)
+                onChangeValue(index(), undefined, e.currentTarget.value)
               }
             />
-            <div className="basis-[50%] max-w-[50%]">
-              {renderValueInput ? (
-                renderValueInput({
+            <div class="basis-[50%] max-w-[50%]">
+              <Show
+                when={props.renderValueInput}
+                fallback={
+                  <Input
+                    value={value}
+                    disabled={props.disabled}
+                    placeholder={props.valuePlaceholder}
+                    onChange={(e) =>
+                      onChangeValue(index(), e.currentTarget.value, undefined)
+                    }
+                  />
+                }
+              >
+                {props.renderValueInput({
                   value,
                   onChange: (v) => onChangeValue(index(), v, undefined),
-                  disabled,
-                })
-              ) : (
-                <Input
-                  value={value}
-                  disabled={disabled}
-                  placeholder={valuePlaceholder}
-                  onChange={(e) =>
-                    onChangeValue(index(), e.target.value, undefined)
-                  }
-                />
-              )}
+                  disabled: props.disabled,
+                })}
+              </Show>
             </div>
 
             <Button
@@ -128,11 +114,11 @@ export const DictionaryInput = ({
               variant="outline"
               size="icon"
               class="size-8 shrink-0"
-              disabled={disabled}
+              disabled={props.disabled}
               onClick={() => remove(index())}
             >
               <TrashIcon class="size-4 text-destructive" aria-hidden="true" />
-              <span className="sr-only">{t('Remove')}</span>
+              <span class="sr-only">{t('Remove')}</span>
             </Button>
           </div>
         )}
@@ -142,7 +128,7 @@ export const DictionaryInput = ({
         size="sm"
         onClick={add}
         type="button"
-        disabled={disabled}
+        disabled={props.disabled}
       >
         <TextWithIcon icon={<Plus size={18} />} text={t('Add Item')} />
       </Button>
@@ -161,5 +147,5 @@ export type DictionaryInputProps = {
     value: string;
     onChange: (v: string) => void;
     disabled?: boolean;
-  }) => any;
+  }) => JSXElement;
 };

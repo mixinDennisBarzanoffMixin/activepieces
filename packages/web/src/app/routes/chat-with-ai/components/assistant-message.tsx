@@ -2,7 +2,8 @@ import { PlanStepUpdate } from '@activepieces/shared';
 import { t } from 'i18next';
 import { RefreshCw, Volume2, VolumeOff } from 'lucide-solid';
 import { motion } from 'motion/react';
-import { createMemo, For, Show } from 'solid-js';
+import { createMemo, For, mergeProps, Show } from 'solid-js';
+import type { JSX } from 'solid-js';
 
 import { Markdown } from '@/components/prompt-kit/markdown';
 import {
@@ -43,14 +44,7 @@ const PROSE_CLASSES =
 const ACTION_BUTTON_CLASS =
   'flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground';
 
-export function AssistantMessage({
-  message,
-  isStreaming,
-  isLastMessage = false,
-  onRetry,
-  onSend,
-  lastAssistantMessage,
-}: {
+export function AssistantMessage(_props: {
   message: ChatUIMessage;
   isStreaming: boolean;
   isLastMessage?: boolean;
@@ -58,7 +52,8 @@ export function AssistantMessage({
   onSend: (text: string, files?: File[]) => void;
   lastAssistantMessage?: ChatUIMessage;
 }) {
-  const { blocks, hasContent } = createMemo(() => {
+  const props = mergeProps({ isLastMessage: false }, _props);
+  const blockState = createMemo(() => {
     const result: MessageBlock[] = [];
     let currentThinking: {
       steps: ThinkingStep[];
@@ -85,8 +80,8 @@ export function AssistantMessage({
       return currentThinking;
     }
 
-    for (let i = 0; i < message.parts.length; i++) {
-      const p = message.parts[i];
+    for (let i = 0; i < props.message.parts.length; i++) {
+      const p = props.message.parts[i];
 
       if (p.type === 'text' && p.text.length > 0) {
         flushThinking();
@@ -128,7 +123,7 @@ export function AssistantMessage({
           const lastStep = thinking.steps[thinking.steps.length - 1];
           if (
             lastThinkingStatus &&
-            lastStep?.kind === 'thinking-status' &&
+            lastStep.kind === 'thinking-status' &&
             lastStep.text === lastThinkingStatus
           ) {
             thinking.steps[thinking.steps.length - 1] = {
@@ -157,7 +152,7 @@ export function AssistantMessage({
     }
 
     if (
-      isStreaming &&
+      props.isStreaming &&
       !result.some((b) => b.kind === 'thinking') &&
       result.length === 0
     ) {
@@ -168,244 +163,251 @@ export function AssistantMessage({
   });
 
   const fullText = createMemo(() =>
-    isStreaming ? '' : getTextFromParts(message.parts),
+    props.isStreaming ? '' : getTextFromParts(props.message.parts),
   );
 
   const { isSpeaking, isSupported: isTtsSupported, speak, stop } = useTts();
 
-  const hasPlanMarker = blocks.some((b) => b.kind === 'plan-marker');
-  const hasRenderedContent = blocks.some(
-    (b) => b.kind !== 'plan-marker' && b.kind !== 'thinking',
+  const blocks = () => blockState().blocks;
+  const hasContent = () => blockState().hasContent;
+  const hasPlanMarker = () => blocks().some((b) => b.kind === 'plan-marker');
+  const hasRenderedContent = () =>
+    blocks().some((b) => b.kind !== 'plan-marker' && b.kind !== 'thinking');
+  const hasThinkingContent = () => blocks().some((b) => b.kind === 'thinking');
+
+  const visible = createMemo(
+    () =>
+      hasContent() ||
+      hasRenderedContent() ||
+      props.isStreaming ||
+      hasPlanMarker() ||
+      hasThinkingContent(),
   );
-  const hasThinkingContent = blocks.some((b) => b.kind === 'thinking');
-
-  if (
-    !hasContent &&
-    !hasRenderedContent &&
-    !isStreaming &&
-    !hasPlanMarker &&
-    !hasThinkingContent
-  ) {
-    return null;
-  }
-
-  const isFromHistory = message.id.startsWith('hist-');
-  const lastThinkingIdx = blocks.findLastIndex((b) => b.kind === 'thinking');
+  const isFromHistory = createMemo(() => props.message.id.startsWith('hist-'));
+  const lastThinkingIdx = () =>
+    blocks().findLastIndex((b) => b.kind === 'thinking');
 
   return (
-    <motion.div
-      class="py-3 group/msg"
-      initial={isFromHistory ? false : { opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Message>
-        <div className="min-w-0 space-y-2 flex-1">
-          <For each={blocks}>
-            {(block, i) => {
-              switch (block.kind) {
-                case 'thinking':
-                  return (
-                    <ThinkingBlock
-                      key={`thinking-${i}`}
-                      thinkingSteps={block.steps}
-                      reasoningText={block.reasoningText}
-                      isStreaming={isStreaming && i === lastThinkingIdx}
-                      thinkingDurationMs={
-                        i === lastThinkingIdx && 'thinkingDurationMs' in message
-                          ? message.thinkingDurationMs
-                          : undefined
-                      }
-                    />
-                  );
-                case 'text':
-                  return (
-                    <div key={`text-${i}`} className={PROSE_CLASSES}>
-                      <Markdown>{block.text}</Markdown>
-                    </div>
-                  );
-                case 'display-tool':
-                  if (isStreaming) return null;
-                  return (
-                    <DisplayToolCard
-                      key={block.part.toolCallId}
-                      part={block.part}
-                      onSend={onSend}
-                      isInteractive={isLastMessage}
-                    />
-                  );
-                case 'plan-marker':
-                  return (
-                    <InlinePlanCard
-                      key={`plan-${i}`}
-                      planPart={block.part}
-                      lastAssistantMessage={lastAssistantMessage}
-                      isStreaming={isStreaming}
-                    />
-                  );
-                default:
-                  return null;
-              }
-            }}
-          </For>
+    <Show when={visible()}>
+      <motion.div
+        class="py-3 group/msg"
+        initial={isFromHistory() ? false : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Message>
+          <div class="min-w-0 space-y-2 flex-1">
+            <For each={blocks()}>
+              {(block, i) => {
+                switch (block.kind) {
+                  case 'thinking':
+                    return (
+                      <ThinkingBlock
+                        thinkingSteps={block.steps}
+                        reasoningText={block.reasoningText}
+                        isStreaming={
+                          props.isStreaming && i() === lastThinkingIdx()
+                        }
+                        thinkingDurationMs={
+                          i() === lastThinkingIdx() &&
+                          'thinkingDurationMs' in props.message
+                            ? props.message.thinkingDurationMs
+                            : undefined
+                        }
+                      />
+                    );
+                  case 'text':
+                    return (
+                      <div class={PROSE_CLASSES}>
+                        <Markdown>{block.text}</Markdown>
+                      </div>
+                    );
+                  case 'display-tool':
+                    return (
+                      <Show when={!props.isStreaming}>
+                        <DisplayToolCard
+                          part={block.part}
+                          onSend={props.onSend}
+                          isInteractive={props.isLastMessage}
+                        />
+                      </Show>
+                    );
+                  case 'plan-marker':
+                    return (
+                      <InlinePlanCard
+                        planPart={block.part}
+                        lastAssistantMessage={props.lastAssistantMessage}
+                        isStreaming={props.isStreaming}
+                      />
+                    );
+                  default:
+                    return null;
+                }
+              }}
+            </For>
 
-          <MessageActions
-            class={cn(
-              'gap-1 transition-opacity',
-              isLastMessage
-                ? 'opacity-100'
-                : 'opacity-0 group-hover/msg:opacity-100',
-            )}
-          >
-            <Show when={hasContent && !isStreaming}>
-              <>
-                <MessageAction tooltip={t('Copy')}>
-                  <CopyIconButton textToCopy={fullText} class="h-6 w-6" />
-                </MessageAction>
-                <Show when={isTtsSupported}>
-                  <MessageAction
-                    tooltip={isSpeaking ? t('Stop reading') : t('Read aloud')}
-                  >
+            <MessageActions
+              class={cn(
+                'gap-1 transition-opacity',
+                props.isLastMessage
+                  ? 'opacity-100'
+                  : 'opacity-0 group-hover/msg:opacity-100',
+              )}
+            >
+              <Show when={hasContent() && !props.isStreaming}>
+                <>
+                  <MessageAction tooltip={t('Copy')}>
+                    <CopyIconButton textToCopy={fullText()} class="h-6 w-6" />
+                  </MessageAction>
+                  <Show when={isTtsSupported}>
+                    <MessageAction
+                      tooltip={
+                        isSpeaking() ? t('Stop reading') : t('Read aloud')
+                      }
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          isSpeaking() ? stop() : speak(fullText())
+                        }
+                        class={cn(
+                          ACTION_BUTTON_CLASS,
+                          isSpeaking() && 'text-foreground',
+                        )}
+                      >
+                        <Show
+                          when={isSpeaking()}
+                          fallback={<Volume2 class="h-3.5 w-3.5" />}
+                        >
+                          <VolumeOff class="h-3.5 w-3.5" />
+                        </Show>
+                      </button>
+                    </MessageAction>
+                  </Show>
+                  <MessageAction tooltip={t('Regenerate')}>
                     <button
                       type="button"
-                      onClick={() => (isSpeaking ? stop() : speak(fullText))}
-                      className={cn(
-                        ACTION_BUTTON_CLASS,
-                        isSpeaking && 'text-foreground',
-                      )}
+                      onClick={() => props.onRetry()}
+                      class={ACTION_BUTTON_CLASS}
                     >
-                      <Show
-                        when={isSpeaking}
-                        fallback={<Volume2 class="h-3.5 w-3.5" />}
-                      >
-                        <VolumeOff class="h-3.5 w-3.5" />
-                      </Show>
+                      <RefreshCw class="h-3.5 w-3.5" />
                     </button>
                   </MessageAction>
-                </Show>
-                <MessageAction tooltip={t('Regenerate')}>
-                  <button
-                    type="button"
-                    onClick={onRetry}
-                    className={ACTION_BUTTON_CLASS}
-                  >
-                    <RefreshCw class="h-3.5 w-3.5" />
-                  </button>
-                </MessageAction>
-              </>
-            </Show>
-          </MessageActions>
-        </div>
-      </Message>
-    </motion.div>
+                </>
+              </Show>
+            </MessageActions>
+          </div>
+        </Message>
+      </motion.div>
+    </Show>
   );
 }
 
-function InlinePlanCard({
-  planPart,
-  lastAssistantMessage,
-  isStreaming,
-}: {
+function InlinePlanCard(props: {
   planPart: AnyToolPart;
   lastAssistantMessage?: ChatUIMessage;
   isStreaming: boolean;
 }) {
   const storePlanProgress = useChatStoreContext((s) =>
-    chatStoreSelectors.planProgress({ state: s, lastAssistantMessage }),
+    chatStoreSelectors.planProgress({
+      state: s,
+      lastAssistantMessage: props.lastAssistantMessage,
+    }),
   );
   const storePlanUpdates = useChatStoreContext((s) =>
     chatStoreSelectors.effectivePlanUpdates({ state: s }),
   );
 
-  const localPlan = (() => {
+  const localPlan = createMemo(() => {
     const toolOutput = chatPartUtils.parseTypedToolOutput(
-      planPart,
+      props.planPart,
       'ap_request_plan_approval',
     );
     if (toolOutput.state === 'success' && !toolOutput.data.success) return null;
-    const input = planPart.input as
+    const input = props.planPart.input as
       | { planSummary?: string; steps?: string[] }
       | undefined;
     const steps = input?.steps ?? [];
     if (steps.length === 0) return null;
     return { title: input?.planSummary ?? '', steps };
-  })();
+  });
 
-  const progress = storePlanProgress ?? localPlan;
+  const progress = createMemo(() => storePlanProgress || localPlan());
 
-  const planCompleted =
-    !isStreaming &&
-    (() => {
-      const output = chatPartUtils.parseTypedToolOutput(
-        planPart,
-        'ap_request_plan_approval',
-      );
-      return output.state === 'success' && output.data.success;
-    })();
+  const planCompleted = createMemo(() => {
+    if (props.isStreaming) return false;
+    const output = chatPartUtils.parseTypedToolOutput(
+      props.planPart,
+      'ap_request_plan_approval',
+    );
+    return output.state === 'success' && output.data.success;
+  });
 
   const updates = createMemo(() => {
-    if (!progress) return [];
-    if (planCompleted) {
-      return progress.steps.map(
+    const plan = progress();
+    if (!plan) return [];
+    if (planCompleted()) {
+      return plan.steps.map(
         (_stepText, i): PlanStepUpdate => ({ stepIndex: i, status: 'done' }),
       );
     }
     return storePlanUpdates;
   });
 
-  if (!progress) return null;
-
   return (
-    <PlanProgressCard
-      progress={progress}
-      updates={updates}
-      isStreaming={isStreaming}
-    />
+    <Show when={progress()}>
+      {(plan) => (
+        <PlanProgressCard
+          progress={plan()}
+          updates={updates}
+          isStreaming={props.isStreaming}
+        />
+      )}
+    </Show>
   );
 }
 
-function DisplayToolCard({
-  part,
-  onSend,
-  isInteractive,
-}: {
+function DisplayToolCard(props: {
   part: AnyToolPart;
   onSend: (text: string, files?: File[]) => void;
   isInteractive: boolean;
 }) {
-  if (!chatPartUtils.isReady(part)) return null;
-  const data = part.input as Record<string, unknown>;
-  const toolName = chatPartUtils.getToolPartName(part);
+  const card = createMemo<JSX.Element>(() => {
+    if (!chatPartUtils.isReady(props.part)) return null;
+    const data = props.part.input as Record<string, unknown>;
 
-  switch (toolName) {
-    case 'ap_show_connection_required':
-      return (
-        <ConnectionsRequiredCard
-          connections={[data as unknown as ConnectionRequiredData]}
-          onSend={onSend}
-        />
-      );
-    case 'ap_show_connection_picker':
-      return (
-        <ConnectionPickerCard
-          picker={data as unknown as ConnectionPickerData}
-          onSelect={onSend}
-          isInteractive={isInteractive}
-        />
-      );
-    case 'ap_show_project_picker':
-      return (
-        <ProjectPickerCard
-          picker={data as unknown as ProjectPickerData}
-          isInteractive={isInteractive}
-          onSelect={(_projectId, projectName) => {
-            onSend(`Use ${projectName}.`);
-          }}
-        />
-      );
-    default:
-      return null;
-  }
+    switch (chatPartUtils.getToolPartName(props.part)) {
+      case 'ap_show_connection_required':
+        return (
+          <ConnectionsRequiredCard
+            connections={[data as unknown as ConnectionRequiredData]}
+            onSend={props.onSend}
+          />
+        );
+      case 'ap_show_connection_picker':
+        return (
+          <ConnectionPickerCard
+            picker={data as unknown as ConnectionPickerData}
+            onSelect={props.onSend}
+            isInteractive={props.isInteractive}
+          />
+        );
+      case 'ap_show_project_picker':
+        return (
+          <ProjectPickerCard
+            picker={data as unknown as ProjectPickerData}
+            isInteractive={props.isInteractive}
+            onSelect={(_pid, name) => {
+              props.onSend(`Use ${name}.`);
+            }}
+          />
+        );
+      default:
+        return null;
+    }
+  });
+
+  return <>{card()}</>;
 }
 
 type MessageBlock =

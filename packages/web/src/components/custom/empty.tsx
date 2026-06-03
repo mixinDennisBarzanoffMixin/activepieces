@@ -1,27 +1,30 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { mergeProps, splitProps, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
-function Empty({ className, ...props }: any) {
+function Empty(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
       data-slot="empty"
-      className={cn(
+      class={cn(
         'flex min-w-0 flex-1 flex-col items-center justify-center gap-6 rounded-lg border-dashed p-4 text-center text-balance md:p-8',
-        className,
+        local.className,
       )}
       {...props}
     />
   );
 }
 
-function EmptyHeader({ className, ...props }: any) {
+function EmptyHeader(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
       data-slot="empty-header"
-      className={cn(
+      class={cn(
         'flex max-w-sm flex-col items-center gap-2 text-center',
-        className,
+        local.className,
       )}
       {...props}
     />
@@ -43,51 +46,58 @@ const emptyMediaVariants = cva(
   },
 );
 
-function EmptyMedia({
-  className,
-  variant = 'default',
-  ...props
-}: any & VariantProps<typeof emptyMediaVariants>) {
+function EmptyMedia(
+  _props: ClassName<JSX.IntrinsicElements['div']> &
+    VariantProps<typeof emptyMediaVariants>,
+) {
+  const merged = mergeProps({ variant: 'default' }, _props);
+  const [local, props] = splitProps(merged, ['className', 'variant']);
   return (
     <div
       data-slot="empty-icon"
-      data-variant={variant}
-      className={cn(emptyMediaVariants({ variant, className }))}
-      {...props}
-    />
-  );
-}
-
-function EmptyTitle({ className, ...props }: any) {
-  return (
-    <div
-      data-slot="empty-title"
-      className={cn('text-lg font-medium tracking-tight', className)}
-      {...props}
-    />
-  );
-}
-
-function EmptyDescription({ className, ...props }: any) {
-  return (
-    <div
-      data-slot="empty-description"
-      className={cn(
-        'text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4',
-        className,
+      data-variant={local.variant}
+      class={cn(
+        emptyMediaVariants({ variant: local.variant }),
+        local.className,
       )}
       {...props}
     />
   );
 }
 
-function EmptyContent({ className, ...props }: any) {
+function EmptyTitle(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
+  return (
+    <div
+      data-slot="empty-title"
+      class={cn('text-lg font-medium tracking-tight', local.className)}
+      {...props}
+    />
+  );
+}
+
+function EmptyDescription(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
+  return (
+    <div
+      data-slot="empty-description"
+      class={cn(
+        'text-muted-foreground [&>a:hover]:text-primary text-sm/relaxed [&>a]:underline [&>a]:underline-offset-4',
+        local.className,
+      )}
+      {...props}
+    />
+  );
+}
+
+function EmptyContent(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
       data-slot="empty-content"
-      className={cn(
+      class={cn(
         'flex w-full max-w-sm min-w-0 flex-col items-center gap-4 text-sm text-balance',
-        className,
+        local.className,
       )}
       {...props}
     />
@@ -101,4 +111,8 @@ export {
   EmptyDescription,
   EmptyContent,
   EmptyMedia,
+};
+
+type ClassName<T> = Omit<T, 'className'> & {
+  className?: string;
 };

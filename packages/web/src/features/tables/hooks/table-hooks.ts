@@ -1,8 +1,9 @@
 import {
+  CreateFieldRequest,
   FieldType,
   SharedTemplate,
-  TableTemplate,
   Table,
+  TableTemplate,
   UncategorizedFolderId,
 } from '@activepieces/shared';
 import { useNavigate, useSearchParams } from '@solidjs/router';
@@ -20,7 +21,7 @@ const queryKeys = (searchParams: URLSearchParams, projectId: string) => {
 };
 export const tableMutations = {
   useRenameTable: ({ onSuccess }: { onSuccess: () => void }) => {
-    return createMutation({
+    return createMutation(() => ({
       mutationFn: async ({
         tableId,
         name,
@@ -29,7 +30,7 @@ export const tableMutations = {
         name: string;
       }) => tablesApi.update(tableId, { name }),
       onSuccess,
-    });
+    }));
   },
 };
 
@@ -65,7 +66,7 @@ export const tableHooks = {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [searchParams] = useSearchParams();
-    return createMutation({
+    return createMutation(() => ({
       mutationFn: async (data: { name: string }) => {
         return tableHooks.createTableWithDefaults({
           name: data.name,
@@ -73,15 +74,15 @@ export const tableHooks = {
           projectId,
         });
       },
-      onSuccess: (table) => {
-        queryClient.invalidateQueries({
+      onSuccess: (table: Table) => {
+        void queryClient.invalidateQueries({
           queryKey: queryKeys(searchParams, projectId),
         });
-        navigate(
+        void navigate(
           `/projects/${projectId}/tables/${table.id}?${NEW_TABLE_QUERY_PARAM}=true`,
         );
       },
-    });
+    }));
   },
   importTableIntoExisting: async ({
     template,
@@ -119,13 +120,15 @@ export const tableHooks = {
 
     await Promise.all(
       tableTemplate.fields.map((fieldState) =>
-        fieldsApi.create({
-          name: fieldState.name,
-          type: fieldState.type as any,
-          tableId: existingTableId,
-          data: fieldState.data as any,
-          externalId: fieldState.externalId,
-        }),
+        fieldsApi.create(
+          CreateFieldRequest.parse({
+            name: fieldState.name,
+            type: fieldState.type,
+            tableId: existingTableId,
+            data: fieldState.data,
+            externalId: fieldState.externalId,
+          }),
+        ),
       ),
     );
 

@@ -15,22 +15,33 @@ function Calendar(props: CalendarProps) {
   const today = new Date();
   const start = new Date(today.getFullYear(), today.getMonth(), 1);
   const days = Array.from(
-    { length: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate() },
+    {
+      length: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate(),
+    },
     (_, index) => new Date(start.getFullYear(), start.getMonth(), index + 1),
   );
 
   const select = (day: Date) => {
     if (props.disabled?.(day)) return;
     if (props.mode === 'range') {
-      const selected = props.selected && !(props.selected instanceof Date) ? props.selected : {};
-      props.onSelect?.(selected.from && !selected.to ? { ...selected, to: day } : { from: day });
+      const selected =
+        props.selected && !(props.selected instanceof Date)
+          ? props.selected
+          : {};
+      props.onSelect?.(
+        selected.from && !selected.to
+          ? { ...selected, to: day }
+          : { from: day },
+      );
       return;
     }
     props.onSelect?.(day);
   };
 
   return (
-    <div class={cn('w-72 rounded-md border bg-background p-3', props.className)}>
+    <div
+      class={cn('w-72 rounded-md border bg-background p-3', props.className)}
+    >
       <div class="mb-2 text-center text-sm font-medium">
         {today.toLocaleString('default', { month: 'long', year: 'numeric' })}
       </div>

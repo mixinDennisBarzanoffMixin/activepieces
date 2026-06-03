@@ -10,7 +10,7 @@ import {
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { CheckCircle, Loader2, TriangleAlert } from 'lucide-solid';
-import { createMemo, createSignal, Show } from 'solid-js';
+import { createMemo, createSignal, Show, untrack } from 'solid-js';
 import { toast } from 'solid-sonner';
 import { z } from 'zod';
 
@@ -35,27 +35,23 @@ import { flagsHooks } from '@/hooks/flags-hooks';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
-export const ConfigureSamlDialog = ({
-  platform,
-  connected,
-  refetch,
-}: ConfigureSamlDialogProps) => {
+export const ConfigureSamlDialog = (props: ConfigureSamlDialogProps) => {
   const [open, setOpen] = createSignal(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="basic" onClick={() => setOpen(true)}>
-          {connected ? t('Edit') : t('Enable')}
+          {props.connected ? t('Edit') : t('Enable')}
         </Button>
       </DialogTrigger>
       <DialogContent>
         <Show when={open()}>
           <SamlWizard
             key={open() ? 'open' : 'closed'}
-            platform={platform}
-            connected={connected}
-            refetch={refetch}
+            platform={props.platform}
+            connected={props.connected}
+            refetch={props.refetch}
             onClose={() => setOpen(false)}
           />
         </Show>
@@ -64,22 +60,19 @@ export const ConfigureSamlDialog = ({
   );
 };
 
-const SamlWizard = ({
-  platform,
-  connected,
-  refetch,
-  onClose,
-}: {
+const SamlWizard = (props: {
   platform: PlatformWithoutSensitiveData;
   connected: boolean;
   refetch: () => Promise<void>;
   onClose: () => void;
 }) => {
-  const domainVerified =
-    platform.ssoDomainVerification?.status ===
-    SsoDomainVerificationStatus.VERIFIED;
+  const verified = createMemo(
+    () =>
+      props.platform.ssoDomainVerification?.status ===
+      SsoDomainVerificationStatus.VERIFIED,
+  );
   const [step, setStep] = createSignal<WizardStep>(
-    connected || !domainVerified ? 'domain' : 'saml',
+    untrack(() => (props.connected || !verified() ? 'domain' : 'saml')),
   );
 
   const { mutate: disableSaml, isPending: isDisabling } = createMutation(
@@ -87,20 +80,20 @@ const SamlWizard = ({
       mutationFn: async () => {
         await platformApi.update(
           { federatedAuthProviders: { saml: null } },
-          platform.id,
+          props.platform.id,
         );
-        await refetch();
+        await props.refetch();
       },
       onSuccess: () => {
         toast.success(t('Single sign-on settings updated'), { duration: 3000 });
-        onClose();
+        props.onClose();
       },
     }),
   );
 
-  const disableAction = connected
-    ? { onDisable: () => disableSaml(), isDisabling }
-    : null;
+  const action = createMemo(() =>
+    props.connected ? { onDisable: () => disableSaml(), isDisabling } : null,
+  );
 
   return (
     <>
@@ -108,41 +101,41 @@ const SamlWizard = ({
         <DialogTitle>{t('Configure SAML 2.0 SSO')}</DialogTitle>
       </DialogHeader>
       <StepIndicator step={step} />
-      <div className={cn(step !== 'domain' && 'hidden')}>
+      <div class={cn(step !== 'domain' && 'hidden')}>
         <DomainStep
-          platform={platform}
-          refetch={refetch}
+          platform={props.platform}
+          refetch={props.refetch}
           onVerified={() => setStep('saml')}
           onNext={() => setStep('saml')}
-          canProceed={domainVerified}
-          disableAction={disableAction}
+          canProceed={verified()}
+          disableAction={action()}
         />
       </div>
-      <div className={cn(step !== 'saml' && 'hidden')}>
+      <div class={cn(step !== 'saml' && 'hidden')}>
         <SamlStep
-          platform={platform}
-          refetch={refetch}
+          platform={props.platform}
+          refetch={props.refetch}
           onBack={() => setStep('domain')}
-          onClose={onClose}
-          disableAction={disableAction}
+          onClose={props.onClose}
+          disableAction={action()}
         />
       </div>
     </>
   );
 };
 
-const StepIndicator = ({ step }: { step: WizardStep }) => (
-  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+const StepIndicator = (props: { step: WizardStep }) => (
+  <div class="flex items-center gap-3 text-xs text-muted-foreground">
     <div
-      className={cn(
+      class={cn(
         'flex items-center gap-2',
-        step === 'domain' && 'text-foreground font-medium',
+        props.step === 'domain' && 'text-foreground font-medium',
       )}
     >
       <span
-        className={cn(
+        class={cn(
           'flex size-5 items-center justify-center rounded-full border text-xs',
-          step === 'domain'
+          props.step === 'domain'
             ? 'border-primary bg-primary text-primary-foreground'
             : 'border-muted-foreground/40',
         )}
@@ -151,17 +144,17 @@ const StepIndicator = ({ step }: { step: WizardStep }) => (
       </span>
       {t('SSO Domain')}
     </div>
-    <div className="h-px w-6 bg-muted-foreground/30" />
+    <div class="h-px w-6 bg-muted-foreground/30" />
     <div
-      className={cn(
+      class={cn(
         'flex items-center gap-2',
-        step === 'saml' && 'text-foreground font-medium',
+        props.step === 'saml' && 'text-foreground font-medium',
       )}
     >
       <span
-        className={cn(
+        class={cn(
           'flex size-5 items-center justify-center rounded-full border text-xs',
-          step === 'saml'
+          props.step === 'saml'
             ? 'border-primary bg-primary text-primary-foreground'
             : 'border-muted-foreground/40',
         )}
@@ -173,14 +166,7 @@ const StepIndicator = ({ step }: { step: WizardStep }) => (
   </div>
 );
 
-const DomainStep = ({
-  platform,
-  refetch,
-  onVerified,
-  onNext,
-  canProceed,
-  disableAction,
-}: {
+const DomainStep = (props: {
   platform: PlatformWithoutSensitiveData;
   refetch: () => Promise<void>;
   onVerified: () => void;
@@ -188,20 +174,24 @@ const DomainStep = ({
   canProceed: boolean;
   disableAction: DisableAction;
 }) => {
-  const [domain, setDomain] = createSignal(platform.ssoDomain ?? '');
+  const [domain, setDomain] = createSignal(
+    untrack(() => props.platform.ssoDomain ?? ''),
+  );
   const [error, setError] = createSignal('');
-  const verification = platform.ssoDomainVerification ?? null;
+  const verification = createMemo(
+    () => props.platform.ssoDomainVerification ?? null,
+  );
   const data = createMemo(() => ({ ssoDomain: domain() }));
   const valid = createMemo(() => SsoDomainFormValues.safeParse(data()).success);
   const isDirty = createMemo(
-    () => domain().trim().toLowerCase() !== (platform.ssoDomain ?? ''),
+    () => domain().trim().toLowerCase() !== (props.platform.ssoDomain ?? ''),
   );
   const [showUpdateWarning, setShowUpdateWarning] = createSignal(false);
 
   const { mutate: saveDomain, isPending: isSaving } = createMutation(() => ({
     mutationFn: async (values: SsoDomainFormValues) => {
       await samlSsoApi.updateSsoDomain(values.ssoDomain.trim().toLowerCase());
-      await refetch();
+      await props.refetch();
     },
     onSuccess: () => {
       toast.success(t('SSO domain saved'));
@@ -218,7 +208,7 @@ const DomainStep = ({
     () => ({
       mutationFn: async () => {
         const result = await samlSsoApi.verifySsoDomain();
-        await refetch();
+        await props.refetch();
         return result;
       },
       onSuccess: (result) => {
@@ -227,7 +217,7 @@ const DomainStep = ({
           SsoDomainVerificationStatus.VERIFIED
         ) {
           toast.success(t('Domain verified'));
-          onVerified();
+          props.onVerified();
         } else {
           toast.message(
             t('TXT record not found yet — DNS can take a few minutes.'),
@@ -244,7 +234,7 @@ const DomainStep = ({
 
   const handleSubmit = (values: SsoDomainFormValues) => {
     setError('');
-    if (platform.ssoDomain) {
+    if (props.platform.ssoDomain) {
       setShowUpdateWarning(true);
       return;
     }
@@ -254,7 +244,7 @@ const DomainStep = ({
   return (
     <>
       <form
-        className="grid space-y-4"
+        class="grid space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
           const result = SsoDomainFormValues.safeParse(data());
@@ -281,9 +271,9 @@ const DomainStep = ({
           </p>
         </div>
 
-        <Show when={verification && !isDirty()}>
+        <Show when={verification() && !isDirty()}>
           <DomainVerificationPanel
-            verification={verification}
+            verification={verification()}
             isVerifying={isVerifying}
             onVerify={() => verifyDomain()}
           />
@@ -296,13 +286,13 @@ const DomainStep = ({
         </Show>
 
         <DialogFooter>
-          <Show when={disableAction}>
+          <Show when={props.disableAction}>
             <Button
               type="button"
               variant="basic"
               class="text-destructive"
-              loading={disableAction.isDisabling}
-              onClick={disableAction.onDisable}
+              loading={props.disableAction.isDisabling}
+              onClick={props.disableAction.onDisable}
             >
               {t('Disable')}
             </Button>
@@ -310,17 +300,17 @@ const DomainStep = ({
           <Show
             when={isDirty()}
             fallback={
-              <Button type="button" onClick={onNext} disabled={!canProceed}>
+              <Button
+                type="button"
+                onClick={props.onNext}
+                disabled={!props.canProceed}
+              >
                 {t('Next')}
               </Button>
             }
           >
-            <Button
-              type="submit"
-              loading={isSaving}
-              disabled={!valid()}
-            >
-              {platform.ssoDomain ? t('Update domain') : t('Save domain')}
+            <Button type="submit" loading={isSaving} disabled={!valid()}>
+              {props.platform.ssoDomain ? t('Update domain') : t('Save domain')}
             </Button>
           </Show>
         </DialogFooter>
@@ -361,13 +351,7 @@ const DomainStep = ({
   );
 };
 
-const SamlStep = ({
-  platform,
-  refetch,
-  onBack,
-  onClose,
-  disableAction,
-}: {
+const SamlStep = (props: {
   platform: PlatformWithoutSensitiveData;
   refetch: () => Promise<void>;
   onBack: () => void;
@@ -387,13 +371,13 @@ const SamlStep = ({
 
   const { mutate, isPending } = createMutation(() => ({
     mutationFn: async (request: UpdatePlatformRequestBody) => {
-      await platformApi.update(request, platform.id);
-      await refetch();
+      await platformApi.update(request, props.platform.id);
+      await props.refetch();
     },
     onSuccess: () => {
       toast.success(t('Single sign-on settings updated'), { duration: 3000 });
       setError('');
-      onClose();
+      props.onClose();
     },
     onError: (error) => {
       setError(
@@ -408,7 +392,7 @@ const SamlStep = ({
   return (
     <>
       <Show when={samlAcs}>
-        <div className="mb-4">
+        <div class="mb-4">
           <ApMarkdown
             markdown={t(
               `
@@ -431,7 +415,7 @@ Activepieces
       </Show>
 
       <form
-        className="grid space-y-4"
+        class="grid space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
           const result = Saml2FormValues.safeParse(values());
@@ -485,18 +469,18 @@ Activepieces
         </Show>
 
         <DialogFooter>
-          <Show when={disableAction}>
+          <Show when={props.disableAction}>
             <Button
               type="button"
               variant="basic"
               class="text-destructive mr-auto"
-              loading={disableAction.isDisabling}
-              onClick={disableAction.onDisable}
+              loading={props.disableAction.isDisabling}
+              onClick={props.disableAction.onDisable}
             >
               {t('Disable')}
             </Button>
           </Show>
-          <Button variant="outline" type="button" onClick={onBack}>
+          <Button variant="outline" type="button" onClick={props.onBack}>
             {t('Back')}
           </Button>
           <Button loading={isPending} disabled={!valid()} type="submit">
@@ -508,34 +492,32 @@ Activepieces
   );
 };
 
-const DomainVerificationPanel = ({
-  verification,
-  isVerifying,
-  onVerify,
-}: {
+const DomainVerificationPanel = (props: {
   verification: SsoDomainVerification;
   isVerifying: boolean;
   onVerify: () => void;
 }) => {
-  const verified = verification.status === SsoDomainVerificationStatus.VERIFIED;
+  const verified = createMemo(
+    () => props.verification.status === SsoDomainVerificationStatus.VERIFIED,
+  );
   return (
-    <div className="flex flex-col gap-3">
-      <VerificationStatusBadge status={verification.status} />
-      <Show when={!verified}>
+    <div class="flex flex-col gap-3">
+      <VerificationStatusBadge status={props.verification.status} />
+      <Show when={!verified()}>
         <>
-          <p className="text-xs text-muted-foreground">
+          <p class="text-xs text-muted-foreground">
             {t(
               "Add this TXT record at your DNS provider. We'll detect it once it propagates — this usually takes a few minutes.",
             )}
           </p>
-          <VerificationRecordRow record={verification.record} />
+          <VerificationRecordRow record={props.verification.record} />
           <div>
             <Button
               type="button"
               size="sm"
               variant="outline"
-              loading={isVerifying}
-              onClick={onVerify}
+              loading={props.isVerifying}
+              onClick={props.onVerify}
             >
               {t('Verify DNS')}
             </Button>
@@ -546,46 +528,42 @@ const DomainVerificationPanel = ({
   );
 };
 
-const VerificationStatusBadge = ({
-  status,
-}: {
+const VerificationStatusBadge = (props: {
   status: SsoDomainVerificationStatus;
-}) => {
-  if (status === SsoDomainVerificationStatus.VERIFIED) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-success-600">
-        <CheckCircle class="size-4" />
-        {t('DNS verified — domain is ready')}
+}) => (
+  <Show
+    when={props.status === SsoDomainVerificationStatus.VERIFIED}
+    fallback={
+      <div class="flex items-center gap-2 text-sm text-warning">
+        <Loader2 class="size-4 animate-spin" />
+        {t('Waiting for DNS')}
       </div>
-    );
-  }
-  return (
-    <div className="flex items-center gap-2 text-sm text-warning">
-      <Loader2 class="size-4 animate-spin" />
-      {t('Waiting for DNS')}
+    }
+  >
+    <div class="flex items-center gap-2 text-sm text-success-600">
+      <CheckCircle class="size-4" />
+      {t('DNS verified — domain is ready')}
     </div>
-  );
-};
+  </Show>
+);
 
-const VerificationRecordRow = ({
-  record,
-}: {
+const VerificationRecordRow = (props: {
   record: SsoDomainVerificationRecord;
 }) => (
-  <div className="flex flex-col gap-2 rounded-md border p-4">
-    <div className="flex items-center gap-2">
-      <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted">
-        {record.type}
+  <div class="flex flex-col gap-2 rounded-md border p-4">
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-muted">
+        {props.record.type}
       </span>
     </div>
-    <div className="grid grid-cols-2 gap-3">
-      <div className="flex flex-col gap-1.5 min-w-0">
+    <div class="grid grid-cols-2 gap-3">
+      <div class="flex flex-col gap-1.5 min-w-0">
         <Label class="text-xs text-muted-foreground">{t('Name')}</Label>
-        <CopyToClipboardInput textToCopy={record.name} useInput={true} />
+        <CopyToClipboardInput textToCopy={props.record.name} useInput={true} />
       </div>
-      <div className="flex flex-col gap-1.5 min-w-0">
+      <div class="flex flex-col gap-1.5 min-w-0">
         <Label class="text-xs text-muted-foreground">{t('Value')}</Label>
-        <CopyToClipboardInput textToCopy={record.value} useInput={true} />
+        <CopyToClipboardInput textToCopy={props.record.value} useInput={true} />
       </div>
     </div>
   </div>

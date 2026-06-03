@@ -1,5 +1,5 @@
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -51,7 +51,7 @@ function ZapIcon(props: ZapIconProps & { ref?: ZapIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -67,18 +67,18 @@ function ZapIcon(props: ZapIconProps & { ref?: ZapIconHandle }) {
           animate: { rotate: [0, -10, 8, -6, 4, -2, 1, 0] },
         }}
         transition={{ duration: 0.7, ease: 'easeOut' }}
-        style={{ transformOrigin: 'center' }}
+        style={{ 'transform-origin': 'center' }}
       >
         <path
           d={ZAP_PATH}
           fill="currentColor"
-          className="text-muted-foreground/20"
+          class="text-muted-foreground/20"
         />
         <path
           d={ZAP_PATH}
           style={{
             fill: fillColor ?? 'transparent',
-            clipPath: `inset(${100 - fillPercent}% 0 0 0)`,
+            'clip-path': `inset(${100 - fillPercent}% 0 0 0)`,
             transition: 'clip-path 0.4s ease, fill 0.35s ease',
           }}
         />
@@ -86,7 +86,6 @@ function ZapIcon(props: ZapIconProps & { ref?: ZapIconHandle }) {
     </div>
   );
 }
-ZapIcon.displayName = 'ZapIcon';
 
 export { ZapIcon };
 export interface ZapIconHandle {

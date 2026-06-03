@@ -51,16 +51,15 @@ interface ProjectSettingsDialogProps {
   };
 }
 
-export function ProjectSettingsDialog({
-  open,
-  onClose,
-  initialTab = 'general',
-  initialValues,
-}: ProjectSettingsDialogProps) {
-  const [activeTab, setActiveTab] = createSignal<TabId>(initialTab);
+export function ProjectSettingsDialog(_props: ProjectSettingsDialogProps) {
+  const props: ProjectSettingsDialogProps = {
+    ..._props,
+    initialTab: _props.initialTab ?? 'general',
+  };
+  const [activeTab, setActiveTab] = createSignal<TabId>(props.initialTab);
   const { checkAccess } = useAuthorization();
   const { project } = projectCollectionUtils.useCurrentProject();
-  let previousOpenRef = open;
+  let previousOpenRef = props.open;
 
   const { data: showAlerts } = flagsHooks.useFlag(ApFlagId.SHOW_ALERTS);
   const { data: showProjectMembers } = flagsHooks.useFlag(
@@ -70,9 +69,9 @@ export function ProjectSettingsDialog({
   const platformRole = userHooks.getCurrentUserPlatformRole();
 
   const initial = (): FormValues => ({
-    projectName: initialValues?.projectName ?? project.displayName,
+    projectName: props.initialValues?.projectName ?? project.displayName,
     icon: project.icon,
-    externalId: initialValues?.externalId,
+    externalId: props.initialValues?.externalId,
     maxConcurrentJobs: project.maxConcurrentJobs,
   });
   const disabled = checkAccess(Permission.WRITE_PROJECT) === false;
@@ -99,17 +98,17 @@ export function ProjectSettingsDialog({
     toast.success(t('Your changes have been saved.'), {
       duration: 3000,
     });
-    onClose();
+    props.onClose();
   };
 
   createEffect(() => {
-    const dialogJustOpened = open && !previousOpenRef;
+    const dialogJustOpened = props.open && !previousOpenRef;
     if (dialogJustOpened && !isNil(project)) {
       setValues(initial());
       setDirty(false);
-      setActiveTab(initialTab);
+      setActiveTab(props.initialTab);
     }
-    previousOpenRef = open;
+    previousOpenRef = props.open;
   });
 
   const hasGeneralSettings =
@@ -186,8 +185,8 @@ export function ProjectSettingsDialog({
   const renderTabHeader = () => {
     const hasUnsavedChanges = activeTab === 'general' && dirty();
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-lg font-bold">
+      <div class="flex items-center gap-2">
+        <span class="text-lg font-bold">
           {tabs.find((tab) => tab.id === activeTab)?.label}
         </span>
         {
@@ -204,16 +203,12 @@ export function ProjectSettingsDialog({
     if (activeTab !== 'general') return null;
 
     return (
-      <div className="border-t bg-background rounded-br-md">
-        <div className="flex items-center justify-end gap-3 px-6 py-4">
-          <Button variant="outline" size="sm" onClick={onClose}>
+      <div class="border-t bg-background rounded-br-md">
+        <div class="flex items-center justify-end gap-3 px-6 py-4">
+          <Button variant="outline" size="sm" onClick={props.onClose}>
             {t('Close')}
           </Button>
-          <Button
-            disabled={!dirty()}
-            size="sm"
-            onClick={handleSave}
-          >
+          <Button disabled={!dirty()} size="sm" onClick={handleSave}>
             {t('Save Changes')}
           </Button>
         </div>
@@ -221,14 +216,12 @@ export function ProjectSettingsDialog({
     );
   };
 
-  const currentIconColor = values().icon.color;
-
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={props.open} onOpenChange={props.onClose}>
       <DialogContent class="max-w-5xl w-full max-h-[95vh] rounded-sm flex flex-col p-0">
-        <div className="flex h-[700px]">
-          <div className="w-[238px]">
-            <nav className="bg-sidebar space-y-1 bg-muted rounded-sm rounded-r-none h-full flex flex-col rounded-l-md">
+        <div class="flex h-[700px]">
+          <div class="w-[238px]">
+            <nav class="bg-sidebar space-y-1 bg-muted rounded-sm rounded-r-none h-full flex flex-col rounded-l-md">
               <ApProjectDisplay
                 title={values().projectName}
                 icon={values().icon}
@@ -237,12 +230,12 @@ export function ProjectSettingsDialog({
                 maxLengthToNotShowTooltip={18}
                 projectType={project.type}
               />
-              <div className="flex flex-col px-2 gap-1">
+              <div class="flex flex-col px-2 gap-1">
                 {
                   <For each={tabs}>
                     {(tab) => (
                       <div
-                        className={cn(
+                        class={cn(
                           'flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm font-medium transition-all cursor-pointer hover:bg-sidebar-accent',
                           {
                             'bg-sidebar-accent': activeTab === tab.id,
@@ -259,21 +252,21 @@ export function ProjectSettingsDialog({
               </div>
             </nav>
           </div>
-          <div className="flex-1 min-w-0 flex flex-col">
-            <div className="flex-1 min-h-0 overflow-hidden">
+          <div class="flex-1 min-w-0 flex flex-col">
+            <div class="flex-1 min-h-0 overflow-hidden">
               <ScrollArea class="h-full">
                 {
                   <Show when={activeTab === 'general'}>
                     <ProjectAvatar
                       displayName={project.displayName}
                       projectType={project.type}
-                      iconColor={currentIconColor}
+                      iconColor={values().icon.color}
                       size="md"
                       showBackground={true}
                     />
                   </Show>
                 }
-                <div className="flex flex-col gap-3 px-10 pt-4">
+                <div class="flex flex-col gap-3 px-10 pt-4">
                   {renderTabHeader()}
                   {renderTabContent()}
                 </div>

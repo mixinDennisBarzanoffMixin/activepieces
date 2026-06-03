@@ -1,6 +1,6 @@
 import { isNil } from '@activepieces/shared';
 import { createVirtualizer } from '@tanstack/solid-virtual';
-import { For, createEffect } from 'solid-js';
+import { For, createEffect, untrack, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -12,6 +12,7 @@ interface VirtualizedScrollAreaProps<T> {
   overscan?: number;
   estimateSize: (index: number) => number;
   getItemKey?: (index: number) => string | number;
+  class?: string;
   className?: string;
   initialScroll?: {
     index: number;
@@ -29,41 +30,32 @@ export interface VirtualizedScrollAreaRef {
   ) => void;
 }
 
-const VirtualizedScrollArea = <T,>({
-  items,
-  renderItem,
-  overscan = 5,
-  estimateSize,
-  getItemKey,
-  initialScroll,
-  className,
-  ...props
-}: VirtualizedScrollAreaProps<T>) => {
+const VirtualizedScrollArea = <T,>(props: VirtualizedScrollAreaProps<T>) => {
   let scrollAreaViewportRef: HTMLDivElement | undefined;
 
   const rowVirtualizer = createVirtualizer({
-    count: items.length,
+    count: untrack(() => props.items.length),
     getScrollElement: () => scrollAreaViewportRef,
-    estimateSize: estimateSize,
-    overscan,
-    getItemKey: getItemKey || ((index) => index),
+    estimateSize: untrack(() => props.estimateSize),
+    overscan: untrack(() => props.overscan ?? 5),
+    getItemKey: untrack(() => props.getItemKey || ((index) => index)),
   });
 
   const virtualItems = rowVirtualizer.getVirtualItems();
   createEffect(() => {
-    if (isNil(initialScroll)) {
+    if (isNil(props.initialScroll)) {
       return;
     }
-    if (initialScroll.index > -1) {
-      rowVirtualizer.scrollToIndex(initialScroll.index, {
+    if (props.initialScroll.index > -1) {
+      rowVirtualizer.scrollToIndex(props.initialScroll.index, {
         align: 'start',
         behavior: 'auto',
       });
-      if (initialScroll?.clickAfterScroll) {
+      if (props.initialScroll.clickAfterScroll) {
         //need to wait for the scroll to be completed
         setTimeout(() => {
           const targetElement = scrollAreaViewportRef?.querySelector(
-            `[data-virtual-index="${initialScroll.index}"]`,
+            `[data-virtual-index="${props.initialScroll?.index}"]`,
           );
           const renderedElement = targetElement?.children[0];
           if (renderedElement instanceof HTMLElement) {
@@ -76,8 +68,7 @@ const VirtualizedScrollArea = <T,>({
   return (
     <ScrollArea
       viewPortRef={scrollAreaViewportRef}
-      {...props}
-      class={cn('h-full', className)}
+      class={cn('h-full', props.class, props.className)}
     >
       <div
         style={{
@@ -99,7 +90,10 @@ const VirtualizedScrollArea = <T,>({
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
-              {renderItem(items[virtualItem.index], virtualItem.index)}
+              {props.renderItem(
+                props.items[virtualItem.index],
+                virtualItem.index,
+              )}
             </div>
           )}
         </For>

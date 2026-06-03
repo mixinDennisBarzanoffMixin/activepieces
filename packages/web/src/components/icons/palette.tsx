@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -72,7 +72,7 @@ function PaletteIcon(props: PaletteIconProps & { ref?: PaletteIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -135,6 +135,5 @@ function PaletteIcon(props: PaletteIconProps & { ref?: PaletteIconHandle }) {
     </div>
   );
 }
-PaletteIcon.displayName = 'PaletteIcon';
 
 export { PaletteIcon };

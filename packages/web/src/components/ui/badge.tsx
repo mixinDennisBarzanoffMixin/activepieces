@@ -1,4 +1,6 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { splitProps, type JSX } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
 import { Slot } from '@/components/ui/slot';
 import { cn } from '@/lib/utils';
@@ -28,23 +30,35 @@ const badgeVariants = cva(
   },
 );
 
-function Badge({
-  className,
-  variant = 'default',
-  asChild = false,
-  ...props
-}: JSX.IntrinsicElements['span'] &
-  VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
-  const Comp = asChild ? Slot.Root : 'span';
+function Badge(props: BadgeProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'variant',
+    'asChild',
+  ]);
+  const variant = () => local.variant ?? 'default';
+  const Comp = () => (local.asChild ? Slot.Root : 'span');
 
   return (
-    <Comp
+    <Dynamic
+      component={Comp()}
       data-slot="badge"
-      data-variant={variant}
-      class={cn(badgeVariants({ variant }), className)}
-      {...props}
+      data-variant={variant()}
+      class={cn(
+        badgeVariants({ variant: variant() }),
+        local.class,
+        local.className,
+      )}
+      {...rest}
     />
   );
 }
 
 export { Badge, badgeVariants };
+
+type BadgeProps = JSX.IntrinsicElements['span'] &
+  VariantProps<typeof badgeVariants> & {
+    className?: string;
+    asChild?: boolean;
+  };

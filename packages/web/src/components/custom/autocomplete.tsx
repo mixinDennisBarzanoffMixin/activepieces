@@ -1,5 +1,6 @@
 import { t } from 'i18next';
 import { Check } from 'lucide-solid';
+import { Show, For, type JSX } from 'solid-js';
 
 import {
   Command,
@@ -20,42 +21,36 @@ type Props<T extends string> = {
   selectedValue: T;
   onSelectedValueChange: (value: T) => void;
   items: { value: T; label: string }[];
-  children: any;
+  children: JSX.Element;
   className?: string;
   open: boolean;
   setOpen: (open: boolean) => void;
   listRef?: HTMLDivElement;
 };
 
-export function AutoComplete<T extends string>({
-  selectedValue,
-  onSelectedValueChange,
-  items,
-  children,
-  className,
-  open,
-  setOpen,
-  listRef,
-}: Props<T>) {
+export function AutoComplete<T extends string>(props: Props<T>) {
   const onSelectItem = (inputValue: string) => {
-    onSelectedValueChange(inputValue as T);
-    setOpen(false);
+    const item = props.items.find((item) => item.value === inputValue);
+    if (item) {
+      props.onSelectedValueChange(item.value);
+      props.setOpen(false);
+    }
   };
 
   return (
-    <div className="flex items-center">
+    <div class="flex items-center">
       <Popover
-        open={open}
+        open={props.open}
         onOpenChange={(open) => {
-          setOpen(open);
+          props.setOpen(open);
         }}
       >
-        <PopoverTrigger asChild>{children}</PopoverTrigger>
+        <PopoverTrigger asChild>{props.children}</PopoverTrigger>
 
         <PopoverContent
           asChild
-          onOpenAutoFocus={(e) => e.preventDefault()}
-          onInteractOutside={(e) => {
+          onOpenAutoFocus={(e: Event) => e.preventDefault()}
+          onInteractOutside={(e: Event) => {
             if (
               e.target instanceof Element &&
               e.target.hasAttribute('cmdk-input')
@@ -65,23 +60,23 @@ export function AutoComplete<T extends string>({
           }}
           class="w-(--radix-popover-trigger-width) p-0"
         >
-          <Command class={className} ref={listRef}>
+          <Command class={props.className} ref={props.listRef}>
             <CommandList class="bg-background">
               <ScrollArea
                 class={cn('', {
-                  'h-50': items.length >= 5,
-                  'h-10': items.length === 1,
-                  'h-20': items.length === 2,
-                  'h-30': items.length === 3,
-                  'h-40': items.length === 4,
+                  'h-50': props.items.length >= 5,
+                  'h-10': props.items.length === 1,
+                  'h-20': props.items.length === 2,
+                  'h-30': props.items.length === 3,
+                  'h-40': props.items.length === 4,
                 })}
               >
                 <Show
-                  when={items.length > 0}
+                  when={props.items.length > 0}
                   fallback={<CommandEmpty>{t('No items')}</CommandEmpty>}
                 >
                   <CommandGroup>
-                    <For each={items}>
+                    <For each={props.items}>
                       {(option) => (
                         <CommandItem
                           value={option.value}
@@ -91,7 +86,7 @@ export function AutoComplete<T extends string>({
                           <Check
                             class={cn(
                               'h-4 w-4',
-                              selectedValue === option.value
+                              props.selectedValue === option.value
                                 ? 'opacity-100'
                                 : 'opacity-0',
                             )}

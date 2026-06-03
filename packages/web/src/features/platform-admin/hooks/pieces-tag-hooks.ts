@@ -31,8 +31,8 @@ export const piecesTagMutations = {
       mutationFn: (id: string) => piecesTagsApi.delete(id),
       onSuccess: () => {
         toast.success(t('Tag deleted'));
-        queryClient.invalidateQueries({ queryKey: piecesTagKeys.all });
-        queryClient.invalidateQueries({ queryKey: ['pieces'] });
+        void queryClient.invalidateQueries({ queryKey: piecesTagKeys.all });
+        void queryClient.invalidateQueries({ queryKey: ['pieces'] });
         onSuccess();
       },
     }));

@@ -5,8 +5,8 @@ import { Workflow } from 'lucide-solid';
 import { createMemo, For, Show } from 'solid-js';
 
 import { CenteredPage } from '@/app/components/centered-page';
-import { queryClient } from '@/app/query-client';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
+import { queryClient } from '@/app/query-client';
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { ItemGroup } from '@/components/custom/item';
 import { PlusIcon } from '@/components/icons/plus';
@@ -98,26 +98,26 @@ const EventDestinationsPage = () => {
           <SkeletonList numberOfItems={3} class="w-full h-[72px]" />
         </Show>
 
-        <Show when={!isLoading && parsedDestinations.length === 0}>
-          <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+        <Show when={!isLoading && parsedDestinations().length === 0}>
+          <div class="flex flex-col items-center gap-3 py-12 text-muted-foreground">
             <Workflow class="size-10" />
-            <p className="text-sm">
+            <p class="text-sm">
               {t('No destinations yet. Create one to get started.')}
             </p>
           </div>
         </Show>
 
-        <Show when={!isLoading && parsedDestinations.length > 0}>
+        <Show when={!isLoading && parsedDestinations().length > 0}>
           <ItemGroup class="gap-2">
-            <For each={parsedDestinations}>
-              {({ destination, parsed }) => (
+            <For each={parsedDestinations()}>
+              {(item) => (
                 <EventDestinationRow
-                  key={destination.id}
-                  destination={destination}
-                  parsed={parsed}
+                  key={item.destination.id}
+                  destination={item.destination}
+                  parsed={item.parsed}
                   flowDisplayName={
-                    parsed.kind === 'flow'
-                      ? flowDisplayNameById.get(parsed.flowId)
+                    item.parsed.kind === 'flow'
+                      ? flowDisplayNameById().get(item.parsed.flowId)
                       : undefined
                   }
                   eventLabels={eventLabels}

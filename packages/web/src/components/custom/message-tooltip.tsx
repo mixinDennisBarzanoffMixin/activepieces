@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { Show, type JSX } from 'solid-js';
 
 import {
   Tooltip,
@@ -7,15 +8,14 @@ import {
 } from '@/components/ui/tooltip';
 
 export const MessageTooltip = (props: {
-  children: any;
+  children: JSX.Element;
   isDisabled: boolean;
   message: string;
   ref?: HTMLButtonElement;
 }) => {
-  let ref: HTMLButtonElement | undefined;
   return (
     <Tooltip delayDuration={100}>
-      <TooltipTrigger ref={(el) => (ref = el)} asChild>
+      <TooltipTrigger asChild>
         <div>{props.children}</div>
       </TooltipTrigger>
       <Show when={props.isDisabled}>
@@ -24,5 +24,3 @@ export const MessageTooltip = (props: {
     </Tooltip>
   );
 };
-
-MessageTooltip.displayName = 'MessageTooltip';

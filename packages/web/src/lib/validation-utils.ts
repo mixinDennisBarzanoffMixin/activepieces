@@ -1,4 +1,4 @@
-import { AxiosError } from 'axios';
+import { AxiosError, isAxiosError } from 'axios';
 
 export const validationUtils = {
   isValidationError: (
@@ -6,9 +6,9 @@ export const validationUtils = {
   ): error is AxiosError<{ code?: string; params?: { message?: string } }> => {
     console.error('isValidationError', error);
     return (
-      error instanceof AxiosError &&
+      isAxiosError<{ code?: string; params?: { message?: string } }>(error) &&
       error.response?.status === 409 &&
-      error.response?.data?.code === 'VALIDATION'
+      error.response.data.code === 'VALIDATION'
     );
   },
 };

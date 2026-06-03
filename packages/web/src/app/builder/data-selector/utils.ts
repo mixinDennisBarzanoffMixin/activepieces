@@ -73,11 +73,11 @@ function mergeUniqueKeys(
   const result: Record<string, Node> = { ...obj };
   for (const [key, values] of Object.entries(obj2)) {
     const properties = mergeUniqueKeys(
-      result[key]?.properties || {},
+      result[key].properties || {},
       values.properties,
     );
     result[key] = {
-      values: [...(result[key]?.values || []), ...values.values],
+      values: [...(result[key].values || []), ...values.values],
       properties,
     };
   }
@@ -86,15 +86,15 @@ function mergeUniqueKeys(
 
 function extractUniqueKeys(obj: unknown): Record<string, Node> {
   let result: Record<string, Node> = {};
-  if (isObject(obj)) {
+  if (isRecord(obj)) {
     for (const [entryKey, entryValue] of Object.entries(obj)) {
-      const resultValue = result[entryKey]?.values || [];
-      if (Array.isArray(entryValue)) {
+      const resultValue = result[entryKey].values || [];
+      if (isUnknownArray(entryValue)) {
         const filteredValues = entryValue.filter(
-          (v) => !isObject(v) && !Array.isArray(v),
+          (v) => !isRecord(v) && !Array.isArray(v),
         );
         resultValue.push(...filteredValues);
-      } else if (!isObject(entryValue)) {
+      } else if (!isRecord(entryValue)) {
         resultValue.push(entryValue);
       }
       const properties = extractUniqueKeys(entryValue);
@@ -317,8 +317,12 @@ function traverseStep(
   zipArraysOfProperties: boolean,
 ): DataSelectorTreeNode<DataSelectorTreeNodeDataUnion> {
   const displayName = `${step.dfsIndex + 1}. ${step.displayName}`;
+  const stepSettings: unknown = step.settings;
+  const stepSampleData = isRecord(stepSettings)
+    ? stepSettings.sampleData
+    : undefined;
   const stepNeedsTesting =
-    isNil(step.settings.sampleData?.lastTestDate) &&
+    (!isRecord(stepSampleData) || isNil(stepSampleData.lastTestDate)) &&
     (step.type !== FlowTriggerType.PIECE ||
       !pieceSelectorUtils.isManualTrigger({
         pieceName: step.settings.pieceName,
@@ -328,12 +332,16 @@ function traverseStep(
     return buildTestStepNode(displayName, step.name);
   }
   if (step.type === FlowActionType.LOOP_ON_ITEMS) {
-    const copiedSampleData = JSON.parse(JSON.stringify(sampleData[step.name]));
-    delete copiedSampleData['iterations'];
+    const copiedSampleData: unknown = JSON.parse(
+      JSON.stringify(sampleData[step.name]),
+    );
+    const sample = isRecord(copiedSampleData)
+      ? withoutIterations(copiedSampleData)
+      : {};
     const headNode = traverseOutput(
       displayName,
       [step.name],
-      copiedSampleData,
+      sample,
       zipArraysOfProperties,
       true,
     );
@@ -383,9 +391,24 @@ function filterBy(
       return null;
     })
     .filter(
-      (f) => !isNil(f),
-    ) as DataSelectorTreeNode<DataSelectorTreeNodeDataUnion>[];
+      (f): f is DataSelectorTreeNode<DataSelectorTreeNodeDataUnion> =>
+        !isNil(f),
+    );
   return res;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isUnknownArray(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
+
+function withoutIterations(value: Record<string, unknown>) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([key]) => key !== 'iterations'),
+  );
 }
 
 export const dataSelectorUtils = {

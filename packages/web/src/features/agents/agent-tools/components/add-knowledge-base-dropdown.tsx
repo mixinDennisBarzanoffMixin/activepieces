@@ -17,15 +17,15 @@ type AddKnowledgeBaseDropdownProps = {
   disabled?: boolean;
 };
 
-export const AddKnowledgeBaseDropdown = ({
-  disabled,
-}: AddKnowledgeBaseDropdownProps) => {
+export const AddKnowledgeBaseDropdown = (
+  props: AddKnowledgeBaseDropdownProps,
+) => {
   const [open, setOpen] = createSignal(false);
   const { setShowAddKbDialog } = useKnowledgeBaseToolDialogStore();
 
   return (
     <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger disabled={disabled} asChild>
+      <DropdownMenuTrigger disabled={props.disabled} asChild>
         <Button variant="outline" size="sm">
           <Plus class="size-4 mr-2" />
           {t('Add')}

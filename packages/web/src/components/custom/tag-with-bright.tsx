@@ -1,6 +1,8 @@
 import { LineChart, Clock } from 'lucide-solid';
+import { mergeProps, Show } from 'solid-js';
 
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 type TagWithBrightProps = {
   index?: number;
@@ -11,13 +13,8 @@ type TagWithBrightProps = {
   size?: 'sm' | 'md';
 };
 
-export const TagWithBright = ({
-  index,
-  prefix,
-  title,
-  color,
-  size = 'sm',
-}: TagWithBrightProps) => {
+export const TagWithBright = (_props: TagWithBrightProps) => {
+  const props = mergeProps({ size: 'sm' }, _props);
   return (
     <>
       <style>{`
@@ -32,33 +29,35 @@ export const TagWithBright = ({
       `}</style>
       <Badge
         variant="outline"
-        class={`border-0 h-fit relative overflow-hidden ${
-          size === 'sm' ? 'text-xs px-2 py-1' : 'text-sm'
-        }`}
+        class={cn('border-0 h-fit relative overflow-hidden', {
+          'text-xs px-2 py-1': props.size === 'sm',
+          'text-sm': props.size !== 'sm',
+        })}
         style={{
-          backgroundColor: color,
+          'background-color': props.color,
           color: '#000000',
         }}
       >
         <span
-          className="absolute inset-0"
+          class="absolute inset-0"
           style={{
-            background: `linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 50%, transparent 100%)`,
+            background:
+              'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.9) 50%, transparent 100%)',
             animation: 'shine 2.5s ease-out infinite',
             width: '100%',
             transform: 'translateX(-100%)',
           }}
         />
-        <Show when={index === 0}>
+        <Show when={props.index === 0}>
           <LineChart class="relative font-medium mr-1.5 w-3.5 h-3.5" />
         </Show>
-        <Show when={index === 1}>
+        <Show when={props.index === 1}>
           <Clock class="relative font-medium mr-1.5 w-3.5 h-3.5" />
         </Show>
-        <Show when={prefix}>
-          <span className="relative font-medium mr-1">{prefix}</span>
+        <Show when={props.prefix}>
+          <span class="relative font-medium mr-1">{props.prefix}</span>
         </Show>
-        <span className="relative font-bold">{title}</span>
+        <span class="relative font-bold">{props.title}</span>
       </Badge>
     </>
   );

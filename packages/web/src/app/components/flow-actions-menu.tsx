@@ -21,7 +21,7 @@ import {
   UploadCloud,
   User,
 } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { createSignal, Show, type JSX } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
@@ -66,25 +66,14 @@ type FlowActionMenuProps = {
   | { insideBuilder: false; onVersionsListClick: null }
 );
 
-const FlowActionMenu = ({
-  flow,
-  flowVersion,
-  children,
-  readonly,
-  onRename,
-  onMoveTo,
-  onDuplicate,
-  onDelete,
-  onOwnerChange,
-  onVersionsListClick,
-  insideBuilder,
-}) => {
+function FlowActionMenu(props: FlowActionMenuProps) {
   const isRunsPage = useLocation().pathname.includes('/runs');
   const { platform } = platformHooks.useCurrentPlatform();
   const openNewWindow = useNewWindow();
+  const environmentsEnabled = () => platform?.plan.environmentsEnabled === true;
   const { gitSync } = gitSyncHooks.useGitSync(
     authenticationSession.getProjectId()!,
-    platform.plan.environmentsEnabled,
+    environmentsEnabled(),
   );
   const { checkAccess } = useAuthorization();
   const userHasPermissionToWriteFolder = checkAccess(Permission.WRITE_FOLDER);
@@ -96,29 +85,31 @@ const FlowActionMenu = ({
   const { embedState } = useEmbedding();
   const isDevelopmentBranch =
     gitSync && gitSync.branchType === GitBranchType.DEVELOPMENT;
-  const [open, setOpen] = createSignal(false);
+  const [open, setOpen] = createSignal<boolean>(false);
   const allowPush =
-    flow.publishedVersionId !== null &&
-    flow.version.state === FlowVersionState.LOCKED;
+    props.flow.publishedVersionId !== null &&
+    props.flow.version.state === FlowVersionState.LOCKED;
   const { projectMembers } = projectMembersHooks.useProjectMembers();
   const hasProjectMembers = projectMembers && projectMembers.length > 0;
 
-  const [isRenameOpen, setIsRenameOpen] = createSignal(false);
-  const [renameValue, setRenameValue] = createSignal(flowVersion.displayName);
-  const [isMoveOpen, setIsMoveOpen] = createSignal(false);
-  const [folderToMoveId, setFolderToMoveId] = createSignal('');
+  const [isRenameOpen, setIsRenameOpen] = createSignal<boolean>(false);
+  const [renameValue, setRenameValue] = createSignal<string>(
+    props.flowVersion.displayName,
+  );
+  const [isMoveOpen, setIsMoveOpen] = createSignal<boolean>(false);
+  const [folderToMoveId, setFolderToMoveId] = createSignal<string>('');
   const { folders } = foldersHooks.useFolders();
 
   const { mutate: renameFlow, isPending: isRenamePending } = createMutation(
     () => ({
       mutationFn: async () =>
-        flowsApi.update(flow.id, {
+        flowsApi.update(props.flow.id, {
           type: FlowOperationType.CHANGE_NAME,
-          request: { displayName: renameValue },
+          request: { displayName: renameValue() },
         }),
       onSuccess: () => {
         setIsRenameOpen(false);
-        onRename();
+        props.onRename();
         toast.success(t('Flow has been renamed.'));
       },
     }),
@@ -126,13 +117,13 @@ const FlowActionMenu = ({
 
   const { mutate: moveFlow, isPending: isMovePending } = createMutation(() => ({
     mutationFn: async () =>
-      flowsApi.update(flow.id, {
+      flowsApi.update(props.flow.id, {
         type: FlowOperationType.CHANGE_FOLDER,
-        request: { folderId: folderToMoveId },
+        request: { folderId: folderToMoveId() },
       }),
     onSuccess: () => {
       setIsMoveOpen(false);
-      onMoveTo(folderToMoveId);
+      props.onMoveTo(folderToMoveId());
       toast.success(t('Moved flow successfully'));
     },
   }));
@@ -141,13 +132,13 @@ const FlowActionMenu = ({
     createMutation(() => ({
       mutationFn: async () => {
         const modifiedFlowVersion = {
-          ...flowVersion,
-          displayName: `${flowVersion.displayName} - Copy`,
+          ...props.flowVersion,
+          displayName: `${props.flowVersion.displayName} - Copy`,
         };
         const createdFlow = await flowsApi.create({
           displayName: modifiedFlowVersion.displayName,
           projectId: authenticationSession.getProjectId()!,
-          folderId: flow.folderId ?? undefined,
+          folderId: props.flow.folderId ?? undefined,
         });
         const updatedFlow = await flowsApi.update(createdFlow.id, {
           type: FlowOperationType.IMPORT_FLOW,
@@ -162,7 +153,7 @@ const FlowActionMenu = ({
       },
       onSuccess: (data) => {
         openNewWindow(`/flows/${data.id}`);
-        onDuplicate();
+        props.onDuplicate();
       },
     }));
 
@@ -170,30 +161,26 @@ const FlowActionMenu = ({
     flowHooks.useExportFlows();
   return (
     <>
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-        <DropdownMenuContent
-          noAnimationOnOut={true}
-          onCloseAutoFocus={(e) => e.preventDefault()}
-        >
+      <DropdownMenu open={open()} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>{props.children}</DropdownMenuTrigger>
+        <DropdownMenuContent noAnimationOnOut={true} onCloseAutoFocus={prevent}>
           {
-            <Show when={!readonly}>
+            <Show when={!props.readonly}>
               <>
                 {
-                  <Show when={insideBuilder}>
+                  <Show when={props.insideBuilder}>
                     <PermissionNeededTooltip
                       hasPermission={userHasPermissionToUpdateFlow}
                     >
                       <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
+                        onSelect={(e: Event) => {
+                          preventStop(e);
                           setOpen(false);
-                          onRename();
+                          props.onRename();
                         }}
                         disabled={!userHasPermissionToUpdateFlow}
                       >
-                        <div className="flex cursor-pointer flex-row gap-2 items-center">
+                        <div class="flex cursor-pointer flex-row gap-2 items-center">
                           <Pencil class="h-4 w-4" />
                           <span>{t('Rename')}</span>
                         </div>
@@ -203,18 +190,17 @@ const FlowActionMenu = ({
                 }
 
                 {
-                  <Show when={!insideBuilder}>
+                  <Show when={!props.insideBuilder}>
                     <DropdownMenuItem
-                      onSelect={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
+                      onSelect={(e: Event) => {
+                        preventStop(e);
                         setOpen(false);
-                        setRenameValue(flowVersion.displayName);
+                        setRenameValue(props.flowVersion.displayName);
                         setIsRenameOpen(true);
                       }}
                       disabled={!userHasPermissionToUpdateFlow}
                     >
-                      <div className="flex cursor-pointer flex-row gap-2 items-center">
+                      <div class="flex cursor-pointer flex-row gap-2 items-center">
                         <Pencil class="h-4 w-4" />
                         <span>{t('Rename')}</span>
                       </div>
@@ -227,13 +213,13 @@ const FlowActionMenu = ({
 
           <PermissionNeededTooltip hasPermission={userHasPermissionToPushToGit}>
             <PublishedNeededTooltip allowPush={allowPush}>
-              <PushToGitDialog type="flow" flows={[flow]}>
+              <PushToGitDialog type="flow" flows={[props.flow]}>
                 <DropdownMenuItem
                   disabled={!userHasPermissionToPushToGit || !allowPush}
-                  onSelect={(e) => e.preventDefault()}
-                  onClick={(e) => e.stopPropagation()}
+                  onSelect={prevent}
+                  onClick={stop}
                 >
-                  <div className="flex cursor-pointer  flex-row gap-2 items-center">
+                  <div class="flex cursor-pointer  flex-row gap-2 items-center">
                     <UploadCloud class="h-4 w-4" />
                     <span>{t('Push to Git')}</span>
                   </div>
@@ -255,14 +241,13 @@ const FlowActionMenu = ({
                     !userHasPermissionToUpdateFlow ||
                     !userHasPermissionToWriteFolder
                   }
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
+                  onSelect={(e: Event) => {
+                    preventStop(e);
                     setOpen(false);
                     setIsMoveOpen(true);
                   }}
                 >
-                  <div className="flex cursor-pointer  flex-row gap-2 items-center">
+                  <div class="flex cursor-pointer  flex-row gap-2 items-center">
                     <CornerUpLeft class="h-4 w-4" />
                     <span>{t('Move To')}</span>
                   </div>
@@ -272,21 +257,23 @@ const FlowActionMenu = ({
           }
           {
             <Show
-              when={!readonly && hasProjectMembers && !embedState.isEmbedded}
+              when={
+                !props.readonly && hasProjectMembers && !embedState.isEmbedded
+              }
             >
               <PermissionNeededTooltip
                 hasPermission={userHasPermissionToUpdateFlow}
               >
                 <ChangeOwnerDialog
-                  flow={flow}
-                  onOwnerChange={onOwnerChange || (() => {})}
+                  flow={props.flow}
+                  onOwnerChange={props.onOwnerChange || (() => {})}
                 >
                   <DropdownMenuItem
                     disabled={!userHasPermissionToUpdateFlow}
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={(e) => e.stopPropagation()}
+                    onSelect={prevent}
+                    onClick={stop}
                   >
-                    <div className="flex cursor-pointer  flex-row gap-2 items-center">
+                    <div class="flex cursor-pointer  flex-row gap-2 items-center">
                       <User class="h-4 w-4" />
                       <span>{t('Change Owner')}</span>
                     </div>
@@ -304,7 +291,7 @@ const FlowActionMenu = ({
                   disabled={!userHasPermissionToUpdateFlow}
                   onClick={() => duplicateFlow()}
                 >
-                  <div className="flex cursor-pointer  flex-row gap-2 items-center">
+                  <div class="flex cursor-pointer  flex-row gap-2 items-center">
                     {
                       <Show
                         when={isDuplicatePending}
@@ -323,9 +310,15 @@ const FlowActionMenu = ({
           }
 
           {
-            <Show when={insideBuilder && !isRunsPage}>
-              <DropdownMenuItem onClick={onVersionsListClick}>
-                <div className="flex cursor-pointer  flex-row gap-2 items-center">
+            <Show when={props.insideBuilder && !isRunsPage}>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (props.insideBuilder) {
+                    props.onVersionsListClick();
+                  }
+                }}
+              >
+                <div class="flex cursor-pointer  flex-row gap-2 items-center">
                   <GalleryVerticalEnd class="h-4 w-4" />
                   <span>{t('Versions')}</span>
                 </div>
@@ -335,20 +328,20 @@ const FlowActionMenu = ({
           {
             <Show
               when={
-                !readonly &&
-                insideBuilder &&
+                !props.readonly &&
+                props.insideBuilder &&
                 !embedState.hideExportAndImportFlow
               }
             >
               <PermissionNeededTooltip
                 hasPermission={userHasPermissionToUpdateFlow}
               >
-                <ImportFlowDialog insideBuilder={true} flowId={flow.id}>
+                <ImportFlowDialog insideBuilder={true} flowId={props.flow.id}>
                   <DropdownMenuItem
                     disabled={!userHasPermissionToUpdateFlow}
-                    onSelect={(e) => e.preventDefault()}
+                    onSelect={prevent}
                   >
-                    <div className="flex cursor-pointer flex-row gap-2 items-center">
+                    <div class="flex cursor-pointer flex-row gap-2 items-center">
                       <Import class="w-4 h-4" />
                       {t('Import')}
                     </div>
@@ -360,8 +353,8 @@ const FlowActionMenu = ({
 
           {
             <Show when={!embedState.hideExportAndImportFlow}>
-              <DropdownMenuItem onClick={() => exportFlow([flow])}>
-                <div className="flex cursor-pointer  flex-row gap-2 items-center">
+              <DropdownMenuItem onClick={() => exportFlow([props.flow])}>
+                <div class="flex cursor-pointer  flex-row gap-2 items-center">
                   {
                     <Show
                       when={isExportPending}
@@ -378,11 +371,11 @@ const FlowActionMenu = ({
           {
             <Show when={!embedState.isEmbedded}>
               <ShareTemplateDialog
-                flowId={flow.id}
-                flowVersionId={flowVersion.id}
+                flowId={props.flow.id}
+                flowVersionId={props.flowVersion.id}
               >
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <div className="flex cursor-pointer  flex-row gap-2 items-center">
+                <DropdownMenuItem onSelect={prevent}>
+                  <div class="flex cursor-pointer  flex-row gap-2 items-center">
                     <Share2 class="h-4 w-4" />
                     <span>{t('Share')}</span>
                   </div>
@@ -393,10 +386,10 @@ const FlowActionMenu = ({
           {
             <Show
               when={
-                !readonly &&
+                !props.readonly &&
                 (!embedState.isEmbedded ||
                   !embedState.disableNavigationInBuilder ||
-                  !insideBuilder)
+                  !props.insideBuilder)
               }
             >
               <PermissionNeededTooltip
@@ -413,7 +406,7 @@ const FlowActionMenu = ({
                       </div>
                       {
                         <Show when={isDevelopmentBranch}>
-                          <div className="font-bold mt-2">
+                          <div class="font-bold mt-2">
                             {t(
                               'You are on a development branch, this will also delete the flow from the remote repository.',
                             )}
@@ -423,20 +416,20 @@ const FlowActionMenu = ({
                     </>
                   }
                   mutationFn={async () => {
-                    await flowsApi.delete(flow.id);
-                    onDelete();
+                    await flowsApi.delete(props.flow.id);
+                    props.onDelete();
                   }}
                   entityName={t('flow')}
                   buttonText={t('Delete')}
                 >
                   <DropdownMenuItem
                     disabled={!userHasPermissionToUpdateFlow}
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={(e) => e.stopPropagation()}
+                    onSelect={prevent}
+                    onClick={stop}
                   >
-                    <div className="flex cursor-pointer  flex-row gap-2 items-center">
+                    <div class="flex cursor-pointer  flex-row gap-2 items-center">
                       <Trash2 class="h-4 w-4 text-destructive" />
-                      <span className="text-destructive">{t('Delete')}</span>
+                      <span class="text-destructive">{t('Delete')}</span>
                     </div>
                   </DropdownMenuItem>
                 </ConfirmationDeleteDialog>
@@ -446,24 +439,37 @@ const FlowActionMenu = ({
         </DropdownMenuContent>
       </DropdownMenu>
       <RenameDialog
-        open={isRenameOpen}
+        open={isRenameOpen()}
         onOpenChange={setIsRenameOpen}
-        value={renameValue}
+        value={renameValue()}
         onChange={setRenameValue}
         onConfirm={() => renameFlow()}
         isRenaming={isRenamePending}
       />
       <MoveToFolderDialog
-        open={isMoveOpen}
+        open={isMoveOpen()}
         onOpenChange={setIsMoveOpen}
         folders={folders}
-        selectedFolderId={folderToMoveId}
+        selectedFolderId={folderToMoveId()}
         onFolderChange={setFolderToMoveId}
         onConfirm={() => moveFlow()}
         isMoving={isMovePending}
       />
     </>
   );
-};
+}
+
+function prevent(e: Event) {
+  e.preventDefault();
+}
+
+function stop(e: Event) {
+  e.stopPropagation();
+}
+
+function preventStop(e: Event) {
+  e.preventDefault();
+  e.stopPropagation();
+}
 
 export default FlowActionMenu;

@@ -1,3 +1,5 @@
+import { For } from 'solid-js';
+
 const BARS = [
   { duration: '0.8s', delay: '0s' },
   { duration: '0.6s', delay: '0.15s' },
@@ -8,17 +10,18 @@ const BARS = [
 
 function VoiceWaveformBars() {
   return (
-    <div className="flex h-3.5 items-center gap-[2px]">
-      {BARS.map((bar, i) => (
-        <span
-          key={i}
-          className="w-[3px] h-full rounded-full bg-foreground origin-center animate-[voice-bar_ease-in-out_infinite_alternate]"
-          style={{
-            animationDuration: bar.duration,
-            animationDelay: bar.delay,
-          }}
-        />
-      ))}
+    <div class="flex h-3.5 items-center gap-[2px]">
+      <For each={BARS}>
+        {(bar) => (
+          <span
+            class="w-[3px] h-full rounded-full bg-foreground origin-center animate-[voice-bar_ease-in-out_infinite_alternate]"
+            style={{
+              'animation-duration': bar.duration,
+              'animation-delay': bar.delay,
+            }}
+          />
+        )}
+      </For>
     </div>
   );
 }

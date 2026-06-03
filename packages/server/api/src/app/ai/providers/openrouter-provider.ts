@@ -1,7 +1,7 @@
 import { httpClient, HttpMethod } from '@activepieces/pieces-common'
 import { AIProviderModel, AIProviderModelType, OpenRouterProviderAuthConfig, OpenRouterProviderConfig } from '@activepieces/shared'
 import { FastifyBaseLogger } from 'fastify'
-import { AIProviderStrategy } from './ai-provider'
+import type { AIProviderStrategy } from './ai-provider'
 
 export const openRouterProvider: AIProviderStrategy<OpenRouterProviderAuthConfig, OpenRouterProviderConfig> = {
     name: 'OpenRouter',

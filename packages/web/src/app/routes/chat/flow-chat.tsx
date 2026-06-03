@@ -4,11 +4,12 @@ import {
   ErrorCode,
   isNil,
   HumanInputFormResultTypes,
+  HumanInputFormResult,
 } from '@activepieces/shared';
 import { createMutation, createQuery } from '@tanstack/solid-query';
 import { AxiosError } from 'axios';
 import { nanoid } from 'nanoid';
-import { createEffect, createSignal, Show } from 'solid-js';
+import { createEffect, createSignal, mergeProps, Show } from 'solid-js';
 
 import { ChatDrawerSource } from '@/app/builder/types';
 import { LoadingScreen } from '@/components/custom/loading-screen';
@@ -39,40 +40,29 @@ interface FlowChatProps {
   onSetSessionId?: (sessionId: string) => void;
 }
 
-export function FlowChat({
-  flowId,
-  className,
-  showWelcomeMessage = true,
-  mode,
-  onError,
-  onSendingMessage,
-  closeChat,
-  messages = [],
-  chatSessionId,
-  onAddMessage,
-  onSetSessionId,
-}: FlowChatProps) {
+export function FlowChat(_props: FlowChatProps) {
+  const props = mergeProps({ showWelcomeMessage: true, messages: [] }, _props);
   const messagesRef = null;
-  let chatInputRef = null;
+  let chatInputRef: HTMLTextAreaElement | undefined;
 
   const {
     data: chatUI,
     isLoading,
     isError: isLoadingError,
-  } = createQuery<ChatUIResponse | null, Error>({
-    queryKey: ['chat', flowId],
+  } = createQuery<ChatUIResponse | null, Error>(() => ({
+    queryKey: ['chat', props.flowId],
     queryFn: () =>
       humanInputApi.getChatUI(
-        flowId,
-        mode === ChatDrawerSource.TEST_FLOW ||
-          mode === ChatDrawerSource.TEST_STEP
+        props.flowId,
+        props.mode === ChatDrawerSource.TEST_FLOW ||
+          props.mode === ChatDrawerSource.TEST_STEP
           ? true
           : false,
       ),
-    enabled: !isNil(flowId),
+    enabled: !isNil(props.flowId),
     staleTime: Infinity,
     retry: false,
-  });
+  }));
 
   const scrollToBottom = () => {
     setTimeout(() => {
@@ -85,13 +75,13 @@ export function FlowChat({
 
   // Initialize chat session ID if not set and we have the callback
   createEffect(() => {
-    if (!chatSessionId && onSetSessionId) {
-      onSetSessionId(nanoid());
+    if (!props.chatSessionId && props.onSetSessionId) {
+      props.onSetSessionId(nanoid());
     }
   });
 
   let previousInputRef = '';
-  let previousFilesRef = [];
+  let previousFilesRef: File[] = [];
   const [sendingError, setSendingError] = createSignal<ApErrorParams | null>(
     null,
   );
@@ -101,15 +91,16 @@ export function FlowChat({
   const botName =
     chatUI?.props.botName ?? `${chatUI?.platformName ?? 'Activepieces'} Bot`;
 
-  const { mutate: sendMessage, isPending: isSending } = createMutation({
-    mutationFn: async ({
-      isRetrying,
-      message,
-    }: {
+  const { mutate: sendMessage, isPending: isSending } = createMutation<
+    HumanInputFormResult | null,
+    AxiosError,
+    {
       isRetrying: boolean;
       message?: ChatMessage;
-    }) => {
-      if (!flowId || !chatSessionId) return null;
+    }
+  >(() => ({
+    mutationFn: async ({ isRetrying, message }) => {
+      if (!props.flowId || !props.chatSessionId) return null;
 
       const savedInput = isRetrying
         ? previousInputRef
@@ -119,8 +110,8 @@ export function FlowChat({
       previousInputRef = savedInput;
       previousFilesRef = savedFiles;
 
-      if (!isRetrying && message && onAddMessage) {
-        onAddMessage({
+      if (!isRetrying && message && props.onAddMessage) {
+        props.onAddMessage({
           role: 'user',
           textContent: savedInput,
           files: savedFiles.map((file) => ({
@@ -131,11 +122,11 @@ export function FlowChat({
       }
 
       scrollToBottom();
-      const isDraft = mode === ChatDrawerSource.TEST_FLOW;
-      const isTestStep = mode === ChatDrawerSource.TEST_STEP;
+      const isDraft = props.mode === ChatDrawerSource.TEST_FLOW;
+      const isTestStep = props.mode === ChatDrawerSource.TEST_STEP;
       return humanInputApi.sendMessage({
-        flowId,
-        chatId: chatSessionId,
+        flowId: props.flowId,
+        chatId: props.chatSessionId,
         message: savedInput,
         files: savedFiles,
         mode: isDraft ? 'draft' : isTestStep ? 'test' : 'locked',
@@ -143,8 +134,8 @@ export function FlowChat({
     },
 
     onSuccess: (result) => {
-      if (mode === ChatDrawerSource.TEST_STEP) {
-        closeChat?.();
+      if (props.mode === ChatDrawerSource.TEST_STEP) {
+        props.closeChat?.();
       }
       if (!result) {
         const error: ApErrorParams = {
@@ -152,18 +143,18 @@ export function FlowChat({
           params: {},
         };
         setSendingError(error);
-        onError?.(error);
+        props.onError?.(error);
         return;
       }
 
-      if ('type' in result && onAddMessage) {
+      if ('type' in result && props.onAddMessage) {
         setSendingError(null);
-        onError?.(null);
+        props.onError?.(null);
 
         switch (result.type) {
           case HumanInputFormResultTypes.FILE: {
             if ('url' in result.value) {
-              onAddMessage({
+              props.onAddMessage({
                 role: 'bot',
                 files: [
                   {
@@ -181,7 +172,7 @@ export function FlowChat({
               (file) => 'url' in file && 'mimeType' in file,
             );
 
-            onAddMessage({
+            props.onAddMessage({
               role: 'bot',
               textContent: result.value,
               files: validFiles.length > 0 ? validFiles : undefined,
@@ -203,15 +194,15 @@ export function FlowChat({
     onError: (error: AxiosError) => {
       const errorData = error.response?.data as ApErrorParams;
       setSendingError(errorData);
-      onError?.(errorData);
+      props.onError?.(errorData);
       scrollToBottom();
     },
-  });
+  }));
 
   createEffect(scrollToBottom);
 
   const handleSendMessage = (message: ChatMessage) => {
-    onSendingMessage?.(message);
+    props.onSendingMessage?.(message);
     sendMessage({ isRetrying: false, message });
   };
 
@@ -228,20 +219,20 @@ export function FlowChat({
 
   return (
     <main
-      className={cn(
+      class={cn(
         'flex w-full flex-col items-center justify-center pb-6',
-        messages.length > 0 ? 'h-screen' : 'h-screen',
-        className,
+        props.messages.length > 0 ? 'h-screen' : 'h-screen',
+        props.className,
       )}
     >
       <Show
-        when={messages.length > 0}
+        when={props.messages.length > 0}
         fallback={
           <>
-            <Show when={showWelcomeMessage}>
+            <Show when={props.showWelcomeMessage}>
               <ChatIntro chatUI={chatUI} botName={botName} />
             </Show>
-            <div className="w-full px-4 max-w-3xl absolute bottom-6">
+            <div class="w-full px-4 max-w-3xl absolute bottom-6">
               <ChatInput
                 ref={(el) => (chatInputRef = el)}
                 onSendMessage={handleSendMessage}
@@ -255,15 +246,15 @@ export function FlowChat({
         <>
           <ChatMessageList
             messagesRef={messagesRef}
-            messages={messages}
+            messages={props.messages}
             chatUI={chatUI}
             sendingError={sendingError}
             isSending={isSending}
-            flowId={flowId}
+            flowId={props.flowId}
             sendMessage={sendMessage}
             setSelectedImage={toggleImageDialog}
           />
-          <div className="w-full px-4 max-w-3xl">
+          <div class="w-full px-4 max-w-3xl">
             <ChatInput
               ref={(el) => (chatInputRef = el)}
               onSendMessage={handleSendMessage}

@@ -30,10 +30,7 @@ const FormSchema = z.object({
 
 type FormSchema = z.infer<typeof FormSchema>;
 
-export const NewApiKeyDialog = ({
-  children,
-  onCreate,
-}: NewApiKeyDialogProps) => {
+export const NewApiKeyDialog = (props: NewApiKeyDialogProps) => {
   const [open, setOpen] = createSignal(false);
   const [apiKey, setApiKey] = createSignal<ApiKeyResponseWithValue | undefined>(
     undefined,
@@ -45,28 +42,28 @@ export const NewApiKeyDialog = ({
     validate: zodForm(FormSchema),
   });
 
-  const { mutate, isPending } = createMutation({
-    mutationFn: apiKeyApi.create,
+  const { mutate, isPending } = createMutation(() => ({
+    mutationFn: (request: FormSchema) => apiKeyApi.create(request),
     onSuccess: (apiKey) => {
       setApiKey(apiKey);
-      onCreate();
+      props.onCreate();
     },
-  });
+  }));
 
   return (
     <Dialog
-        open={open}
-        onOpenChange={(open) => {
-          setOpen(open);
+      open={open}
+      onOpenChange={(open) => {
+        setOpen(open);
         reset(form);
-        }}
+      }}
     >
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
             <Show when={apiKey} fallback={t('Create API Key')}>
-              t('API Key Created'
+              {t('API Key Created')}
             </Show>
           </DialogTitle>
           <Show when={!apiKey}>
@@ -79,13 +76,13 @@ export const NewApiKeyDialog = ({
         </DialogHeader>
         <Show when={apiKey}>
           <>
-            <div className="p-4">
-              <div className="flex flex-col items-start gap-2">
-                <span className="text-md">
+            <div class="p-4">
+              <div class="flex flex-col items-start gap-2">
+                <span class="text-md">
                   {t(
                     'Please save this secret key somewhere safe and accessible. For security reasons,',
                   )}{' '}
-                  <span className="font-semibold">
+                  <span class="font-semibold">
                     {t(
                       "you won't be able to view it again after closing this dialog.",
                     )}
@@ -113,44 +110,39 @@ export const NewApiKeyDialog = ({
           </>
         </Show>
         <Show when={!apiKey}>
-            <Form
-              class="grid space-y-4"
-              onSubmit={(data) => mutate(data)}
-            >
-              <Field
-                name="displayName"
+          <Form class="grid space-y-4" onSubmit={(data) => mutate(data)}>
+            <Field name="displayName">
+              {(field, props) => (
+                <div class="grid space-y-4">
+                  <Label>{t('Name')}</Label>
+                  <Input
+                    {...props}
+                    value={field.value ?? ''}
+                    required
+                    placeholder={t('API Key Name')}
+                    class="rounded-sm"
+                  />
+                  <Show when={field.error}>
+                    <p class="text-sm font-medium text-destructive wrap-break-word">
+                      {t(field.error)}
+                    </p>
+                  </Show>
+                </div>
+              )}
+            </Field>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                type="button"
+                onClick={() => setOpen(false)}
               >
-                {(field, props) => (
-                  <div class="grid space-y-4">
-                    <Label>{t('Name')}</Label>
-                    <Input
-                      {...props}
-                      value={field.value ?? ''}
-                      required
-                      placeholder={t('API Key Name')}
-                      class="rounded-sm"
-                    />
-                    <Show when={field.error}>
-                      <p class="text-sm font-medium text-destructive wrap-break-word">
-                        {t(field.error)}
-                      </p>
-                    </Show>
-                  </div>
-                )}
-              </Field>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setOpen(false)}
-                >
-                  {t('Cancel')}
-                </Button>
-                <Button disabled={isPending} loading={isPending}>
-                  {t('Create')}
-                </Button>
-              </DialogFooter>
-            </Form>
+                {t('Cancel')}
+              </Button>
+              <Button disabled={isPending} loading={isPending}>
+                {t('Create')}
+              </Button>
+            </DialogFooter>
+          </Form>
         </Show>
       </DialogContent>
     </Dialog>

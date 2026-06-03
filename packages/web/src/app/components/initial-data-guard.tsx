@@ -6,17 +6,13 @@ import { useEmbedding } from '@/components/providers/embed-provider';
 type InitialDataGuardProps = {
   children: JSX.Element;
 };
-export const InitialDataGuard = ({ children }: InitialDataGuardProps) => {
+export const InitialDataGuard = (props: InitialDataGuardProps) => {
   const { embedState } = useEmbedding();
   return (
     <Suspense
-      fallback={
-        <LoadingScreen
-          brightSpinner={embedState.useDarkBackground}
-        ></LoadingScreen>
-      }
+      fallback={<LoadingScreen brightSpinner={embedState.useDarkBackground} />}
     >
-      {children}
+      {props.children}
     </Suspense>
   );
 };

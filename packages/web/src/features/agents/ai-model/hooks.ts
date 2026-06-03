@@ -5,6 +5,7 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { createQuery } from '@tanstack/solid-query';
+import { Accessor } from 'solid-js';
 
 import { aiProviderApi } from '@/features/platform-admin/api/ai-provider-api';
 
@@ -44,16 +45,17 @@ export const aiModelHooks = {
     }));
   },
 
-  useGetModelsForProvider: (provider?: AIProviderName) => {
+  useGetModelsForProvider: (provider: Accessor<AIProviderName | undefined>) => {
     return createQuery(() => ({
-      queryKey: ['ai-models', provider],
-      enabled: !!provider,
+      queryKey: ['ai-models', provider()],
+      enabled: !!provider(),
       queryFn: async () => {
-        if (isNil(provider)) return [];
+        const value = provider();
+        if (isNil(value)) return [];
 
-        const allModels = await aiProviderApi.listModelsForProvider(provider);
+        const allModels = await aiProviderApi.listModelsForProvider(value);
 
-        return getAllowedModelsForProvider(provider, allModels, 'text');
+        return getAllowedModelsForProvider(value, allModels, 'text');
       },
     }));
   },

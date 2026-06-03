@@ -19,31 +19,26 @@ type CategoryFilterCarouselProps = {
   className?: string;
 };
 
-const CarouselContentWithButtons = ({
-  className,
-  categories,
-  selectedCategory,
-  onCategorySelect,
-}: CategoryFilterCarouselProps) => {
+const CarouselContentWithButtons = (props: CategoryFilterCarouselProps) => {
   const { canScrollNext, canScrollPrev } = useCarousel();
 
   return (
     <div
-      className={`relative my-4 transition-[padding] duration-200 py-3 border-b border-t `}
+      class={`relative my-4 transition-[padding] duration-200 py-3 border-b border-t `}
       style={{
-        paddingLeft: canScrollPrev ? '3rem' : '0',
-        paddingRight: canScrollNext ? '3rem' : '0',
+        'padding-left': canScrollPrev ? '3rem' : '0',
+        'padding-right': canScrollNext ? '3rem' : '0',
       }}
     >
-      <CarouselContent class={cn('-ml-2 gap-1', className)}>
-        <For each={categories}>
+      <CarouselContent class={cn('-ml-2 gap-1', props.className)}>
+        <For each={props.categories}>
           {(category) => {
-            const isSelected = selectedCategory === category;
+            const isSelected = props.selectedCategory === category;
             return (
               <CarouselItem key={category} class="basis-auto pl-2">
                 <Button
                   variant="outline"
-                  onClick={() => onCategorySelect(category)}
+                  onClick={() => props.onCategorySelect(category)}
                   class={`px-4 py-1.5 h-auto whitespace-nowrap transition-colors ${
                     isSelected
                       ? 'bg-black text-white border-black hover:!bg-black hover:!text-white'
@@ -71,11 +66,7 @@ const CarouselContentWithButtons = ({
   );
 };
 
-export const CategoryFilterCarousel = ({
-  categories,
-  selectedCategory,
-  onCategorySelect,
-}: CategoryFilterCarouselProps) => {
+export const CategoryFilterCarousel = (props: CategoryFilterCarouselProps) => {
   return (
     <Carousel
       opts={{
@@ -86,9 +77,9 @@ export const CategoryFilterCarousel = ({
     >
       <CarouselContentWithButtons
         class={DASHBOARD_CONTENT_PADDING_X}
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onCategorySelect={onCategorySelect}
+        categories={props.categories}
+        selectedCategory={props.selectedCategory}
+        onCategorySelect={props.onCategorySelect}
       />
     </Carousel>
   );

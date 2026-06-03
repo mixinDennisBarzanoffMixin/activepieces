@@ -52,7 +52,7 @@ const ApiKeysPage = () => {
         title={t('API Keys')}
         description={t('Manage API keys to access Activepieces APIs.')}
         actions={
-          <NewApiKeyDialog onCreate={() => refetch()}>
+          <NewApiKeyDialog onCreate={() => void refetch()}>
             <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
               {t('New API Key')}
             </AnimatedIconButton>
@@ -64,9 +64,9 @@ const ApiKeysPage = () => {
         </Show>
 
         <Show when={!isLoading && keys.length === 0}>
-          <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+          <div class="flex flex-col items-center gap-3 py-12 text-muted-foreground">
             <Key class="size-10" />
-            <p className="text-sm">
+            <p class="text-sm">
               {t('No API keys yet. Create one to get started.')}
             </p>
           </div>
@@ -83,7 +83,7 @@ const ApiKeysPage = () => {
                   <ItemContent>
                     <ItemTitle>{apiKey.displayName}</ItemTitle>
                     <ItemDescription class="text-xs">
-                      <span className="font-mono">
+                      <span class="font-mono">
                         sk-...{apiKey.truncatedValue}
                       </span>
                       {' · '}
@@ -120,13 +120,13 @@ const ApiKeysPage = () => {
                           buttonText={t('Revoke')}
                           mutationFn={async () => {
                             await apiKeyApi.delete(apiKey.id);
-                            refetch();
+                            void refetch();
                           }}
                           onError={() => internalErrorToast()}
                         >
                           <DropdownMenuItem
                             class="text-destructive focus:text-destructive"
-                            onSelect={(e) => e.preventDefault()}
+                            onSelect={(e: Event) => e.preventDefault()}
                           >
                             <Trash class="size-4 mr-2 text-destructive" />
                             {t('Revoke API Key')}
@@ -145,5 +145,4 @@ const ApiKeysPage = () => {
   );
 };
 
-ApiKeysPage.displayName = 'ApiKeysPage';
 export { ApiKeysPage };

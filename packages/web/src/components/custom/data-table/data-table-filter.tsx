@@ -1,5 +1,6 @@
 import { useSearchParams } from '@solidjs/router';
 import { Column } from '@tanstack/solid-table';
+import { JSX, Match, Switch, createMemo, splitProps } from 'solid-js';
 
 import {
   DateRange,
@@ -18,7 +19,7 @@ type DropdownFilterProps = {
   options: {
     label: string;
     value: string;
-    icon?: any | string;
+    icon?: JSX.Element | string;
   }[];
 };
 
@@ -35,7 +36,7 @@ type CheckboxjhFilterProps = {
 
 export type DataTableFilterProps = {
   title?: string;
-  icon?: any;
+  icon?: JSX.Element;
 } & (
   | DropdownFilterProps
   | InputFilterProps
@@ -43,130 +44,125 @@ export type DataTableFilterProps = {
   | CheckboxjhFilterProps
 );
 
-export function DataTableFilter<TData, TValue>({
-  title,
-  column,
-  accessorKey,
-  ...props
-}: DataTableFilterProps & {
-  column?: Column<TData, TValue>;
-  accessorKey?: string;
-}) {
-  const facets = column?.getFacetedUniqueValues();
+export function DataTableFilter<TData, TValue>(
+  _props: DataTableFilterProps & {
+    column?: Column<TData, TValue>;
+    accessorKey?: string;
+  },
+) {
+  const [local, props] = splitProps(_props, ['title', 'column', 'accessorKey']);
+  const facets = createMemo(() => local.column?.getFacetedUniqueValues());
   const [searchParams, setSearchParams] = useSearchParams();
-  const paramKey = accessorKey ?? column?.id;
+  const paramKey = createMemo(() => local.accessorKey ?? local.column?.id);
 
   const handleFilterChange = (
     filterValue: string | string[] | DateRange | undefined,
   ) => {
+    const key = paramKey();
+    if (!key) return;
+
     setSearchParams(
       {
         ...searchParams,
-        [paramKey as string]: undefined,
-        [`${paramKey}After`]: undefined,
-        [`${paramKey}Before`]: undefined,
+        [key]: undefined,
+        [`${key}After`]: undefined,
+        [`${key}Before`]: undefined,
         [CURSOR_QUERY_PARAM]: undefined,
         ...(filterValue
           ? Array.isArray(filterValue)
             ? filterValue.reduce(
                 (acc, v) => ({
                   ...acc,
-                  [paramKey as string]: [...(acc[paramKey as string] || []), v],
+                  [key]: [...((acc[key] as string[] | undefined) || []), v],
                 }),
-                {},
+                {} as Record<string, string[]>,
               )
-            : typeof filterValue === 'object' && filterValue !== null
+            : typeof filterValue === 'object'
             ? {
                 ...(filterValue.from
-                  ? { [`${paramKey}After`]: filterValue.from.toISOString() }
+                  ? { [`${key}After`]: filterValue.from.toISOString() }
                   : {}),
                 ...(filterValue.to
-                  ? { [`${paramKey}Before`]: filterValue.to.toISOString() }
+                  ? { [`${key}Before`]: filterValue.to.toISOString() }
                   : {}),
               }
-            : { [paramKey as string]: filterValue }
+            : { [key]: filterValue }
           : {}),
       },
       { replace: true },
     );
 
     if (Array.isArray(filterValue)) {
-      column?.setFilterValue(filterValue.length ? filterValue : undefined);
-    } else if (typeof filterValue === 'object' && filterValue !== null) {
-      column?.setFilterValue(
+      local.column?.setFilterValue(
+        filterValue.length ? filterValue : undefined,
+      );
+    } else if (typeof filterValue === 'object') {
+      local.column?.setFilterValue(
         filterValue.from || filterValue.to ? filterValue : undefined,
       );
     } else {
-      column?.setFilterValue(filterValue ? filterValue : undefined);
+      local.column?.setFilterValue(filterValue ? filterValue : undefined);
     }
   };
 
-  switch (props.type) {
-    case 'input': {
-      const filterValue = searchParams[paramKey as string] || '';
-      return (
+  return (
+    <Switch>
+      <Match when={props.type === 'input'}>
         <DataTableInputPopover
-          title={title}
-          filterValue={filterValue}
+          title={local.title}
+          filterValue={searchParams[paramKey() as string] || ''}
           handleFilterChange={handleFilterChange}
         />
-      );
-    }
-    case 'select': {
-      const filterValue = (searchParams[paramKey as string] as string[]) || [];
-      const selectedValues = new Set(filterValue);
-      return (
-        <DataTableSelectPopover
-          title={title}
-          selectedValues={selectedValues}
-          options={props.options}
-          handleFilterChange={handleFilterChange}
-          facets={facets}
-        />
-      );
-    }
-    case 'date': {
-      const from = searchParams[`${paramKey}After`];
-      const to = searchParams[`${paramKey}Before`];
-
-      return (
+      </Match>
+      <Match when={props.type === 'select'}>
+        {(() => {
+          const key = paramKey();
+          return (
+            <DataTableSelectPopover
+              title={local.title}
+              selectedValues={new Set(searchParams[key] as string[])}
+              options={props.type === 'select' ? props.options : []}
+              handleFilterChange={handleFilterChange}
+              facets={facets()}
+            />
+          );
+        })()}
+      </Match>
+      <Match when={props.type === 'date'}>
         <DateTimePickerWithRange
-          defaultSelectedRange={props.defaultPresetName}
+          defaultSelectedRange={
+            props.type === 'date' ? props.defaultPresetName : undefined
+          }
           presetType="past"
           onChange={handleFilterChange}
-          from={from ?? undefined}
-          to={to ?? undefined}
+          from={searchParams[`${paramKey()}After`] ?? undefined}
+          to={searchParams[`${paramKey()}Before`] ?? undefined}
         />
-      );
-    }
-    case 'checkbox': {
-      const key = paramKey || 'archivedAt';
-      const isArchived = searchParams[key] === 'true';
-
-      const handleCheckedChange = (checked: boolean) => {
-        setSearchParams(
-          {
-            ...searchParams,
-            [key]: checked ? 'true' : undefined,
-            [CURSOR_QUERY_PARAM]: undefined,
-          },
-          { replace: true },
-        );
-
-        column?.setFilterValue(
-          checked
-            ? (row: any) => row.getValue('archivedAt') !== null
-            : undefined,
-        );
-      };
-
-      return (
+      </Match>
+      <Match when={props.type === 'checkbox'}>
         <DataTableInputCheckbox
-          label={title ?? 'Archived'}
-          checked={isArchived}
-          handleCheckedChange={handleCheckedChange}
+          label={local.title ?? 'Archived'}
+          checked={searchParams[paramKey() || 'archivedAt'] === 'true'}
+          handleCheckedChange={(checked) => {
+            const key = paramKey() || 'archivedAt';
+            setSearchParams(
+              {
+                ...searchParams,
+                [key]: checked ? 'true' : undefined,
+                [CURSOR_QUERY_PARAM]: undefined,
+              },
+              { replace: true },
+            );
+
+            local.column?.setFilterValue(
+              checked
+                ? (row: { getValue: (id: string) => unknown }) =>
+                    row.getValue('archivedAt') !== null
+                : undefined,
+            );
+          }}
         />
-      );
-    }
-  }
+      </Match>
+    </Switch>
+  );
 }

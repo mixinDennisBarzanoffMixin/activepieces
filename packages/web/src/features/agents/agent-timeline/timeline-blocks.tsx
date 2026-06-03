@@ -20,7 +20,14 @@ import {
   SquareTerminal,
   Braces,
 } from 'lucide-solid';
-import { createMemo, createSignal } from 'solid-js';
+import {
+  JSX,
+  Show,
+  createMemo,
+  createSignal,
+  mergeProps,
+  untrack,
+} from 'solid-js';
 
 import { DataList } from '@/components/custom/data-list';
 import { JsonViewer } from '@/components/custom/json-viewer';
@@ -41,59 +48,97 @@ interface AgentToolBlockProps {
   index: number;
 }
 
-const parseJsonOrReturnOriginal = (json: unknown) => {
+const parseJsonOrReturnOriginal = (json: unknown): unknown => {
+  if (typeof json !== 'string') {
+    return json;
+  }
   try {
-    return JSON.parse(json as string);
+    return JSON.parse(json) as unknown;
   } catch {
     return json;
   }
 };
 
-const TimelineItem = ({
-  icon,
-  children,
-  iconLeft = 'left-0',
-}: {
-  icon: any;
-  children: any;
+const TimelineItem = (_props: {
+  icon: JSX.Element;
+  children: JSX.Element;
   iconLeft?: string;
 }) => {
+  const props = mergeProps({ iconLeft: 'left-0' }, _props);
   return (
-    <div className="relative pl-7 animate-fade">
+    <div class="relative pl-7 animate-fade">
       <div
-        className={`absolute bg-background ${iconLeft} w-4 h-4 top-3.5 flex items-center justify-center`}
+        class={`absolute bg-background ${props.iconLeft} w-4 h-4 top-3.5 flex items-center justify-center`}
       >
-        {icon}
+        {props.icon}
       </div>
 
-      {children}
+      {props.children}
     </div>
   );
 };
 
-export const AgentToolBlock = ({ block, index }: AgentToolBlockProps) => {
-  if ([TASK_COMPLETION_TOOL_NAME].includes(block.toolName ?? '')) return null;
+function getMetaString(meta: unknown, key: 'displayName' | 'logoUrl') {
+  if (!hasMetaKey(meta, key)) {
+    return null;
+  }
+  const value = meta[key];
+  return typeof value === 'string' ? value : null;
+}
 
+function hasMetaKey(
+  meta: unknown,
+  key: 'displayName' | 'logoUrl',
+): meta is Record<'displayName' | 'logoUrl', unknown> {
+  return !!meta && typeof meta === 'object' && key in meta;
+}
+
+function isKnowledgeBaseMeta(meta: unknown) {
+  return (
+    !!meta &&
+    typeof meta === 'object' &&
+    'iconType' in meta &&
+    meta.iconType === 'knowledge-base'
+  );
+}
+
+export const AgentToolBlock = (props: AgentToolBlockProps) => {
+  const block = untrack(() => props.block);
   const { data: metadata, isLoading } = agentToolHooks.useToolMetadata(block);
 
-  const output = normalizeToolOutputToExecuteResponse(block.output);
-  const errorMessage = (output.errorMessage as string) ?? null;
-  const isDone = block.status === ToolCallStatus.COMPLETED;
-  const isSuccess = output.status;
-  const hasInstructions = !isNil(block.input?.instruction);
-  const resolvedFields =
-    (Object.keys(output.resolvedInput ?? {}).length > 0
-      ? output.resolvedInput
-      : null) ??
-    (Object.keys(block.input ?? {}).length > 0 ? block.input : null);
-  const result =
-    output.output != null ? parseJsonOrReturnOriginal(output.output) : null;
+  const output = createMemo(() =>
+    normalizeToolOutputToExecuteResponse(props.block.output),
+  );
+  const errorMessage = createMemo(() =>
+    typeof output().errorMessage === 'string' ? output().errorMessage : null,
+  );
+  const isDone = createMemo(
+    () => props.block.status === ToolCallStatus.COMPLETED,
+  );
+  const isSuccess = createMemo(() => output().status);
+  const hasInstructions = createMemo(
+    () => typeof props.block.input?.instruction === 'string',
+  );
+  const resolvedFields = createMemo(() => {
+    if (Object.keys(output().resolvedInput).length > 0) {
+      return output().resolvedInput;
+    }
+    if (props.block.input && Object.keys(props.block.input).length > 0) {
+      return props.block.input;
+    }
+    return null;
+  });
+  const result = createMemo(() =>
+    output().output != null ? parseJsonOrReturnOriginal(output().output) : null,
+  );
 
-  const defaultTab = resolvedFields ? 'resolvedFields' : 'result';
+  const defaultTab = createMemo(() =>
+    resolvedFields() ? 'resolvedFields' : 'result',
+  );
 
   const renderStatusIcon = () => {
-    if (!isDone) return <Loader2 class="h-4 w-4 animate-spin shrink-0" />;
-    return isSuccess === ExecutionToolStatus.SUCCESS ? (
+    if (!isDone()) return <Loader2 class="h-4 w-4 animate-spin shrink-0" />;
+    return isSuccess() === ExecutionToolStatus.SUCCESS ? (
       <CheckCheck class="h-4 w-4 text-success shrink-0" />
     ) : (
       <CircleX class="h-4 w-4 text-destructive shrink-0" />
@@ -102,129 +147,147 @@ export const AgentToolBlock = ({ block, index }: AgentToolBlockProps) => {
 
   const renderToolIcon = () => {
     if (isLoading) return <Loader2 class="h-4 w-4 animate-spin shrink-0" />;
-    if (metadata?.iconType === 'knowledge-base')
+    if (isKnowledgeBaseMeta(metadata))
       return <BookOpen class="h-4 w-4 shrink-0" />;
-    if (metadata?.logoUrl)
+    const logoUrl = getMetaString(metadata, 'logoUrl');
+    if (logoUrl)
       return (
         <img
-          src={metadata.logoUrl}
+          src={logoUrl}
           alt="Tool logo"
-          className="h-4 w-4 object-contain shrink-0"
+          class="h-4 w-4 object-contain shrink-0"
         />
       );
     return <Wrench class="h-4 w-4 shrink-0" />;
   };
 
   const ToolHeader = (
-    <div className="flex items-center gap-2 w-full">
+    <div class="flex items-center gap-2 w-full">
       {renderToolIcon()}
       <span
-        className={`flex gap-1 items-center ${
-          !isSuccess ? 'text-destructive' : ''
+        class={`flex gap-1 items-center ${
+          isSuccess() !== ExecutionToolStatus.SUCCESS ? 'text-destructive' : ''
         }`}
       >
-        <span className="text-sm font-semibold">
-          {isLoading ? 'Loading...' : metadata?.displayName ?? 'Unknown Tool'}
-          {!isSuccess && t(' (Failed)')}
+        <span class="text-sm font-semibold">
+          {isLoading
+            ? 'Loading...'
+            : getMetaString(metadata, 'displayName') ?? 'Unknown Tool'}
+          {isSuccess() !== ExecutionToolStatus.SUCCESS && t(' (Failed)')}
         </span>
       </span>
     </div>
   );
 
   return (
-    <TimelineItem key={`step-${index}-${block.type}`} icon={renderStatusIcon()}>
-      <Accordion
-        type="single"
-        collapsible
-        class="w-full bg-accent/20 rounded-md text-foreground border border-border"
+    <Show
+      when={props.block.toolName !== TASK_COMPLETION_TOOL_NAME}
+      keyed={false}
+    >
+      <TimelineItem
+        key={`step-${props.index}-${props.block.type}`}
+        icon={renderStatusIcon()}
       >
-        <AccordionItem value={`block-${index}`} class="border-0">
-          <AccordionTrigger class="p-3 text-sm">{ToolHeader}</AccordionTrigger>
+        <Accordion
+          type="single"
+          collapsible
+          class="w-full bg-accent/20 rounded-md text-foreground border border-border"
+        >
+          <AccordionItem value={`block-${props.index}`} class="border-0">
+            <AccordionTrigger class="p-3 text-sm">
+              {ToolHeader}
+            </AccordionTrigger>
 
-          <AccordionContent>
-            <div className="space-y-3 w-full my-2">
-              {hasInstructions && (
-                <ApMarkdown
-                  variant={MarkdownVariant.BORDERLESS}
-                  markdown={block.input?.instruction as string}
-                />
-              )}
+            <AccordionContent>
+              <div class="space-y-3 w-full my-2">
+                <Show when={hasInstructions()}>
+                  <ApMarkdown
+                    variant={MarkdownVariant.BORDERLESS}
+                    markdown={String(props.block.input?.instruction)}
+                  />
+                </Show>
 
-              {!isLoading && (
-                <Tabs defaultValue={defaultTab} class="w-full">
-                  <TabsList variant="outline" class="mb-0">
-                    <TabsTrigger
+                <Show when={!isLoading}>
+                  <Tabs defaultValue={defaultTab()} class="w-full">
+                    <TabsList variant="outline" class="mb-0">
+                      <TabsTrigger
+                        value="resolvedFields"
+                        variant="outline"
+                        class="text-xs"
+                      >
+                        {t('Parameters')}
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="result"
+                        variant="outline"
+                        class="text-xs"
+                      >
+                        {isNil(errorMessage()) ? t('Output') : t('Error')}
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent
                       value="resolvedFields"
-                      variant="outline"
-                      class="text-xs"
+                      class="overflow-hidden mt-3"
                     >
-                      {t('Parameters')}
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="result"
-                      variant="outline"
-                      class="text-xs"
-                    >
-                      {isNil(errorMessage) ? t('Output') : t('Error')}
-                    </TabsTrigger>
-                  </TabsList>
+                      <Show
+                        when={resolvedFields()}
+                        fallback={
+                          <div class="text-muted-foreground text-sm">
+                            {t('No resolved fields')}
+                          </div>
+                        }
+                      >
+                        <DataList data={resolvedFields()} />
+                      </Show>
+                    </TabsContent>
 
-                  <TabsContent
-                    value="resolvedFields"
-                    class="overflow-hidden mt-3"
-                  >
-                    {resolvedFields ? (
-                      <DataList data={resolvedFields} />
-                    ) : (
-                      <div className="text-muted-foreground text-sm">
-                        {t('No resolved fields')}
-                      </div>
-                    )}
-                  </TabsContent>
-
-                  <TabsContent value="result" class="overflow-hidden mt-3">
-                    {result ? (
-                      <SimpleJsonViewer
-                        data={result}
-                        hideCopyButton
-                        maxHeight={300}
-                      />
-                    ) : !isNil(errorMessage) ? (
-                      <ApMarkdown
-                        variant={MarkdownVariant.BORDERLESS}
-                        markdown={errorMessage}
-                      />
-                    ) : (
-                      <div className="text-muted-foreground text-sm">
-                        {t('No result')}
-                      </div>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              )}
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </TimelineItem>
+                    <TabsContent value="result" class="overflow-hidden mt-3">
+                      <Show
+                        when={result()}
+                        fallback={
+                          !isNil(errorMessage()) ? (
+                            <ApMarkdown
+                              variant={MarkdownVariant.BORDERLESS}
+                              markdown={errorMessage() ?? ''}
+                            />
+                          ) : (
+                            <div class="text-muted-foreground text-sm">
+                              {t('No result')}
+                            </div>
+                          )
+                        }
+                      >
+                        <SimpleJsonViewer
+                          data={result()}
+                          hideCopyButton
+                          maxHeight={300}
+                        />
+                      </Show>
+                    </TabsContent>
+                  </Tabs>
+                </Show>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+      </TimelineItem>
+    </Show>
   );
 };
 
-export const MarkdownBlock = ({
-  index,
-  step,
-}: {
+export const MarkdownBlock = (props: {
   index: number;
   step: MarkdownContentBlock;
 }) => {
   return (
     <TimelineItem
-      key={`step-${index}-${step.type}`}
+      key={`step-${props.index}-${props.step.type}`}
       icon={<MessageSquareText class="h-4 w-4 text-muted-foreground" />}
     >
-      <div className="bg-accent/20 rounded-md p-3 text-sm text-foreground border border-border">
+      <div class="bg-accent/20 rounded-md p-3 text-sm text-foreground border border-border">
         <ApMarkdown
-          markdown={step.markdown}
+          markdown={props.step.markdown}
           variant={MarkdownVariant.BORDERLESS}
         />
       </div>
@@ -232,10 +295,10 @@ export const MarkdownBlock = ({
   );
 };
 
-export const StructuredOutputBlock = ({ output }: { output: any }) => {
+export const StructuredOutputBlock = (props: { output: unknown }) => {
   return (
     <TimelineItem icon={<Braces class="h-4 w-4 text-muted-foreground" />}>
-      <JsonViewer json={output} title={t('output')} />
+      <JsonViewer json={props.output} title={String(t('output'))} />
     </TimelineItem>
   );
 };
@@ -245,40 +308,40 @@ export const ThinkingBlock = () => {
     <TimelineItem
       icon={<Loader2 class="h-4 w-4 text-muted-foreground animate-spin" />}
     >
-      <div className="bg-accent/20 rounded-md p-3 w-full text-sm text-foreground border border-border animate-pulse">
+      <div class="bg-accent/20 rounded-md p-3 w-full text-sm text-foreground border border-border animate-pulse">
         <span>{t('Agent is thinking...')}</span>
       </div>
     </TimelineItem>
   );
 };
 
-export const PromptBlock = ({ prompt }: { prompt: string }) => {
+export const PromptBlock = (props: { prompt: string }) => {
   const MAX_CHARS = 180;
   const [expanded, setExpanded] = createSignal(false);
 
-  const isTruncatable = prompt.length > MAX_CHARS;
+  const isTruncatable = createMemo(() => props.prompt.length > MAX_CHARS);
 
   const displayedPrompt = createMemo(() => {
-    if (expanded || !isTruncatable) return prompt;
-    return prompt.slice(0, MAX_CHARS) + '…';
+    if (expanded() || !isTruncatable()) return props.prompt;
+    return props.prompt.slice(0, MAX_CHARS) + '…';
   });
 
   return (
     <TimelineItem icon={<SquareTerminal class="h-4 w-4 text-primary" />}>
-      <div className="bg-primary/5 rounded-md p-3 text-sm text-foreground border border-border space-y-2">
+      <div class="bg-primary/5 rounded-md p-3 text-sm text-foreground border border-border space-y-2">
         <ApMarkdown
-          markdown={displayedPrompt}
+          markdown={displayedPrompt()}
           variant={MarkdownVariant.BORDERLESS}
         />
 
-        {isTruncatable && (
+        <Show when={isTruncatable()}>
           <button
             onClick={() => setExpanded((v) => !v)}
-            className="text-xs text-primary hover:underline"
+            class="text-xs text-primary hover:underline"
           >
-            {expanded ? 'Read less' : 'Read more'}
+            {expanded() ? 'Read less' : 'Read more'}
           </button>
-        )}
+        </Show>
       </div>
     </TimelineItem>
   );
@@ -287,7 +350,7 @@ export const PromptBlock = ({ prompt }: { prompt: string }) => {
 export const DoneBlock = () => {
   return (
     <TimelineItem icon={<CircleCheckBig class="h-4 w-4 text-success-600" />}>
-      <div className="border border-success/40 bg-success-50/60 rounded-md p-3 text-sm text-success-700 font-medium flex items-center gap-2">
+      <div class="border border-success/40 bg-success-50/60 rounded-md p-3 text-sm text-success-700 font-medium flex items-center gap-2">
         <span>{t('Done!')}</span>
       </div>
     </TimelineItem>
@@ -297,7 +360,7 @@ export const DoneBlock = () => {
 export const FailedBlock = () => {
   return (
     <TimelineItem icon={<CircleX class="h-4 w-4 text-destructive-600" />}>
-      <div className="border border-destructive/40 bg-destructive-50/60 rounded-md p-3 text-sm text-destructive-700 font-medium flex items-center gap-2">
+      <div class="border border-destructive/40 bg-destructive-50/60 rounded-md p-3 text-sm text-destructive-700 font-medium flex items-center gap-2">
         <span>{t('Failed')}</span>
       </div>
     </TimelineItem>

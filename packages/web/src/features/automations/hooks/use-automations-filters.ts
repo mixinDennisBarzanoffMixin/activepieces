@@ -1,6 +1,7 @@
-import { createMemo, createSignal } from 'solid-js';
-import { useDebouncedCallback } from '@/lib/debounce';
 import { useSearchParams } from '@solidjs/router';
+import { createMemo, createSignal } from 'solid-js';
+
+import { useDebouncedCallback } from '@/lib/debounce';
 
 import { AutomationsFilters } from '../lib/types';
 import { hasActiveFilters } from '../lib/utils';
@@ -22,7 +23,10 @@ const FILTER_PARAMS = [
 ] as const;
 
 export function useAutomationsFilters() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams() as unknown as [
+    URLSearchParams,
+    (params: URLSearchParams, options?: { replace?: boolean }) => void,
+  ];
 
   const [searchInput, setSearchInput] = createSignal(
     searchParams.get(SEARCH_PARAM) ?? '',
@@ -42,26 +46,20 @@ export function useAutomationsFilters() {
   const [ownerFilter, setOwnerFilterState] = createSignal<string[]>(
     searchParams.getAll(OWNER_PARAM),
   );
-  const folderParamStr = searchParams.getAll(FOLDER_PARAM).join('\0');
   const folderFilter = createMemo(() => searchParams.getAll(FOLDER_PARAM));
 
   const updateParams = (updates: Record<string, string | string[] | null>) => {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        for (const [key, value] of Object.entries(updates)) {
-          next.delete(key);
-          if (value === null || value === '') continue;
-          if (Array.isArray(value)) {
-            value.forEach((v) => next.append(key, v));
-          } else {
-            next.set(key, value);
-          }
-        }
-        return next;
-      },
-      { replace: true },
-    );
+    const next = new URLSearchParams(searchParams);
+    for (const [key, value] of Object.entries(updates)) {
+      next.delete(key);
+      if (value === null || value === '') continue;
+      if (Array.isArray(value)) {
+        value.forEach((v) => next.append(key, v));
+        continue;
+      }
+      next.set(key, value);
+    }
+    setSearchParams(next, { replace: true });
   };
 
   const debouncedSetSearch = useDebouncedCallback((value: string) => {
@@ -98,16 +96,16 @@ export function useAutomationsFilters() {
     updateParams({ [FOLDER_PARAM]: value.length > 0 ? value : null });
   };
 
-  const filters: AutomationsFilters = {
+  const filters = createMemo<AutomationsFilters>(() => ({
     searchTerm: searchTerm(),
     typeFilter: typeFilter(),
     statusFilter: statusFilter(),
     connectionFilter: connectionFilter(),
     ownerFilter: ownerFilter(),
     folderFilter: folderFilter(),
-  };
+  }));
 
-  const filtersActive = hasActiveFilters(filters);
+  const filtersActive = createMemo(() => hasActiveFilters(filters()));
 
   const clearAllFilters = () => {
     setSearchInput('');
@@ -120,20 +118,36 @@ export function useAutomationsFilters() {
   };
 
   return {
-    searchInput: searchInput(),
+    get searchInput() {
+      return searchInput();
+    },
     handleSearchChange,
-    typeFilter: typeFilter(),
+    get typeFilter() {
+      return typeFilter();
+    },
     setTypeFilter,
-    statusFilter: statusFilter(),
+    get statusFilter() {
+      return statusFilter();
+    },
     setStatusFilter,
-    connectionFilter: connectionFilter(),
+    get connectionFilter() {
+      return connectionFilter();
+    },
     setConnectionFilter,
-    ownerFilter: ownerFilter(),
+    get ownerFilter() {
+      return ownerFilter();
+    },
     setOwnerFilter,
-    folderFilter: folderFilter(),
+    get folderFilter() {
+      return folderFilter();
+    },
     setFolderFilter,
-    filters,
-    filtersActive,
+    get filters() {
+      return filters();
+    },
+    get filtersActive() {
+      return filtersActive();
+    },
     clearAllFilters,
   };
 }

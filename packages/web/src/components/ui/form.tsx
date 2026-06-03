@@ -6,10 +6,16 @@ import {
   useFormContext,
   type ControllerProps,
   type FieldValues,
-  type Path,
   type CreateFormReturn,
 } from 'solid-hook-form';
-import { createContext, createUniqueId, useContext } from 'solid-js';
+import {
+  Show,
+  createContext,
+  createUniqueId,
+  splitProps,
+  useContext,
+  type JSX,
+} from 'solid-js';
 
 import { Label, type LabelProps } from '@/components/ui/label';
 import { Slot } from '@/components/ui/slot';
@@ -20,19 +26,17 @@ function Form<T extends FieldValues>(
     CreateFormReturn<T>
   >,
 ) {
-  const { form, children, ...rest } = props;
-  return <FormProvider form={(form ?? rest) as CreateFormReturn<T>}>{children}</FormProvider>;
+  const [local, rest] = splitProps(props, ['form', 'children']);
+  return (
+    <FormProvider form={local.form ?? rest}>{local.children}</FormProvider>
+  );
 }
 
-const FormFieldContext = createContext<FormFieldContextValue>(
-  {} as FormFieldContextValue,
-);
+const FormFieldContext = createContext<FormFieldContextValue>();
 
-const FormField = <
-  TFieldValues extends FieldValues = FieldValues,
->({
-  ...props
-}: ControllerProps<TFieldValues>) => {
+const FormField = <TFieldValues extends FieldValues = FieldValues>(
+  props: FormFieldProps<TFieldValues>,
+) => {
   return (
     <FormFieldContext.Provider value={{ name: props.name }}>
       <Controller {...props} />
@@ -43,14 +47,19 @@ const FormField = <
 const useFormField = () => {
   const fieldContext = useContext(FormFieldContext);
   const itemContext = useContext(FormItemContext);
-  const form = useFormContext();
-  const error = get(form.formState.errors, fieldContext.name);
 
   if (!fieldContext) {
     throw new Error('useFormField should be used within <FormField>');
   }
 
-  const { id } = itemContext;
+  if (!itemContext) {
+    throw new Error('useFormField should be used within <FormItem>');
+  }
+
+  const form = useFormContext();
+  const error: unknown = get(form.formState.errors, fieldContext.name);
+
+  const id = itemContext.id;
 
   return {
     id,
@@ -62,39 +71,39 @@ const useFormField = () => {
   };
 };
 
-const FormItemContext = createContext<FormItemContextValue>(
-  {} as FormItemContextValue,
-);
+const FormItemContext = createContext<FormItemContextValue>();
 
-function FormItem({ className, ...props }: JSX.IntrinsicElements['div']) {
+function FormItem(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, rest] = splitProps(_props, ['className']);
   const id = createUniqueId();
 
   return (
     <FormItemContext.Provider value={{ id }}>
       <div
         data-slot="form-item"
-        className={cn('space-y-1', className)}
-        {...props}
+        class={cn('space-y-1', local.className)}
+        {...rest}
       />
     </FormItemContext.Provider>
   );
 }
 
-function FormLabel({ className, ...props }: LabelProps) {
+function FormLabel(_props: LabelProps) {
+  const [local, rest] = splitProps(_props, ['className']);
   const { error, formItemId } = useFormField();
 
   return (
     <Label
       data-slot="form-label"
       data-error={!!error}
-      class={cn('data-[error=true]:text-destructive', className)}
+      class={cn('data-[error=true]:text-destructive', local.className)}
       for={formItemId}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function FormControl({ ...props }: JSX.HTMLAttributes<HTMLElement>) {
+function FormControl(_props: JSX.HTMLAttributes<HTMLElement>) {
   const { error, formItemId, formDescriptionId, formMessageId } =
     useFormField();
 
@@ -108,62 +117,65 @@ function FormControl({ ...props }: JSX.HTMLAttributes<HTMLElement>) {
           : `${formDescriptionId} ${formMessageId}`
       }
       aria-invalid={!!error}
-      {...props}
+      {..._props}
     />
   );
 }
 
-function FormDescription({ className, ...props }: JSX.IntrinsicElements['p']) {
+function FormDescription(_props: ClassName<JSX.IntrinsicElements['p']>) {
+  const [local, rest] = splitProps(_props, ['className']);
   const { formDescriptionId } = useFormField();
 
   return (
     <p
       data-slot="form-description"
       id={formDescriptionId}
-      className={cn('text-sm text-muted-foreground', className)}
-      {...props}
+      class={cn('text-sm text-muted-foreground', local.className)}
+      {...rest}
     />
   );
 }
 
-function FormError({
-  className,
-  children,
-  formMessageId,
-  ...props
-}: JSX.IntrinsicElements['p'] & { formMessageId: string }) {
+function FormError(
+  _props: ClassName<JSX.IntrinsicElements['p']> & { formMessageId: string },
+) {
+  const [local, rest] = splitProps(_props, [
+    'className',
+    'children',
+    'formMessageId',
+  ]);
   return (
     <p
       data-slot="form-error"
-      id={formMessageId}
-      className={cn(
+      id={local.formMessageId}
+      class={cn(
         'text-sm font-medium text-destructive wrap-break-word',
-        className,
+        local.className,
       )}
-      {...props}
+      {...rest}
     >
-      {children}
+      {local.children}
     </p>
   );
 }
 
-function FormMessage({ className, ...props }: JSX.IntrinsicElements['p']) {
+function FormMessage(_props: ClassName<JSX.IntrinsicElements['p']>) {
+  const [local, rest] = splitProps(_props, ['className', 'children']);
   const { error, formMessageId } = useFormField();
-  const body = error ? t(String(error?.message ?? '')) : props.children;
-
-  if (!body) {
-    return null;
-  }
 
   return (
-    <FormError
-      data-slot="form-message"
-      formMessageId={formMessageId}
-      class={className}
-      {...props}
-    >
-      {body}
-    </FormError>
+    <Show when={error ? t(fieldMessage(error) ?? '') : local.children}>
+      {(body) => (
+        <FormError
+          data-slot="form-message"
+          formMessageId={formMessageId}
+          class={local.className}
+          {...rest}
+        >
+          {body()}
+        </FormError>
+      )}
+    </Show>
   );
 }
 
@@ -179,12 +191,30 @@ export {
   FormError,
 };
 
-type FormFieldContextValue<
-  TFieldValues extends FieldValues = FieldValues,
-> = {
-  name: Path<TFieldValues>;
+type FormFieldContextValue = {
+  name: string;
+};
+
+type FormFieldProps<TFieldValues extends FieldValues = FieldValues> = Omit<
+  ControllerProps<TFieldValues>,
+  'name'
+> & {
+  name: string;
 };
 
 type FormItemContextValue = {
   id: string;
 };
+
+type ClassName<T> = Omit<T, 'className'> & {
+  className?: string;
+};
+
+function fieldMessage(error: unknown) {
+  if (typeof error !== 'object' || !error || !('message' in error)) {
+    return undefined;
+  }
+  return typeof error.message === 'string'
+    ? error.message
+    : String(error.message);
+}

@@ -16,15 +16,15 @@ import { eventDestinationsCollectionUtils } from '../lib/event-destinations-coll
 
 import { EventDestinationDialog } from './event-destination-dialog';
 
-const EventDestinationActions = ({
-  destination,
-}: {
-  destination: EventDestination;
-}) => {
+const preventSelect = (e: Event) => {
+  e.preventDefault();
+};
+
+const EventDestinationActions = (props: { destination: EventDestination }) => {
   const [dropdownOpen, setDropdownOpen] = createSignal(false);
 
   return (
-    <div className="flex justify-end">
+    <div class="flex justify-end">
       <DropdownMenu
         modal={true}
         open={dropdownOpen}
@@ -36,12 +36,8 @@ const EventDestinationActions = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent>
-          <EventDestinationDialog destination={destination}>
-            <DropdownMenuItem
-              onSelect={(e) => {
-                e.preventDefault();
-              }}
-            >
+          <EventDestinationDialog destination={props.destination}>
+            <DropdownMenuItem onSelect={preventSelect}>
               <Pencil class="h-4 w-4 mr-2" />
               {t('Edit')}
             </DropdownMenuItem>
@@ -55,19 +51,12 @@ const EventDestinationActions = ({
             entityName={t('destination')}
             buttonText={t('Delete')}
             showToast
-            mutationFn={async () => {
-              if (destination) {
-                eventDestinationsCollectionUtils.delete([destination.id]);
-              }
-            }}
+            mutationFn={() =>
+              eventDestinationsCollectionUtils.delete([props.destination.id])
+            }
             isDanger
           >
-            <DropdownMenuItem
-              variant="destructive"
-              onSelect={(e) => {
-                e.preventDefault();
-              }}
-            >
+            <DropdownMenuItem variant="destructive" onSelect={preventSelect}>
               <Trash class="h-4 w-4 mr-2" />
               {t('Delete')}
             </DropdownMenuItem>

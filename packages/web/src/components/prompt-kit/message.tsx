@@ -1,4 +1,10 @@
-import { JSX } from 'solid-js';
+import {
+  JSX,
+  mergeProps,
+  splitProps,
+  type ComponentProps,
+  Show,
+} from 'solid-js';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -16,12 +22,14 @@ export type MessageProps = {
   className?: string;
 } & JSX.HTMLAttributes<HTMLDivElement>;
 
-const Message = ({ children, className, ...props }: MessageProps) => (
-  <div className={cn('flex gap-3', className)} {...props}>
-    {children}
-  </div>
-);
-
+const Message = (_props: MessageProps) => {
+  const [local, props] = splitProps(_props, ['children', 'className']);
+  return (
+    <div class={cn('flex gap-3', local.className)} {...props}>
+      {local.children}
+    </div>
+  );
+};
 export type MessageAvatarProps = {
   src: string;
   alt: string;
@@ -30,19 +38,15 @@ export type MessageAvatarProps = {
   className?: string;
 };
 
-const MessageAvatar = ({
-  src,
-  alt,
-  fallback,
-  delayMs,
-  className,
-}: MessageAvatarProps) => {
+const MessageAvatar = (props: MessageAvatarProps) => {
   return (
-    <Avatar class={cn('h-8 w-8 shrink-0', className)}>
-      <AvatarImage src={src} alt={alt} />
-      {fallback && (
-        <AvatarFallback delayMs={delayMs}>{fallback}</AvatarFallback>
-      )}
+    <Avatar class={cn('h-8 w-8 shrink-0', props.className)}>
+      <AvatarImage src={props.src} alt={props.alt} />
+      <Show when={props.fallback}>
+        <AvatarFallback delayMs={props.delayMs}>
+          {props.fallback}
+        </AvatarFallback>
+      </Show>
     </Avatar>
   );
 };
@@ -52,27 +56,34 @@ export type MessageContentProps = {
   markdown?: boolean;
   className?: string;
 } & ComponentProps<typeof Markdown> &
-  JSX.HTMLAttributes<HTMLDivElement>;
+  Omit<JSX.HTMLAttributes<HTMLDivElement>, 'children'>;
 
-const MessageContent = ({
-  children,
-  markdown = false,
-  className,
-  ...props
-}: MessageContentProps) => {
+const MessageContent = (_props: MessageContentProps) => {
+  const [local, props] = splitProps(mergeProps({ markdown: false }, _props), [
+    'children',
+    'markdown',
+    'className',
+  ]);
   const classNames = cn(
     'rounded-lg p-2 text-foreground prose break-words whitespace-normal',
-    className,
+    local.className,
   );
 
-  return markdown ? (
-    <Markdown class={classNames} {...props}>
-      {children as string}
-    </Markdown>
-  ) : (
-    <div className={classNames} {...props}>
-      {children}
-    </div>
+  return (
+    <>
+      <Show
+        when={local.markdown}
+        fallback={
+          <div class={classNames} {...props}>
+            {local.children}
+          </div>
+        }
+      >
+        <Markdown class={classNames} {...props}>
+          {local.children as string}
+        </Markdown>
+      </Show>
+    </>
   );
 };
 
@@ -81,19 +92,20 @@ export type MessageActionsProps = {
   className?: string;
 } & JSX.HTMLAttributes<HTMLDivElement>;
 
-const MessageActions = ({
-  children,
-  className,
-  ...props
-}: MessageActionsProps) => (
-  <div
-    className={cn('text-muted-foreground flex items-center gap-2', className)}
-    {...props}
-  >
-    {children}
-  </div>
-);
-
+const MessageActions = (_props: MessageActionsProps) => {
+  const [local, props] = splitProps(_props, ['children', 'className']);
+  return (
+    <div
+      class={cn(
+        'text-muted-foreground flex items-center gap-2',
+        local.className,
+      )}
+      {...props}
+    >
+      {local.children}
+    </div>
+  );
+};
 export type MessageActionProps = {
   className?: string;
   tooltip: JSX.Element;
@@ -101,19 +113,19 @@ export type MessageActionProps = {
   side?: 'top' | 'bottom' | 'left' | 'right';
 } & ComponentProps<typeof Tooltip>;
 
-const MessageAction = ({
-  tooltip,
-  children,
-  className,
-  side = 'top',
-  ...props
-}: MessageActionProps) => {
+const MessageAction = (_props: MessageActionProps) => {
+  const [local, props] = splitProps(mergeProps({ side: 'top' }, _props), [
+    'tooltip',
+    'children',
+    'className',
+    'side',
+  ]);
   return (
     <TooltipProvider>
       <Tooltip {...props}>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={side} class={className}>
-          {tooltip}
+        <TooltipTrigger asChild>{local.children}</TooltipTrigger>
+        <TooltipContent side={local.side} class={local.className}>
+          {local.tooltip}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

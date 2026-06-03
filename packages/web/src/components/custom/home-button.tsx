@@ -2,6 +2,7 @@ import { A as Link } from '@solidjs/router';
 import { ActivepiecesClientEventName } from 'ee-embed-sdk';
 import { t } from 'i18next';
 import { ChevronLeft } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,7 @@ import {
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { authenticationSession } from '@/lib/authentication-session';
 
-const HomeButtonWrapper = ({ children }: { children: any }) => {
+const HomeButtonWrapper = (props: { children: any }) => {
   const { embedState } = useEmbedding();
   if (embedState.emitHomeButtonClickedEvent) {
     const handleClick = () => {
@@ -27,11 +28,11 @@ const HomeButtonWrapper = ({ children }: { children: any }) => {
         '*',
       );
     };
-    return <div onClick={handleClick}>{children}</div>;
+    return <div onClick={handleClick}>{props.children}</div>;
   }
   return (
     <Link href={authenticationSession.appendProjectRoutePrefix('/flows')}>
-      {children}
+      {props.children}
     </Link>
   );
 };
@@ -55,7 +56,7 @@ const HomeButton = () => {
                   fallback={<ChevronLeft class="h-4 w-4" />}
                 >
                   <img
-                    className="h-5 w-5 object-contain"
+                    class="h-5 w-5 object-contain"
                     src={branding()?.logos.logoIconUrl}
                     alt={branding()?.websiteName}
                   />
@@ -73,7 +74,5 @@ const HomeButton = () => {
     </>
   );
 };
-
-HomeButton.displayName = 'HomeButton';
 
 export { HomeButton };

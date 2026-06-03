@@ -49,20 +49,20 @@ export default function UsersPage() {
   } = platformUserHooks.usePlatformInvitations();
 
   const refetch = () => {
-    refetchUsers();
-    refetchInvitations();
+    void refetchUsers();
+    void refetchInvitations();
   };
 
-  const combinedData: UserRowData[] = createMemo(() => {
+  const combinedData = createMemo<UserRowData[]>(() => {
     const users: UserRowData[] =
-      usersData?.data?.map((user) => ({
+      (usersData?.data ?? []).map((user) => ({
         id: user.id,
         type: 'user' as const,
         data: user,
       })) ?? [];
 
     const pendingInvitations: UserRowData[] =
-      invitationsData?.map((invitation) => ({
+      (invitationsData ?? []).map((invitation) => ({
         id: invitation.id,
         type: 'invitation' as const,
         data: invitation,
@@ -72,6 +72,10 @@ export default function UsersPage() {
   });
 
   const isLoading = usersLoading || invitationsLoading;
+  const title = String(t('Users'));
+  const desc = String(
+    t('Manage, delete, activate and deactivate users on platform'),
+  );
 
   const { mutate: deleteUser } = platformUserMutations.useDeleteUser({
     onSuccess: refetch,
@@ -110,22 +114,17 @@ export default function UsersPage() {
       lockTitle={t('Unlock Users')}
       lockDescription={t('Manage your users and their access to your projects')}
     >
-      <div className="flex flex-col w-full">
-        <DashboardPageHeader
-          title={t('Users')}
-          description={t(
-            'Manage, delete, activate and deactivate users on platform',
-          )}
-        />
+      <div class="flex flex-col w-full">
+        <DashboardPageHeader title={title} description={desc} />
         <DataTable
           emptyStateTextTitle={t('No users found')}
           emptyStateTextDescription={t('Start inviting users to your project')}
           emptyStateIcon={<User class="size-14" />}
           columns={columns}
           page={{
-            data: combinedData,
-            next: usersData?.next || null,
-            previous: usersData?.previous || null,
+            data: combinedData(),
+            next: usersData?.next ?? null,
+            previous: usersData?.previous ?? null,
           }}
           hidePagination={true}
           isLoading={isLoading}
@@ -137,7 +136,7 @@ export default function UsersPage() {
               onClick={() => setInviteOpen(true)}
             >
               <UserRoundPlusIcon size={16} />
-              <span className="text-sm font-medium">{t('Invite')}</span>
+              <span class="text-sm font-medium">{t('Invite')}</span>
             </Button>,
           ]}
           actions={[

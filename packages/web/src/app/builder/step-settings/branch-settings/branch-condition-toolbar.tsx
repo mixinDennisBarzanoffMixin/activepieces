@@ -13,8 +13,8 @@ type BranchConditionToolbarProps = {
 
 const BranchConditionToolbar = (props: BranchConditionToolbarProps) => {
   return (
-    <div className="flex gap-2 text-center justify-end">
-      <Show when={props.showAnd()}>
+    <div class="flex gap-2 text-center justify-end">
+      <Show when={props.showAnd}>
         <Button
           variant="basic"
           size="sm"
@@ -25,7 +25,7 @@ const BranchConditionToolbar = (props: BranchConditionToolbarProps) => {
         </Button>
       </Show>
 
-      <Show when={props.showOr()}>
+      <Show when={props.showOr}>
         <Button
           variant="basic"
           size="sm"
@@ -39,5 +39,4 @@ const BranchConditionToolbar = (props: BranchConditionToolbarProps) => {
   );
 };
 
-BranchConditionToolbar.displayName = 'BranchConditionToolbar';
 export { BranchConditionToolbar };

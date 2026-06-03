@@ -48,35 +48,28 @@ export default function ProjectsPage() {
 
   createEffect(() => {
     if (!searchParams.has('type')) {
-      setSearchParams(
-        (prev) => {
-          const newParams = new URLSearchParams(prev);
-          newParams.set('type', ProjectType.TEAM);
-          return newParams;
-        },
-        { replace: true },
-      );
+      setSearchParams({ type: ProjectType.TEAM }, { replace: true });
     }
   });
 
-  const displayNameFilter = searchParams.get('displayName') || undefined;
-  const typeFilter = searchParams.getAll('type');
-
-  const filters = createMemo(() => ({
-    displayName: displayNameFilter,
-    type:
-      typeFilter.length > 0
-        ? typeFilter.map((t) => t as ProjectType)
-        : undefined,
-  }));
+  const filters = createMemo(() => {
+    const params = new URLSearchParams(window.location.search);
+    const displayName = params.get('displayName');
+    const types = params.getAll('type');
+    return {
+      displayName: typeof displayName === 'string' ? displayName : undefined,
+      type: Object.values(ProjectType).filter((type) => types.includes(type)),
+    };
+  });
 
   const { data: allProjects } =
     projectCollectionUtils.useAllPlatformProjects(filters);
 
   const [selectedRows, setSelectedRows] = createSignal<ProjectWithLimits[]>([]);
   const [editDialogOpen, setEditDialogOpen] = createSignal(false);
-  const [editDialogInitialValues, setEditDialogInitialValues] =
-    createSignal<any>(null);
+  const [editDialogInitialValues, setEditDialogInitialValues] = createSignal<
+    { projectName?: string; externalId?: string } | undefined
+  >();
   const [editDialogProjectId, setEditDialogProjectId] =
     createSignal<string>('');
   const { data: allGlobalConnectionsPage } =
@@ -88,7 +81,7 @@ export default function ProjectsPage() {
     return allProjects.map((project) => ({
       ...project,
       globalConnectionsCount:
-        allGlobalConnectionsPage?.data?.filter((connection) =>
+        allGlobalConnectionsPage?.data.filter((connection) =>
           connection.projectIds.includes(project.id),
         ).length ?? 0,
     }));
@@ -99,17 +92,19 @@ export default function ProjectsPage() {
     }),
   );
 
-  const columnsWithCheckbox: ColumnDef<
-    RowDataWithActions<ProjectWithLimits & { globalConnectionsCount: number }>
-  >[] = [
+  const columnsWithCheckbox = createMemo<
+    ColumnDef<
+      RowDataWithActions<ProjectWithLimits & { globalConnectionsCount: number }>
+    >[]
+  >(() => [
     {
       id: 'select',
       accessorKey: 'select',
       size: 40,
       minSize: 40,
       maxSize: 40,
-      header: ({ table }) => {
-        const selectableRows = table
+      header: (props) => {
+        const selectableRows = props.table
           .getRowModel()
           .rows.filter(
             (row) =>
@@ -136,7 +131,7 @@ export default function ProjectsPage() {
                 );
                 const newSelectedRows = [
                   ...selectableProjects,
-                  ...selectedRows,
+                  ...selectedRows(),
                 ];
                 const uniqueRows = Array.from(
                   new Map(
@@ -145,7 +140,7 @@ export default function ProjectsPage() {
                 );
                 setSelectedRows(uniqueRows);
               } else {
-                const filteredRows = selectedRows.filter(
+                const filteredRows = selectedRows().filter(
                   (row) =>
                     !selectableRows.some((r) => r.original.id === row.id),
                 );
@@ -155,18 +150,19 @@ export default function ProjectsPage() {
           />
         );
       },
-      cell: ({ row }) => {
-        const isCurrentProject = row.original.id === currentProject?.id;
-        const isPersonalProject = row.original.type === ProjectType.PERSONAL;
+      cell: (props) => {
+        const isCurrentProject = props.row.original.id === currentProject?.id;
+        const isPersonalProject =
+          props.row.original.type === ProjectType.PERSONAL;
         const isDisabled = isCurrentProject || isPersonalProject;
-        const isChecked = selectedRows.some(
-          (selectedRow) => selectedRow.id === row.original.id,
+        const isChecked = selectedRows().some(
+          (selectedRow) => selectedRow.id === props.row.original.id,
         );
 
         return (
           <Tooltip>
             <TooltipTrigger>
-              <div className={isDisabled ? 'cursor-not-allowed' : ''}>
+              <div class={isDisabled ? 'cursor-not-allowed' : ''}>
                 <Checkbox
                   checked={isChecked}
                   disabled={isDisabled}
@@ -174,21 +170,23 @@ export default function ProjectsPage() {
                     if (isDisabled) return;
 
                     const isChecked = !!value;
-                    let newSelectedRows = [...selectedRows];
+                    let newSelectedRows = [...selectedRows()];
                     if (isChecked) {
                       const exists = newSelectedRows.some(
-                        (selectedRow) => selectedRow.id === row.original.id,
+                        (selectedRow) =>
+                          selectedRow.id === props.row.original.id,
                       );
                       if (!exists) {
-                        newSelectedRows.push(row.original);
+                        newSelectedRows.push(props.row.original);
                       }
                     } else {
                       newSelectedRows = newSelectedRows.filter(
-                        (selectedRow) => selectedRow.id !== row.original.id,
+                        (selectedRow) =>
+                          selectedRow.id !== props.row.original.id,
                       );
                     }
                     setSelectedRows(newSelectedRows);
-                    row.toggleSelected(!!value);
+                    props.row.toggleSelected(!!value);
                   }}
                 />
               </div>
@@ -201,8 +199,9 @@ export default function ProjectsPage() {
                     "Personal projects cannot be deleted, and you can't subscribe to their alerts",
                   )}
                 >
-                  t( 'Cannot delete active project, switch to another project
-                  first',
+                  {t(
+                    'Cannot delete active project, switch to another project first',
+                  )}
                 </Show>
               </TooltipContent>
             </Show>
@@ -210,17 +209,17 @@ export default function ProjectsPage() {
         );
       },
     },
-    ...columns,
-  ];
+    ...columns(),
+  ]);
 
-  const bulkActions: BulkAction<ProjectWithLimits>[] = createMemo(() => [
+  const bulkActions = createMemo<BulkAction<ProjectWithLimits>[]>(() => [
     {
       render: (
         _: RowDataWithActions<ProjectWithLimits>[],
         resetSelection: () => void,
       ) => (
         <PlatformAdminProjectAlertSubscriptionBulkActions
-          selectedProjects={selectedRows}
+          selectedProjects={selectedRows()}
           resetSelection={() => {
             resetSelection();
             setSelectedRows([]);
@@ -233,7 +232,7 @@ export default function ProjectsPage() {
         _: RowDataWithActions<ProjectWithLimits>[],
         resetSelection: () => void,
       ) => {
-        const canDeleteAny = selectedRows.some(
+        const canDeleteAny = selectedRows().some(
           (row) =>
             row.id !== currentProject?.id && row.type !== ProjectType.PERSONAL,
         );
@@ -241,13 +240,15 @@ export default function ProjectsPage() {
           <div onClick={(e) => e.stopPropagation()}>
             <ConfirmationDeleteDialog
               title={t('Delete Projects')}
-              message={t(
-                'The selected projects and all their data will be permanently deleted.',
+              message={String(
+                t(
+                  'The selected projects and all their data will be permanently deleted.',
+                ),
               )}
               entityName={t('Projects')}
               buttonText={t('Delete')}
-              mutationFn={async () => {
-                const deletableProjects = selectedRows.filter(
+              mutationFn={() => {
+                const deletableProjects = selectedRows().filter(
                   (row) =>
                     row.id !== currentProject?.id &&
                     row.type !== ProjectType.PERSONAL,
@@ -265,7 +266,7 @@ export default function ProjectsPage() {
                 });
               }}
             >
-              <Show when={selectedRows.length > 0}>
+              <Show when={selectedRows().length > 0}>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -273,7 +274,7 @@ export default function ProjectsPage() {
                   disabled={!canDeleteAny}
                 >
                   <Trash class="mr-1 w-4" />
-                  {`${t('Delete')} (${selectedRows.length})`}
+                  {`${t('Delete')} (${selectedRows().length})`}
                 </Button>
               </Show>
             </ConfirmationDeleteDialog>
@@ -294,7 +295,7 @@ export default function ProjectsPage() {
   const errorToastMessage = (error: unknown): string | undefined => {
     if (validationUtils.isValidationError(error)) {
       console.error(t('Validation error'), error);
-      switch (error.response?.data?.params?.message) {
+      switch (error.response?.data.params?.message) {
         case 'PROJECT_HAS_ENABLED_FLOWS':
           return t('Project has enabled flows. Please disable them first.');
         case 'ACTIVE_PROJECT':
@@ -309,13 +310,13 @@ export default function ProjectsPage() {
   const actions = [
     (row: ProjectWithLimits) => {
       return (
-        <div className="flex items-end justify-end">
+        <div class="flex items-end justify-end">
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="ghost"
                 class="size-8 p-0"
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
                   setEditDialogInitialValues({
@@ -345,10 +346,10 @@ export default function ProjectsPage() {
       )}
       lockVideoUrl="https://cdn.activepieces.com/videos/showcase/projects.mp4"
     >
-      <div className="flex flex-col w-full">
+      <div class="flex flex-col w-full">
         <DashboardPageHeader
-          title={t('Projects')}
-          description={t('Manage your automation projects')}
+          title={String(t('Projects'))}
+          description={String(t('Manage your automation projects'))}
         />
         <DataTable
           emptyStateTextTitle={t('No projects found')}
@@ -356,8 +357,8 @@ export default function ProjectsPage() {
             'Start by creating projects to manage your automation teams',
           )}
           emptyStateIcon={<Package class="size-14" />}
-          onRowClick={async (project) => {
-            await projectCollectionUtils.setCurrentProject(project.id);
+          onRowClick={(project) => {
+            projectCollectionUtils.setCurrentProject(project.id);
             navigate('/');
           }}
           filters={[
@@ -381,25 +382,25 @@ export default function ProjectsPage() {
               icon: CheckIcon,
             },
           ]}
-          columns={columnsWithCheckbox}
+          columns={columnsWithCheckbox()}
           page={{
-            data: allProjectsWithGlobalConnectionsCount,
+            data: allProjectsWithGlobalConnectionsCount(),
             next: null,
             previous: null,
           }}
           isLoading={false}
           clientPagination={true}
-          bulkActions={bulkActions}
-          toolbarButtons={toolbarButtons}
+          bulkActions={bulkActions()}
+          toolbarButtons={toolbarButtons()}
           actions={actions}
         />
         <EditProjectDialog
-          open={editDialogOpen}
+          open={editDialogOpen()}
           onClose={() => {
             setEditDialogOpen(false);
           }}
-          initialValues={editDialogInitialValues}
-          projectId={editDialogProjectId}
+          initialValues={editDialogInitialValues()}
+          projectId={editDialogProjectId()}
         />
       </div>
     </LockedFeatureGuard>

@@ -36,19 +36,18 @@ type InstallPieceDialogProps = {
   onInstallPiece: () => void;
   scope: PieceScope;
 };
-const InstallPieceDialog = ({
-  onInstallPiece,
-  scope,
-}: InstallPieceDialogProps) => {
+const InstallPieceDialog = (props: InstallPieceDialogProps) => {
   const { platform } = platformHooks.useCurrentPlatform();
   const isEnabled = platform.plan.managePiecesEnabled;
   const [isOpen, setIsOpen] = createSignal(false);
 
   const { data: privatePiecesEnabled } = flagsHooks.useFlag<boolean>(
-    ApFlagId.PRIVATE_PIECES_ENABLED
+    ApFlagId.PRIVATE_PIECES_ENABLED,
   );
 
-  const [packageType, setPackageType] = createSignal(PackageType.REGISTRY);
+  const [packageType, setPackageType] = createSignal<PackageType>(
+    PackageType.REGISTRY,
+  );
   const [pieceName, setPieceName] = createSignal('');
   const [pieceVersion, setPieceVersion] = createSignal('');
   const [pieceArchive, setPieceArchive] = createSignal<File>();
@@ -72,7 +71,7 @@ const InstallPieceDialog = ({
 
         // Look for package.json content in the decompressed data
         const packageJsonMatch = text.match(
-          /package\.json.*?{[^}]*"name"\s*:\s*"([^"]+)".*?"version"\s*:\s*"([^"]+)"/s
+          /package\.json.*?{[^}]*"name"\s*:\s*"([^"]+)".*?"version"\s*:\s*"([^"]+)"/s,
         );
         if (packageJsonMatch) {
           setPieceName(packageJsonMatch[1]);
@@ -89,8 +88,8 @@ const InstallPieceDialog = ({
     }
   };
 
-  const { mutate, isPending } = createMutation<void, Error, InstallPieceData>({
-    mutationFn: async (data) => {
+  const { mutate, isPending } = createMutation(() => ({
+    mutationFn: async (data: InstallPieceData): Promise<void> => {
       const body = new FormData();
       body.set('packageType', data.packageType);
       body.set('pieceName', data.pieceName);
@@ -107,18 +106,18 @@ const InstallPieceDialog = ({
     onSuccess: () => {
       setIsOpen(false);
       reset();
-      onInstallPiece();
+      props.onInstallPiece();
       toast.success(t('Piece installed'), {
         duration: 3000,
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       if (api.isError(error)) {
         switch (error.response?.status) {
           case HttpStatusCode.Conflict:
             setErrors({
               server: t(
-                'A piece with this name and version is already installed. Please update the version number in package.json and try again.'
+                'A piece with this name and version is already installed. Please update the version number in package.json and try again.',
               ),
             });
             break;
@@ -130,18 +129,24 @@ const InstallPieceDialog = ({
         }
       }
     },
-  });
+  }));
 
   const submit = (e: SubmitEvent) => {
     e.preventDefault();
     setErrors({});
 
-    const data = {
+    const data: Partial<InstallPieceData> & {
+      packageType: PackageType;
+      pieceName: string;
+      pieceVersion: string;
+      scope: PieceScope;
+      pieceArchive?: File;
+    } = {
       packageType: packageType(),
       pieceName: pieceName().trim(),
       pieceVersion: pieceVersion().trim(),
       pieceArchive: pieceArchive(),
-      scope,
+      scope: props.scope,
     };
 
     if (data.packageType === PackageType.REGISTRY) {
@@ -198,14 +203,14 @@ const InstallPieceDialog = ({
             />
           </DialogDescription>
         </DialogHeader>
-        <form className="flex flex-col gap-4" onSubmit={submit}>
+        <form class="flex flex-col gap-4" onSubmit={submit}>
           <div class="space-y-1">
             <Label for="packageType">{t('Package Type')}</Label>
             <Select
               value={packageType()}
-              onValueChange={(value) => {
+              onValueChange={(value: string) => {
                 setPackageType(toPackageType(value));
-                if (value === PackageType.ARCHIVE) {
+                if (value === String(PackageType.ARCHIVE)) {
                   setPieceName('');
                   setPieceVersion('');
                 }
@@ -232,7 +237,7 @@ const InstallPieceDialog = ({
             </Select>
           </div>
 
-          {packageType() === PackageType.REGISTRY && (
+          <Show when={packageType() === PackageType.REGISTRY}>
             <>
               <div class="space-y-1">
                 <Label for="pieceName">{t('Piece Name')}</Label>
@@ -267,19 +272,19 @@ const InstallPieceDialog = ({
                 </Show>
               </div>
             </>
-          )}
+          </Show>
 
-          {packageType() === PackageType.ARCHIVE && (
+          <Show when={packageType() === PackageType.ARCHIVE}>
             <div class="space-y-1">
               <Label for="pieceArchive">{t('Package Archive')}</Label>
               <Input
                 id="pieceArchive"
                 type="file"
-                onChange={(event) => {
+                onInput={(event) => {
                   const file = event.currentTarget.files?.[0];
                   if (file) {
                     setPieceArchive(file);
-                    handleArchiveUpload(file);
+                    void handleArchiveUpload(file);
                   }
                 }}
                 placeholder={t('Package archive')}
@@ -291,7 +296,7 @@ const InstallPieceDialog = ({
                 </p>
               </Show>
             </div>
-          )}
+          </Show>
 
           <Show when={errors().server}>
             <p class="text-sm font-medium text-destructive wrap-break-word">
@@ -308,8 +313,8 @@ const InstallPieceDialog = ({
 };
 
 function toPackageType(value: string): PackageType {
-  if (value === PackageType.REGISTRY) return value;
-  if (value === PackageType.ARCHIVE) return value;
+  if (value === String(PackageType.REGISTRY)) return PackageType.REGISTRY;
+  if (value === String(PackageType.ARCHIVE)) return PackageType.ARCHIVE;
   throw new Error('Invalid package type');
 }
 

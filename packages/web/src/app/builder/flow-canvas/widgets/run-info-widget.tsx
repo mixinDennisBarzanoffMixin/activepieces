@@ -4,7 +4,6 @@ import {
   isFlowRunStateTerminal,
   StepOutputStatus,
 } from '@activepieces/shared';
-import { useReactFlow } from '../solid-flow-adapter';
 import { t } from 'i18next';
 import { ArrowRight, CircleHelp, Magnet } from 'lucide-solid';
 import { Show } from 'solid-js';
@@ -17,6 +16,7 @@ import { cn } from '@/lib/utils';
 
 import { EditFlowOrViewDraftButton } from '../../builder-header/flow-status/view-draft-or-edit-flow-button';
 import { useBuilderStateContext } from '../../builder-hooks';
+import { useReactFlow } from '../solid-flow-adapter';
 import { flowCanvasUtils } from '../utils/flow-canvas-utils';
 
 import LargeWidgetWrapper from './large-widget-wrapper';
@@ -69,10 +69,7 @@ function getStatusText({
 }
 
 const RunInfoWidget = () => {
-  const run = useBuilderStateContext((state) => state.run);
-  const { variant, Icon } = run
-    ? flowRunUtils.getStatusIcon(run.status)
-    : { variant: 'default' as const, Icon: CircleHelp };
+  const run = useBuilderStateContext((state) => ({ value: state.run })).value;
   const { data: timeoutSeconds } = flagsHooks.useFlag<number>(
     ApFlagId.FLOW_RUN_TIME_SECONDS,
   );
@@ -82,118 +79,109 @@ const RunInfoWidget = () => {
   const { data: logSizeLimit } = flagsHooks.useFlag<number>(
     ApFlagId.FLOW_RUN_LOG_SIZE_LIMIT_MB,
   );
-  if (!run) {
-    return null;
-  }
-  const isRunTerminal = isFlowRunStateTerminal({
-    status: run.status,
-    ignoreInternalError: false,
-  });
   return (
-    <LargeWidgetWrapper
-      containerClassName={cn(
-        flowRunUtils.getStatusContainerClassName(variant),
-        'bg-background border border-border dark:bg-background dark:border-border',
-      )}
-      key={run.id + run.status}
-    >
-      <div className="flex items-center justify-between w-full flex-wrap">
-        <div className="flex items-center text-sm shrink-0">
-          <Icon class="size-5 mr-2" />
-          <span className="text-foreground dark:text-foreground font-medium">
-            {getStatusText({
-              status: run.status,
-              timeout: timeoutSeconds ?? -1,
-              memoryLimit: memoryLimit ?? -1,
-              logSizeLimit: logSizeLimit ?? -1,
-            })}
-          </span>
+    <Show when={run} keyed>
+      {(value) => {
+        const icon = value
+          ? flowRunUtils.getStatusIcon(value.status)
+          : { variant: 'default' as const, Icon: CircleHelp };
+        const terminal = isFlowRunStateTerminal({
+          status: value.status,
+          ignoreInternalError: false,
+        });
+        return (
+          <LargeWidgetWrapper
+            containerClassName={cn(
+              flowRunUtils.getStatusContainerClassName(icon.variant),
+              'bg-background border border-border dark:bg-background dark:border-border',
+            )}
+            key={value.id + value.status}
+          >
+            <div class="flex items-center justify-between w-full flex-wrap">
+              <div class="flex items-center text-sm shrink-0">
+                <icon.Icon class="size-5 mr-2" />
+                <span class="text-foreground dark:text-foreground font-medium">
+                  {getStatusText({
+                    status: value.status,
+                    timeout: timeoutSeconds ?? -1,
+                    memoryLimit: memoryLimit ?? -1,
+                    logSizeLimit: logSizeLimit ?? -1,
+                  })}
+                </span>
 
-          <div className="shrink-0 text-foreground dark:text-foreground">
-            <Show when={isRunTerminal()}>
-              <>
-                &nbsp;-&nbsp;
-                <Show when={run.startTime()}>
-                  <DateSection
-                    text={t('Started')}
-                    dateOrDuration={formatUtils.formatDateWithTime(
-                      new Date(run.startTime),
-                      true,
-                    )}
-                  />
-                </Show>
-                {', '}
-                <Show when={run.finishTime && run.startTime()}>
-                  <DateSection
-                    text={t('Took')}
-                    dateOrDuration={formatUtils.formatDuration(
-                      new Date(run.finishTime).getTime() -
-                        new Date(run.startTime).getTime(),
-                    )}
-                  />
-                </Show>
-              </>
-            </Show>
-          </div>
-        </div>
+                <div class="shrink-0 text-foreground dark:text-foreground">
+                  <Show when={terminal}>
+                    <>
+                      &nbsp;-&nbsp;
+                      <Show when={value.startTime}>
+                        <DateSection
+                          text={t('Started')}
+                          dateOrDuration={formatUtils.formatDateWithTime(
+                            new Date(value.startTime),
+                            true,
+                          )}
+                        />
+                      </Show>
+                      {', '}
+                      <Show when={value.finishTime && value.startTime}>
+                        <DateSection
+                          text={t('Took')}
+                          dateOrDuration={formatUtils.formatDuration(
+                            new Date(value.finishTime).getTime() -
+                              new Date(value.startTime).getTime(),
+                          )}
+                        />
+                      </Show>
+                    </>
+                  </Show>
+                </div>
+              </div>
 
-        <div className="flex items-center gap-2">
-          <ResumeLiveFollowButton isRunTerminal={isRunTerminal} />
-          <Show when={run.failedStep()}>
-            <JumpToFailedStepButton failedStepName={run.failedStep.name} />
-          </Show>
-          <EditFlowOrViewDraftButton
-            onCanvas={false}
-          ></EditFlowOrViewDraftButton>
-        </div>
-      </div>
-    </LargeWidgetWrapper>
+              <div class="flex items-center gap-2">
+                <ResumeLiveFollowButton isRunTerminal={terminal} />
+                <Show when={value.failedStep} keyed>
+                  {(step) => (
+                    <JumpToFailedStepButton failedStepName={step.name} />
+                  )}
+                </Show>
+                <EditFlowOrViewDraftButton onCanvas={false} />
+              </div>
+            </div>
+          </LargeWidgetWrapper>
+        );
+      }}
+    </Show>
   );
 };
-RunInfoWidget.displayName = 'RunInfoWidget';
+
 export { RunInfoWidget };
 
-const DateSection = ({
-  text,
-  dateOrDuration,
-}: {
-  text: string;
-  dateOrDuration: string;
-}) => {
+const DateSection = (props: { text: string; dateOrDuration: string }) => {
   return (
     <>
-      <span>{`${text}: `}</span>
-      <span>{`${dateOrDuration}`}</span>
+      <span>{`${props.text}: `}</span>
+      <span>{`${props.dateOrDuration}`}</span>
     </>
   );
 };
 
-const ResumeLiveFollowButton = ({
-  isRunTerminal,
-}: {
-  isRunTerminal: boolean;
-}) => {
+const ResumeLiveFollowButton = (props: { isRunTerminal: boolean }) => {
   const [userManuallySelectedStepDuringRun, resumeLiveFollow] =
     useBuilderStateContext((state) => [
       state.userManuallySelectedStepDuringRun,
       state.resumeLiveFollow,
     ]);
-  if (isRunTerminal || !userManuallySelectedStepDuringRun) {
-    return null;
-  }
   return (
-    <Button variant="ghost" size="sm" onClick={resumeLiveFollow}>
-      <Magnet class="size-4" />
-      {t('Follow run updates')}
-    </Button>
+    <Show when={!props.isRunTerminal && userManuallySelectedStepDuringRun}>
+      <Button variant="ghost" size="sm" onClick={resumeLiveFollow}>
+        <Magnet class="size-4" />
+        {t('Follow run updates')}
+      </Button>
+    </Show>
   );
 };
 
-const JumpToFailedStepButton = ({
-  failedStepName,
-}: {
-  failedStepName: string;
-}) => {
+const JumpToFailedStepButton = (props: { failedStepName: string }) => {
   const [selectedStep, selectFailedStep, run, loopsIndexes] =
     useBuilderStateContext((state) => [
       state.selectedStep,
@@ -210,25 +198,26 @@ const JumpToFailedStepButton = ({
           run.steps ?? {},
         )
       : null;
-  if (
-    selectedStep === failedStepName &&
-    selectedStepOutput?.status === StepOutputStatus.FAILED
-  ) {
-    return null;
-  }
+  const selectedFailedStep =
+    selectedStep === props.failedStepName &&
+    selectedStepOutput?.status === StepOutputStatus.FAILED;
   const handleClick = () => {
     selectFailedStep();
-    fitView(flowCanvasUtils.createFocusStepInGraphParams(failedStepName));
+    void fitView(
+      flowCanvasUtils.createFocusStepInGraphParams(props.failedStepName),
+    );
   };
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={handleClick}
-      class="text-destructive-700 hover:text-destructive-700 dark:text-destructive-200 dark:hover:text-destructive-200"
-    >
-      <ArrowRight class="size-4" />
-      {t('See error')}
-    </Button>
+    <Show when={!selectedFailedStep}>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleClick}
+        class="text-destructive-700 hover:text-destructive-700 dark:text-destructive-200 dark:hover:text-destructive-200"
+      >
+        <ArrowRight class="size-4" />
+        {t('See error')}
+      </Button>
+    </Show>
   );
 };

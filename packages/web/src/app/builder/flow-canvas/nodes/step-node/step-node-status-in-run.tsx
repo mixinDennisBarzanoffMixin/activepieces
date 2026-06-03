@@ -1,38 +1,38 @@
-import { t } from 'i18next';
-import { createMemo } from 'solid-js';
+import { Show, createMemo } from 'solid-js';
 
 import { StepStatusIcon, flowRunUtils } from '@/features/flow-runs';
 
 import { useBuilderStateContext } from '../../../builder-hooks';
 import { flowCanvasUtils } from '../../utils/flow-canvas-utils';
 
-const ApStepNodeStatusInRun = ({ stepName }: { stepName: string }) => {
+const ApStepNodeStatusInRun = (props: { stepName: string }) => {
   const [run, loopIndexes] = useBuilderStateContext((state) => [
     state.run,
     state.loopsIndexes,
   ]);
   const stepStatusInRun = createMemo(() => {
-    return flowCanvasUtils.getStepStatus(stepName, run, loopIndexes);
+    return flowCanvasUtils.getStepStatus(props.stepName, run, loopIndexes);
   });
-  if (!stepStatusInRun) {
-    return null;
-  }
-  const { variant, text } = stepStatusInRun
-    ? flowRunUtils.getStatusIconForStep(stepStatusInRun)
-    : ({ variant: 'default', text: t('Testing...') } as const);
   return (
-    <div className="absolute right-[1px]  h-[20px] -top-[28px]">
-      <div className={flowRunUtils.getStatusContainerClassName(variant, true)}>
-        <StepStatusIcon
-          status={stepStatusInRun}
-          size="3"
-          hideTooltip={true}
-        ></StepStatusIcon>
-        <div>{text}</div>
-      </div>
-    </div>
+    <Show when={stepStatusInRun()} keyed>
+      {(status) => {
+        const icon = flowRunUtils.getStatusIconForStep(status);
+        return (
+          <div class="absolute right-[1px]  h-[20px] -top-[28px]">
+            <div
+              class={flowRunUtils.getStatusContainerClassName(
+                icon.variant,
+                true,
+              )}
+            >
+              <StepStatusIcon status={status} size="3" hideTooltip={true} />
+              <div>{icon.text}</div>
+            </div>
+          </div>
+        );
+      }}
+    </Show>
   );
 };
-ApStepNodeStatusInRun.displayName = 'ApStepNodeStatus';
 
 export { ApStepNodeStatusInRun };

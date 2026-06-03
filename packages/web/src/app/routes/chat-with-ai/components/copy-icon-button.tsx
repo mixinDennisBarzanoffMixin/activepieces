@@ -1,5 +1,5 @@
 import { Check, Copy } from 'lucide-solid';
-import { createSignal, JSX, Show } from 'solid-js';
+import { createSignal, JSX, Show, splitProps } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -9,12 +9,12 @@ type CopyIconButtonProps = {
 } & JSX.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export function CopyIconButton(props: CopyIconButtonProps) {
-  const { textToCopy, className, ref, ...rest } = props;
+  const [local, rest] = splitProps(props, ['textToCopy', 'className', 'ref']);
   const [copied, setCopied] = createSignal(false);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(textToCopy);
+      await navigator.clipboard.writeText(local.textToCopy);
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -24,16 +24,16 @@ export function CopyIconButton(props: CopyIconButtonProps) {
 
   return (
     <button
-      ref={ref}
+      ref={local.ref}
       type="button"
       {...rest}
       onClick={(event) => {
         rest.onClick?.(event);
-        if (!event.defaultPrevented) handleCopy();
+        if (!event.defaultPrevented) void handleCopy();
       }}
-      className={cn(
+      class={cn(
         'flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground',
-        className,
+        local.className,
       )}
     >
       <Show when={copied} fallback={<Copy class="h-3.5 w-3.5" />}>

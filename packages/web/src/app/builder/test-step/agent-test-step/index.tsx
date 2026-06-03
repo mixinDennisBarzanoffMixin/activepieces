@@ -33,23 +33,20 @@ type AgentTestStepProps = {
   errorMessage?: string | null;
 };
 
-export const AgentTestStep = ({
-  agentResult,
-  errorMessage,
-}: AgentTestStepProps) => {
+export const AgentTestStep = (props: AgentTestStepProps) => {
   return (
-    <div className="flex flex-col justify-center w-full items-start">
+    <div class="flex flex-col justify-center w-full items-start">
       <Tabs defaultValue="timeline" class="w-full">
         <TabsList class="w-full grid grid-cols-2">
           <TabsTrigger value="timeline">{t('Timeline')}</TabsTrigger>
           <TabsTrigger value="output">{t('Output')}</TabsTrigger>
         </TabsList>
         <TabsContent value="timeline">
-          <AgentTimeline agentResult={agentResult} />
+          <AgentTimeline agentResult={props.agentResult} />
         </TabsContent>
         <TabsContent value="output">
           <DataDisplayTabs
-            data={errorMessage ?? agentResult}
+            data={props.errorMessage ?? props.agentResult}
             title={t('Output')}
           />
         </TabsContent>

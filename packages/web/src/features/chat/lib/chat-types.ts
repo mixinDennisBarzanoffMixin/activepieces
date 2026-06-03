@@ -65,12 +65,12 @@ function parseToolOutput(part: AnyToolPart): ToolOutput {
   if (part.state !== 'output-available' || part.output == null) {
     return { state: 'pending' };
   }
-  const raw = part.output;
+  const raw: unknown = part.output;
   const parsed =
     typeof raw === 'string'
       ? (() => {
           try {
-            return JSON.parse(raw);
+            return JSON.parse(raw) as unknown;
           } catch {
             return raw;
           }

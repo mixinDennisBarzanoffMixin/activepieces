@@ -14,25 +14,20 @@ export type ShortcutProps = {
   withShift?: boolean;
 };
 
-export const Shortcut = ({
-  shortcutKey,
-  withCtrl,
-  withShift,
-  className,
-}: ShortcutProps & { className?: string }) => {
+export const Shortcut = (props: ShortcutProps & { className?: string }) => {
   const isMac = /(Mac)/i.test(navigator.userAgent);
-  const isEscape = shortcutKey?.toLocaleLowerCase() === 'esc';
+  const isEscape = props.shortcutKey.toLocaleLowerCase() === 'esc';
   return (
     <span
-      className={cn(
+      class={cn(
         'grow text-xs tracking-widest text-muted-foreground',
-        className,
+        props.className,
       )}
     >
-      {!isEscape && withCtrl && (isMac ? '⌘' : 'Ctrl')}
-      {!isEscape && withShift && 'Shift'}
-      {!isEscape && (withCtrl || withShift) && ' + '}
-      {shortcutKey && toTitleCase(shortcutKey)}
+      {!isEscape && props.withCtrl && (isMac ? '⌘' : 'Ctrl')}
+      {!isEscape && props.withShift && 'Shift'}
+      {!isEscape && (props.withCtrl || props.withShift) && ' + '}
+      {props.shortcutKey && toTitleCase(props.shortcutKey)}
     </span>
   );
 };

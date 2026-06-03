@@ -9,8 +9,9 @@ type FlowDetailsHeaderProps = {
   report?: PlatformAnalyticsReport;
 };
 
-export function FlowDetailsHeader({ report }: FlowDetailsHeaderProps) {
+export function FlowDetailsHeader(props: FlowDetailsHeaderProps) {
   const handleDownload = () => {
+    const report = props.report;
     if (!report || report.flows.length === 0) return;
 
     const csvHeader =
@@ -25,7 +26,7 @@ export function FlowDetailsHeader({ report }: FlowDetailsHeaderProps) {
       })
       .join('\n');
 
-    downloadFile({
+    void downloadFile({
       obj: csvHeader + csvContent,
       fileName: 'flow-analytics',
       extension: 'csv',
@@ -33,13 +34,13 @@ export function FlowDetailsHeader({ report }: FlowDetailsHeaderProps) {
   };
 
   return (
-    <div className="flex items-center justify-between">
-      <div className="text-lg font-semibold">{t('Details')}</div>
+    <div class="flex items-center justify-between">
+      <div class="text-lg font-semibold">{t('Details')}</div>
       <Button
         variant="outline"
         size="sm"
         onClick={handleDownload}
-        disabled={!report?.flows || report.flows.length === 0}
+        disabled={!props.report?.flows || props.report.flows.length === 0}
       >
         <Download class="h-4 w-4 mr-2" />
         {t('Download')}

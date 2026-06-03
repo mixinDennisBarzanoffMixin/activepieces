@@ -5,6 +5,7 @@ import {
   SeekPage,
   UpdateUserRequestBody,
   User,
+  UserInvitation,
   UserStatus,
   UserWithMetaInformation,
 } from '@activepieces/shared';
@@ -29,7 +30,7 @@ export const platformUserHooks = {
     const hasInvitePermission = checkAccess(Permission.WRITE_INVITATION);
     const canListUsers =
       !isNil(currentUser) && hasInvitePermission && !isFetchingProjectRole;
-    return createQuery<SeekPage<UserWithMetaInformation>, Error>({
+    return createQuery<SeekPage<UserWithMetaInformation>, Error>(() => ({
       queryKey: platformUserKeys.users,
       queryFn: async () => {
         const results = await platformUserApi.list({
@@ -38,10 +39,10 @@ export const platformUserHooks = {
         return results;
       },
       enabled: canListUsers,
-    });
+    }));
   },
   usePlatformInvitations: () => {
-    return createQuery(() => ({
+    return createQuery<UserInvitation[], Error>(() => ({
       queryFn: () => {
         return userInvitationApi
           .list({
@@ -108,10 +109,11 @@ export const platformUserMutations = {
     userId: string;
     onSuccess: (user: User) => void;
   }) => {
-    return createMutation<User, Error, UpdateUserRequestBody>({
+    return createMutation<User, Error, UpdateUserRequestBody>(() => ({
       mutationKey: ['update-user'],
-      mutationFn: (request) => platformUserApi.update(userId, request),
+      mutationFn: (request: UpdateUserRequestBody) =>
+        platformUserApi.update(userId, request),
       onSuccess,
-    });
+    }));
   },
 };

@@ -16,22 +16,20 @@ type TestButtonTooltipProps = {
   saving: boolean;
 };
 
-const TestButtonTooltip = ({
-  children,
-  invalid,
-  saving,
-}: TestButtonTooltipProps) => {
+const TestButtonTooltip = (props: TestButtonTooltipProps) => {
   const { isLoadingDynamicProperties } = useContext(DynamicPropertiesContext);
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild class="disabled:pointer-events-auto">
-          {children}
+          {props.children}
         </TooltipTrigger>
-        <Show when={(invalid || isLoadingDynamicProperties || saving)()}>
+        <Show
+          when={props.invalid || isLoadingDynamicProperties || props.saving}
+        >
           <TooltipContent side="bottom">
             <Show
-              when={invalid()}
+              when={props.invalid}
               fallback={
                 isLoadingDynamicProperties
                   ? t('Please wait until all inputs are loaded')
@@ -47,5 +45,4 @@ const TestButtonTooltip = ({
   );
 };
 
-TestButtonTooltip.displayName = 'TestButtonTooltip';
 export { TestButtonTooltip };

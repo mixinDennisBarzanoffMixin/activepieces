@@ -1,7 +1,7 @@
 import { FlowOperationType, PopulatedFlow } from '@activepieces/shared';
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { createEffect, createSignal, JSX, Show } from 'solid-js';
+import { createEffect, createSignal, For, JSX, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
@@ -32,19 +32,16 @@ type ChangeOwnerDialogProps = {
   onOwnerChange: () => void;
 };
 
-const ChangeOwnerDialog = ({
-  children,
-  flow,
-  onOwnerChange,
-}: ChangeOwnerDialogProps) => {
+const ChangeOwnerDialog = (props: ChangeOwnerDialogProps) => {
   const { projectMembers, isLoading } = projectMembersHooks.useProjectMembers();
   const [isDialogOpened, setIsDialogOpened] = createSignal(false);
-  const [ownerId, setOwnerId] = createSignal(flow.ownerId ?? '');
+  const [ownerId, setOwnerId] = createSignal('');
   const [error, setError] = createSignal('');
+  const members = () => projectMembers ?? [];
 
   createEffect(() => {
     if (isDialogOpened()) {
-      setOwnerId(flow.ownerId ?? '');
+      setOwnerId(props.flow.ownerId ?? '');
       setError('');
     }
   });
@@ -52,9 +49,9 @@ const ChangeOwnerDialog = ({
     PopulatedFlow,
     Error,
     ChangeOwnerFormSchema
-  >({
-    mutationFn: async (data) => {
-      return await flowsApi.update(flow.id, {
+  >(() => ({
+    mutationFn: async (data: ChangeOwnerFormSchema) => {
+      return await flowsApi.update(props.flow.id, {
         type: FlowOperationType.UPDATE_OWNER,
         request: {
           ownerId: data.ownerId,
@@ -62,11 +59,11 @@ const ChangeOwnerDialog = ({
       });
     },
     onSuccess: () => {
-      onOwnerChange();
+      props.onOwnerChange();
       setIsDialogOpened(false);
       toast.success(t('Flow owner has been updated'));
     },
-  });
+  }));
 
   const submit = (e: SubmitEvent) => {
     e.preventDefault();
@@ -80,7 +77,7 @@ const ChangeOwnerDialog = ({
 
   return (
     <Dialog onOpenChange={setIsDialogOpened} open={isDialogOpened}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Change Flow Owner')}</DialogTitle>
@@ -98,18 +95,18 @@ const ChangeOwnerDialog = ({
               }
             >
               <SelectTrigger>
-                <SelectValue placeholder={t('Select Owner')} />
+                <SelectValue placeholder={String(t('Select Owner'))} />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  {projectMembers &&
-                    projectMembers.length > 0 &&
-                    projectMembers.map((member) => (
-                      <SelectItem key={member.userId} value={member.userId}>
+                  <For each={members()}>
+                    {(member) => (
+                      <SelectItem value={member.userId}>
                         {member.user.firstName} {member.user.lastName} (
                         {member.user.email})
                       </SelectItem>
-                    ))}
+                    )}
+                  </For>
                 </SelectGroup>
               </SelectContent>
             </Select>

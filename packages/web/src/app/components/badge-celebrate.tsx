@@ -6,7 +6,7 @@ import {
 } from '@activepieces/shared';
 import confetti from 'canvas-confetti';
 import { Trophy } from 'lucide-solid';
-import { createSignal, createEffect } from 'solid-js';
+import { createSignal, createEffect, type JSX } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { useSocket } from '@/components/providers/socket-provider';
@@ -18,12 +18,12 @@ import { AccountSettingsDialog } from './account-settings';
 export const BadgeCelebrate = () => {
   const socket = useSocket();
   const { refetch } = userHooks.useCurrentUser();
-  let cleanupRef = undefined;
+  let cleanupRef: (() => void) | undefined;
   const { data: showBadges } = flagsHooks.useFlag<boolean>(
     ApFlagId.SHOW_BADGES,
   );
   let isCelebrating = false;
-  let celebrationTimeout = undefined;
+  let celebrationTimeout: ReturnType<typeof setTimeout> | undefined;
   const [showAccountSettings, setShowAccountSettings] = createSignal(false);
   const openAccountSettingsRef = () => setShowAccountSettings(true);
 
@@ -39,9 +39,9 @@ export const BadgeCelebrate = () => {
         return;
       }
 
-      const badgeTitle = badge?.title;
-      const badgeDescription = badge?.description;
-      const badgeImageUrl = badge?.imageUrl;
+      const badgeTitle = badge.title;
+      const badgeDescription = badge.description;
+      const badgeImageUrl = badge.imageUrl;
 
       toast.custom(
         () => (
@@ -59,7 +59,7 @@ export const BadgeCelebrate = () => {
         },
       );
 
-      refetch();
+      void refetch();
       if (isCelebrating) {
         return;
       }
@@ -82,12 +82,12 @@ export const BadgeCelebrate = () => {
         };
         const particleCount = 50 * (timeLeft / duration);
 
-        confetti({
+        void confetti({
           ...defaults,
           particleCount,
           origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
         });
-        confetti({
+        void confetti({
           ...defaults,
           particleCount,
           origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
@@ -100,7 +100,7 @@ export const BadgeCelebrate = () => {
       }
       celebrationTimeout = window.setTimeout(() => {
         isCelebrating = false;
-        celebrationTimeout = null;
+        celebrationTimeout = undefined;
       }, duration);
     };
 
@@ -111,7 +111,7 @@ export const BadgeCelebrate = () => {
       isCelebrating = false;
       if (celebrationTimeout) {
         clearTimeout(celebrationTimeout);
-        celebrationTimeout = null;
+        celebrationTimeout = undefined;
       }
     };
 
@@ -130,36 +130,31 @@ function randomInRange(min: number, max: number) {
   return Math.random() * (max - min) + min;
 }
 
-const BadgeToast = ({
-  imageUrl,
-  title,
-  description,
-  onClick,
-}: {
+const BadgeToast = (props: {
   imageUrl: string;
   title: string;
   description: string;
   onClick: () => void;
-}) => (
+}): JSX.Element => (
   <div
-    className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-    onClick={onClick}
+    class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+    onClick={props.onClick}
   >
     <img
-      src={imageUrl}
-      alt={title}
-      className="w-12 h-12 rounded-lg object-cover shadow-md flex-shrink-0"
+      src={props.imageUrl}
+      alt={props.title}
+      class="w-12 h-12 rounded-lg object-cover shadow-md flex-shrink-0"
     />
-    <div className="flex flex-col gap-0.5 min-w-0">
-      <div className="flex items-center gap-2">
-        <span className="font-semibold text-foreground text-sm">{title}</span>
-        <span className="text-[10px] font-medium text-primary uppercase tracking-wide flex items-center gap-1">
+    <div class="flex flex-col gap-0.5 min-w-0">
+      <div class="flex items-center gap-2">
+        <span class="font-semibold text-foreground text-sm">{props.title}</span>
+        <span class="text-[10px] font-medium text-primary uppercase tracking-wide flex items-center gap-1">
           <Trophy class="w-3 h-3" />
           Badge Earned!
         </span>
       </div>
-      <p className="text-xs text-muted-foreground leading-snug">
-        {description}
+      <p class="text-xs text-muted-foreground leading-snug">
+        {props.description}
       </p>
     </div>
   </div>

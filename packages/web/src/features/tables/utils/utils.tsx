@@ -45,7 +45,7 @@ const getCsvContent = (table: ExportTableResponse) => {
 function exportTables(tables: ExportTableResponse[]) {
   if (tables.length === 1) {
     const csvContent = getCsvContent(tables[0]);
-    downloadFile({
+    void downloadFile({
       obj: csvContent,
       fileName: `${tables[0].name}`,
       extension: 'csv',
@@ -57,7 +57,7 @@ function exportTables(tables: ExportTableResponse[]) {
     const csvContent = getCsvContent(table);
     zip.file(`${table.name}.csv`, csvContent);
   });
-  downloadFile({
+  void downloadFile({
     obj: zip,
     fileName: 'tables',
     extension: 'zip',
@@ -86,7 +86,7 @@ function exportRecords({
       }, {});
     }),
   });
-  downloadFile({
+  void downloadFile({
     obj: csvContent,
     fileName: `${tableName}`,
     extension: 'csv',
@@ -100,7 +100,9 @@ export const tablesUtils = {
 
 export const FieldHeaderContext = createContext<{
   setIsPopoverOpen: (open: boolean) => void;
-  setPopoverContent: (content: any) => void;
+  setPopoverContent: (
+    content: JSX.Element | string | number | null | undefined,
+  ) => void;
   field: ClientField & { index: number };
   userHasTableWritePermission: boolean;
 } | null>(null);

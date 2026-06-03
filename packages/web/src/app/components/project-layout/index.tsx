@@ -1,6 +1,6 @@
 import { ApEdition, ApFlagId, isNil } from '@activepieces/shared';
 import { t } from 'i18next';
-import { Component, Show } from 'solid-js';
+import { Show, type Component, type JSX } from 'solid-js';
 
 import { ChartLineIcon } from '@/components/icons/chart-line';
 import { CompassIcon } from '@/components/icons/compass';
@@ -24,28 +24,21 @@ import { ProjectDashboardLayoutHeader } from './project-dashboard-layout-header'
 export type ProjectDashboardLayoutHeaderTab = {
   to: string;
   label: string;
-  icon: Component<any>;
+  icon: Component<{ class?: string }>;
   hasPermission: boolean;
   show: boolean;
   beta?: boolean;
 };
 
-const ProjectChangedRedirector = ({
-  currentProjectId,
-  children,
-}: {
+const ProjectChangedRedirector = (props: {
   currentProjectId: string;
   children: JSX.Element;
 }) => {
-  projectHooks.useReloadPageIfProjectIdChanged(currentProjectId);
-  return children;
+  projectHooks.useReloadPageIfProjectIdChanged(props.currentProjectId);
+  return <>{props.children}</>;
 };
 
-export function ProjectDashboardLayout({
-  children,
-}: {
-  children: JSX.Element;
-}) {
+export function ProjectDashboardLayout(props: { children: JSX.Element }) {
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
   const currentProjectId = authenticationSession.getProjectId();
   const isPlatformPage = window.location.pathname.includes('/platform/');
@@ -98,7 +91,7 @@ export function ProjectDashboardLayout({
           isEmbedded={isEmbedded}
           currentProjectId={currentProjectId}
         >
-          {children}
+          {props.children}
         </ProjectDashboardLayoutInner>
         {
           <Show when={edition === ApEdition.CLOUD}>
@@ -110,12 +103,7 @@ export function ProjectDashboardLayout({
   );
 }
 
-function ProjectDashboardLayoutInner({
-  hideHeader,
-  isEmbedded,
-  currentProjectId,
-  children,
-}: {
+function ProjectDashboardLayoutInner(props: {
   hideHeader: boolean;
   isEmbedded: boolean;
   currentProjectId: string;
@@ -126,31 +114,31 @@ function ProjectDashboardLayoutInner({
   return (
     <SidebarProvider hoverMode={!searchOpen}>
       {
-        <Show when={!isEmbedded}>
+        <Show when={!props.isEmbedded}>
           <ProjectDashboardSidebar />
         </Show>
       }
       <SidebarInset class="flex flex-col h-full overflow-hidden bg-sidebar">
         <div
-          className={cn(
+          class={cn(
             'flex-1 flex flex-col overflow-hidden',
-            !isEmbedded && 'pr-2 pt-3 pb-3',
+            !props.isEmbedded && 'pr-2 pt-3 pb-3',
           )}
         >
           <div
             id="dashboard-content-container"
-            className={cn(
+            class={cn(
               'relative flex flex-col h-full bg-background overflow-clip',
-              !isEmbedded &&
+              !props.isEmbedded &&
                 'rounded-xl shadow-[2px_0px_4px_-2px_rgba(0,0,0,0.05),0px_2px_4px_-2px_rgba(0,0,0,0.05)] border',
             )}
           >
             {
-              <Show when={!hideHeader}>
-                <ProjectDashboardLayoutHeader key={currentProjectId} />
+              <Show when={!props.hideHeader}>
+                <ProjectDashboardLayoutHeader key={props.currentProjectId} />
               </Show>
             }
-            <div className="flex-1 overflow-auto">{children}</div>
+            <div class="flex-1 overflow-auto">{props.children}</div>
           </div>
         </div>
       </SidebarInset>

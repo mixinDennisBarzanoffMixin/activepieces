@@ -1,4 +1,5 @@
 import { FileResponseInterface } from '@activepieces/shared';
+import { For, Show } from 'solid-js';
 
 import { FileMessage } from './file-message';
 import { ImageMessage } from './image-message';
@@ -11,42 +12,39 @@ interface MultiMediaMessageProps {
   setSelectedImage: (image: string | null) => void;
 }
 
-export const MultiMediaMessage = ({
-  textContent,
-  role,
-  attachments,
-  setSelectedImage,
-}) => {
+export const MultiMediaMessage = (props: MultiMediaMessageProps) => {
   return (
-    <div className="flex flex-col gap-2">
+    <div class="flex flex-col gap-2">
       {/* Text content */}
-      {textContent && <TextMessage content={textContent} role={role} />}
+      <Show when={props.textContent}>
+        <TextMessage content={props.textContent} role={props.role} />
+      </Show>
 
       {/* Attachments */}
-      {attachments && attachments.length > 0 && (
-        <div className="flex flex-col gap-2 mt-2">
-          {attachments.map((attachment, index) => {
-            if ('url' in attachment && 'mimeType' in attachment) {
-              const isImage = attachment.mimeType?.startsWith('image/');
-              return isImage ? (
-                <ImageMessage
-                  key={index}
-                  content={attachment.url}
-                  setSelectedImage={setSelectedImage}
-                />
-              ) : (
-                <FileMessage
-                  key={index}
-                  content={attachment.url}
-                  mimeType={attachment.mimeType}
-                  fileName={attachment.fileName}
-                  role={role}
-                />
-              );
-            }
-          })}
+      <Show when={props.attachments && props.attachments.length > 0}>
+        <div class="flex flex-col gap-2 mt-2">
+          <For each={props.attachments}>
+            {(attachment) => {
+              if ('url' in attachment && 'mimeType' in attachment) {
+                const isImage = attachment.mimeType.startsWith('image/');
+                return isImage ? (
+                  <ImageMessage
+                    content={attachment.url}
+                    setSelectedImage={props.setSelectedImage}
+                  />
+                ) : (
+                  <FileMessage
+                    content={attachment.url}
+                    mimeType={attachment.mimeType}
+                    fileName={attachment.fileName}
+                    role={props.role}
+                  />
+                );
+              }
+            }}
+          </For>
         </div>
-      )}
+      </Show>
     </div>
   );
 };

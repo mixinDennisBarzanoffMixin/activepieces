@@ -1,42 +1,31 @@
 import { LucideIcon } from 'lucide-solid';
-import { For, Show } from 'solid-js';
+import { For, Show, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
-export const StepShell = ({
-  title,
-  description,
-  actions,
-  children,
-}: {
+export const StepShell = (props: {
   title: string;
   description: string;
   actions?: JSX.Element;
   children: JSX.Element;
 }) => {
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h2 className="text-base font-medium">{title}</h2>
-          <p className="text-sm text-muted-foreground">{description}</p>
+    <div class="flex flex-col gap-8">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex flex-col gap-1">
+          <h2 class="text-base font-medium">{props.title}</h2>
+          <p class="text-sm text-muted-foreground">{props.description}</p>
         </div>
-        <Show when={actions}>
-          <div className="shrink-0">{actions}</div>
+        <Show when={props.actions}>
+          {(actions) => <div class="shrink-0">{actions()}</div>}
         </Show>
       </div>
-      {children}
+      {props.children}
     </div>
   );
 };
 
-export const Stepper = ({
-  steps,
-  completion,
-  activeStepIndex,
-  displayedIndex,
-  onStepClick,
-}: {
+export const Stepper = (props: {
   steps: StepDef[];
   completion: boolean[];
   activeStepIndex: number;
@@ -44,60 +33,60 @@ export const Stepper = ({
   onStepClick: (index: number) => void;
 }) => {
   return (
-    <ol className="flex flex-col">
-      <For each={steps}>
+    <ol class="flex flex-col">
+      <For each={props.steps}>
         {(step, index) => {
-          const isComplete = completion[index];
-          const isActive = index === displayedIndex;
-          const isLocked = index > activeStepIndex;
-          const isLast = index === steps.length - 1;
+          const isComplete = () => props.completion[index()] ?? false;
+          const isActive = () => index() === props.displayedIndex;
+          const isLocked = () => index() > props.activeStepIndex;
+          const isLast = () => index() === props.steps.length - 1;
           const Icon = step.icon;
           return (
-            <li key={step.kind} className="flex gap-3">
-              <div className="flex flex-col items-center">
+            <li class="flex gap-3">
+              <div class="flex flex-col items-center">
                 <button
                   type="button"
-                  onClick={() => onStepClick(index)}
-                  disabled={isLocked}
-                  aria-current={isActive ? 'step' : undefined}
-                  className={cn(
+                  onClick={() => props.onStepClick(index())}
+                  disabled={isLocked()}
+                  aria-current={isActive() ? 'step' : undefined}
+                  class={cn(
                     'flex size-8 items-center justify-center transition-colors',
-                    isComplete && 'text-success-600',
-                    !isComplete && isActive && 'text-primary',
-                    !isComplete &&
-                      !isActive &&
-                      !isLocked &&
+                    isComplete() && 'text-success-600',
+                    !isComplete() && isActive() && 'text-primary',
+                    !isComplete() &&
+                      !isActive() &&
+                      !isLocked() &&
                       'text-muted-foreground hover:text-primary',
-                    isLocked &&
+                    isLocked() &&
                       'text-muted-foreground cursor-not-allowed opacity-60',
                   )}
                 >
                   <Icon class="size-5" />
                 </button>
-                <Show when={!isLast}>
+                <Show when={!isLast()}>
                   <div
-                    className={cn(
+                    class={cn(
                       'w-px flex-1 my-2',
-                      isComplete ? 'bg-success-600' : 'bg-border',
+                      isComplete() ? 'bg-success-600' : 'bg-border',
                     )}
                   />
                 </Show>
               </div>
               <button
                 type="button"
-                onClick={() => onStepClick(index)}
-                disabled={isLocked}
-                className={cn(
+                onClick={() => props.onStepClick(index())}
+                disabled={isLocked()}
+                class={cn(
                   'flex-1 text-left pt-1.5 pb-12 text-sm transition-colors',
-                  isActive && 'font-medium text-foreground',
-                  !isActive &&
-                    !isLocked &&
+                  isActive() && 'font-medium text-foreground',
+                  !isActive() &&
+                    !isLocked() &&
                     'text-muted-foreground hover:text-foreground',
-                  isLocked &&
+                  isLocked() &&
                     'text-muted-foreground cursor-not-allowed opacity-60',
                 )}
               >
-                <span className="mr-1">{index + 1}.</span>
+                <span class="mr-1">{index() + 1}.</span>
                 {step.title}
               </button>
             </li>

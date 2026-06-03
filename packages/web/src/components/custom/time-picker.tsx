@@ -1,7 +1,13 @@
 'use client';
 
 import { isNil } from '@activepieces/shared';
-import { createSignal, createEffect } from 'solid-js';
+import {
+  createSignal,
+  createEffect,
+  Show,
+  mergeProps,
+  createMemo,
+} from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -26,32 +32,31 @@ const hoursItems = new Array(12).fill(0).map((_, index) => ({
   label: index + 1 < 10 ? `0${index + 1}` : (index + 1).toString(),
 }));
 
-export function TimePicker({
-  date,
-  setDate,
-  showSeconds,
-  name = 'from',
-}: TimePickerProps) {
+export function TimePicker(_props: TimePickerProps) {
+  const props = mergeProps({ name: 'from' }, _props);
   const [period, setPeriod] = createSignal<Period>(() => {
-    if (date) {
-      return date.getHours() >= 12 ? 'PM' : 'AM';
+    if (props.date) {
+      return props.date.getHours() >= 12 ? 'PM' : 'AM';
     }
-    return name === 'from' ? 'AM' : 'PM';
+    return props.name === 'from' ? 'AM' : 'PM';
   });
   createEffect(() => {
-    if (date && date.getHours() >= 12) {
+    if (props.date && props.date.getHours() >= 12) {
       setPeriod('PM');
-    } else if (!date) {
-      setPeriod(name === 'from' ? 'AM' : 'PM');
+    } else if (!props.date) {
+      setPeriod(props.name === 'from' ? 'AM' : 'PM');
     }
   });
-  const hasValueChanged =
-    name === 'from'
-      ? date?.getHours() !== 0 || date?.getMinutes() !== 0 || period() !== 'AM'
-      : date?.getHours() !== 23 ||
-        date?.getMinutes() !== 59 ||
-        period() !== 'PM';
-  const isActive = !isNil(date) && hasValueChanged;
+  const changed = createMemo(() =>
+    props.name === 'from'
+      ? props.date?.getHours() !== 0 ||
+        props.date.getMinutes() !== 0 ||
+        period() !== 'AM'
+      : props.date?.getHours() !== 23 ||
+        props.date.getMinutes() !== 59 ||
+        period() !== 'PM',
+  );
+  const active = createMemo(() => !isNil(props.date) && changed());
   let minuteRef: HTMLInputElement | undefined;
   let hourRef: HTMLInputElement | undefined;
   let secondRef: HTMLInputElement | undefined;
@@ -59,68 +64,76 @@ export function TimePicker({
 
   return (
     <div
-      className={cn(
+      class={cn(
         'flex items-center transition-all  gap-2 w-full text-muted-foreground justify-center bg-accent/50 py-1 px-2 rounded-sm h-[43px] border border-solid border-border',
         {
-          'text-foreground': isActive,
+          'text-foreground': active(),
         },
       )}
     >
-      <div className="grid gap-1 text-center">
+      <div class="grid gap-1 text-center">
         <TimeUnitPickerInput
           picker="12hours"
-          isActive={isActive}
+          isActive={active()}
           period={period()}
-          date={date}
-          setDate={setDate}
-          name={name}
-          ref={(el) => (hourRef = el)}
+          date={props.date}
+          setDate={props.setDate}
+          name={props.name}
+          ref={(el: HTMLInputElement) => {
+            hourRef = el;
+          }}
           onRightFocus={() => minuteRef?.focus()}
           autoCompleteList={hoursItems}
         />
       </div>
       :
-      <div className="grid gap-1 text-center">
+      <div class="grid gap-1 text-center">
         <TimeUnitPickerInput
           picker="minutes"
           id="minutes12"
-          isActive={isActive}
-          name={name}
-          date={date}
+          isActive={active()}
+          name={props.name}
+          date={props.date}
           period={period()}
-          setDate={setDate}
-          ref={(el) => (minuteRef = el)}
+          setDate={props.setDate}
+          ref={(el: HTMLInputElement) => {
+            minuteRef = el;
+          }}
           onLeftFocus={() => hourRef?.focus()}
           onRightFocus={() => secondRef?.focus()}
           autoCompleteList={minutesItems}
         />
       </div>
-      <Show when={showSeconds}>
+      <Show when={props.showSeconds}>
         <>
           :
-          <div className="grid gap-1 text-center">
+          <div class="grid gap-1 text-center">
             <TimeUnitPickerInput
               picker="seconds"
               id="seconds12"
-              name={name}
-              isActive={isActive}
-              date={date}
-              setDate={setDate}
-              ref={(el) => (secondRef = el)}
+              name={props.name}
+              isActive={active()}
+              date={props.date}
+              setDate={props.setDate}
+              ref={(el: HTMLInputElement) => {
+                secondRef = el;
+              }}
               onLeftFocus={() => minuteRef?.focus()}
               onRightFocus={() => periodRef?.focus()}
             />
           </div>
         </>
       </Show>
-      <div className="grid gap-1 text-center">
+      <div class="grid gap-1 text-center">
         <TimePeriodSelect
           period={period()}
-          isActive={isActive}
+          isActive={active()}
           setPeriod={setPeriod}
-          date={date}
-          setDate={setDate}
-          ref={(el) => (periodRef = el)}
+          date={props.date}
+          setDate={props.setDate}
+          ref={(el: HTMLButtonElement) => {
+            periodRef = el;
+          }}
           onLeftFocus={() => secondRef?.focus()}
         />
       </div>

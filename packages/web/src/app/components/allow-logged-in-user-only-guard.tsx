@@ -13,9 +13,9 @@ import { BadgeCelebrate } from './badge-celebrate';
 type AllowOnlyLoggedInUserOnlyGuardProps = {
   children: JSX.Element;
 };
-export const AllowOnlyLoggedInUserOnlyGuard = ({
-  children,
-}: AllowOnlyLoggedInUserOnlyGuardProps) => {
+export const AllowOnlyLoggedInUserOnlyGuard = (
+  props: AllowOnlyLoggedInUserOnlyGuardProps,
+) => {
   const { reset } = useTelemetry();
   if (!authenticationSession.isLoggedIn()) {
     authenticationSession.clearSession();
@@ -38,7 +38,7 @@ export const AllowOnlyLoggedInUserOnlyGuard = ({
   return (
     <SocketProvider>
       <BadgeCelebrate />
-      {children}
+      {props.children}
     </SocketProvider>
   );
 };

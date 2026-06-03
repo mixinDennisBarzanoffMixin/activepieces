@@ -1,4 +1,5 @@
 import { FieldType, StaticDropdownEmptyOption } from '@activepieces/shared';
+import { Show } from 'solid-js';
 
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { cn } from '@/lib/utils';
@@ -7,55 +8,48 @@ import { useTableState } from './ap-table-state-provider';
 import { useCellContext } from './cell-context';
 
 const DropdownEditor = () => {
-  const {
-    value,
-    handleCellChange,
-    setIsEditing,
-    isEditing,
-    columnIdx,
-    disabled,
-  } = useCellContext();
-  const field = useTableState((state) => state.fields[columnIdx]);
+  const cell = useCellContext();
+  const field = useTableState((state) => state.fields[cell.columnIdx]);
   const containerRef = null;
   const handleChange = (newValue: string | null) => {
-    handleCellChange(newValue ?? '');
+    cell.handleCellChange(newValue ?? '');
   };
-  if (field?.type !== FieldType.STATIC_DROPDOWN) {
-    console.log(field);
-    console.error('DropdownEditor can only be used for STATIC_DROPDOWN fields');
-    return null;
-  }
   return (
-    <div
-      className={cn('h-full w-full', {
-        'border-primary  border-2': isEditing,
-      })}
-      ref={containerRef}
-    >
-      <SearchableSelect
-        triggerClassName={cn('rounded-none px-2 border-none bg-transparent')}
-        onClose={() => {
-          setIsEditing(false);
-        }}
-        options={[
-          StaticDropdownEmptyOption,
-          ...field.data.options.map((option) => ({
-            value: option.value,
-            label: option.value,
-          })),
-        ]}
-        onChange={handleChange}
-        value={value}
-        disabled={disabled}
-        placeholder={''}
-        showDeselect={false}
-        openState={{
-          open: isEditing,
-          setOpen: setIsEditing,
-        }}
-      ></SearchableSelect>
-    </div>
+    <Show when={field.type === FieldType.STATIC_DROPDOWN ? field : null}>
+      {(dropdown) => (
+        <div
+          class={cn('h-full w-full', {
+            'border-primary  border-2': cell.isEditing,
+          })}
+          ref={containerRef}
+        >
+          <SearchableSelect
+            triggerClassName={cn(
+              'rounded-none px-2 border-none bg-transparent',
+            )}
+            onClose={() => {
+              cell.setIsEditing(false);
+            }}
+            options={[
+              StaticDropdownEmptyOption,
+              ...dropdown().data.options.map((option) => ({
+                value: option.value,
+                label: option.value,
+              })),
+            ]}
+            onInput={handleChange}
+            value={cell.value}
+            disabled={cell.disabled}
+            placeholder={''}
+            showDeselect={false}
+            openState={{
+              open: cell.isEditing,
+              setOpen: cell.setIsEditing,
+            }}
+          />
+        </div>
+      )}
+    </Show>
   );
 };
-DropdownEditor.displayName = 'DropdownEditor';
 export { DropdownEditor };

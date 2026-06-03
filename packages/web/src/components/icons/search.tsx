@@ -1,5 +1,5 @@
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,7 @@ function SearchIcon(props: SearchIconProps & { ref?: SearchIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -89,6 +89,5 @@ function SearchIcon(props: SearchIconProps & { ref?: SearchIconHandle }) {
     </div>
   );
 }
-SearchIcon.displayName = 'SearchIcon';
 
 export { SearchIcon };

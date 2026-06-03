@@ -10,7 +10,7 @@ function useFlowLock() {
     state.flow.id,
     state.setReadOnly,
   ]);
-  let readonlySetByLock: any | undefined;
+  let readonlySetByLock = false;
 
   const { lockedBy, takeOver } = useResourceLock({
     resourceId: flowId,

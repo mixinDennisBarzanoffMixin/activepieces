@@ -1,17 +1,26 @@
-import { PopulatedFlow, isNil } from '@activepieces/shared';
-import { createQuery } from '@tanstack/solid-query';
+import { PopulatedFlow } from '@activepieces/shared';
+import { Route, Router } from '@solidjs/router';
+import { QueryClientProvider, createQuery } from '@tanstack/solid-query';
+import { Show, createEffect, untrack } from 'solid-js';
 
-import { ReactFlowProvider } from './app/builder/flow-canvas/solid-flow-adapter';
 import { BuilderPage } from './app/builder';
+import { ReactFlowProvider } from './app/builder/flow-canvas/solid-flow-adapter';
 import { BuilderStateProvider } from './app/builder/state/builder-state-provider';
+import { queryClient } from './app/query-client';
 import { LoadingSpinner } from './components/custom/spinner';
 import { flowsApi, sampleDataHooks } from './features/flows';
+import { setVeritlyProjectId } from './lib/api';
 
 function VeritlyAutomationEditor(props: {
   flowId: string;
   path: string;
   name?: string;
+  projectId: string;
 }) {
+  createEffect(() => {
+    setVeritlyProjectId(props.projectId);
+  });
+
   const flowQuery = createQuery<PopulatedFlow, Error>(() => ({
     queryKey: ['veritly-flow', props.flowId],
     queryFn: () => flowsApi.get(props.flowId),
@@ -20,42 +29,46 @@ function VeritlyAutomationEditor(props: {
     refetchOnWindowFocus: false,
   }));
 
+  return (
+    <Show
+      when={flowQuery.data}
+      fallback={
+        flowQuery.isError ? (
+          <div class="flex h-full w-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+            <div class="font-medium text-foreground">
+              Automation flow not found
+            </div>
+            <div>{props.name ?? props.path}</div>
+          </div>
+        ) : (
+          <div class="flex h-full w-full items-center justify-center bg-background">
+            <LoadingSpinner isLarge={true} />
+          </div>
+        )
+      }
+    >
+      {(loaded) => <VeritlyLoadedAutomationEditor flow={loaded()} />}
+    </Show>
+  );
+}
+
+function VeritlyLoadedAutomationEditor(props: { flow: PopulatedFlow }) {
+  const flow = untrack(() => props.flow);
   const sampleDataQuery = sampleDataHooks.useSampleDataForFlow(
-    flowQuery.data?.version,
-    flowQuery.data?.projectId,
+    flow.version,
+    flow.projectId,
   );
 
   const sampleDataInputQuery = sampleDataHooks.useSampleDataInputForFlow(
-    flowQuery.data?.version,
-    flowQuery.data?.projectId,
+    flow.version,
+    flow.projectId,
   );
-
-  if (
-    flowQuery.isLoading ||
-    sampleDataQuery.isLoading ||
-    sampleDataInputQuery.isLoading
-  ) {
-    return (
-      <div class="flex h-full w-full items-center justify-center bg-background">
-        <LoadingSpinner isLarge={true} />
-      </div>
-    );
-  }
-
-  if (isNil(flowQuery.data) || flowQuery.isError) {
-    return (
-      <div class="flex h-full w-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
-        <div class="font-medium text-foreground">Automation flow not found</div>
-        <div>{props.name ?? props.path}</div>
-      </div>
-    );
-  }
 
   return (
     <ReactFlowProvider>
       <BuilderStateProvider
-        flow={flowQuery.data}
-        flowVersion={flowQuery.data.version}
+        flow={flow}
+        flowVersion={flow.version}
         readonly={false}
         hideTestWidget={false}
         run={null}
@@ -68,4 +81,20 @@ function VeritlyAutomationEditor(props: {
   );
 }
 
-export default VeritlyAutomationEditor;
+export default function VeritlyAutomationEditorRoot(props: {
+  flowId: string;
+  path: string;
+  name?: string;
+  projectId: string;
+}) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Route
+          path="/*"
+          component={() => <VeritlyAutomationEditor {...props} />}
+        />
+      </Router>
+    </QueryClientProvider>
+  );
+}

@@ -11,28 +11,28 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { flowRunUtils } from '@/features/flow-runs';
+import { cn } from '@/lib/utils';
 
 import { useBuilderStateContext } from '../builder-hooks';
 
-const LoopIterationInput = ({ stepName }: { stepName: string }) => {
-  const [setLoopIndex, currentIndex, run, flowVersion, loopsIndexes, stepType] =
+const LoopIterationInput = (props: { stepName: string }) => {
+  const [setLoopIndex, currentIndex, run, loopsIndexes, stepType] =
     useBuilderStateContext((state) => [
       state.setLoopIndex,
-      state.loopsIndexes[stepName] ?? 0,
+      state.loopsIndexes[props.stepName] ?? 0,
       state.run,
-      state.flowVersion,
       state.loopsIndexes,
-      flowStructureUtil.getStep(stepName, state.flowVersion.trigger)?.type,
+      flowStructureUtil.getStep(props.stepName, state.flowVersion.trigger)
+        ?.type,
     ]);
   const stepOutput = createMemo(() => {
     return run && run.steps
-      ? flowRunUtils.extractStepOutput(stepName, loopsIndexes, run.steps)
+      ? flowRunUtils.extractStepOutput(props.stepName, loopsIndexes, run.steps)
       : null;
   });
 
-  let inputRef: HTMLInputElement | undefined;
   const [isAnimating, setIsAnimating] = createSignal(false);
-  let prevIndexRef: any | undefined;
+  let prevIndexRef: number | undefined;
 
   createEffect(() => {
     if (prevIndexRef !== currentIndex) {
@@ -45,86 +45,83 @@ const LoopIterationInput = ({ stepName }: { stepName: string }) => {
     }
   });
 
-  const totalIterations =
-    stepOutput &&
-    stepOutput.output &&
-    stepOutput.type === FlowActionType.LOOP_ON_ITEMS
-      ? stepOutput.output.iterations.length
+  const totalIterations = createMemo(() => {
+    const output = stepOutput();
+    return output?.type === FlowActionType.LOOP_ON_ITEMS && output.output
+      ? output.output.iterations.length
       : 0;
+  });
 
   function onChange(value: string) {
     const parsedValue = Math.max(
       1,
-      Math.min(parseInt(value) ?? 1, totalIterations),
+      Math.min(parseInt(value) || 1, totalIterations()),
     );
-    setLoopIndex(stepName, parsedValue - 1);
-  }
-
-  if (isNil(run) || stepType !== FlowActionType.LOOP_ON_ITEMS) {
-    return <></>;
+    setLoopIndex(props.stepName, parsedValue - 1);
   }
 
   return (
-    <div className="absolute -top-4 -left-[45px]">
-      <div className="flex items-center justify-center flex-col gap-0.5">
-        <LoopIterationInputButton
-          onChange={onChange}
-          isIncreasing={true}
-          currentIndex={currentIndex}
-        />
-        <Tooltip>
-          <TooltipTrigger>
-            <Input
-              ref={(el) => (inputRef = el)}
-              class={`py-2 w-[35px] px-0 h-[35px] animate-in fade-in bg-background border-solid rounded-md text-center !text-xs transition-all duration-300 ease-in-out ${
-                isAnimating ? 'border-2 border-primary' : 'border border-border'
-              }`}
-              type="number"
-              value={currentIndex + 1}
-              min={1}
-              max={totalIterations}
-              onClick={(e) => {
-                if (e.button === 0) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
-              onChange={(e) => {
-                const value =
-                  isNil(e.target.value) ||
-                  e.target.value.length === 0 ||
-                  e.target.value === 'e'
-                    ? '1'
-                    : e.target.value;
-                onChange(value);
-              }}
-            />
-          </TooltipTrigger>
-          <TooltipContent side="left">
-            {t(
-              'Show child steps output on round ({iteration}/{totalIterations})',
-              { iteration: currentIndex + 1, totalIterations },
-            )}
-          </TooltipContent>
-        </Tooltip>
-        <LoopIterationInputButton
-          onChange={onChange}
-          isIncreasing={false}
-          currentIndex={currentIndex}
-        />
+    <Show when={!isNil(run) && stepType === FlowActionType.LOOP_ON_ITEMS}>
+      <div class="absolute -top-4 -left-[45px]">
+        <div class="flex items-center justify-center flex-col gap-0.5">
+          <LoopIterationInputButton
+            onChange={onChange}
+            isIncreasing={true}
+            currentIndex={currentIndex}
+          />
+          <Tooltip>
+            <TooltipTrigger>
+              <Input
+                class={cn(
+                  'py-2 w-[35px] px-0 h-[35px] animate-in fade-in bg-background border-solid rounded-md text-center !text-xs transition-all duration-300 ease-in-out',
+                  isAnimating()
+                    ? 'border-2 border-primary'
+                    : 'border border-border',
+                )}
+                type="number"
+                value={currentIndex + 1}
+                min={1}
+                max={totalIterations()}
+                onClick={(e) => {
+                  if (e.button === 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
+                onChange={(e) => {
+                  const input = e.currentTarget.value;
+                  const value =
+                    isNil(input) || input.length === 0 || input === 'e'
+                      ? '1'
+                      : input;
+                  onChange(value);
+                }}
+              />
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              {t(
+                'Show child steps output on round ({iteration}/{totalIterations})',
+                {
+                  iteration: currentIndex + 1,
+                  totalIterations: totalIterations(),
+                },
+              )}
+            </TooltipContent>
+          </Tooltip>
+          <LoopIterationInputButton
+            onChange={onChange}
+            isIncreasing={false}
+            currentIndex={currentIndex}
+          />
+        </div>
       </div>
-    </div>
+    </Show>
   );
 };
 
-LoopIterationInput.displayName = 'LoopIterationInput';
 export { LoopIterationInput };
 
-const LoopIterationInputButton = ({
-  onChange,
-  isIncreasing,
-  currentIndex,
-}: {
+const LoopIterationInputButton = (props: {
   onChange: (val: string) => void;
   isIncreasing: boolean;
   currentIndex: number;
@@ -135,16 +132,18 @@ const LoopIterationInputButton = ({
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        onChange((currentIndex + (isIncreasing ? 2 : 0)).toString());
+        props.onChange(
+          (props.currentIndex + (props.isIncreasing ? 2 : 0)).toString(),
+        );
       }}
       class="hover:bg-builder-background size-6"
       size="icon"
     >
       <Show
-        when={isIncreasing()}
-        fallback={<ChevronDown class="w-2 h-2"></ChevronDown>}
+        when={props.isIncreasing}
+        fallback={<ChevronDown class="w-2 h-2" />}
       >
-        <ChevronUp class="w-2 h-2"></ChevronUp>
+        <ChevronUp class="w-2 h-2" />
       </Show>
     </Button>
   );

@@ -1,33 +1,40 @@
-import { For } from 'solid-js';
+import { For, splitProps, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
-function Skeleton({ className, ...props }: JSX.IntrinsicElements['div']) {
+function Skeleton(props: SkeletonProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="skeleton"
-      className={cn(
+      class={cn(
         'animate-pulse rounded-md bg-gray-200 dark:bg-neutral-700',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function SkeletonList({
-  className,
-  numberOfItems = 3,
-  ...props
-}: JSX.IntrinsicElements['div'] & {
-  numberOfItems?: number;
-}) {
-  const array = Array(numberOfItems).fill(null);
+function SkeletonList(props: SkeletonListProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'numberOfItems',
+  ]);
+  const array = () =>
+    Array.from({ length: local.numberOfItems ?? 3 }, () => undefined);
+
   return (
-    <div className="space-y-3">
-      <For each={array}>
-        {(_, index) => (
-          <Skeleton class={cn('h-4 w-full', className)} {...props} />
+    <div class="space-y-3">
+      <For each={array()}>
+        {() => (
+          <Skeleton
+            class={cn('h-4 w-full', local.class, local.className)}
+            {...rest}
+          />
         )}
       </For>
     </div>
@@ -35,3 +42,11 @@ function SkeletonList({
 }
 
 export { Skeleton, SkeletonList };
+
+type SkeletonProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
+};
+
+type SkeletonListProps = SkeletonProps & {
+  numberOfItems?: number;
+};

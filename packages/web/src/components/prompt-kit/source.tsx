@@ -1,5 +1,5 @@
 import { Globe } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
 import {
   HoverCard,
@@ -26,11 +26,11 @@ function getFaviconUrl(url: string): string {
   }
 }
 
-function FaviconOrGlobe({ url, size }: { url: string; size: 'sm' | 'md' }) {
-  const favicon = getFaviconUrl(url);
+function FaviconOrGlobe(props: { url: string; size: 'sm' | 'md' }) {
+  const favicon = getFaviconUrl(props.url);
   const [failed, setFailed] = createSignal(false);
-  const globeSize = size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
-  const imgSize = size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
+  const globeSize = props.size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4';
+  const imgSize = props.size === 'sm' ? 'h-4 w-4' : 'h-5 w-5';
 
   if (!favicon || failed) {
     return <Globe class={cn(globeSize, 'shrink-0 text-muted-foreground')} />;
@@ -40,47 +40,45 @@ function FaviconOrGlobe({ url, size }: { url: string; size: 'sm' | 'md' }) {
     <img
       src={favicon}
       alt=""
-      className={cn(imgSize, 'shrink-0 rounded-sm')}
+      class={cn(imgSize, 'shrink-0 rounded-sm')}
       onError={() => setFailed(true)}
     />
   );
 }
 
-function Source({ href, title, className }: SourceProps) {
-  const domain = getDomain(href);
+function Source(props: SourceProps) {
+  const domain = getDomain(props.href);
 
   return (
     <HoverCard openDelay={300} closeDelay={100}>
       <HoverCardTrigger asChild>
         <a
-          href={href}
+          href={props.href}
           target="_blank"
           rel="noopener noreferrer"
-          className={cn(
+          class={cn(
             'inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 text-xs transition-colors hover:bg-muted no-underline',
-            className,
+            props.className,
           )}
         >
-          <FaviconOrGlobe url={href} size="sm" />
-          <span className="max-w-[200px] truncate text-foreground/80">
+          <FaviconOrGlobe url={props.href} size="sm" />
+          <span class="max-w-[200px] truncate text-foreground/80">
             {domain}
           </span>
         </a>
       </HoverCardTrigger>
       <HoverCardContent align="start" class="w-72 p-3">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <FaviconOrGlobe url={href} size="md" />
-            <span className="text-xs text-muted-foreground truncate">
-              {domain}
-            </span>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-2">
+            <FaviconOrGlobe url={props.href} size="md" />
+            <span class="text-xs text-muted-foreground truncate">{domain}</span>
           </div>
-          {title && (
-            <p className="text-sm font-medium leading-snug line-clamp-2">
-              {title}
+          <Show when={props.title}>
+            <p class="text-sm font-medium leading-snug line-clamp-2">
+              {props.title}
             </p>
-          )}
-          <p className="text-xs text-muted-foreground truncate">{href}</p>
+          </Show>
+          <p class="text-xs text-muted-foreground truncate">{props.href}</p>
         </div>
       </HoverCardContent>
     </HoverCard>

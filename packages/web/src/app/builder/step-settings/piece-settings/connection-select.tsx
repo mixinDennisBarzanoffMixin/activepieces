@@ -13,11 +13,10 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Plus, Globe, Key } from 'lucide-solid';
-import { useFormContext } from '@/app/builder/builder-form';
-import { For, Show, createSignal } from 'solid-js';
+import { For, Show, createSignal, untrack } from 'solid-js';
 
+import { BuilderField, useFormContext } from '@/app/builder/builder-form';
 import { AutoFormFieldWrapper } from '@/app/builder/piece-properties/auto-form-field-wrapper';
-import { CreateOrEditConnectionDialog } from '@/app/connections/create-edit-connection-dialog';
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Button } from '@/components/ui/button';
@@ -30,7 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { appConnectionsQueries } from '@/features/connections';
+import {
+  appConnectionsQueries,
+  CreateOrEditConnectionDialog,
+} from '@/features/connections';
 import { piecesHooks } from '@/features/pieces';
 import {
   useAuthorization,
@@ -40,6 +42,7 @@ import { authenticationSession } from '@/lib/authentication-session';
 import { cn } from '@/lib/utils';
 
 function ConnectionSelect(params: ConnectionSelectProps) {
+  const piece = untrack(() => params.piece);
   const [connectionDialogOpen, setConnectionDialogOpen] = createSignal(false);
   const [selectConnectionOpen, setSelectConnectionOpen] = createSignal(false);
   const [reconnectConnection, setReconnectConnection] =
@@ -47,8 +50,9 @@ function ConnectionSelect(params: ConnectionSelectProps) {
   //in case of reconnection we need to use the piece version from the connection
   const { pieceModel: pieceWithCorrectVersion, isLoading: isLoadingPiece } =
     piecesHooks.usePiece({
-      name: params.piece.name,
-      version: reconnectConnection?.pieceVersion ?? params.piece.version,
+      name: piece.name,
+      version:
+        untrack(() => reconnectConnection()?.pieceVersion) ?? piece.version,
     });
   const form = useFormContext<PieceAction | PieceTrigger>();
   const hasPermissionToCreateConnection = useAuthorization().checkAccess(
@@ -60,42 +64,42 @@ function ConnectionSelect(params: ConnectionSelectProps) {
     refetch,
   } = appConnectionsQueries.useAppConnections({
     request: {
-      pieceName: params.piece.name,
+      pieceName: piece.name,
       projectId: authenticationSession.getProjectId()!,
       limit: 1000,
     },
-    pieceAuth: params.piece.auth,
-    extraKeys: [params.piece.name, authenticationSession.getProjectId()!],
+    pieceAuth: piece.auth,
+    extraKeys: [piece.name, authenticationSession.getProjectId()!],
     staleTime: 0,
   });
-  const selectedConnection = connections?.data?.find(
+  const selectedConnection = connections?.data.find(
     (connection) =>
       connection.externalId ===
-      removeBrackets(form.getValues().settings.input.auth ?? ''),
+      removeBrackets(form.getValues().settings.input.auth),
   );
   const isGlobalConnection =
     selectedConnection?.scope === AppConnectionScope.PLATFORM;
   const dynamicInputModeToggled =
-    form.getValues().settings.propertySettings['auth']?.type ===
+    form.getValues().settings.propertySettings['auth'].type ===
     PropertyExecutionType.DYNAMIC;
   const isPLatformAdmin = useIsPlatformAdmin();
 
   return (
     <FormField
       control={form.control}
-      key={form.getValues().settings.input.auth}
+      key={String(form.getValues('settings.input.auth') ?? '')}
       name={'settings.input.auth'}
-      render={({ field }) => (
+      render={({ field }: { field: BuilderField<string | undefined> }) => (
         <>
-          <Show when={(isLoadingConnections || !pieceWithCorrectVersion)()}>
-            <div className="flex flex-col gap-2">
+          <Show when={isLoadingConnections || !pieceWithCorrectVersion}>
+            <div class="flex flex-col gap-2">
               <FormLabel showRequiredIndicator>{t('Connection')}</FormLabel>
               <SearchableSelect
                 options={[]}
                 disabled={true}
                 loading={isLoadingConnections}
                 placeholder={t('Select a connection')}
-                value={field.value as any}
+                value={field.value}
                 onChange={(value) => field.onChange(value)}
                 showDeselect={false}
                 onRefresh={() => {}}
@@ -107,7 +111,7 @@ function ConnectionSelect(params: ConnectionSelectProps) {
             when={
               !isLoadingConnections &&
               pieceWithCorrectVersion &&
-              params.piece.auth()
+              params.piece.auth
             }
           >
             <AutoFormFieldWrapper
@@ -124,33 +128,33 @@ function ConnectionSelect(params: ConnectionSelectProps) {
                 reconnectConnection={reconnectConnection}
                 isGlobalConnection={isGlobalConnection}
                 piece={pieceWithCorrectVersion}
-                key={`CreateOrEditConnectionDialog-open-${connectionDialogOpen}`}
+                key={`CreateOrEditConnectionDialog-open-${connectionDialogOpen()}`}
                 open={connectionDialogOpen}
                 setOpen={(open, connection) => {
                   setConnectionDialogOpen(open);
                   if (connection) {
-                    refetch();
+                    void refetch();
                     field.onChange(addBrackets(connection.externalId));
                   }
                 }}
-              ></CreateOrEditConnectionDialog>
+              />
               <Select
                 open={selectConnectionOpen}
                 onOpenChange={setSelectConnectionOpen}
-                defaultValue={field.value as string | undefined}
-                onValueChange={field.onChange}
+                defaultValue={field.value}
+                onValueChange={(value) => field.onChange(value)}
                 disabled={params.disabled}
               >
-                <div className="relative">
+                <div class="relative">
                   <Show
                     when={
                       field.value &&
                       !field.disabled &&
                       selectedConnection &&
-                      (!isGlobalConnection || isPLatformAdmin)()
+                      (!isGlobalConnection || isPLatformAdmin)
                     }
                   >
-                    <div className="z-50 absolute right-8 top-1 ">
+                    <div class="z-50 absolute right-8 top-1 ">
                       <PermissionNeededTooltip
                         hasPermission={hasPermissionToCreateConnection}
                       >
@@ -175,36 +179,36 @@ function ConnectionSelect(params: ConnectionSelectProps) {
                   <SelectTrigger class="flex gap-2 items-center">
                     <SelectValue
                       class="truncate grow shrink"
-                      placeholder={t('Select a connection')}
+                      placeholder={String(t('Select a connection'))}
                       data-testid="select-connection-value"
                     >
                       <Show
                         when={
                           !isNil(field.value) &&
                           !isNil(
-                            connections?.data?.find(
+                            connections?.data.find(
                               (connection) =>
                                 connection.externalId ===
                                 removeBrackets(field.value),
                             ),
-                          )()
+                          )
                         }
                         fallback={null}
                       >
-                        <div className="truncate grow shrink flex items-center gap-2">
+                        <div class="truncate grow shrink flex items-center gap-2">
                           <Show
                             when={
-                              connections?.data?.find(
+                              connections?.data.find(
                                 (connection) =>
                                   connection.externalId ===
                                   removeBrackets(field.value),
-                              )?.scope === AppConnectionScope.PLATFORM()
+                              )?.scope === AppConnectionScope.PLATFORM
                             }
                           >
                             <Globe size={16} class="shrink-0" />
                           </Show>
                           {
-                            connections?.data?.find(
+                            connections?.data.find(
                               (connection) =>
                                 connection.externalId ===
                                 removeBrackets(field.value),
@@ -213,21 +217,21 @@ function ConnectionSelect(params: ConnectionSelectProps) {
                         </div>
                       </Show>
                     </SelectValue>
-                    <div className="grow"></div>
+                    <div class="grow" />
                     <Show
                       when={
                         field.value &&
-                        connections?.data?.find(
+                        connections?.data.find(
                           (connection) =>
                             connection.externalId ===
                               removeBrackets(field.value) &&
                             connection.scope !== AppConnectionScope.PLATFORM,
-                        )()
+                        )
                       }
                     >
                       <span
                         role="button"
-                        className="z-50 opacity-0 pointer-events-none"
+                        class="z-50 opacity-0 pointer-events-none"
                       >
                         {t('Reconnect')}
                       </span>
@@ -248,7 +252,7 @@ function ConnectionSelect(params: ConnectionSelectProps) {
                       disabled={!hasPermissionToCreateConnection}
                     >
                       <span
-                        className={cn(
+                        class={cn(
                           'flex items-center gap-1 text-primary w-full',
                           {
                             'text-muted-foreground cursor-not-allowed':
@@ -262,7 +266,7 @@ function ConnectionSelect(params: ConnectionSelectProps) {
                     </SelectAction>
                   </PermissionNeededTooltip>
 
-                  <Show when={connections && connections.data()}>
+                  <Show when={connections && connections.data}>
                     <For each={connections.data}>
                       {(connection) => {
                         return (
@@ -270,14 +274,14 @@ function ConnectionSelect(params: ConnectionSelectProps) {
                             value={addBrackets(connection.externalId)}
                             key={connection.externalId}
                           >
-                            <div className="flex items-center gap-2">
-                              <Show when={connection.usingSecretManager()}>
+                            <div class="flex items-center gap-2">
+                              <Show when={connection.usingSecretManager}>
                                 <Key size={16} class="shrink-0" />
                               </Show>
                               <Show
                                 when={
                                   connection.scope ===
-                                  AppConnectionScope.PLATFORM()
+                                  AppConnectionScope.PLATFORM
                                 }
                               >
                                 <Globe size={16} class="shrink-0" />
@@ -295,11 +299,10 @@ function ConnectionSelect(params: ConnectionSelectProps) {
           </Show>
         </>
       )}
-    ></FormField>
+    />
   );
 }
 
-ConnectionSelect.displayName = 'ConnectionSelect';
 export { ConnectionSelect };
 
 type ConnectionSelectProps = {
@@ -310,12 +313,12 @@ type ConnectionSelectProps = {
 function addBrackets(str: string) {
   return `{{connections['${str}']}}`;
 }
-function removeBrackets(str: string | undefined) {
-  if (isNil(str)) {
+function removeBrackets(str: unknown) {
+  if (isNil(str) || typeof str !== 'string') {
     return undefined;
   }
   return str.replace(
     /\{\{connections\['(.*?)'\]\}\}/g,
-    (_, connectionName) => connectionName,
+    (_: string, connectionName: string) => connectionName,
   );
 }

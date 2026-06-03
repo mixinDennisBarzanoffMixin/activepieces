@@ -27,11 +27,7 @@ import { formatUtils } from '@/lib/format-utils';
 
 import { StepShell } from '../stepper';
 
-export const SigningKeysStep = ({
-  signingKeys,
-  isLoading,
-  refetch,
-}: {
+export const SigningKeysStep = (props: {
   signingKeys: SigningKey[];
   isLoading: boolean;
   refetch: () => void;
@@ -43,45 +39,41 @@ export const SigningKeysStep = ({
         "Generate a key to sign each embed session. We'll use the public half to verify your users at runtime.",
       )}
       actions={
-        <NewSigningKeyDialog onCreate={refetch}>
+        <NewSigningKeyDialog onCreate={props.refetch}>
           <Button size="sm">{t('New Signing Key')}</Button>
         </NewSigningKeyDialog>
       }
     >
       <SigningKeysList
-        signingKeys={signingKeys}
-        isLoading={isLoading}
-        refetch={refetch}
+        signingKeys={props.signingKeys}
+        isLoading={props.isLoading}
+        refetch={props.refetch}
       />
     </StepShell>
   );
 };
 
-const SigningKeysList = ({
-  signingKeys,
-  isLoading,
-  refetch,
-}: {
+const SigningKeysList = (props: {
   signingKeys: SigningKey[];
   isLoading: boolean;
   refetch: () => void;
 }) => {
-  if (isLoading) {
+  if (props.isLoading) {
     return <SkeletonList numberOfItems={3} class="w-full h-[72px]" />;
   }
 
-  if (signingKeys.length === 0) {
+  if (props.signingKeys.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+      <div class="flex flex-col items-center gap-3 py-12 text-muted-foreground">
         <Key class="size-10" />
-        <p className="text-sm">{t('No signing keys yet')}</p>
+        <p class="text-sm">{t('No signing keys yet')}</p>
       </div>
     );
   }
 
   return (
     <ItemGroup class="gap-2">
-      <For each={signingKeys}>
+      <For each={props.signingKeys}>
         {(signingKey) => (
           <Item
             key={signingKey.id}
@@ -100,7 +92,7 @@ const SigningKeysList = ({
                 {' ' + t('Created')}{' '}
                 {formatUtils.formatDateToAgo(new Date(signingKey.created))}
                 <br />
-                <span className="text-xs text-muted-foreground">
+                <span class="text-xs text-muted-foreground">
                   kid: {signingKey.id}
                 </span>
               </ItemDescription>
@@ -122,13 +114,15 @@ const SigningKeysList = ({
                     buttonText={t('Delete')}
                     mutationFn={async () => {
                       await signingKeyApi.delete(signingKey.id);
-                      refetch();
+                      props.refetch();
                     }}
                     onError={() => internalErrorToast()}
                   >
                     <DropdownMenuItem
                       class="text-destructive focus:text-destructive"
-                      onSelect={(e) => e.preventDefault()}
+                      onSelect={(event: Event) => {
+                        event.preventDefault();
+                      }}
                     >
                       <Trash class="size-4 mr-2 text-destructive" />
                       {t('Delete Signing Key')}

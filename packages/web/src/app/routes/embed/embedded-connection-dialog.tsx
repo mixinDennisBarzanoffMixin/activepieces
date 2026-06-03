@@ -13,29 +13,29 @@ import {
 } from 'ee-embed-sdk';
 import { createEffect, createSignal, Show } from 'solid-js';
 
-import { memoryRouter } from '@/app/guards';
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { oauthAppsQueries } from '@/features/connections';
+import {
+  CreateOrEditConnectionDialogContent,
+  oauthAppsQueries,
+} from '@/features/connections';
 import { piecesHooks } from '@/features/pieces';
 import { parentWindow } from '@/lib/dom-utils';
 import { cn } from '@/lib/utils';
 
-import { CreateOrEditConnectionDialogContent } from '../../connections/create-edit-connection-dialog';
-
 const extractIdFromQueryParams = () => {
-  const connectionName = new URLSearchParams(
-    memoryRouter.state.location.search,
-  ).get(NEW_CONNECTION_QUERY_PARAMS.connectionName);
+  const connectionName = new URLSearchParams(window.location.search).get(
+    NEW_CONNECTION_QUERY_PARAMS.connectionName,
+  );
   return isNil(connectionName) || connectionName.length === 0
     ? apId()
     : connectionName;
 };
 export const EmbeddedConnectionDialog = () => {
   const connectionName = extractIdFromQueryParams();
-  const queryParams = new URLSearchParams(memoryRouter.state.location.search);
-  const pieceName = queryParams.get(NEW_CONNECTION_QUERY_PARAMS.name);
-  const randomId = queryParams.get(NEW_CONNECTION_QUERY_PARAMS.randomId);
+  const params = new URLSearchParams(window.location.search);
+  const pieceName = params.get(NEW_CONNECTION_QUERY_PARAMS.name);
+  const randomId = params.get(NEW_CONNECTION_QUERY_PARAMS.randomId);
   return (
     <EmbeddedConnectionDialogContent
       connectionName={
@@ -43,7 +43,7 @@ export const EmbeddedConnectionDialog = () => {
       }
       pieceName={pieceName}
       key={randomId}
-    ></EmbeddedConnectionDialogContent>
+    />
   );
 };
 
@@ -52,10 +52,9 @@ type EmbeddedConnectionDialogContentProps = {
   connectionName: string | null;
 };
 
-const EmbeddedConnectionDialogContent = ({
-  pieceName,
-  connectionName,
-}: EmbeddedConnectionDialogContentProps) => {
+const EmbeddedConnectionDialogContent = (
+  props: EmbeddedConnectionDialogContentProps,
+) => {
   const [isDialogOpen, setIsDialogOpen] = createSignal(true);
   let hasErrorRef = false;
 
@@ -64,8 +63,8 @@ const EmbeddedConnectionDialogContent = ({
     isLoading: isLoadingPiece,
     isSuccess,
   } = piecesHooks.usePieceForEmbeddingConnection({
-    pieceName: pieceName ?? '',
-    connectionExternalId: connectionName ?? '',
+    pieceName: props.pieceName ?? '',
+    connectionExternalId: props.connectionName ?? '',
   });
   const hideConnectionIframe = (
     connection?: Pick<AppConnectionWithoutSensitiveData, 'id' | 'externalId'>,
@@ -107,7 +106,7 @@ const EmbeddedConnectionDialogContent = ({
         data: {
           error: JSON.stringify({
             isValid: 'false',
-            error: `piece: ${pieceName} not found`,
+            error: `piece: ${props.pieceName} not found`,
           }),
         },
       });
@@ -130,7 +129,7 @@ const EmbeddedConnectionDialogContent = ({
     >
       <DialogContent
         showOverlay={false}
-        onInteractOutside={(e) => e.preventDefault()}
+        onInteractOutside={(event: Event) => event.preventDefault()}
         class={cn(
           'max-h-[70vh]  min-w-[450px] max-w-[450px] lg:min-w-[650px] lg:max-w-[650px] overflow-y-auto',
           {
@@ -142,8 +141,8 @@ const EmbeddedConnectionDialogContent = ({
       >
         {isLoadingPiece ||
           (loadingPiecesOAuth2AppsMap && (
-            <div className="flex justify-center items-center">
-              <LoadingSpinner class="stroke-background size-[50px]"></LoadingSpinner>
+            <div class="flex justify-center items-center">
+              <LoadingSpinner class="stroke-background size-[50px]" />
             </div>
           ))}
 
@@ -152,7 +151,7 @@ const EmbeddedConnectionDialogContent = ({
             reconnectConnection={null}
             piecesOAuth2AppsMap={piecesOAuth2AppsMap}
             piece={pieceModel}
-            externalIdComingFromSdk={connectionName}
+            externalIdComingFromSdk={props.connectionName}
             isGlobalConnection={false}
             setOpen={(open, connection) => {
               if (!open) {

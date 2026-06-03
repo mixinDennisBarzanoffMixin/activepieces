@@ -4,10 +4,10 @@ import {
   assertNotNullOrUndefined,
   isNil,
 } from '@activepieces/shared';
+import type { JSONContent } from '@tiptap/core';
 import { MentionNodeAttrs } from '@tiptap/extension-mention';
 
 import { StepMetadata } from '@/features/pieces';
-import type { JSONContent } from '@tiptap/core';
 
 const removeQuotes = (text: string) => {
   if (
@@ -67,7 +67,7 @@ function convertTextToTipTapJsonContent(
   userInputText: string,
   steps: (FlowAction | FlowTrigger)[],
   stepsMetadata: (StepMetadataWithDisplayName | undefined)[],
-  variableByName?: Map<string, string>
+  variableByName?: Map<string, string>,
 ): {
   type: TipTapNodeTypes.paragraph;
   content: JSONContent[];
@@ -86,7 +86,7 @@ function convertTextToTipTapJsonContent(
         });
       } else if (isMentionNodeText(node)) {
         result[result.length - 1].content.push(
-          createMentionNodeFromText(node, steps, stepsMetadata, variableByName)
+          createMentionNodeFromText(node, steps, stepsMetadata, variableByName),
         );
       } else {
         result[result.length - 1].content.push({
@@ -104,7 +104,7 @@ function convertTextToTipTapJsonContent(
     ] as {
       type: TipTapNodeTypes.paragraph;
       content: JSONContent[];
-    }[]
+    }[],
   );
 }
 
@@ -142,7 +142,7 @@ function parseStepAndNameFromMention(mention: string) {
   const mentionWithoutInterpolationBrackets =
     removeIntroplationBrackets(mention);
   const { isValid, stepName, arrayPath } = parseFlattenArrayPath(
-    mentionWithoutInterpolationBrackets
+    mentionWithoutInterpolationBrackets,
   );
   if (isValid) {
     return {
@@ -167,7 +167,7 @@ function parseLabelFromMention(
   mention: string,
   steps: (FlowAction | FlowTrigger)[],
   stepsMetadata: (StepMetadataWithDisplayName | undefined)[],
-  variableByName?: Map<string, string>
+  variableByName?: Map<string, string>,
 ) {
   const { stepName, path } = parseStepAndNameFromMention(mention);
   if (stepName === 'variables') {
@@ -202,14 +202,14 @@ function createMentionNodeFromText(
   mention: string,
   steps: (FlowAction | FlowTrigger)[],
   stepsMetadata: (StepMetadataWithDisplayName | undefined)[],
-  variableByName?: Map<string, string>
+  variableByName?: Map<string, string>,
 ) {
   return {
     type: TipTapNodeTypes.mention,
     attrs: {
       id: mention,
       label: JSON.stringify(
-        parseLabelFromMention(mention, steps, stepsMetadata, variableByName)
+        parseLabelFromMention(mention, steps, stepsMetadata, variableByName),
       ),
     },
   };
@@ -225,8 +225,8 @@ function convertTiptapJsonToText(nodes: JSONContent[]): string {
         return node.text ? node.text.replaceAll('\u00A0', ' ') : '';
       }
       case TipTapNodeTypes.mention: {
-        return node.attrs?.label
-          ? JSON.parse(node.attrs.label).serverValue
+        return typeof node.attrs?.label === 'string'
+          ? parseMentionAttrs(node.attrs.label)?.serverValue ?? ''
           : '';
       }
       case TipTapNodeTypes.paragraph: {
@@ -279,16 +279,17 @@ const buildVariableIconElement = (): Element => {
 
 const generateMentionHtmlElement = (mentionAttrs: MentionNodeAttrs) => {
   const mentionElement = document.createElement('span');
-  const apMentionNodeAttrs: ApMentionNodeAttrs = JSON.parse(
-    mentionAttrs.label || '{}'
-  );
+  const apMentionNodeAttrs = parseMentionAttrs(mentionAttrs.label || '{}');
+  if (isNil(apMentionNodeAttrs)) {
+    return mentionElement;
+  }
   mentionElement.className =
     'inline-flex bg-muted/10 break-all my-1 mx-px border border-[#9e9e9e] border-solid items-center gap-2 py-1 px-2 rounded-[3px] text-muted-foreground ';
   assertNotNullOrUndefined(mentionAttrs.label, 'mentionAttrs.label');
   assertNotNullOrUndefined(mentionAttrs.id, 'mentionAttrs.id');
   assertNotNullOrUndefined(
     apMentionNodeAttrs.displayText,
-    'apMentionNodeAttrs.displayText'
+    'apMentionNodeAttrs.displayText',
   );
   mentionElement.dataset.id = mentionAttrs.id;
   mentionElement.dataset.label = mentionAttrs.label;
@@ -310,13 +311,32 @@ const generateMentionHtmlElement = (mentionAttrs: MentionNodeAttrs) => {
   }
 
   const mentiontextDiv = document.createTextNode(
-    apMentionNodeAttrs.displayText
+    apMentionNodeAttrs.displayText,
   );
   mentionElement.setAttribute('serverValue', apMentionNodeAttrs.serverValue);
 
   mentionElement.appendChild(mentiontextDiv);
   return mentionElement;
 };
+
+function parseMentionAttrs(label: string): ApMentionNodeAttrs | null {
+  const value: unknown = JSON.parse(label);
+  if (!isApMentionNodeAttrs(value)) {
+    return null;
+  }
+  return value;
+}
+
+function isApMentionNodeAttrs(value: unknown): value is ApMentionNodeAttrs {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'displayText' in value &&
+    'serverValue' in value &&
+    typeof value.displayText === 'string' &&
+    typeof value.serverValue === 'string'
+  );
+}
 
 const inputWithMentionsCssClass = 'ap-text-with-mentions';
 const dataSelectorCssClassSelector = 'ap-data-selector';

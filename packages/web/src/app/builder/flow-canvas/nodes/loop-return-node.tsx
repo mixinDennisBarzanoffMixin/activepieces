@@ -1,5 +1,4 @@
 import { Handle, Position } from '../solid-flow-adapter';
-
 import { flowCanvasConsts } from '../utils/consts';
 
 //used purely to help calculate the loop graph width
@@ -7,11 +6,11 @@ const ApLoopReturnCanvasNode = () => {
   return (
     <>
       <div
-        className="h-px bg-transparent pointer-events-none "
+        class="h-px bg-transparent pointer-events-none "
         style={{
           width: flowCanvasConsts.AP_NODE_SIZE.LOOP_RETURN_NODE.width,
         }}
-      ></div>
+      />
       <Handle
         type="source"
         position={Position.Top}
@@ -26,5 +25,4 @@ const ApLoopReturnCanvasNode = () => {
   );
 };
 
-ApLoopReturnCanvasNode.displayName = 'EmptyLoopReturnCanvasNode';
 export default ApLoopReturnCanvasNode;

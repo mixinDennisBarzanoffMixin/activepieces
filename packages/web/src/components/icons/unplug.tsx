@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -74,7 +74,7 @@ function UnplugIcon(props: UnplugIconProps & { ref?: UnplugIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -104,6 +104,5 @@ function UnplugIcon(props: UnplugIconProps & { ref?: UnplugIconHandle }) {
     </div>
   );
 }
-UnplugIcon.displayName = 'UnplugIcon';
 
 export { UnplugIcon };

@@ -1,7 +1,7 @@
 import { EventDestination } from '@activepieces/shared';
 import { t } from 'i18next';
 import { ExternalLink, Globe, Workflow } from 'lucide-solid';
-import { For, Show } from 'solid-js';
+import { createMemo, For, Show } from 'solid-js';
 
 import {
   Item,
@@ -33,64 +33,62 @@ type EventDestinationRowProps = {
   eventLabels: EventLabelsMap;
 };
 
-export const EventDestinationRow = ({
-  destination,
-  parsed,
-  flowDisplayName,
-  eventLabels,
-}: EventDestinationRowProps) => {
-  const isInternal = parsed.kind === 'flow';
-  const flowId = parsed.kind === 'flow' ? parsed.flowId : undefined;
-  const title =
-    isInternal && flowDisplayName
-      ? flowDisplayName
-      : isInternal && flowId
-      ? t('Destination (flow {flowId})', { flowId })
-      : destination.url;
+export const EventDestinationRow = (props: EventDestinationRowProps) => {
+  const internal = createMemo(() => props.parsed.kind === 'flow');
+  const flow = createMemo(() =>
+    props.parsed.kind === 'flow' ? props.parsed.flowId : undefined,
+  );
+  const title = createMemo(() =>
+    internal() && props.flowDisplayName
+      ? props.flowDisplayName
+      : internal() && flow()
+      ? t('Destination (flow {flowId})', { flowId: flow() })
+      : props.destination.url,
+  );
 
   return (
     <Item variant="outline">
       <ItemMedia variant="icon">
         <Tooltip>
           <TooltipTrigger asChild>
-            <span tabIndex={0} className="inline-flex">
-              <Show when={isInternal} fallback={<Globe />}>
+            <span tabIndex={0} class="inline-flex">
+              <Show when={internal()} fallback={<Globe />}>
                 <Workflow />
               </Show>
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            {isInternal ? t('Internal Flow') : t('External')}
+            {internal() ? t('Internal Flow') : t('External')}
           </TooltipContent>
         </Tooltip>
       </ItemMedia>
       <ItemContent class="min-w-0">
-        <TextWithTooltip tooltipMessage={title}>
+        <TextWithTooltip tooltipMessage={title()}>
           <ItemTitle
-            class={isInternal ? 'truncate' : 'truncate font-mono text-xs'}
+            class={internal() ? 'truncate' : 'truncate font-mono text-xs'}
           >
-            {title}
+            {title()}
           </ItemTitle>
         </TextWithTooltip>
         <ItemDescription class="text-xs !flex flex-wrap items-center gap-x-1 gap-y-2 overflow-visible [text-wrap:unset] mt-1">
-          <span className="text-muted-foreground shrink-0 mr-1.5">
+          <span class="text-muted-foreground shrink-0 mr-1.5">
             {t('Events')}
           </span>
-          <For each={destination.events}>
+          <For each={props.destination.events}>
             {(event) => (
               <Badge key={event} variant="outline" class="text-xs">
-                {eventLabels[event]?.label ?? event}
+                {props.eventLabels[event].label}
               </Badge>
             )}
           </For>
         </ItemDescription>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p class="text-xs text-muted-foreground mt-2">
           {t('Created')}{' '}
-          {formatUtils.formatDateToAgo(new Date(destination.created))}
+          {formatUtils.formatDateToAgo(new Date(props.destination.created))}
         </p>
       </ItemContent>
       <ItemActions>
-        <Show when={isInternal && flowId}>
+        <Show when={internal() && flow()}>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -98,7 +96,7 @@ export const EventDestinationRow = ({
                 size="sm"
                 onClick={() =>
                   window.open(
-                    `/flows/${flowId}`,
+                    `/flows/${flow()}`,
                     '_blank',
                     'noopener,noreferrer',
                   )
@@ -110,7 +108,7 @@ export const EventDestinationRow = ({
             <TooltipContent>{t('View flow')}</TooltipContent>
           </Tooltip>
         </Show>
-        <EventDestinationActions destination={destination} />
+        <EventDestinationActions destination={props.destination} />
       </ItemActions>
     </Item>
   );

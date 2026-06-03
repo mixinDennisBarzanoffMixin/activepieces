@@ -21,18 +21,17 @@ type DataSelectorSizeTogglersProps = {
   setListSizeState: (state: DataSelectorSizeState) => void;
 };
 
-export const DataSelectorSizeTogglers = ({
-  state,
-  setListSizeState: setDataSelectorSizeState,
-}: DataSelectorSizeTogglersProps) => {
+export const DataSelectorSizeTogglers = (
+  props: DataSelectorSizeTogglersProps,
+) => {
   const handleClick = (newState: DataSelectorSizeState) => {
-    setDataSelectorSizeState(newState);
+    props.setListSizeState(newState);
   };
 
   const buttonClassName = (btnState: DataSelectorSizeState) =>
     cn('', {
-      'text-outline': state === btnState,
-      'text-outline opacity-50': state !== btnState,
+      'text-outline': props.state === btnState,
+      'text-outline opacity-50': props.state !== btnState,
     });
 
   return (
@@ -45,7 +44,7 @@ export const DataSelectorSizeTogglers = ({
             onClick={() => handleClick(DataSelectorSizeState.EXPANDED)}
             variant="basic"
           >
-            <ExpandIcon class="size-5"></ExpandIcon>
+            <ExpandIcon class="size-5" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>{t('Expand')}</TooltipContent>
@@ -58,7 +57,7 @@ export const DataSelectorSizeTogglers = ({
             onClick={() => handleClick(DataSelectorSizeState.DOCKED)}
             variant="basic"
           >
-            <PanelRightDashedIcon class="size-5"></PanelRightDashedIcon>
+            <PanelRightDashedIcon class="size-5" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>{t('Dock')}</TooltipContent>
@@ -71,7 +70,7 @@ export const DataSelectorSizeTogglers = ({
             onClick={() => handleClick(DataSelectorSizeState.COLLAPSED)}
             variant="basic"
           >
-            <MinusIcon class="size-5"></MinusIcon>
+            <MinusIcon class="size-5" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>{t('Minimize')}</TooltipContent>

@@ -9,11 +9,11 @@ export const workersKeys = {
 
 export const workersQueries = {
   useWorkerMachines: () =>
-    createQuery<WorkerMachineWithStatus[]>({
+    createQuery<WorkerMachineWithStatus[]>(() => ({
       queryKey: workersKeys.all,
       staleTime: 0,
       gcTime: 0,
       refetchInterval: 5000,
       queryFn: () => workersApi.list(),
-    }),
+    })),
 };

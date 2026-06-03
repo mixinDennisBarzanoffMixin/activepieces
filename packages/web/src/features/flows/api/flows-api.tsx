@@ -47,11 +47,12 @@ export const flowsApi = {
       params: request,
     });
   },
-  get(
+  async get(
     flowId: string,
     request?: GetFlowQueryParamsRequest,
   ): Promise<PopulatedFlow> {
-    return api.get<PopulatedFlow>(`/v1/flows/${flowId}`, request);
+    const data = await api.get<PopulatedFlow>(`/v1/flows/${flowId}`, request);
+    return data;
   },
   listVersions(
     flowId: string,

@@ -1,4 +1,3 @@
-import { createSignal } from 'solid-js';
 import { t } from 'i18next';
 import {
   FolderPlus,
@@ -8,6 +7,7 @@ import {
   Upload,
   Workflow,
 } from 'lucide-solid';
+import { createSignal, mergeProps, type JSX, Show } from 'solid-js';
 
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
 import { useEmbedding } from '@/components/providers/embed-provider';
@@ -19,138 +19,141 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export const CreateNewMenu = ({
-  children,
-  scope = 'root',
-  align = 'end',
-  userHasPermissionToWriteFlow,
-  userHasPermissionToWriteTable,
-  userHasPermissionToWriteFolder,
-  isCreatingFlow = false,
-  isCreatingTable = false,
-  onCreateFlow,
-  onCreateTable,
-  onCreateFolder,
-  onImportFlow,
-  onImportTable,
-  onSelectTemplate,
-  onOpenChange,
-}: CreateNewMenuProps) => {
+export const CreateNewMenu = (_props: CreateNewMenuProps) => {
+  const props = mergeProps(
+    {
+      scope: 'root',
+      align: 'end',
+      isCreatingFlow: false,
+      isCreatingTable: false,
+    },
+    _props,
+  );
   const { embedState } = useEmbedding();
   const [isOpen, setIsOpen] = createSignal(false);
 
-  const showFolder = scope === 'root' && !embedState.hideFolders;
-  const showTemplate = scope === 'root';
-  const busy = isCreatingFlow || isCreatingTable;
+  const showFolder = () => props.scope === 'root' && !embedState.hideFolders;
+  const showTemplate = () => props.scope === 'root';
+  const busy = () => props.isCreatingFlow || props.isCreatingTable;
 
   return (
     <DropdownMenu
       open={isOpen}
       onOpenChange={(next) => {
-        if (busy && !next) return;
+        if (busy() && !next) return;
         setIsOpen(next);
-        onOpenChange?.(next);
+        props.onOpenChange?.(next);
       }}
     >
-      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent align={align} class="w-48">
-        <PermissionNeededTooltip hasPermission={userHasPermissionToWriteFlow}>
+      <DropdownMenuTrigger asChild>{props.children}</DropdownMenuTrigger>
+      <DropdownMenuContent align={props.align} class="w-48">
+        <PermissionNeededTooltip
+          hasPermission={props.userHasPermissionToWriteFlow}
+        >
           <DropdownMenuItem
-            disabled={!userHasPermissionToWriteFlow || busy}
-            onSelect={(e) => {
+            disabled={!props.userHasPermissionToWriteFlow || busy()}
+            onSelect={(e: Event) => {
               e.preventDefault();
-              onCreateFlow();
+              props.onCreateFlow();
             }}
             class="cursor-pointer"
           >
-            {isCreatingFlow ? (
+            <Show
+              when={props.isCreatingFlow}
+              fallback={<Workflow class="h-4 w-4 mr-2" />}
+            >
               <Loader2 class="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Workflow class="h-4 w-4 mr-2" />
-            )}
-            {isCreatingFlow ? t('Creating...') : t('New Flow')}
+            </Show>
+            {props.isCreatingFlow ? t('Creating...') : t('New Flow')}
           </DropdownMenuItem>
         </PermissionNeededTooltip>
 
-        {showTemplate && onSelectTemplate && (
-          <PermissionNeededTooltip hasPermission={userHasPermissionToWriteFlow}>
+        <Show when={showTemplate() && props.onSelectTemplate}>
+          <PermissionNeededTooltip
+            hasPermission={props.userHasPermissionToWriteFlow}
+          >
             <DropdownMenuItem
-              disabled={!userHasPermissionToWriteFlow || busy}
-              onSelect={() => onSelectTemplate()}
+              disabled={!props.userHasPermissionToWriteFlow || busy()}
+              onSelect={() => props.onSelectTemplate()}
               class="cursor-pointer"
             >
               <Sparkles class="h-4 w-4 mr-2" />
               {t('Start from Template')}
             </DropdownMenuItem>
           </PermissionNeededTooltip>
-        )}
+        </Show>
 
-        {!embedState.hideTables && (
+        <Show when={!embedState.hideTables}>
           <PermissionNeededTooltip
-            hasPermission={userHasPermissionToWriteTable}
+            hasPermission={props.userHasPermissionToWriteTable}
           >
             <DropdownMenuItem
-              disabled={!userHasPermissionToWriteTable || busy}
-              onSelect={(e) => {
+              disabled={!props.userHasPermissionToWriteTable || busy()}
+              onSelect={(e: Event) => {
                 e.preventDefault();
-                onCreateTable();
+                props.onCreateTable();
               }}
               class="cursor-pointer"
             >
-              {isCreatingTable ? (
+              <Show
+                when={props.isCreatingTable}
+                fallback={<Table2 class="h-4 w-4 mr-2" />}
+              >
                 <Loader2 class="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Table2 class="h-4 w-4 mr-2" />
-              )}
-              {isCreatingTable ? t('Creating...') : t('New Table')}
+              </Show>
+              {props.isCreatingTable ? t('Creating...') : t('New Table')}
             </DropdownMenuItem>
           </PermissionNeededTooltip>
-        )}
+        </Show>
 
-        {scope === 'folder' &&
-          (!embedState.hideExportAndImportFlow || !embedState.hideTables) && (
-            <>
-              <DropdownMenuSeparator />
-              {!embedState.hideExportAndImportFlow && (
-                <PermissionNeededTooltip
-                  hasPermission={userHasPermissionToWriteFlow}
+        <Show
+          when={
+            props.scope === 'folder' &&
+            (!embedState.hideExportAndImportFlow || !embedState.hideTables)
+          }
+        >
+          <>
+            <DropdownMenuSeparator />
+            <Show when={!embedState.hideExportAndImportFlow}>
+              <PermissionNeededTooltip
+                hasPermission={props.userHasPermissionToWriteFlow}
+              >
+                <DropdownMenuItem
+                  disabled={!props.userHasPermissionToWriteFlow}
+                  onClick={props.onImportFlow}
+                  class="cursor-pointer"
                 >
-                  <DropdownMenuItem
-                    disabled={!userHasPermissionToWriteFlow}
-                    onClick={onImportFlow}
-                    class="cursor-pointer"
-                  >
-                    <Upload class="h-4 w-4 mr-2" />
-                    {t('Import Flow')}
-                  </DropdownMenuItem>
-                </PermissionNeededTooltip>
-              )}
-              {!embedState.hideTables && (
-                <PermissionNeededTooltip
-                  hasPermission={userHasPermissionToWriteTable}
+                  <Upload class="h-4 w-4 mr-2" />
+                  {t('Import Flow')}
+                </DropdownMenuItem>
+              </PermissionNeededTooltip>
+            </Show>
+            <Show when={!embedState.hideTables}>
+              <PermissionNeededTooltip
+                hasPermission={props.userHasPermissionToWriteTable}
+              >
+                <DropdownMenuItem
+                  disabled={!props.userHasPermissionToWriteTable}
+                  onClick={props.onImportTable}
+                  class="cursor-pointer"
                 >
-                  <DropdownMenuItem
-                    disabled={!userHasPermissionToWriteTable}
-                    onClick={onImportTable}
-                    class="cursor-pointer"
-                  >
-                    <Upload class="h-4 w-4 mr-2" />
-                    {t('Import Table')}
-                  </DropdownMenuItem>
-                </PermissionNeededTooltip>
-              )}
-            </>
-          )}
+                  <Upload class="h-4 w-4 mr-2" />
+                  {t('Import Table')}
+                </DropdownMenuItem>
+              </PermissionNeededTooltip>
+            </Show>
+          </>
+        </Show>
 
-        {showFolder && onCreateFolder && (
+        <Show when={showFolder() && props.onCreateFolder}>
           <>
             <DropdownMenuSeparator />
             <PermissionNeededTooltip
-              hasPermission={userHasPermissionToWriteFolder}
+              hasPermission={props.userHasPermissionToWriteFolder}
             >
               <DropdownMenuItem
-                disabled={!userHasPermissionToWriteFolder || busy}
-                onClick={onCreateFolder}
+                disabled={!props.userHasPermissionToWriteFolder || busy()}
+                onClick={props.onCreateFolder}
                 class="cursor-pointer"
               >
                 <FolderPlus class="h-4 w-4 mr-2" />
@@ -158,14 +161,14 @@ export const CreateNewMenu = ({
               </DropdownMenuItem>
             </PermissionNeededTooltip>
           </>
-        )}
+        </Show>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 };
 
 type CreateNewMenuProps = {
-  children;
+  children: JSX.Element;
   scope?: 'root' | 'folder';
   align?: 'start' | 'end' | 'center';
   userHasPermissionToWriteFlow: boolean;

@@ -20,10 +20,9 @@ import { useActionTestRunner } from './test-runner-context';
 import { TestSampleDataViewer } from './test-sample-data-viewer';
 import { TestButtonTooltip } from './test-step-tooltip';
 
-const TestStepSectionImplementation = ({
-  isSaving,
-  currentStep,
-}: TestActionComponentProps & { currentStep: FlowAction }) => {
+const TestStepSectionImplementation = (
+  props: TestActionComponentProps & { currentStep: FlowAction },
+) => {
   const [
     sampleData,
     sampleDataInput,
@@ -34,59 +33,64 @@ const TestStepSectionImplementation = ({
     revertSampleDataLocally,
   ] = useBuilderStateContext((state) => {
     return [
-      state.outputSampleData[currentStep.name],
-      state.inputSampleData[currentStep.name],
-      state.errorLogs[currentStep.name],
-      currentStep.type === FlowActionType.CODE
-        ? state.consoleLogs[currentStep.name]
+      state.outputSampleData[props.currentStep.name],
+      state.inputSampleData[props.currentStep.name],
+      state.errorLogs[props.currentStep.name],
+      props.currentStep.type === FlowActionType.CODE
+        ? state.consoleLogs[props.currentStep.name]
         : null,
       state.isStepBeingTested,
       state.removeStepTestListener,
-      state.revertSampleDataLocallyCallbacks[currentStep.name],
+      state.revertSampleDataLocallyCallbacks[props.currentStep.name],
     ];
   });
 
   const runner = useActionTestRunner();
   const onTestButtonClick = () => runner?.fireTest();
 
-  const lastTestDate = currentStep.settings.sampleData?.lastTestDate;
+  const lastTestDate = props.currentStep.settings.sampleData?.lastTestDate;
 
   const sampleDataExists =
     !isNil(lastTestDate) ||
     !isNil(errorMessage) ||
-    isStepBeingTested(currentStep.name);
+    isStepBeingTested(props.currentStep.name);
 
   const isTesting = runner?.isTesting ?? false;
   const { isLoadingDynamicProperties } = useContext(DynamicPropertiesContext);
 
   return (
     <>
-      <Show when={!sampleDataExists && !isTesting()}>
-        <div className="flex flex-col h-full">
+      <Show when={!sampleDataExists && !isTesting}>
+        <div class="flex flex-col h-full">
           <TestPanelHeader status="idle" />
-          <div className="flex justify-end px-3 py-2 shrink-0">
+          <div class="flex justify-end px-3 py-2 shrink-0">
             <TestPanelViewToggle />
           </div>
-          <div className="grow flex flex-col items-center justify-center w-full px-6 py-10 gap-4 text-center">
-            <div className="flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary">
+          <div class="grow flex flex-col items-center justify-center w-full px-6 py-10 gap-4 text-center">
+            <div class="flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary">
               <FlaskConical class="size-6" />
             </div>
-            <div className="flex flex-col gap-1.5 max-w-[280px]">
-              <span className="text-sm font-medium text-foreground">
+            <div class="flex flex-col gap-1.5 max-w-[280px]">
+              <span class="text-sm font-medium text-foreground">
                 {t('No sample data yet')}
               </span>
-              <span className="text-xs text-muted-foreground leading-relaxed">
+              <span class="text-xs text-muted-foreground leading-relaxed">
                 {t(
                   'Run this step to capture sample data. You can then use the result in following steps.',
                 )}
               </span>
             </div>
-            <TestButtonTooltip saving={isSaving} invalid={!currentStep.valid}>
+            <TestButtonTooltip
+              saving={props.isSaving}
+              invalid={!props.currentStep.valid}
+            >
               <Button
                 size="sm"
                 onClick={onTestButtonClick}
-                loading={isTesting || isSaving}
-                disabled={!currentStep.valid || isLoadingDynamicProperties}
+                loading={isTesting || props.isSaving}
+                disabled={
+                  !props.currentStep.valid || isLoadingDynamicProperties
+                }
                 class="bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 <Play class="size-3.5 fill-current" />
@@ -96,23 +100,23 @@ const TestStepSectionImplementation = ({
           </div>
         </div>
       </Show>
-      <Show when={(sampleDataExists || isTesting)()}>
+      <Show when={sampleDataExists || isTesting}>
         <TestSampleDataViewer
-          isValid={currentStep.valid && !isLoadingDynamicProperties}
-          currentStep={currentStep}
+          isValid={props.currentStep.valid && !isLoadingDynamicProperties}
+          currentStep={props.currentStep}
           isTesting={isTesting}
           sampleData={sampleData}
           sampleDataInput={sampleDataInput ?? null}
           lastTestDate={lastTestDate}
-          isSaving={isSaving}
+          isSaving={props.isSaving}
           onRetest={onTestButtonClick}
           errorMessage={errorMessage}
           consoleLogs={consoleLogs}
           onCancelTesting={() => {
-            removeStepTestListener(currentStep.name);
+            removeStepTestListener(props.currentStep.name);
             revertSampleDataLocally?.();
           }}
-        ></TestSampleDataViewer>
+        />
       </Show>
     </>
   );
@@ -133,9 +137,6 @@ const TestActionSection = (props: TestActionComponentProps) => {
 
   return <TestStepSectionImplementation {...props} currentStep={currentStep} />;
 };
-
-TestStepSectionImplementation.displayName = 'TestStepSectionImplementation';
-TestActionSection.displayName = 'TestActionSection';
 
 type TestActionComponentProps = {
   isSaving: boolean;

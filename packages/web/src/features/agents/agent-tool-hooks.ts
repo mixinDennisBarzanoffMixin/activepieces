@@ -11,7 +11,7 @@ type ToolMetadata = {
 
 export const agentToolHooks = {
   useToolMetadata(contentBlock: ToolCallContentBlock) {
-    return createQuery<ToolMetadata, Error>({
+    return createQuery<ToolMetadata, Error>(() => ({
       queryKey: [
         'mcp-tool-metadata',
         contentBlock.toolName,
@@ -27,7 +27,7 @@ export const agentToolHooks = {
             const actionMetadata = piece.actions[contentBlock.actionName];
             return {
               displayName:
-                actionMetadata?.displayName ?? contentBlock.actionName,
+                actionMetadata.displayName ?? contentBlock.actionName,
               logoUrl: piece.logoUrl,
             };
           }
@@ -52,6 +52,6 @@ export const agentToolHooks = {
             return { displayName: null, logoUrl: null };
         }
       },
-    });
+    }));
   },
 };

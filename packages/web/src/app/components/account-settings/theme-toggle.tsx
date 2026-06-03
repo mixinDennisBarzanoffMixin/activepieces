@@ -15,7 +15,7 @@ export const ThemeToggle = () => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="space-y-2">
+    <div class="space-y-2">
       <Label class="text-sm font-medium flex items-center gap-2">
         <Palette class="w-4 h-4" />
         {t('Theme')}
@@ -26,19 +26,19 @@ export const ThemeToggle = () => {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="light" class="text-sm py-2">
-            <div className="flex items-center gap-2">
+            <div class="flex items-center gap-2">
               <Sun class="w-4 h-4" />
               Light
             </div>
           </SelectItem>
           <SelectItem value="dark" class="text-sm py-2">
-            <div className="flex items-center gap-2">
+            <div class="flex items-center gap-2">
               <Moon class="w-4 h-4" />
               Dark
             </div>
           </SelectItem>
           <SelectItem value="system" class="text-sm py-2">
-            <div className="flex items-center gap-2">
+            <div class="flex items-center gap-2">
               <Monitor class="w-4 h-4" />
               System
             </div>

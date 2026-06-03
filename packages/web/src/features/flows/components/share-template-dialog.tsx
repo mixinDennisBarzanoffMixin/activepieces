@@ -29,17 +29,13 @@ const ShareTemplateSchema = z.object({
 
 type ShareTemplateSchema = z.infer<typeof ShareTemplateSchema>;
 
-const ShareTemplateDialog = ({
-  children,
-  flowId,
-  flowVersionId,
-}: {
+const ShareTemplateDialog = (props: {
   children: JSX.Element;
   flowId: string;
   flowVersionId: string;
 }) => {
   const [isShareDialogOpen, setIsShareDialogOpen] = createSignal(false);
-  const [form, { Form, Field }] = createForm<ShareTemplateSchema>({
+  const [, { Form, Field }] = createForm<ShareTemplateSchema>({
     initialValues: {
       description: '',
     },
@@ -54,7 +50,7 @@ const ShareTemplateDialog = ({
   >(() => ({
     mutationFn: async (data) => {
       const template = await flowsApi.getTemplate(data.flowId, {
-        versionId: flowVersionId,
+        versionId: props.flowVersionId,
       });
 
       const author = currentUser
@@ -84,7 +80,7 @@ const ShareTemplateDialog = ({
 
   const submit = (data: ShareTemplateSchema) => {
     mutate({
-      flowId,
+      flowId: props.flowId,
       description: data.description,
     });
   };
@@ -94,7 +90,7 @@ const ShareTemplateDialog = ({
       open={isShareDialogOpen}
       onOpenChange={(open) => setIsShareDialogOpen(open)}
     >
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Share Template')}</DialogTitle>

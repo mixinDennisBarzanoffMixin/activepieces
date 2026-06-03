@@ -1,4 +1,3 @@
-import { ViewportPortal } from '../solid-flow-adapter';
 import { Show } from 'solid-js';
 
 import FlowEndWidget from '@/app/builder/flow-canvas/widgets/flow-end-widget';
@@ -6,6 +5,7 @@ import IncompleteSettingsButton from '@/app/builder/flow-canvas/widgets/incomple
 import { TestFlowWidget } from '@/app/builder/flow-canvas/widgets/test-flow-widget';
 
 import { useBuilderStateContext } from '../../builder-hooks';
+import { ViewportPortal } from '../solid-flow-adapter';
 import { flowCanvasConsts } from '../utils/consts';
 
 const AboveFlowWidgets = () => {
@@ -19,16 +19,16 @@ const AboveFlowWidgets = () => {
           style={{
             transform: `translate(0px,-${flowCanvasConsts.AP_NODE_SIZE.STEP.height}px )`,
             position: 'absolute',
-            pointerEvents: 'auto',
+            'pointer-events': 'auto',
           }}
         >
-          <div className="justify-center items-center flex w-[260px]">
-            <TestFlowWidget></TestFlowWidget>
-            <Show when={!readonly()}>
+          <div class="justify-center items-center flex w-[260px]">
+            <TestFlowWidget />
+            <Show when={!readonly}>
               <IncompleteSettingsButton
                 flowVersion={flowVersion}
                 selectStepByName={selectStepByName}
-              ></IncompleteSettingsButton>
+              />
             </Show>
           </div>
         </div>
@@ -36,21 +36,21 @@ const AboveFlowWidgets = () => {
     </ViewportPortal>
   );
 };
-AboveFlowWidgets.displayName = 'AboveFlowWidgets';
+
 const BelowFlowWidget = () => {
   return (
     <ViewportPortal>
       <WidgetWrapper>
         <div
           style={{
-            pointerEvents: 'auto',
+            'pointer-events': 'auto',
           }}
         >
           <div
-            className="flex items-center justify-center gap-2"
+            class="flex items-center justify-center gap-2"
             style={{ width: flowCanvasConsts.AP_NODE_SIZE.STEP.width + 'px' }}
           >
-            <FlowEndWidget></FlowEndWidget>
+            <FlowEndWidget />
           </div>
         </div>
       </WidgetWrapper>
@@ -58,16 +58,15 @@ const BelowFlowWidget = () => {
   );
 };
 
-const WidgetWrapper = ({ children }: { children: any }) => {
+const WidgetWrapper = (props: { children: any }) => {
   return (
     <div
       style={{ width: flowCanvasConsts.AP_NODE_SIZE.STEP.width + 'px' }}
-      className="flex items-center justify-center"
+      class="flex items-center justify-center"
     >
-      {children}
+      {props.children}
     </div>
   );
 };
 
-BelowFlowWidget.displayName = 'BelowFlowWidget';
 export { AboveFlowWidgets, BelowFlowWidget };

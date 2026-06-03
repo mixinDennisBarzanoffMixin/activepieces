@@ -7,18 +7,6 @@ import {
   Note,
   Step,
 } from '@activepieces/shared';
-import {
-  ReactFlow,
-  Background,
-  SelectionMode,
-  OnSelectionChangeParams,
-  useStoreApi,
-  PanOnScrollMode,
-  useKeyPress,
-  BackgroundVariant,
-  getNodesBounds,
-  CoordinateExtent,
-} from './solid-flow-adapter';
 import { createMemo, createSignal } from 'solid-js';
 
 import { useBuilderStateContext } from '../builder-hooks';
@@ -31,15 +19,25 @@ import {
 } from './context-menu/canvas-context-menu';
 import { FlowDragLayer } from './flow-drag-layer';
 import { flowCanvasHooks } from './hooks';
+import {
+  ReactFlow,
+  Background,
+  SelectionMode,
+  OnSelectionChangeParams,
+  useStoreApi,
+  PanOnScrollMode,
+  useKeyPress,
+  BackgroundVariant,
+  getNodesBounds,
+  CoordinateExtent,
+} from './solid-flow-adapter';
 import { flowCanvasConsts } from './utils/consts';
 import { flowCanvasUtils } from './utils/flow-canvas-utils';
 import { AboveFlowWidgets } from './widgets';
 import Minimap from './widgets/minimap';
 import { useShowChevronNextToSelection } from './widgets/selection-chevron-button';
 
-export const FlowCanvas = ({
-  setHasCanvasBeenInitialised,
-}: {
+export const FlowCanvas = (props: {
   setHasCanvasBeenInitialised: (value: boolean) => void;
 }) => {
   const [
@@ -49,7 +47,6 @@ export const FlowCanvas = ({
     selectedStep,
     panningMode,
     selectStepByName,
-    rightSidebar,
     notes,
   ] = useBuilderStateContext((state) => {
     return [
@@ -59,7 +56,6 @@ export const FlowCanvas = ({
       state.selectedStep,
       state.panningMode,
       state.selectStepByName,
-      state.rightSidebar,
       state.flowVersion.notes,
     ];
   });
@@ -67,7 +63,10 @@ export const FlowCanvas = ({
   useShowChevronNextToSelection();
   flowCanvasHooks.useFocusOnStep();
   useHandleKeyPressOnCanvas();
-  flowCanvasHooks.useResizeCanvas(containerRef, setHasCanvasBeenInitialised);
+  flowCanvasHooks.useResizeCanvas(
+    containerRef,
+    props.setHasCanvasBeenInitialised,
+  );
   const reactFlowStore = useStoreApi();
   const isShiftKeyPressed = useKeyPress('Shift');
   const inGrabPanningMode = !isShiftKeyPressed() && panningMode === 'grab';
@@ -160,7 +159,7 @@ export const FlowCanvas = ({
   const translateExtent = createMemo(() => {
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight + 100;
-    const nodes = graph.nodes;
+    const nodes = graph().nodes;
     const graphRectangle = getNodesBounds(nodes);
     const start = {
       x: graphRectangle.x - windowWidth,
@@ -180,7 +179,7 @@ export const FlowCanvas = ({
   return (
     <div
       ref={(el) => (containerRef = el)}
-      className="size-full relative overflow-hidden z-30 bg-builder-background"
+      class="size-full relative overflow-hidden z-30 bg-builder-background"
       onMouseMove={(event) => {
         const cursorPosition = { x: event.clientX, y: event.clientY };
         setCursorPosition(cursorPosition);
@@ -194,11 +193,11 @@ export const FlowCanvas = ({
             onPaneClick={() => {
               reactFlowStore.getState().unselectNodesAndEdges();
             }}
-            translateExtent={translateExtent}
+            translateExtent={translateExtent()}
             nodeTypes={flowCanvasConsts.nodeTypes}
-            nodes={graph.nodes}
+            nodes={graph().nodes}
             edgeTypes={flowCanvasConsts.edgeTypes}
-            edges={graph.edges}
+            edges={graph().edges}
             draggable={false}
             edgesFocusable={false}
             elevateEdgesOnSelect={false}
@@ -221,7 +220,7 @@ export const FlowCanvas = ({
             onSelectionChange={onSelectionChange}
             onSelectionEnd={onSelectionEnd}
           >
-            <AboveFlowWidgets></AboveFlowWidgets>
+            <AboveFlowWidgets />
             <Background
               gap={10}
               size={1}
@@ -237,7 +236,6 @@ export const FlowCanvas = ({
   );
 };
 
-FlowCanvas.displayName = 'FlowCanvas';
 const getChildrenKey = (step: Step) => {
   switch (step.type) {
     case FlowActionType.LOOP_ON_ITEMS:
@@ -272,9 +270,9 @@ const createGraphKey = (
           ? step.settings.branches.map((branch) => branch.branchName).join('-')
           : '0';
       const childrenKey = getChildrenKey(step);
-      return `${acc}-${step.displayName}-${step.type}-${
-        step.nextAction ? step.nextAction.name : ''
-      }-${
+      return `${acc}-${step.displayName}-${step.type}-${getNextActionName(
+        step,
+      )}-${
         step.type === FlowActionType.PIECE ||
         step.type === FlowTriggerType.PIECE
           ? `${step.settings.pieceName}-${step.settings.pieceVersion}`
@@ -286,3 +284,14 @@ const createGraphKey = (
     .join('-');
   return `${flowVersion.id}-${flowGraphKey}-${notesGraphKey}-${selectedStep}`;
 };
+
+function getNextActionName(step: Step) {
+  if (!('nextAction' in step)) {
+    return '';
+  }
+  const next: unknown = step.nextAction;
+  if (typeof next !== 'object' || next === null || !('name' in next)) {
+    return '';
+  }
+  return typeof next.name === 'string' ? next.name : '';
+}

@@ -1,3 +1,4 @@
+import { AuthenticationResponse } from '@activepieces/shared';
 import { useNavigate, useLocation } from '@solidjs/router';
 import { createEffect } from 'solid-js';
 
@@ -12,7 +13,9 @@ const AuthenticatePage = () => {
 
   createEffect(() => {
     if (response) {
-      const decodedResponse = JSON.parse(response);
+      const decodedResponse = AuthenticationResponse.parse(
+        JSON.parse(response) as unknown,
+      );
       authenticationSession.saveResponse(decodedResponse, false);
       navigate('/flows');
     }

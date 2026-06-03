@@ -6,48 +6,44 @@ import { TextWithTooltip } from '@/components/custom/text-with-tooltip';
 import { flowRunUtils } from '@/features/flow-runs';
 import { formatUtils } from '@/lib/format-utils';
 
-const StepNodeRunDuration = ({ duration }: { duration: number }) => {
+const StepNodeRunDuration = (props: { duration: number }) => {
   return (
-    <div className="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
+    <div class="text-xs text-muted-foreground shrink-0 flex items-center gap-1">
       <Timer class="size-3" />
-      <span>{formatUtils.formatDuration(duration, true)}</span>
+      <span>{formatUtils.formatDuration(props.duration, true)}</span>
     </div>
   );
 };
 
-const StepNodeRunDurationAndPieceName = ({
-  stepName,
-  pieceDisplayName,
-}: {
+const StepNodeRunDurationAndPieceName = (props: {
   stepName: string;
   pieceDisplayName: string;
 }) => {
-  const [run, loopIndexes, flowVersion] = useBuilderStateContext((state) => [
+  const [run, loopIndexes] = useBuilderStateContext((state) => [
     state.run,
     state.loopsIndexes,
-    state.flowVersion,
   ]);
   const selectedStepOutput = createMemo(() => {
     return run && run.steps
-      ? flowRunUtils.extractStepOutput(stepName, loopIndexes, run.steps)
+      ? flowRunUtils.extractStepOutput(props.stepName, loopIndexes, run.steps)
       : null;
   });
 
   return (
-    <div className="flex justify-between mt-0.5 w-full items-center">
+    <div class="flex justify-between mt-0.5 w-full items-center">
       <TextWithTooltip
-        tooltipMessage={pieceDisplayName}
-        key={pieceDisplayName + selectedStepOutput?.duration}
+        tooltipMessage={props.pieceDisplayName}
+        key={props.pieceDisplayName + selectedStepOutput()?.duration}
       >
-        <div className="text-xs text-muted-foreground truncate  grow shrink w-full">
-          {pieceDisplayName}
+        <div class="text-xs text-muted-foreground truncate  grow shrink w-full">
+          {props.pieceDisplayName}
         </div>
       </TextWithTooltip>
       <Show when={selectedStepOutput()}>
-        <StepNodeRunDuration duration={selectedStepOutput?.duration ?? 0} />
+        <StepNodeRunDuration duration={selectedStepOutput()?.duration ?? 0} />
       </Show>
     </div>
   );
 };
-StepNodeRunDurationAndPieceName.displayName = 'StepNodeRunDurationAndPieceName';
+
 export { StepNodeRunDurationAndPieceName };

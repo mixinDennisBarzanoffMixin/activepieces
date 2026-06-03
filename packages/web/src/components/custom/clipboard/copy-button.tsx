@@ -1,7 +1,7 @@
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { Check, Copy } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, type JSX, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { Button, ButtonProps } from '@/components/ui/button';
@@ -13,16 +13,15 @@ import {
 
 interface CopyButtonProps extends ButtonProps {
   textToCopy: string;
-  tooltipSide?: any;
+  tooltipSide?: 'top' | 'right' | 'bottom' | 'left';
   withoutTooltip?: boolean;
-  children?: any;
+  children?: JSX.Element;
   variant?: 'ghost' | 'outline';
 }
 
 export const CopyButton = (
   props: CopyButtonProps & { ref?: HTMLButtonElement },
 ) => {
-  let ref: HTMLButtonElement | undefined;
   const [isCopied, setIsCopied] = createSignal(false);
 
   const { mutate: copyToClipboard } = createMutation(() => ({
@@ -38,39 +37,27 @@ export const CopyButton = (
     },
   }));
 
-  if (props.withoutTooltip) {
-    return (
-      <Button
-        ref={(el) => (ref = el)}
-        variant={props.variant}
-        size={'icon'}
-        type="button"
-        class={props.className}
-        onClick={() => copyToClipboard()}
-        {...props}
-      >
-        {isCopied() ? <Check class="h-4 w-4" /> : <Copy class="h-4 w-4" />}
-      </Button>
-    );
-  }
+  const button = (
+    <Button
+      variant={props.variant}
+      size={'icon'}
+      type="button"
+      class={props.className}
+      onClick={() => copyToClipboard()}
+      {...props}
+    >
+      <Show when={isCopied()} fallback={<Copy class="h-4 w-4" />}>
+        <Check class="h-4 w-4" />
+      </Show>
+    </Button>
+  );
+
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button
-          ref={(el) => (ref = el)}
-          variant={props.variant}
-          size={'icon'}
-          type="button"
-          class={props.className}
-          onClick={() => copyToClipboard()}
-          {...props}
-        >
-          {isCopied() ? <Check class="h-4 w-4" /> : <Copy class="h-4 w-4" />}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent side={props.tooltipSide}>{t('Copy')}</TooltipContent>
-    </Tooltip>
+    <Show when={!props.withoutTooltip} fallback={button}>
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent side={props.tooltipSide}>{t('Copy')}</TooltipContent>
+      </Tooltip>
+    </Show>
   );
 };
-
-CopyButton.displayName = 'CopyButton';

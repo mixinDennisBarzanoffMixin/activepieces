@@ -30,29 +30,25 @@ const getPieceSelectorItemInfo = (item: PieceSelectorItem) => {
   };
 };
 
-const AIActionItem = ({
-  item,
-  stepMetadataWithSuggestions,
-  onClick,
-}: AIActionItemProps) => {
-  const pieceSelectorItemInfo = getPieceSelectorItemInfo(item);
+const AIActionItem = (props: AIActionItemProps) => {
+  const pieceSelectorItemInfo = getPieceSelectorItemInfo(props.item);
 
   return (
     <CardListItem
       class="p-4 w-full h-full rounded-md flex flex-col justify-between h-[125px]"
-      onClick={onClick}
+      onClick={props.onClick}
     >
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-center">
+      <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-center">
           <PieceIcon
-            logoUrl={stepMetadataWithSuggestions.logoUrl}
-            displayName={stepMetadataWithSuggestions.displayName}
+            logoUrl={props.stepMetadataWithSuggestions.logoUrl}
+            displayName={props.stepMetadataWithSuggestions.displayName}
             showTooltip={false}
             size={'lg'}
           />
         </div>
-        <div className="flex flex-col gap-1 text-center">
-          <div className="text-sm font-medium leading-tight">
+        <div class="flex flex-col gap-1 text-center">
+          <div class="text-sm font-medium leading-tight">
             {pieceSelectorItemInfo.displayName}
           </div>
         </div>
@@ -61,5 +57,4 @@ const AIActionItem = ({
   );
 };
 
-AIActionItem.displayName = 'AIActionItem';
 export default AIActionItem;

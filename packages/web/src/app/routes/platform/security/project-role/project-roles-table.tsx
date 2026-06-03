@@ -1,4 +1,4 @@
-import { ProjectRole, RoleType, SeekPage } from '@activepieces/shared';
+import { ProjectRole, SeekPage } from '@activepieces/shared';
 import { t } from 'i18next';
 import {
   Eye,
@@ -49,11 +49,7 @@ function getRoleIcon(roleName: string) {
   }
 }
 
-export const ProjectRolesTable = ({
-  projectRoles,
-  isLoading,
-  refetch,
-}: ProjectRolesListProps) => {
+export const ProjectRolesTable = (props: ProjectRolesListProps) => {
   const { platform } = platformHooks.useCurrentPlatform();
   const [selectedRole, setSelectedRole] = createSignal<ProjectRole | null>(
     null,
@@ -62,20 +58,20 @@ export const ProjectRolesTable = ({
 
   const { mutate: deleteProjectRole } =
     projectRoleMutations.useDeleteProjectRole({
-      onSuccess: () => refetch(),
+      onSuccess: () => props.refetch(),
     });
 
-  if (isLoading) {
+  if (props.isLoading) {
     return <SkeletonList numberOfItems={3} class="w-full h-[60px]" />;
   }
 
-  const roles = projectRoles?.data ?? [];
+  const roles = props.projectRoles?.data ?? [];
 
   if (roles.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 py-12 text-muted-foreground">
+      <div class="flex flex-col items-center gap-3 py-12 text-muted-foreground">
         <Shield class="size-10" />
-        <p className="text-sm">
+        <p class="text-sm">
           {t('No project roles yet. Create one to get started.')}
         </p>
       </div>
@@ -93,13 +89,9 @@ export const ProjectRolesTable = ({
                 <ItemTitle>{role.name}</ItemTitle>
                 <ItemDescription>
                   <Badge
-                    variant={
-                      role.type === RoleType.DEFAULT ? 'accent' : 'secondary'
-                    }
+                    variant={role.type === 'DEFAULT' ? 'accent' : 'secondary'}
                   >
-                    {role.type === RoleType.DEFAULT
-                      ? t('Default')
-                      : t('Custom')}
+                    {role.type === 'DEFAULT' ? t('Default') : t('Custom')}
                   </Badge>
                 </ItemDescription>
               </ItemContent>
@@ -114,7 +106,7 @@ export const ProjectRolesTable = ({
                   }}
                 >
                   <Users class="size-4" />
-                  <span className="text-xs">
+                  <span class="text-xs">
                     <Show
                       when={role.userCount === 1}
                       fallback={t(`${role.userCount} users`)}
@@ -127,19 +119,19 @@ export const ProjectRolesTable = ({
                   mode="edit"
                   projectRole={role}
                   platformId={platform.id}
-                  onSave={() => refetch()}
-                  disabled={role.type === RoleType.DEFAULT}
+                  onSave={() => props.refetch()}
+                  disabled={role.type === 'DEFAULT'}
                 >
                   <Button variant="ghost" size="sm" class="size-8 p-0">
                     <Show
-                      when={role.type === RoleType.DEFAULT}
+                      when={role.type === 'DEFAULT'}
                       fallback={<Pencil class="size-4" />}
                     >
                       <Eye class="size-4" />
                     </Show>
                   </Button>
                 </ProjectRoleDialog>
-                <Show when={role.type !== RoleType.DEFAULT}>
+                <Show when={role.type !== 'DEFAULT'}>
                   <ConfirmationDeleteDialog
                     isDanger={true}
                     title={t('Delete Role')}
@@ -149,7 +141,7 @@ export const ProjectRolesTable = ({
                     )}
                     entityName={`${t('Project Role')} ${role.name}`}
                     buttonText={t('Delete Role')}
-                    mutationFn={async () => deleteProjectRole(role.name)}
+                    mutationFn={() => deleteProjectRole(role.name)}
                   >
                     <Button variant="ghost" size="sm" class="size-8 p-0">
                       <Trash class="size-4 text-destructive" />

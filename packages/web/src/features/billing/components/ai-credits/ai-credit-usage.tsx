@@ -7,7 +7,7 @@ import {
 import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { Sparkles, Settings } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
 import {
   Item,
@@ -31,9 +31,9 @@ interface AiCreditUsageProps {
   platformSubscription: PlatformBillingInformation;
 }
 
-export function AICreditUsage({ platformSubscription }: AiCreditUsageProps) {
+export function AICreditUsage(props: AiCreditUsageProps) {
   const queryClient = useQueryClient();
-  const { plan, usage } = platformSubscription;
+  const { plan, usage } = props.platformSubscription;
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = createSignal(false);
   const [isAutoTopUpDialogOpen, setIsAutoTopUpDialogOpen] = createSignal(false);
   const [isAutoTopUpEditing, setIsAutoTopUpEditing] = createSignal(false);
@@ -57,7 +57,7 @@ export function AICreditUsage({ platformSubscription }: AiCreditUsageProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div class="flex flex-col gap-4">
       <Item variant="outline">
         <ItemMedia variant="icon">
           <Sparkles />
@@ -67,13 +67,13 @@ export function AICreditUsage({ platformSubscription }: AiCreditUsageProps) {
           <ItemDescription>
             {Math.round(creditsRemaining).toLocaleString()}{' '}
             {t('credits available')}
-            <span className="ml-2 text-xs">
+            <span class="ml-2 text-xs">
               ({t('Total used')}:{' '}
               {Math.round(totalCreditsUsed).toLocaleString()})
             </span>
           </ItemDescription>
         </ItemContent>
-        {canBuyCredits && (
+        <Show when={canBuyCredits}>
           <ItemActions>
             <Button
               variant="basic"
@@ -83,10 +83,10 @@ export function AICreditUsage({ platformSubscription }: AiCreditUsageProps) {
               {t('Purchase Credits')}
             </Button>
           </ItemActions>
-        )}
+        </Show>
       </Item>
 
-      {canBuyCredits && (
+      <Show when={canBuyCredits}>
         <Item variant="outline">
           <ItemMedia variant="icon">
             <Settings />
@@ -100,7 +100,7 @@ export function AICreditUsage({ platformSubscription }: AiCreditUsageProps) {
             </ItemDescription>
           </ItemContent>
           <ItemActions>
-            {isAutoTopUpEnabled && (
+            <Show when={isAutoTopUpEnabled}>
               <Button
                 variant="ghost"
                 size="icon"
@@ -112,7 +112,7 @@ export function AICreditUsage({ platformSubscription }: AiCreditUsageProps) {
               >
                 <Settings class="size-4" />
               </Button>
-            )}
+            </Show>
             <Switch
               checked={isAutoTopUpEnabled}
               onCheckedChange={(checked) => {
@@ -127,7 +127,7 @@ export function AICreditUsage({ platformSubscription }: AiCreditUsageProps) {
             />
           </ItemActions>
         </Item>
-      )}
+      </Show>
 
       <PurchaseAICreditsDialog
         isOpen={isPurchaseDialogOpen}

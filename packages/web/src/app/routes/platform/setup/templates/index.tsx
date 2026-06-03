@@ -1,5 +1,4 @@
 import { Template, TemplateType } from '@activepieces/shared';
-import { useSearchParams } from '@solidjs/router';
 import { createQuery } from '@tanstack/solid-query';
 import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
@@ -36,9 +35,8 @@ import { UpdateTemplateDialog } from './update-template-dialog';
 const PlatformTemplatesPage = () => {
   const { platform } = platformHooks.useCurrentPlatform();
 
-  const [searchParams] = useSearchParams();
   const { data, isLoading, refetch } = createQuery(() => ({
-    queryKey: ['templates', searchParams.toString()],
+    queryKey: ['templates'],
     staleTime: 0,
     meta: { showErrorDialog: true, loadSubsetOptions: {} },
     queryFn: () => {
@@ -52,7 +50,7 @@ const PlatformTemplatesPage = () => {
 
   const bulkDeleteMutation = templatesMutations.useBulkDeleteTemplates({
     onSuccess: () => {
-      refetch();
+      void refetch();
       toast.success(t('Templates deleted successfully'), {
         duration: 3000,
       });
@@ -66,43 +64,47 @@ const PlatformTemplatesPage = () => {
       size: 40,
       minSize: 40,
       maxSize: 40,
-      header: ({ table }) => (
+      header: (props) => (
         <Checkbox
           checked={
-            table.getRowModel().rows.length > 0 &&
-            table.getRowModel().rows.every((row) => row.getIsSelected())
+            props.table.getRowModel().rows.length > 0 &&
+            props.table.getRowModel().rows.every((row) => row.getIsSelected())
           }
           onCheckedChange={(value) => {
-            table.toggleAllRowsSelected(!!value);
-            const allRows = table.getRowModel().rows.map((row) => row.original);
+            props.table.toggleAllRowsSelected(!!value);
+            const allRows = props.table
+              .getRowModel()
+              .rows.map((row) => row.original);
             setSelectedRows(value ? allRows : []);
           }}
         />
       ),
-      cell: ({ row }) => {
-        const isChecked = selectedRows.some(
-          (selectedRow) => selectedRow.id === row.original.id,
+      cell: (props) => {
+        const isChecked = selectedRows().some(
+          (selectedRow) => selectedRow.id === props.row.original.id,
         );
 
         return (
           <Checkbox
             checked={isChecked}
             onCheckedChange={(value) => {
-              let newSelectedRows = [...selectedRows];
               if (value) {
-                const exists = newSelectedRows.some(
-                  (selectedRow) => selectedRow.id === row.original.id,
+                const exists = selectedRows().some(
+                  (selectedRow) => selectedRow.id === props.row.original.id,
                 );
                 if (!exists) {
-                  newSelectedRows.push(row.original);
+                  setSelectedRows([...selectedRows(), props.row.original]);
                 }
-              } else {
-                newSelectedRows = newSelectedRows.filter(
-                  (selectedRow) => selectedRow.id !== row.original.id,
-                );
+                props.row.toggleSelected(true);
+                return;
               }
-              setSelectedRows(newSelectedRows);
-              row.toggleSelected(!!value);
+
+              setSelectedRows(
+                selectedRows().filter(
+                  (selectedRow) => selectedRow.id !== props.row.original.id,
+                ),
+              );
+              props.row.toggleSelected(false);
             }}
           />
         );
@@ -111,27 +113,31 @@ const PlatformTemplatesPage = () => {
     {
       accessorKey: 'name',
       size: 200,
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Name')} icon={Tag} />
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title={t('Name')}
+          icon={Tag}
+        />
       ),
-      cell: ({ row }) => {
-        return <div className="text-left">{row.original.name}</div>;
+      cell: (props) => {
+        return <div class="text-left">{props.row.original.name}</div>;
       },
     },
     {
       accessorKey: 'createdAt',
       size: 150,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Created')}
           icon={Clock}
         />
       ),
-      cell: ({ row }) => {
+      cell: (props) => {
         return (
-          <div className="text-left">
-            <FormattedDate date={new Date(row.original.created)} />
+          <div class="text-left">
+            <FormattedDate date={new Date(props.row.original.created)} />
           </div>
         );
       },
@@ -139,15 +145,15 @@ const PlatformTemplatesPage = () => {
     {
       accessorKey: 'pieces',
       size: 100,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Pieces')}
           icon={Puzzle}
         />
       ),
-      cell: ({ row }) => {
-        const trigger = row.original.flows?.[0]?.trigger;
+      cell: (props) => {
+        const trigger = props.row.original.flows?.[0]?.trigger;
         if (!trigger) return null;
         return <PieceIconList trigger={trigger} maxNumberOfIconsToShow={2} />;
       },
@@ -163,26 +169,26 @@ const PlatformTemplatesPage = () => {
         <div onClick={(e) => e.stopPropagation()}>
           <ConfirmationDeleteDialog
             title={t('Delete Templates')}
-            message={t(
-              'Are you sure you want to delete the selected templates?',
+            message={String(
+              t('Are you sure you want to delete the selected templates?'),
             )}
             entityName={t('Templates')}
             mutationFn={async () => {
               await bulkDeleteMutation.mutateAsync(
-                selectedRows.map((row) => row.id),
+                selectedRows().map((row) => row.id),
               );
               resetSelection();
               setSelectedRows([]);
             }}
           >
-            <Show when={selectedRows.length > 0}>
+            <Show when={selectedRows().length > 0}>
               <Button
                 variant="ghost"
                 size="sm"
                 class="text-destructive hover:text-destructive"
               >
                 <Trash class="mr-1 w-4" />
-                {`${t('Delete')} (${selectedRows.length})`}
+                {`${t('Delete')} (${selectedRows().length})`}
               </Button>
             </Show>
           </ConfirmationDeleteDialog>
@@ -192,7 +198,12 @@ const PlatformTemplatesPage = () => {
   ]);
 
   const toolbarButtons = createMemo(() => [
-    <CreateTemplateDialog key="new-template" onDone={() => refetch()}>
+    <CreateTemplateDialog
+      key="new-template"
+      onDone={() => {
+        void refetch();
+      }}
+    >
       <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
         {t('New Template')}
       </AnimatedIconButton>
@@ -205,17 +216,19 @@ const PlatformTemplatesPage = () => {
       featureKey="TEMPLATES"
       locked={!isEnabled}
       lockTitle={t('Unlock Templates')}
-      lockDescription={t(
-        'Convert the most common automations into reusable templates 1 click away from your users',
+      lockDescription={String(
+        t(
+          'Convert the most common automations into reusable templates 1 click away from your users',
+        ),
       )}
       lockVideoUrl="https://cdn.activepieces.com/videos/showcase/templates.mp4"
     >
-      <div className="flex flex-col w-full">
+      <div class="flex flex-col w-full">
         <DashboardPageHeader
-          description={t(
-            'Convert the most common automations into reusable templates',
+          description={String(
+            t('Convert the most common automations into reusable templates'),
           )}
-          title={t('Templates')}
+          title={String(t('Templates'))}
         />
         <DataTable
           emptyStateTextTitle={t('No templates found')}
@@ -232,11 +245,13 @@ const PlatformTemplatesPage = () => {
           actions={[
             (row) => {
               return (
-                <div className="flex items-end justify-end">
+                <div class="flex items-end justify-end">
                   <Tooltip>
                     <TooltipTrigger>
                       <UpdateTemplateDialog
-                        onDone={() => refetch()}
+                        onDone={() => {
+                          void refetch();
+                        }}
                         template={row}
                       >
                         <Button variant="ghost" class="size-8 p-0">

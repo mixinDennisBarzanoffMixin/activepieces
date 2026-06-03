@@ -57,97 +57,85 @@ type CreateReleaseDialogContentProps = {
   refetch: () => void;
 };
 
-const CreateReleaseDialogContent = ({
-  loading,
-  diffRequest,
-  plan,
-  name,
-  setName,
-  description,
-  setDescription,
-  setOpen,
-  refetch,
-}: CreateReleaseDialogContentProps) => {
+const CreateReleaseDialogContent = (props: CreateReleaseDialogContentProps) => {
   const isThereAnyChanges =
-    (plan?.flows && plan?.flows.length > 0) ||
-    (plan?.tables && plan?.tables.length > 0);
+    props.plan.flows.length > 0 || props.plan.tables.length > 0;
 
   const { mutate: applyChanges, isPending } =
     projectReleaseMutations.useApplyRelease({
       onSuccess: () => {
-        refetch();
-        setOpen(false);
+        props.refetch();
+        props.setOpen(false);
       },
     });
   const [selectedChanges, setSelectedChanges] = createSignal<Set<string>>(
-    new Set(plan?.flows.map((op) => op.flow.id) || []),
+    new Set(props.plan.flows.map((op) => op.flow.id)),
   );
   const [errorMessage, setErrorMessage] = createSignal('');
   const [nameError, setNameError] = createSignal('');
 
   const handleSelectAll = (checked: boolean) => {
-    if (!plan) return;
     setSelectedChanges(
-      new Set(checked ? plan.flows.map((op) => op.flow.id) : []),
+      new Set(checked ? props.plan.flows.map((op) => op.flow.id) : []),
     );
   };
 
   return (
     <>
-      <Show when={loading}>
-        <div className="flex items-center justify-center h-24">
+      <Show when={props.loading}>
+        <div class="flex items-center justify-center h-24">
           <LoadingSpinner />
         </div>
       </Show>
 
-      <Show when={!loading && isThereAnyChanges}>
-        <div className="space-y-4">
-          <div className="flex flex-col gap-2">
+      <Show when={!props.loading && isThereAnyChanges}>
+        <div class="space-y-4">
+          <div class="flex flex-col gap-2">
             <Label class="text-sm" for="name">
               {t('Name')}
             </Label>
             <Input
               id="name"
-              value={name()}
+              value={props.name()}
               onInput={(event) => {
-                setName(event.currentTarget.value);
+                props.setName(event.currentTarget.value);
                 setNameError('');
               }}
               placeholder={t('Meeting Summary Flow')}
             />
             <Show when={nameError()}>
-              <p className="text-sm text-destructive">
-                {nameError()}
-              </p>
+              <p class="text-sm text-destructive">{nameError()}</p>
             </Show>
           </div>
-          <div className="flex flex-col gap-2">
+          <div class="flex flex-col gap-2">
             <Label class="text-sm" for="description">
               {t('Description')}
             </Label>
             <Textarea
               id="description"
-              value={description()}
-              onInput={(event) => setDescription(event.currentTarget.value)}
+              value={props.description()}
+              onInput={(event) =>
+                props.setDescription(event.currentTarget.value)
+              }
               placeholder={t('Added new features and fixed bugs')}
             />
           </div>
-          <Show when={plan?.flows && plan.flows.length > 0}>
-            <div className="space-y-2 ">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 py-2 border-b">
+          <Show when={props.plan.flows.length > 0}>
+            <div class="space-y-2 ">
+              <div class="flex flex-col gap-2">
+                <div class="flex items-center gap-2 py-2 border-b">
                   <Checkbox
-                    checked={selectedChanges().size === plan?.flows.length}
+                    checked={selectedChanges().size === props.plan.flows.length}
                     onCheckedChange={handleSelectAll}
                   />
                   <Label class="text-sm font-medium">
                     {t('Flows Changes')} ({selectedChanges().size}/
-                    {plan?.flows.length || 0})
+                    {props.plan.flows.length})
                   </Label>
                 </div>
               </div>
               <ScrollArea viewPortClassName="max-h-[15vh]">
-                <For each={plan?.flows}>
+                <For each={props.plan.flows}>
                   {(operation) => (
                     <OperationChange
                       key={operation.flow.id}
@@ -170,16 +158,15 @@ const CreateReleaseDialogContent = ({
               </ScrollArea>
             </div>
           </Show>
-          <Show when={plan?.connections && plan.connections.length > 0}>
-            <div className="space-y-2">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-col justify -center gap-1 py-2 border-b">
+          <Show when={props.plan.connections.length > 0}>
+            <div class="space-y-2">
+              <div class="flex flex-col gap-2">
+                <div class="flex flex-col justify -center gap-1 py-2 border-b">
                   <Label class="text-sm font-medium">
-                    {t('Connections Changes')} ({plan?.connections?.length || 0}
-                    )
+                    {t('Connections Changes')} ({props.plan.connections.length})
                   </Label>
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <span className="flex items-center gap-2">
+                  <div class="flex items-center text-sm text-muted-foreground">
+                    <span class="flex items-center gap-2">
                       {t(
                         'New connections are placeholders and need to be reconnected again',
                       )}
@@ -187,27 +174,26 @@ const CreateReleaseDialogContent = ({
                   </div>
                 </div>
                 <ScrollArea viewPortClassName="max-h-[10vh]">
-                  <For each={plan?.connections}>
+                  <For each={props.plan.connections}>
                     {(connection) => (
-                      <div
-                        key={connection.connectionState.externalId}
-                        className="flex items-center gap-2 text-sm py-1"
-                      >
+                      <div class="flex items-center gap-2 text-sm py-1">
                         <Show
                           when={
                             connection.type ===
                             ConnectionOperationType.UPDATE_CONNECTION
                           }
                         >
-                          <div className="flex items-center gap-2">
+                          <div class="flex items-center gap-2">
                             <PencilIcon class="w-4 h-4 shrink-0" />
-                            <div className="flex items-center gap-1">
+                            <div class="flex items-center gap-1">
                               <span>
                                 {connection.connectionState.displayName}
                               </span>
                               <span> {t('renamed to')} </span>
                               <span>
-                                {connection.newConnectionState.displayName}
+                                {'newConnectionState' in connection
+                                  ? connection.newConnectionState.displayName
+                                  : ''}
                               </span>
                             </div>
                           </div>
@@ -218,9 +204,9 @@ const CreateReleaseDialogContent = ({
                             ConnectionOperationType.CREATE_CONNECTION
                           }
                         >
-                          <div className="flex items-center gap-2">
+                          <div class="flex items-center gap-2">
                             <Plus class="w-4 h-4 shrink-0 text-success" />
-                            <span className="text-success">
+                            <span class="text-success">
                               {connection.connectionState.displayName}
                             </span>
                           </div>
@@ -233,27 +219,24 @@ const CreateReleaseDialogContent = ({
             </div>
           </Show>
 
-          <Show when={plan?.tables && plan.tables.length > 0}>
-            <div className="space-y-2">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-col justify -center gap-1 py-2 border-b">
+          <Show when={props.plan.tables.length > 0}>
+            <div class="space-y-2">
+              <div class="flex flex-col gap-2">
+                <div class="flex flex-col justify -center gap-1 py-2 border-b">
                   <Label class="text-sm font-medium">
-                    {t('Tables Changes')} ({plan?.tables?.length || 0})
+                    {t('Tables Changes')} ({props.plan.tables.length})
                   </Label>
                 </div>
                 <ScrollArea viewPortClassName="max-h-[10vh]">
-                  <For each={plan?.tables}>
+                  <For each={props.plan.tables}>
                     {(table) => (
-                      <div
-                        key={table.tableState.externalId}
-                        className="flex items-center gap-2 text-sm py-1"
-                      >
+                      <div class="flex items-center gap-2 text-sm py-1">
                         <Show
                           when={table.type === TableOperationType.UPDATE_TABLE}
                         >
-                          <div className="flex items-center gap-2">
+                          <div class="flex items-center gap-2">
                             <PencilIcon class="w-4 h-4 shrink-0" />
-                            <div className="flex items-center gap-1">
+                            <div class="flex items-center gap-1">
                               <span>{table.tableState.name}</span>
                             </div>
                           </div>
@@ -261,9 +244,9 @@ const CreateReleaseDialogContent = ({
                         <Show
                           when={table.type === TableOperationType.CREATE_TABLE}
                         >
-                          <div className="flex items-center gap-2">
+                          <div class="flex items-center gap-2">
                             <Plus class="w-4 h-4 shrink-0 text-success" />
-                            <span className="text-success">
+                            <span class="text-success">
                               {table.tableState.name}
                             </span>
                           </div>
@@ -271,9 +254,9 @@ const CreateReleaseDialogContent = ({
                         <Show
                           when={table.type === TableOperationType.DELETE_TABLE}
                         >
-                          <div className="flex items-center gap-2">
+                          <div class="flex items-center gap-2">
                             <TrashIcon class="w-4 h-4 shrink-0 text-destructive" />
-                            <span className="text-destructive">
+                            <span class="text-destructive">
                               {table.tableState.name}
                             </span>
                           </div>
@@ -285,23 +268,23 @@ const CreateReleaseDialogContent = ({
               </div>
             </div>
           </Show>
-          <Show when={errorMessage}>
-            <p className="text-sm text-destructive">{errorMessage}</p>
+          <Show when={errorMessage()}>
+            <p class="text-sm text-destructive">{errorMessage()}</p>
           </Show>
         </div>
       </Show>
 
-      {loading ||
-        (!loading && !isThereAnyChanges && (
-          <div className="text-sm py-2">{t('No changes to apply')}</div>
+      {props.loading ||
+        (!props.loading && !isThereAnyChanges && (
+          <div class="text-sm py-2">{t('No changes to apply')}</div>
         ))}
 
-      <Show when={!loading && isThereAnyChanges}>
+      <Show when={!props.loading && isThereAnyChanges}>
         <DialogFooter class=" items-end gap-1 ">
           <Button
             size={'sm'}
             variant={'outline'}
-            onClick={() => setOpen(false)}
+            onClick={() => props.setOpen(false)}
           >
             {t('Cancel')}
           </Button>
@@ -310,40 +293,48 @@ const CreateReleaseDialogContent = ({
             loading={isPending}
             disabled={isPending}
             onClick={() => {
-              const invalid = name().trim() === '';
+              const invalid = props.name().trim() === '';
               if (invalid) {
                 setNameError(t('Release name is required'));
               }
-              if (selectedChanges().size === 0 && plan.tables.length === 0) {
+              if (
+                selectedChanges().size === 0 &&
+                props.plan.tables.length === 0
+              ) {
                 setErrorMessage(
-                  t('Please select at least one change to include in the release'),
+                  t(
+                    'Please select at least one change to include in the release',
+                  ),
                 );
               }
-              if (invalid || (selectedChanges().size === 0 && plan.tables.length === 0)) {
+              if (
+                invalid ||
+                (selectedChanges().size === 0 && props.plan.tables.length === 0)
+              ) {
                 return;
               }
               const request = {
-                name: name(),
-                description: description(),
+                name: props.name(),
+                description: props.description(),
                 selectedFlowsIds: Array.from(selectedChanges()),
                 projectId: authenticationSession.getProjectId()!,
               };
-              switch (diffRequest.type) {
+              switch (props.diffRequest.type) {
                 case ProjectReleaseType.GIT:
-                  applyChanges({ ...request, type: diffRequest.type });
+                  applyChanges({ ...request, type: props.diffRequest.type });
                   break;
                 case ProjectReleaseType.PROJECT:
                   applyChanges({
                     ...request,
-                    targetProjectId: diffRequest.targetProjectId,
-                    type: diffRequest.type,
+                    targetProjectId: props.diffRequest.targetProjectId,
+                    type: props.diffRequest.type,
                   });
                   break;
                 case ProjectReleaseType.ROLLBACK:
                   applyChanges({
                     ...request,
-                    projectReleaseId: diffRequest.projectReleaseId,
-                    type: diffRequest.type,
+                    projectReleaseId: props.diffRequest.projectReleaseId,
+                    type: props.diffRequest.type,
                   });
                   break;
               }
@@ -357,54 +348,42 @@ const CreateReleaseDialogContent = ({
   );
 };
 
-const CreateReleaseDialog = ({
-  open,
-  setOpen,
-  refetch,
-  plan,
-  loading,
-  defaultName = '',
-  diffRequest,
-}: CreateReleaseDialogProps) => {
-  const [name, setName] = createSignal(defaultName);
+const CreateReleaseDialog = (props: CreateReleaseDialogProps) => {
+  const [name, setName] = createSignal(props.defaultName ?? '');
   const [description, setDescription] = createSignal('');
 
   createEffect(() => {
-    if (!open) {
+    if (!props.open) {
       return;
     }
-    setName(defaultName);
+    setName(props.defaultName ?? '');
     setDescription('');
   });
 
   return (
-    <Dialog
-      modal={true}
-      open={open}
-      onOpenChange={setOpen}
-    >
+    <Dialog modal={true} open={props.open} onOpenChange={props.setOpen}>
       <DialogContent class="min-h-[100px] max-h-[850px] flex flex-col">
         <DialogHeader class="shrink-0">
           <DialogTitle>
-            {diffRequest.type === ProjectReleaseType.GIT
+            {props.diffRequest.type === ProjectReleaseType.GIT
               ? t('Create Git Release')
-              : diffRequest.type === ProjectReleaseType.PROJECT
+              : props.diffRequest.type === ProjectReleaseType.PROJECT
               ? t('Create Project Release')
               : `${t('Create Rollback to')} ${name()}`}
           </DialogTitle>
         </DialogHeader>
 
         <CreateReleaseDialogContent
-          key={`${loading}`}
-          loading={loading}
-          diffRequest={diffRequest}
-          plan={plan}
+          key={`${props.loading}`}
+          loading={props.loading}
+          diffRequest={props.diffRequest}
+          plan={props.plan}
           name={name}
           setName={setName}
           description={description}
           setDescription={setDescription}
-          setOpen={setOpen}
-          refetch={refetch}
+          setOpen={props.setOpen}
+          refetch={props.refetch}
         />
       </DialogContent>
     </Dialog>

@@ -1,4 +1,4 @@
-import { JSX } from 'solid-js';
+import { JSX, splitProps, type Ref } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -14,47 +14,42 @@ export type ChatContainerContentProps = {
 
 export type ChatContainerScrollAnchorProps = {
   className?: string;
-  ref?: RefObject<HTMLDivElement>;
+  ref?: Ref<HTMLDivElement>;
 } & JSX.HTMLAttributes<HTMLDivElement>;
 
-function ChatContainerRoot({
-  children,
-  className,
-  ...props
-}: ChatContainerRootProps) {
+function ChatContainerRoot(_props: ChatContainerRootProps) {
+  const [local, props] = splitProps(_props, ['children', 'className']);
   return (
     <div
-      class={cn('flex overflow-y-auto [overflow-anchor:none]', className)}
+      class={cn('flex overflow-y-auto [overflow-anchor:none]', local.className)}
       role="log"
       {...props}
     >
-      {children}
+      {local.children}
     </div>
   );
 }
 
-function ChatContainerContent({
-  children,
-  className,
-  ...props
-}: ChatContainerContentProps) {
+function ChatContainerContent(_props: ChatContainerContentProps) {
+  const [local, props] = splitProps(_props, ['children', 'className']);
   return (
     <div
-      class={cn('flex w-full flex-col *:[overflow-anchor:none]', className)}
+      class={cn(
+        'flex w-full flex-col *:[overflow-anchor:none]',
+        local.className,
+      )}
       {...props}
     >
-      {children}
+      {local.children}
     </div>
   );
 }
 
-function ChatContainerScrollAnchor({
-  className,
-  ...props
-}: ChatContainerScrollAnchorProps) {
+function ChatContainerScrollAnchor(_props: ChatContainerScrollAnchorProps) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
-      className={cn('h-px w-full shrink-0 scroll-mt-4', className)}
+      class={cn('h-px w-full shrink-0 scroll-mt-4', local.className)}
       style={{ 'overflow-anchor': 'auto' }}
       aria-hidden="true"
       {...props}

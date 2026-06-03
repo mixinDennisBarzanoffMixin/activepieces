@@ -1,18 +1,15 @@
-import { createWithStore } from 'solid-zustand';
-import { createContext, useContext } from 'solid-js';
+import { JSX, createContext, useContext } from 'solid-js';
 
 import { ChatStore, ChatStoreState, createChatStore } from './chat-store';
 
 const ChatStoreContext = createContext<ChatStore | null>(null);
 
-export function ChatStoreProvider({ children }: { children: any }) {
-  const storeRef = null;
-  if (!storeRef.current) {
-    storeRef.current = createChatStore();
-  }
+const store = createChatStore();
+
+export function ChatStoreProvider(props: { children: JSX.Element }) {
   return (
-    <ChatStoreContext.Provider value={storeRef.current}>
-      {children}
+    <ChatStoreContext.Provider value={store}>
+      {props.children}
     </ChatStoreContext.Provider>
   );
 }
@@ -25,7 +22,7 @@ export function useChatStoreContext<T>(
     throw new Error(
       'useChatStoreContext must be used within ChatStoreProvider',
     );
-  return createWithStore(store)(selector);
+  return store(selector);
 }
 
 export function useChatStoreApi(): ChatStore {

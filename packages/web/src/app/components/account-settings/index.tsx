@@ -30,13 +30,10 @@ export interface AccountSettingsDialogProps {
   onClose: () => void;
 }
 
-export function AccountSettingsDialog({
-  open,
-  onClose,
-}: AccountSettingsDialogProps) {
+export function AccountSettingsDialog(props: AccountSettingsDialogProps) {
   const { data: user } = userHooks.useCurrentUser();
   const queryClient = useQueryClient();
-  let fileInputRef = undefined;
+  let fileInputRef: HTMLInputElement | undefined;
 
   const uploadMutation = userMutations.useUploadProfilePicture({
     onSuccess: () => {
@@ -48,8 +45,10 @@ export function AccountSettingsDialog({
     },
   });
 
-  const handleFileChange = (event: any) => {
-    const file = event.target.files?.[0];
+  const handleFileChange = (
+    event: Event & { currentTarget: HTMLInputElement },
+  ) => {
+    const file = event.currentTarget.files?.item(0);
     if (file) {
       if (file.size > AP_MAXIMUM_PROFILE_PICTURE_SIZE) {
         toast.error(t('File size exceeds 5MB limit'));
@@ -63,7 +62,7 @@ export function AccountSettingsDialog({
       }
       uploadMutation.mutate(file);
     }
-    event.target.value = '';
+    event.currentTarget.value = '';
   };
 
   const handleAvatarClick = () => {
@@ -71,7 +70,7 @@ export function AccountSettingsDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={props.open} onOpenChange={props.onClose}>
       <DialogContent class="max-w-2xl w-full max-h-[90vh] pb-4 flex flex-col px-5">
         <DialogHeader>
           <DialogTitle class="font-semibold">
@@ -80,10 +79,10 @@ export function AccountSettingsDialog({
         </DialogHeader>
 
         <ScrollArea class="flex-1" viewPortClassName="px-1">
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
+          <div class="space-y-6">
+            <div class="flex items-center gap-4">
               <div
-                className="relative group cursor-pointer"
+                class="relative group cursor-pointer"
                 onClick={handleAvatarClick}
               >
                 <UserAvatar
@@ -93,23 +92,23 @@ export function AccountSettingsDialog({
                   disableTooltip
                   imageUrl={user?.imageUrl}
                 />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                <div class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                   <Camera class="h-5 w-5 text-white" />
                 </div>
                 <input
                   ref={(el) => (fileInputRef = el)}
                   type="file"
                   accept="image/jpeg,image/png,image/gif,image/webp"
-                  className="hidden"
+                  class="hidden"
                   onChange={handleFileChange}
                   disabled={uploadMutation.isPending}
                 />
               </div>
-              <div className="flex-1">
-                <div className="text-sm font-semibold">
+              <div class="flex-1">
+                <div class="text-sm font-semibold">
                   {user?.firstName} {user?.lastName}
                 </div>
-                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                <div class="text-xs text-muted-foreground flex items-center gap-1">
                   <Mail class="w-3.5 h-3.5" />
                   {user?.email}
                 </div>
@@ -120,7 +119,7 @@ export function AccountSettingsDialog({
 
             <Separator />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <ThemeToggle />
               <LanguageToggle />
             </div>

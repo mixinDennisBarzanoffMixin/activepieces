@@ -5,7 +5,7 @@ export type DataSelectorTreeChunkNodeData = {
 
 export type DataSelectorTreeNodeData = {
   type: 'value';
-  value: string | unknown;
+  value: unknown;
   displayName: string;
   propertyPath: string;
   insertable: boolean;

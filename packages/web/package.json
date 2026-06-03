@@ -105,7 +105,7 @@
     "serve": "vite",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
-    "lint": "eslint 'src/**/*.{ts,tsx}'",
+    "lint": "eslint --rulesdir eslint-rules 'src/**/*.{ts,tsx}'",
     "typecheck": "tsc --noEmit -p tsconfig.app.json"
   }
 }

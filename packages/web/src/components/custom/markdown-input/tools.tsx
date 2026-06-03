@@ -1,3 +1,4 @@
+import type { Editor } from '@tiptap/core';
 import { t } from 'i18next';
 import {
   ImageIcon,
@@ -7,7 +8,7 @@ import {
   BoldIcon,
   ArrowDown,
 } from 'lucide-solid';
-import { createEffect, createSignal } from 'solid-js';
+import { createEffect, createSignal, type JSX } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,76 +22,83 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { Editor } from '@tiptap/core';
 
-export const MarkdownTools = ({ editor }: { editor: Editor }) => {
-  const isStrikeActive = editor.isActive('strike');
-  const isBoldActive = editor.isActive('bold');
-  const isItalicActive = editor.isActive('italic');
-  const isUnderlineActive = editor.isActive('underline');
-  //because tiptap doesn't instantly set the active state, we need to use a state to track it
+export const MarkdownTools = (props: { editor: Editor }) => {
+  // Tiptap updates active marks after commands finish, so mirror them for button state.
   const [activeState, setActiveState] = createSignal({
-    isStrikeActive,
-    isBoldActive,
-    isItalicActive,
-    isUnderlineActive,
+    isStrikeActive: props.editor.isActive('strike'),
+    isBoldActive: props.editor.isActive('bold'),
+    isItalicActive: props.editor.isActive('italic'),
+    isUnderlineActive: props.editor.isActive('underline'),
   });
   const handleStrike = () => {
-    editor.setEditable(true);
-    editor.chain().focus().toggleStrike().run();
-    editor.commands.focus();
+    if (!hasEditorCommands(props.editor.commands)) {
+      return;
+    }
+    props.editor.setEditable(true);
+    props.editor.commands.focus();
+    props.editor.commands.toggleStrike();
     setActiveState({
       ...activeState(),
-      isStrikeActive: !isStrikeActive,
+      isStrikeActive: !activeState().isStrikeActive,
     });
   };
   const handleBold = () => {
-    editor.setEditable(true);
-    editor.chain().focus().toggleBold().run();
-    editor.commands.focus();
+    if (!hasEditorCommands(props.editor.commands)) {
+      return;
+    }
+    props.editor.setEditable(true);
+    props.editor.commands.focus();
+    props.editor.commands.toggleBold();
     setActiveState({
       ...activeState(),
-      isBoldActive: !isBoldActive,
+      isBoldActive: !activeState().isBoldActive,
     });
   };
   const handleItalic = () => {
-    editor.setEditable(true);
-    editor.chain().focus().toggleItalic().run();
-    editor.commands.focus();
+    if (!hasEditorCommands(props.editor.commands)) {
+      return;
+    }
+    props.editor.setEditable(true);
+    props.editor.commands.focus();
+    props.editor.commands.toggleItalic();
     setActiveState({
       ...activeState(),
-      isItalicActive: !isItalicActive,
+      isItalicActive: !activeState().isItalicActive,
     });
   };
   const handleUnderline = () => {
-    editor.setEditable(true);
-    editor.chain().focus().toggleUnderline().run();
-    editor.commands.focus();
+    if (!hasEditorCommands(props.editor.commands)) {
+      return;
+    }
+    props.editor.setEditable(true);
+    props.editor.commands.focus();
+    props.editor.commands.toggleUnderline();
     setActiveState({
       ...activeState(),
-      isUnderlineActive: !isUnderlineActive,
+      isUnderlineActive: !activeState().isUnderlineActive,
     });
   };
   createEffect(() => {
     setActiveState({
-      isStrikeActive,
-      isBoldActive,
-      isItalicActive,
-      isUnderlineActive,
+      isStrikeActive: props.editor.isActive('strike'),
+      isBoldActive: props.editor.isActive('bold'),
+      isItalicActive: props.editor.isActive('italic'),
+      isUnderlineActive: props.editor.isActive('underline'),
     });
   });
   let containerRef: HTMLDivElement | undefined;
   return (
     <div
       ref={(el) => (containerRef = el)}
-      className="flex items-center gap-0.5 text-foreground"
+      class="flex items-center gap-0.5 text-foreground"
     >
-      <ImageTool editor={editor} containerRef={containerRef} />
+      <ImageTool editor={props.editor} containerRef={containerRef} />
       <ToolWrapper tooltip={t('Strike')}>
         <Button
           onClick={handleStrike}
           size={'icon'}
-          variant={isStrikeActive ? 'default' : 'ghost'}
+          variant={activeState().isStrikeActive ? 'default' : 'ghost'}
         >
           <Strikethrough class="size-4" />
         </Button>
@@ -99,7 +107,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
         <Button
           onClick={handleBold}
           size={'icon'}
-          variant={isBoldActive ? 'default' : 'ghost'}
+          variant={activeState().isBoldActive ? 'default' : 'ghost'}
         >
           <BoldIcon class="size-4" />
         </Button>
@@ -108,7 +116,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
         <Button
           onClick={handleItalic}
           size={'icon'}
-          variant={isItalicActive ? 'default' : 'ghost'}
+          variant={activeState().isItalicActive ? 'default' : 'ghost'}
         >
           <ItalicIcon class="size-4" />
         </Button>
@@ -117,7 +125,7 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
         <Button
           onClick={handleUnderline}
           size={'icon'}
-          variant={isUnderlineActive ? 'default' : 'ghost'}
+          variant={activeState().isUnderlineActive ? 'default' : 'ghost'}
         >
           <UnderlineIcon class="size-4" />
         </Button>
@@ -126,22 +134,21 @@ export const MarkdownTools = ({ editor }: { editor: Editor }) => {
   );
 };
 
-const ImageTool = ({
-  editor,
-  containerRef,
-}: {
+const ImageTool = (props: {
   editor: Editor;
   containerRef: HTMLDivElement | undefined;
 }) => {
   const [open, setOpen] = createSignal(false);
   const [imageUrl, setImageUrl] = createSignal('');
   const handleAddImage = () => {
-    editor
-      .chain()
-      .focus()
-      .setImage({ src: imageUrl(), alt: 'note-img-' + Date.now() })
-      .run();
-    editor.commands.focus();
+    if (!hasEditorCommands(props.editor.commands)) {
+      return;
+    }
+    props.editor.commands.focus();
+    props.editor.commands.setImage({
+      src: imageUrl(),
+      alt: 'note-img-' + Date.now(),
+    });
     setImageUrl('');
     setOpen(false);
   };
@@ -157,9 +164,9 @@ const ImageTool = ({
       <PopoverContent
         side="top"
         class="p-1 px-1.5 mb-1"
-        container={containerRef}
+        container={props.containerRef}
       >
-        <div className="flex items-center gap-2 min-w-[200px]">
+        <div class="flex items-center gap-2 min-w-[200px]">
           <Input
             class="h-8"
             onPointerDown={(ev) => ev.stopPropagation()}
@@ -167,7 +174,7 @@ const ImageTool = ({
             type="text"
             placeholder="Enter image URL"
             value={imageUrl()}
-            onChange={(e) => setImageUrl(e.target.value)}
+            onChange={(e) => setImageUrl(e.currentTarget.value)}
           />
           <Button
             size={'icon'}
@@ -183,17 +190,34 @@ const ImageTool = ({
   );
 };
 
-export const ToolWrapper = ({
-  children,
-  tooltip,
-}: {
-  children: any;
+export const ToolWrapper = (props: {
+  children: JSX.Element;
   tooltip: string;
 }) => {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
+      <TooltipTrigger asChild>{props.children}</TooltipTrigger>
+      <TooltipContent>{props.tooltip}</TooltipContent>
     </Tooltip>
   );
+};
+
+function hasEditorCommands(
+  commands: Editor['commands'],
+): commands is EditorCommands {
+  return (
+    'setImage' in commands &&
+    'toggleBold' in commands &&
+    'toggleItalic' in commands &&
+    'toggleStrike' in commands &&
+    'toggleUnderline' in commands
+  );
+}
+
+type EditorCommands = Editor['commands'] & {
+  setImage: (attrs: { alt: string; src: string }) => boolean;
+  toggleBold: () => boolean;
+  toggleItalic: () => boolean;
+  toggleStrike: () => boolean;
+  toggleUnderline: () => boolean;
 };

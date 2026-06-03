@@ -1,4 +1,5 @@
 import { ApFlagId } from '@activepieces/shared';
+import type { JSX } from 'solid-js';
 
 import { flagsHooks } from '@/hooks/flags-hooks';
 
@@ -6,11 +7,11 @@ type FlagGuardProps = {
   children: JSX.Element;
   flag: ApFlagId;
 };
-const FlagGuard = ({ children, flag }: FlagGuardProps) => {
-  const { data: flagValue } = flagsHooks.useFlag<boolean>(flag);
+const FlagGuard = (props: FlagGuardProps) => {
+  const { data: flagValue } = flagsHooks.useFlag<boolean>(props.flag);
   if (!flagValue) {
     return null;
   }
-  return children;
+  return props.children;
 };
 export { FlagGuard };

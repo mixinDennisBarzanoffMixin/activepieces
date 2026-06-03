@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -61,7 +61,7 @@ function LogInIcon(props: LogInIconProps & { ref?: LogInIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -86,6 +86,5 @@ function LogInIcon(props: LogInIconProps & { ref?: LogInIconHandle }) {
     </div>
   );
 }
-LogInIcon.displayName = 'LogInIcon';
 
 export { LogInIcon };

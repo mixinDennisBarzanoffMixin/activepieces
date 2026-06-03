@@ -37,12 +37,7 @@ const CreateFolderFormSchema = z.object({
 
 type CreateFolderFormSchema = z.infer<typeof CreateFolderFormSchema>;
 
-export const CreateFolderDialog = ({
-  updateSearchParams,
-  refetchFolders,
-  open,
-  onOpenChange,
-}: CreateFolderDialogProps) => {
+export const CreateFolderDialog = (props: CreateFolderDialogProps) => {
   const [error, setError] = createSignal('');
   const [form, { Form, Field }] = createForm<CreateFolderFormSchema>({
     initialValues: {
@@ -64,9 +59,9 @@ export const CreateFolderDialog = ({
     },
     onSuccess: (folder) => {
       reset(form);
-      onOpenChange(false);
-      updateSearchParams(folder.id);
-      refetchFolders();
+      props.onOpenChange(false);
+      props.updateSearchParams(folder.id);
+      props.refetchFolders();
       toast.success(t('Added folder successfully'));
     },
     onError: (error) => {
@@ -91,7 +86,7 @@ export const CreateFolderDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('New Folder')}</DialogTitle>
@@ -124,7 +119,7 @@ export const CreateFolderDialog = ({
           <DialogFooter>
             <Button
               variant={'outline'}
-              onClick={() => onOpenChange(false)}
+              onClick={() => props.onOpenChange(false)}
               type="button"
             >
               {t('Cancel')}

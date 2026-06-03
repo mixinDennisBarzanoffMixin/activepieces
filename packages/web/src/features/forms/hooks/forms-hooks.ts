@@ -9,13 +9,13 @@ export const formsKeys = {
 
 export const formsQueries = {
   useForm: (flowId: string, useDraft: boolean, enabled: boolean) =>
-    createQuery<FormResponse | null, Error>({
+    createQuery<FormResponse | null, Error>(() => ({
       queryKey: formsKeys.form(flowId),
       queryFn: () => humanInputApi.getForm(flowId, useDraft),
       enabled,
       retry: false,
       staleTime: Infinity,
-    }),
+    })),
 };
 
 export const formsMutations = {
@@ -26,15 +26,19 @@ export const formsMutations = {
     onSuccess: (result: HumanInputFormResult | null) => void;
     onError: (error: Error) => void;
   }) => {
-    return createMutation<
-      HumanInputFormResult | null,
-      Error,
-      { form: FormResponse; useDraft: boolean; data: Record<string, unknown> }
-    >({
-      mutationFn: ({ form, useDraft, data }) =>
+    return createMutation(() => ({
+      mutationFn: ({
+        form,
+        useDraft,
+        data,
+      }: {
+        form: FormResponse;
+        useDraft: boolean;
+        data: Record<string, unknown>;
+      }): Promise<HumanInputFormResult | null> =>
         humanInputApi.submitForm(form, useDraft, data),
       onSuccess,
       onError,
-    });
+    }));
   },
 };

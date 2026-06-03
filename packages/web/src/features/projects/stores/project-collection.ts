@@ -8,10 +8,13 @@ import {
   SeekPage,
 } from '@activepieces/shared';
 import { useLocation } from '@solidjs/router';
-import { createMutation, createQuery } from '@tanstack/solid-query';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/solid-query';
 import { createEffect } from 'solid-js';
 
-import { queryClient } from '@/app/query-client';
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { api } from '@/lib/api';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -21,13 +24,16 @@ export const projectCollectionUtils = {
     onSuccess: (project: ProjectWithLimits) => void,
     onError: (error: Error) => void,
   ) => {
+    const queryClient = useQueryClient();
     return createMutation(
       () => ({
         mutationFn: (request: CreatePlatformProjectRequest) =>
           api.post<ProjectWithLimits>('/v1/projects', request),
         onSuccess: (data) => {
-          queryClient.invalidateQueries({ queryKey: ['projects'] });
-          queryClient.invalidateQueries({ queryKey: ['platform-projects'] });
+          void queryClient.invalidateQueries({ queryKey: ['projects'] });
+          void queryClient.invalidateQueries({
+            queryKey: ['platform-projects'],
+          });
           onSuccess(data);
         },
         onError: (error) => {
@@ -41,6 +47,7 @@ export const projectCollectionUtils = {
     onSuccess: () => void,
     onError: (error: Error) => void,
   ) => {
+    const queryClient = useQueryClient();
     return createMutation(
       () => ({
         mutationFn: ({
@@ -51,9 +58,13 @@ export const projectCollectionUtils = {
           request: UpdateProjectPlatformRequest;
         }) => api.post<ProjectWithLimits>(`/v1/projects/${projectId}`, request),
         onSuccess: (data) => {
-          queryClient.invalidateQueries({ queryKey: ['project', data.id] });
-          queryClient.invalidateQueries({ queryKey: ['projects'] });
-          queryClient.invalidateQueries({ queryKey: ['platform-projects'] });
+          void queryClient.invalidateQueries({
+            queryKey: ['project', data.id],
+          });
+          void queryClient.invalidateQueries({ queryKey: ['projects'] });
+          void queryClient.invalidateQueries({
+            queryKey: ['platform-projects'],
+          });
           onSuccess();
         },
         onError,
@@ -62,6 +73,7 @@ export const projectCollectionUtils = {
     );
   },
   update: (projectId: string, request: UpdateProjectPlatformRequest) => {
+    const queryClient = useQueryClient();
     queryClient.setQueriesData<ProjectWithLimits[]>(
       { queryKey: ['projects'] },
       (projects) =>
@@ -76,9 +88,10 @@ export const projectCollectionUtils = {
           project.id === projectId ? { ...project, ...request } : project,
         ),
     );
-    queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+    void queryClient.invalidateQueries({ queryKey: ['project', projectId] });
   },
   delete: (projectIds: string[]) => {
+    const queryClient = useQueryClient();
     queryClient.setQueriesData<ProjectWithLimits[]>(
       { queryKey: ['projects'] },
       (projects) =>
@@ -102,110 +115,98 @@ export const projectCollectionUtils = {
   },
   useCurrentProject: () => {
     const projectId = authenticationSession.getProjectId();
-    const query = createQuery(
-      () => ({
-        queryKey: ['project', projectId],
-        queryFn: async () => {
-          const response = await api.get<SeekPage<ProjectWithLimits>>(
-            '/v1/projects',
-            { cursor: undefined, limit: 30000 },
-          );
-          return response.data.find((project) => project.id === projectId);
-        },
-        enabled: !isNil(projectId),
-        staleTime: 60_000,
-      }),
-      () => queryClient,
-    );
+    const query = createQuery(() => ({
+      queryKey: ['project', projectId],
+      queryFn: async () => {
+        const response = await api.get<SeekPage<ProjectWithLimits>>(
+          '/v1/projects',
+          { cursor: undefined, limit: 30000 },
+        );
+        return response.data.find((project) => project.id === projectId);
+      },
+      enabled: !isNil(projectId),
+      staleTime: 60_000,
+    }));
     return {
-      project: query.data!,
+      project: query.data,
     };
   },
   useAll: () => {
     const currentUserId = authenticationSession.getCurrentUserId();
-    return createQuery(
-      () => ({
-        queryKey: ['projects', currentUserId],
-        queryFn: async () => {
-          const response = await api.get<SeekPage<ProjectWithLimits>>(
-            '/v1/projects',
-            { cursor: undefined, limit: 30000 },
+    return createQuery(() => ({
+      queryKey: ['projects', currentUserId],
+      queryFn: async () => {
+        const response = await api.get<SeekPage<ProjectWithLimits>>(
+          '/v1/projects',
+          { cursor: undefined, limit: 30000 },
+        );
+        return response.data
+          .filter(
+            (project) =>
+              project.type === ProjectType.TEAM ||
+              (project.type === ProjectType.PERSONAL &&
+                project.ownerId === currentUserId),
+          )
+          .sort((a, b) =>
+            a.type === b.type
+              ? String(a.created).localeCompare(String(b.created))
+              : a.type.localeCompare(b.type),
           );
-          return response.data
-            .filter(
-              (project) =>
-                project.type === ProjectType.TEAM ||
-                (project.type === ProjectType.PERSONAL &&
-                  project.ownerId === currentUserId),
-            )
-            .sort((a, b) =>
-              a.type === b.type
-                ? String(a.created).localeCompare(String(b.created))
-                : a.type.localeCompare(b.type),
-            );
-        },
-        enabled: !isNil(currentUserId),
-        initialData: [] as ProjectWithLimits[],
-        staleTime: 60_000,
-      }),
-      () => queryClient,
-    );
+      },
+      enabled: !isNil(currentUserId),
+      initialData: [] as ProjectWithLimits[],
+      staleTime: 60_000,
+    }));
   },
   useAllPlatformProjects: (filters?: {
     displayName?: string;
     type?: ProjectType[];
   }) => {
-    return createQuery(
-      () => ({
-        queryKey: [
-          'platform-projects',
-          filters?.displayName,
-          filters?.type?.join(','),
-        ],
-        queryFn: async () => {
-          const response = await api.get<SeekPage<ProjectWithLimits>>(
-            '/v1/projects',
-            { cursor: undefined, limit: 30000 },
+    return createQuery(() => ({
+      queryKey: [
+        'platform-projects',
+        filters?.displayName,
+        filters?.type?.join(','),
+      ],
+      queryFn: async () => {
+        const response = await api.get<SeekPage<ProjectWithLimits>>(
+          '/v1/projects',
+          { cursor: undefined, limit: 30000 },
+        );
+        return response.data
+          .filter(
+            (project) =>
+              !filters?.displayName ||
+              project.displayName
+                .toLowerCase()
+                .includes(filters.displayName.toLowerCase()),
+          )
+          .filter(
+            (project) =>
+              !filters?.type?.length || filters.type.includes(project.type),
+          )
+          .sort((a, b) =>
+            a.type === b.type
+              ? String(a.created).localeCompare(String(b.created))
+              : a.type.localeCompare(b.type),
           );
-          return response.data
-            .filter(
-              (project) =>
-                !filters?.displayName ||
-                project.displayName
-                  .toLowerCase()
-                  .includes(filters.displayName.toLowerCase()),
-            )
-            .filter(
-              (project) =>
-                !filters?.type?.length || filters.type.includes(project.type),
-            )
-            .sort((a, b) =>
-              a.type === b.type
-                ? String(a.created).localeCompare(String(b.created))
-                : a.type.localeCompare(b.type),
-            );
-        },
-        staleTime: 60_000,
-      }),
-      () => queryClient,
-    );
+      },
+      staleTime: 60_000,
+    }));
   },
   useHasAccessToProject: (projectId: string) => {
-    const query = createQuery(
-      () => ({
-        queryKey: ['project-access', projectId],
-        queryFn: async () => {
-          const response = await api.get<SeekPage<ProjectWithLimits>>(
-            '/v1/projects',
-            { cursor: undefined, limit: 30000 },
-          );
-          return response.data.find((project) => project.id === projectId);
-        },
-        enabled: !isNil(projectId),
-        staleTime: 60_000,
-      }),
-      () => queryClient,
-    );
+    const query = createQuery(() => ({
+      queryKey: ['project-access', projectId],
+      queryFn: async () => {
+        const response = await api.get<SeekPage<ProjectWithLimits>>(
+          '/v1/projects',
+          { cursor: undefined, limit: 30000 },
+        );
+        return response.data.find((project) => project.id === projectId);
+      },
+      enabled: !isNil(projectId),
+      staleTime: 60_000,
+    }));
     return !isNil(query.data);
   },
 };
@@ -219,15 +220,12 @@ export const getProjectName = (
 };
 export const projectHooks = {
   useProjectsForPlatforms: () => {
-    return createQuery<ProjectWithLimitsWithPlatform[], Error>(
-      () => ({
-        queryKey: ['projects-for-platforms'],
-        queryFn: async () => {
-          return api.get<ProjectWithLimitsWithPlatform[]>('/v1/platforms');
-        },
-      }),
-      () => queryClient,
-    );
+    return createQuery<ProjectWithLimitsWithPlatform[], Error>(() => ({
+      queryKey: ['projects-for-platforms'],
+      queryFn: async () => {
+        return api.get<ProjectWithLimitsWithPlatform[]>('/v1/platforms');
+      },
+    }));
   },
   useReloadPageIfProjectIdChanged: (projectId: string) => {
     const { embedState } = useEmbedding();
@@ -252,6 +250,6 @@ export const projectHooks = {
           handleVisibilityChange,
         );
       };
-    }, [projectId, embedState.isEmbedded, location.pathname]);
+    });
   },
 };

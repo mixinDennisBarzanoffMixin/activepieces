@@ -1,5 +1,5 @@
 import { FieldType } from '@activepieces/shared';
-import { createContext, useContext } from 'solid-js';
+import { JSX, createContext, useContext } from 'solid-js';
 
 import { useTableState } from './ap-table-state-provider';
 
@@ -28,22 +28,13 @@ const CellContext = createContext<CellContextType>({
   disabled: false,
 });
 
-type CellProviderProps = CellContextType & {
-  children: any;
-  containerRef: any;
+type CellProviderProps = Omit<CellContextType, 'value'> & {
+  children: JSX.Element;
+  containerRef: HTMLDivElement | undefined;
+  value: () => string;
 };
 
-export const CellProvider = ({
-  rowIdx,
-  columnIdx,
-  fieldType,
-  value,
-  children,
-  containerRef,
-  isEditing,
-  setIsEditing,
-  disabled,
-}: CellProviderProps) => {
+export const CellProvider = (props: CellProviderProps) => {
   const [updateRecord, fields, records] = useTableState((state) => [
     state.updateRecord,
     state.fields,
@@ -53,12 +44,12 @@ export const CellProvider = ({
     // need to refocus container so keyboard navigation between cells works
     // if it was done immediately, the cell would be blurred and call handleRowChange
     requestAnimationFrame(() => {
-      containerRef.current?.focus();
+      props.containerRef?.focus();
     });
   };
 
   const handleCellChange = (newCellValue: string) => {
-    const record = records[rowIdx];
+    const record = records[props.rowIdx];
     const newRecrodValues = fields.map((_, fIndex) => {
       // values order isn't guaranteed to be the same as fields order
       const fieldValue = record.values.find(
@@ -69,32 +60,44 @@ export const CellProvider = ({
         value: fieldValue ?? '',
       };
     });
-    newRecrodValues[columnIdx].value = newCellValue;
-    updateRecord(rowIdx, {
+    newRecrodValues[props.columnIdx].value = newCellValue;
+    updateRecord(props.rowIdx, {
       values: newRecrodValues,
     });
-    setIsEditing(false);
+    props.setIsEditing(false);
     focustContainer();
   };
   return (
     <CellContext.Provider
       value={{
-        rowIdx,
-        columnIdx,
-        fieldType,
-        value,
-        isEditing,
+        get rowIdx() {
+          return props.rowIdx;
+        },
+        get columnIdx() {
+          return props.columnIdx;
+        },
+        get fieldType() {
+          return props.fieldType;
+        },
+        get value() {
+          return props.value();
+        },
+        get isEditing() {
+          return props.isEditing;
+        },
         setIsEditing: (value) => {
-          setIsEditing(value);
+          props.setIsEditing(value);
           if (!value) {
             focustContainer();
           }
         },
         handleCellChange,
-        disabled,
+        get disabled() {
+          return props.disabled;
+        },
       }}
     >
-      {children}
+      {props.children}
     </CellContext.Provider>
   );
 };

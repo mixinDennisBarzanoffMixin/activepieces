@@ -1,6 +1,7 @@
 import { Tag } from '@activepieces/shared';
 import { t } from 'i18next';
 import { createSignal } from 'solid-js';
+import type { JSX } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,40 +23,35 @@ type CreateTagDialogProps = {
   setIsOpen: (open: boolean) => void;
 };
 
-export function CreateTagDialog({
-  onTagCreated,
-  children,
-  isOpen,
-  setIsOpen,
-}: CreateTagDialogProps) {
+export function CreateTagDialog(props: CreateTagDialogProps) {
   const [tagName, setTagName] = createSignal('');
 
   const { mutate, isPending } = piecesTagMutations.useCreateTag({
-    onTagCreated,
-    setIsOpen,
+    onTagCreated: props.onTagCreated,
+    setIsOpen: props.setIsOpen,
   });
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();
-    if (tagName.trim()) {
-      mutate(tagName.trim());
+    if (tagName().trim()) {
+      mutate(tagName().trim());
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => setIsOpen(open)}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+    <Dialog open={props.isOpen} onOpenChange={(open) => props.setIsOpen(open)}>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Tag</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="flex flex-col gap-4">
+          <div class="flex flex-col gap-4">
             <Label for="tagName">{t('Tag')}</Label>
             <Input
               id="tagName"
               value={tagName}
-              onChange={(e) => setTagName(e.target.value)}
+              onChange={(e) => setTagName(e.currentTarget.value)}
               class="col-span-3"
             />
           </div>

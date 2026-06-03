@@ -10,7 +10,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Calendar, SquareFunction, File } from 'lucide-solid';
-import { Show, ErrorBoundary } from 'solid-js';
+import { Show, ErrorBoundary, mergeProps, JSX } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { BuilderField, useFormContext } from '@/app/builder/builder-form';
@@ -30,119 +30,142 @@ import { cn } from '@/lib/utils';
 import { ArrayPiecePropertyInInlineItemMode } from './array-property-in-inline-item-mode';
 import { TextInputWithMentions } from './text-input-with-mentions';
 
-function AutoFormFieldWrapper({
-  placeBeforeLabelText = false,
-  hideLabel,
-  children,
-  allowDynamicValues,
-  propertyName,
-  inputName,
-  property,
-  disabled,
-  field,
-  dynamicInputModeToggled,
-  //we have to pass this prop, because props inside custom auth can be secret text, which means their labels will become (Connection)
-  isForConnectionSelect = false,
-}: AutoFormFieldWrapperProps) {
-  const isArrayProperty =
-    !isPieceAuthProperty(property) && property.type === PropertyType.ARRAY;
-  const isAuthProperty = isForConnectionSelect || Array.isArray(property);
+function AutoFormFieldWrapper(_props: AutoFormFieldWrapperProps) {
+  const props = mergeProps(
+    { placeBeforeLabelText: false, isForConnectionSelect: false },
+    _props,
+  );
+  const isArrayProperty = () =>
+    !isPieceAuthProperty(props.property) &&
+    props.property.type === PropertyType.ARRAY;
+  const isAuthProperty = () =>
+    props.isForConnectionSelect || Array.isArray(props.property);
+  const label = () => {
+    if (isAuthProperty() || Array.isArray(props.property)) {
+      return t('Connection');
+    }
+    return props.property.displayName;
+  };
+  const isRequired = () => {
+    if (isAuthProperty() || Array.isArray(props.property)) {
+      return true;
+    }
+    return props.property.required;
+  };
+  const description = () =>
+    !props.isForConnectionSelect &&
+    !Array.isArray(props.property) &&
+    props.property.description
+      ? props.property.description
+      : undefined;
+  const arrayProperties = () => {
+    if (
+      !isPieceAuthProperty(props.property) &&
+      props.property.type === PropertyType.ARRAY
+    ) {
+      return props.property.properties;
+    }
+    return undefined;
+  };
+  const propertyForTooltip = () => {
+    if (isAuthProperty() || Array.isArray(props.property)) {
+      return undefined;
+    }
+    return props.property;
+  };
   return (
     <AutoFormFielWrapperErrorBoundary
-      field={field}
-      property={property ?? null}
-      dynamicInputModeToggled={dynamicInputModeToggled}
+      field={props.field}
+      property={props.property ?? null}
+      dynamicInputModeToggled={props.dynamicInputModeToggled}
     >
       <FormItem class="flex flex-col">
-        <Show when={(!hideLabel || placeBeforeLabelText)()}>
+        <Show when={!props.hideLabel || props.placeBeforeLabelText}>
           <FormLabel class="flex items-center gap-1 h-7.5 max-h-7.5">
-            <Show when={placeBeforeLabelText && !dynamicInputModeToggled()}>
-              {children}
+            <Show
+              when={
+                props.placeBeforeLabelText && !props.dynamicInputModeToggled
+              }
+            >
+              {props.children}
             </Show>
-            <div className="pt-1">
+            <div class="pt-1">
               <span>
-                <Show when={isAuthProperty()} fallback={property.displayName}>
+                <Show when={isAuthProperty()} fallback={label()}>
                   {t('Connection')}
                 </Show>
               </span>{' '}
-              <Show when={(isAuthProperty || property.required)()}>
+              <Show when={isRequired()}>
                 <RequiredFieldAsterisk />
               </Show>
             </div>
-            <Show when={property && !isAuthProperty()}>
-              <PropertyTypeTooltip property={property} />
+            <Show when={propertyForTooltip()}>
+              {(property) => <PropertyTypeTooltip property={property()} />}
             </Show>
 
-            <span className="grow"></span>
-            <Show when={allowDynamicValues()}>
+            <span class="grow" />
+            <Show when={props.allowDynamicValues}>
               <DynamicValueToggle
-                propertyName={propertyName}
-                inputName={inputName}
-                property={property}
-                disabled={disabled}
-                isToggled={dynamicInputModeToggled ?? false}
+                propertyName={props.propertyName}
+                inputName={props.inputName}
+                property={props.property}
+                disabled={props.disabled}
+                isToggled={props.dynamicInputModeToggled ?? false}
               />
             </Show>
           </FormLabel>
         </Show>
-        <Show when={dynamicInputModeToggled && !isArrayProperty()}>
+        <Show when={props.dynamicInputModeToggled && !isArrayProperty()}>
           <TextInputWithMentions
-            disabled={disabled}
-            onChange={field.onChange}
-            initialValue={field.value ?? null}
+            disabled={props.disabled}
+            onChange={props.field.onChange}
+            initialValue={props.field.value ?? null}
           />
         </Show>
 
-        <Show when={isArrayProperty && dynamicInputModeToggled()}>
+        <Show when={isArrayProperty() && props.dynamicInputModeToggled}>
           <ArrayPiecePropertyInInlineItemMode
-            disabled={disabled}
-            arrayProperties={property.properties}
-            inputName={inputName}
-            onChange={field.onChange}
-            value={field.value ?? null}
+            disabled={props.disabled}
+            arrayProperties={arrayProperties()}
+            inputName={props.inputName}
+            onChange={props.field.onChange}
+            value={props.field.value ?? null}
           />
         </Show>
 
-        <Show when={!placeBeforeLabelText && !dynamicInputModeToggled()}>
-          <div>{children}</div>
-        </Show>
         <Show
-          when={
-            !isForConnectionSelect &&
-            !Array.isArray(property) &&
-            property.description()
-          }
+          when={!props.placeBeforeLabelText && !props.dynamicInputModeToggled}
         >
-          <ReadMoreDescription text={property.description} />
+          <div>{props.children}</div>
+        </Show>
+        <Show when={description()}>
+          {(text) => <ReadMoreDescription text={text()} />}
         </Show>
       </FormItem>
     </AutoFormFielWrapperErrorBoundary>
   );
 }
 
-function AutoFormFielWrapperErrorBoundary({
-  children,
-  field,
-  property,
-  dynamicInputModeToggled,
-}: AutoFormFielWrapperErrorBoundaryProps) {
+function AutoFormFielWrapperErrorBoundary(
+  props: AutoFormFielWrapperErrorBoundaryProps,
+) {
   return (
     <ErrorBoundary
       fallbackRender={() => (
-        <div className="text-sm  flex items-center justify-between">
-          <div className="text-destructive">
+        <div class="text-sm  flex items-center justify-between">
+          <div class="text-destructive">
             {t('input value is invalid, please contact support')}
           </div>
           <Button
             variant="outline"
             size="sm"
             onClick={() => {
-              navigator.clipboard.writeText(
+              void navigator.clipboard.writeText(
                 JSON.stringify({
-                  stringifiedValue: stringifyValue(field.value),
-                  property,
-                  dynamicInputModeToggled,
-                  disabled: field.disabled,
+                  stringifiedValue: stringifyValue(props.field.value),
+                  property: props.property,
+                  dynamicInputModeToggled: props.dynamicInputModeToggled,
+                  disabled: props.field.disabled,
                 }),
               );
               toast(t('Info copied to clipboard, please send it to support'), {
@@ -155,7 +178,7 @@ function AutoFormFielWrapperErrorBoundary({
         </div>
       )}
     >
-      {children}
+      {props.children}
     </ErrorBoundary>
   );
 }
@@ -194,21 +217,15 @@ function getValueForInputOnDynamicToggleChange(
   }
 }
 
-function DynamicValueToggle({
-  propertyName,
-  inputName,
-  property,
-  disabled,
-  isToggled,
-}: DynamicValueToggleProps) {
+function DynamicValueToggle(props: DynamicValueToggleProps) {
   const form = useFormContext<FlowAction | FlowTrigger>();
   function updatePropertySettings(mode: PropertyExecutionType) {
     const propertySettingsForSingleProperty = {
-      ...form.getValues().settings?.propertySettings?.[propertyName],
+      ...getPropertySettings(form.getValues(), props.propertyName),
       type: mode,
     };
     form.setValue(
-      `settings.propertySettings.${propertyName}`,
+      `settings.propertySettings.${props.propertyName}`,
       propertySettingsForSingleProperty,
       {
         shouldValidate: true,
@@ -217,14 +234,14 @@ function DynamicValueToggle({
   }
   function handleDynamicValueToggleChange(mode: PropertyExecutionType) {
     updatePropertySettings(mode);
-    if (isInputNameLiteral(inputName)) {
-      const currentValue = form.getValues(inputName);
+    if (isInputNameLiteral(props.inputName)) {
+      const currentValue: unknown = form.getValues(props.inputName);
       const newValue = getValueForInputOnDynamicToggleChange(
-        property,
+        props.property,
         mode,
         currentValue,
       );
-      form.setValue(inputName, newValue, {
+      form.setValue(props.inputName, newValue, {
         shouldValidate: true,
       });
     } else {
@@ -234,11 +251,11 @@ function DynamicValueToggle({
     }
   }
   return (
-    <div className="flex gap-2 items-center">
+    <div class="flex gap-2 items-center">
       <Tooltip>
         <TooltipTrigger asChild>
           <Toggle
-            pressed={isToggled}
+            pressed={props.isToggled}
             onPressedChange={(newIsToggled) =>
               handleDynamicValueToggleChange(
                 newIsToggled
@@ -246,13 +263,13 @@ function DynamicValueToggle({
                   : PropertyExecutionType.MANUAL,
               )
             }
-            disabled={disabled}
+            disabled={props.disabled}
             size="sm"
           >
             <SquareFunction
               class={cn('size-5', {
-                'text-foreground': isToggled,
-                'text-muted-foreground': !isToggled,
+                'text-foreground': props.isToggled,
+                'text-muted-foreground': !props.isToggled,
               })}
             />
           </Toggle>
@@ -262,39 +279,39 @@ function DynamicValueToggle({
     </div>
   );
 }
-function PropertyTypeTooltip({ property }: { property: PieceProperty }) {
-  if (
-    property.type !== PropertyType.FILE &&
-    property.type !== PropertyType.DATE_TIME
-  ) {
-    return null;
-  }
-
+function PropertyTypeTooltip(props: { property: PieceProperty }) {
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Show
-          when={property.type === PropertyType.FILE()}
-          fallback={
-            property.type === PropertyType.DATE_TIME && (
-              <Calendar class="w-4 h-4 stroke-foreground/55"></Calendar>
-            )
-          }
-        >
-          <File class="w-4 h-4 stroke-foreground/55"></File>
-        </Show>
-      </TooltipTrigger>
-      <TooltipContent side="bottom">
-        <>
-          <Show when={property.type === PropertyType.FILE()}>
-            {t('File Input i.e a url or file passed from a previous step')}
+    <Show
+      when={
+        props.property.type === PropertyType.FILE ||
+        props.property.type === PropertyType.DATE_TIME
+      }
+    >
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Show
+            when={props.property.type === PropertyType.FILE}
+            fallback={
+              props.property.type === PropertyType.DATE_TIME && (
+                <Calendar class="w-4 h-4 stroke-foreground/55" />
+              )
+            }
+          >
+            <File class="w-4 h-4 stroke-foreground/55" />
           </Show>
-          <Show when={property.type === PropertyType.DATE_TIME()}>
-            {t('Date Input must comply with ISO 8601 format')}
-          </Show>
-        </>
-      </TooltipContent>
-    </Tooltip>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <>
+            <Show when={props.property.type === PropertyType.FILE}>
+              {t('File Input i.e a url or file passed from a previous step')}
+            </Show>
+            <Show when={props.property.type === PropertyType.DATE_TIME}>
+              {t('Date Input must comply with ISO 8601 format')}
+            </Show>
+          </>
+        </TooltipContent>
+      </Tooltip>
+    </Show>
   );
 }
 function stringifyValue(value: unknown) {
@@ -308,8 +325,6 @@ function stringifyValue(value: unknown) {
   }
 }
 
-AutoFormFieldWrapper.displayName = 'AutoFormFieldWrapper';
-
 export { AutoFormFieldWrapper };
 
 type DynamicValueToggleProps = {
@@ -321,7 +336,7 @@ type DynamicValueToggleProps = {
 };
 
 type AutoFormFieldWrapperProps = {
-  children: any;
+  children: JSX.Element;
   hideLabel?: boolean;
   allowDynamicValues: boolean;
   propertyName: string;
@@ -334,7 +349,7 @@ type AutoFormFieldWrapperProps = {
   isForConnectionSelect?: boolean;
 };
 type AutoFormFielWrapperErrorBoundaryProps = {
-  children: any;
+  children: JSX.Element;
   field: BuilderField;
   property: PieceProperty | PieceAuthProperty[] | null;
   dynamicInputModeToggled?: boolean;
@@ -357,4 +372,27 @@ function isPieceAuthProperty(
     Array.isArray(property) ||
     authPropertyTypes.some((authType) => property.type === authType)
   );
+}
+
+function getPropertySettings(value: unknown, propertyName: string) {
+  if (!value || typeof value !== 'object' || !('settings' in value)) {
+    return {};
+  }
+  const settings = value.settings;
+  if (
+    !settings ||
+    typeof settings !== 'object' ||
+    !('propertySettings' in settings)
+  ) {
+    return {};
+  }
+  const properties = settings.propertySettings;
+  if (!properties || typeof properties !== 'object') {
+    return {};
+  }
+  const property = (properties as Record<string, unknown>)[propertyName];
+  if (!property || typeof property !== 'object') {
+    return {};
+  }
+  return property;
 }

@@ -4,7 +4,7 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
 import ICU from 'i18next-icu';
 
-i18n
+void i18n
   .use(ICU)
   .use(Backend)
   .use(LanguageDetector)

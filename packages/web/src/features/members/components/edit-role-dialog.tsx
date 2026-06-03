@@ -27,44 +27,42 @@ interface EditRoleDialogProps {
   disabled: boolean;
 }
 
-export function EditRoleDialog({
-  member,
-  onSave,
-  disabled,
-}: EditRoleDialogProps) {
+export function EditRoleDialog(props: EditRoleDialogProps) {
   const [isOpen, setIsOpen] = createSignal(false);
-  const [selectedRole, setSelectedRole] = createSignal(member.projectRole.name);
-  const { data: rolesData, isPending: rolesLoading } = createQuery({
+  const [selectedRole, setSelectedRole] = createSignal(
+    props.member.projectRole.name,
+  );
+  const { data: rolesData, isPending: rolesLoading } = createQuery(() => ({
     queryKey: ['project-roles'],
     queryFn: () => projectRoleApi.list(),
-  });
+  }));
 
   const roles = rolesData?.data ?? [];
 
-  const { mutate, isPending } = createMutation({
+  const { mutate, isPending } = createMutation(() => ({
     mutationFn: (newRole: string) => {
-      return projectMembersApi.update(member.id, {
+      return projectMembersApi.update(props.member.id, {
         role: newRole,
       });
     },
     onSuccess: (_data, roleName) => {
       toast.success(
         t('{firstName} {lastName} role has become {roleName}', {
-          firstName: member.user.firstName,
-          lastName: member.user.lastName,
+          firstName: props.member.user.firstName,
+          lastName: props.member.user.lastName,
           roleName,
         }),
         {
           duration: 3000,
         },
       );
-      onSave();
+      props.onSave();
       setIsOpen(false);
     },
     onError: () => {
       internalErrorToast();
     },
-  });
+  }));
 
   const handleRoleChange = (newRole: string) => {
     setSelectedRole(newRole);
@@ -77,17 +75,18 @@ export function EditRoleDialog({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" class="size-8 p-0" disabled={disabled}>
+        <Button variant="ghost" class="size-8 p-0" disabled={props.disabled}>
           <Pencil class="size-4" />
         </Button>
       </DialogTrigger>
       <DialogContent class="w-full max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {t('Edit Role for')} {member.user.firstName} {member.user.lastName}
+            {t('Edit Role for')} {props.member.user.firstName}{' '}
+            {props.member.user.lastName}
           </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-2">
+        <div class="grid gap-2">
           <RoleSelector
             type="project"
             value={selectedRole}

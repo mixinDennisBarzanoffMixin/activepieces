@@ -13,14 +13,9 @@ import {
   LatestVersionAvailableAlert,
 } from './update-piece-version-utils';
 
-export const UpgradePieceVersionContent: any = ({
-  step,
-  currentVersion,
-  latestVersion,
-  isLatestMinorOrMajor,
-  onClose,
-  onOpenAdvanced,
-}) => {
+export const UpgradePieceVersionContent = (
+  props: UpgradePieceVersionContentProps,
+) => {
   const [serverError, setServerError] = createSignal<string | undefined>(
     undefined,
   );
@@ -33,14 +28,14 @@ export const UpgradePieceVersionContent: any = ({
     () => ({
       mutationFn: async () => {
         await changeVersionUtils.applyPieceVersionChange({
-          step,
-          targetVersion: latestVersion,
-          currentVersion,
+          step: props.step,
+          targetVersion: props.latestVersion,
+          currentVersion: props.currentVersion,
           applyOperation,
         });
       },
       onSuccess: () => {
-        onClose();
+        props.onClose();
       },
       onError: (error) => {
         setServerError(error.message);
@@ -49,13 +44,13 @@ export const UpgradePieceVersionContent: any = ({
   );
 
   return (
-    <div className="flex flex-col gap-4">
+    <div class="flex flex-col gap-4">
       <LatestVersionAvailableAlert
-        isLatestMinorOrMajor={isLatestMinorOrMajor}
+        isLatestMinorOrMajor={props.isLatestMinorOrMajor}
       />
 
       <Show when={serverError()}>
-        <p className="text-sm font-medium text-destructive">{serverError}</p>
+        <p class="text-sm font-medium text-destructive">{serverError()}</p>
       </Show>
 
       <DialogFooter>
@@ -63,11 +58,11 @@ export const UpgradePieceVersionContent: any = ({
           type="button"
           variant="outline"
           class="mr-auto"
-          onClick={onOpenAdvanced}
+          onClick={props.onOpenAdvanced}
         >
           {t('Advanced')}
         </Button>
-        <Button type="button" variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={props.onClose}>
           {t('Cancel')}
         </Button>
         <Button
@@ -76,10 +71,12 @@ export const UpgradePieceVersionContent: any = ({
           onClick={() => applyUpgrade()}
         >
           <Show
-            when={isLatestMinorOrMajor()}
-            fallback={t('Update to v{version}', { version: latestVersion })}
+            when={props.isLatestMinorOrMajor}
+            fallback={t('Update to v{version}', {
+              version: props.latestVersion,
+            })}
           >
-            {t('Upgrade to v{version}', { version: latestVersion })}
+            {t('Upgrade to v{version}', { version: props.latestVersion })}
           </Show>
         </Button>
       </DialogFooter>

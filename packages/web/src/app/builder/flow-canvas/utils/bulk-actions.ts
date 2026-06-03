@@ -29,7 +29,18 @@ export function copySelectedNodes({
     type: 'COPY_ACTIONS',
     actions: actionsToCopy,
   };
-  navigator.clipboard.writeText(JSON.stringify(request));
+  void navigator.clipboard.writeText(JSON.stringify(request));
+}
+
+function isCopyActionsRequest(value: unknown): value is CopyActionsRequest {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'type' in value &&
+    value.type === 'COPY_ACTIONS' &&
+    'actions' in value &&
+    Array.isArray(value.actions)
+  );
 }
 
 export function deleteSelectedNodes({
@@ -55,8 +66,8 @@ export function deleteSelectedNodes({
 export async function getActionsInClipboard(): Promise<FlowAction[]> {
   try {
     const clipboardText = await navigator.clipboard.readText();
-    const request: CopyActionsRequest = JSON.parse(clipboardText);
-    if (request && request.type === 'COPY_ACTIONS') {
+    const request: unknown = JSON.parse(clipboardText);
+    if (isCopyActionsRequest(request)) {
       return request.actions;
     }
   } catch (error) {

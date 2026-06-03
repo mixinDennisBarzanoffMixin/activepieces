@@ -48,12 +48,12 @@ export const hmsToSeconds = (
 };
 
 export const downloadChartAsPng = async (
-  ref: RefObject<HTMLDivElement | null>,
+  ref: HTMLElement | undefined,
   filename: string,
 ): Promise<void> => {
-  if (!ref.current) return;
+  if (!ref) return;
   try {
-    const dataUrl = await toPng(ref.current, {
+    const dataUrl = await toPng(ref, {
       backgroundColor: '#ffffff',
       pixelRatio: 2,
     });
@@ -86,7 +86,7 @@ export const exportFlowDetailsCsv = (
         },"${f.projectName}"`,
     )
     .join('\n');
-  downloadFile({
+  void downloadFile({
     obj: header + rows,
     fileName: 'flow-details',
     extension: 'csv',

@@ -1,7 +1,7 @@
 import { isNil } from '@activepieces/shared';
-import { createSignal, createEffect, createMemo } from 'solid-js';
+import { createSignal, createEffect, createMemo, Show } from 'solid-js';
 
-import { Input } from '@/components/ui/input';
+import { Input, InputProps } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { AutoComplete } from './autocomplete';
@@ -13,7 +13,7 @@ import {
   setDateByType,
 } from './time-picker-utils';
 
-export interface TimeUnitPickerInputProps extends any {
+export interface TimeUnitPickerInputProps extends Omit<InputProps, 'ref'> {
   picker: TimePickerType;
   date: Date | undefined;
   setDate: (date: Date) => void;
@@ -29,7 +29,6 @@ export interface TimeUnitPickerInputProps extends any {
 const TimeUnitPickerInputInner = (
   props: TimeUnitPickerInputProps & { ref?: HTMLInputElement },
 ) => {
-  let ref: HTMLInputElement | undefined;
   const [flag, setFlag] = createSignal(false);
   const [prevIntKey, setPrevIntKey] = createSignal('0');
 
@@ -78,7 +77,7 @@ const TimeUnitPickerInputInner = (
       const step = e.key === 'ArrowUp' ? 1 : -1;
       const newValue = getArrowByType(calculatedValue(), step, props.picker);
       if (flag()) setFlag(false);
-      const tempDate = new Date(props.date);
+      const tempDate = props.date ? new Date(props.date) : new Date();
       props.setDate(
         setDateByType(tempDate, newValue, props.picker, props.period),
       );
@@ -87,7 +86,7 @@ const TimeUnitPickerInputInner = (
       if (props.picker === '12hours') setPrevIntKey(e.key);
       const newValue = calculateNewValue(e.key);
       setFlag((prev) => !prev);
-      const tempDate = new Date(props.date);
+      const tempDate = props.date ? new Date(props.date) : new Date();
       props.setDate(
         setDateByType(tempDate, newValue, props.picker, props.period),
       );
@@ -96,7 +95,7 @@ const TimeUnitPickerInputInner = (
 
   return (
     <Input
-      ref={(el) => (ref = el)}
+      ref={props.ref}
       id={props.id || props.picker}
       name={props.name || props.picker}
       class={cn(
@@ -122,16 +121,15 @@ const TimeUnitPickerInputInner = (
 const TimeUnitPickerInput = (
   props: TimeUnitPickerInputProps & { ref?: HTMLInputElement },
 ) => {
-  let ref: HTMLInputElement | undefined;
   const [open, setOpen] = createSignal(false);
   let listRef: HTMLDivElement | undefined;
   const [filterValue, setFilterValue] = createSignal('');
 
-  if (isNil(props.autoCompleteList) || props.autoCompleteList.length === 0) {
-    return <TimeUnitPickerInputInner {...props} ref={(el) => (ref = el)} />;
-  }
   return (
-    <>
+    <Show
+      when={!isNil(props.autoCompleteList) && props.autoCompleteList.length > 0}
+      fallback={<TimeUnitPickerInputInner {...props} />}
+    >
       <TimeUnitPickerInputInner
         {...props}
         onKeyDown={(e) => {
@@ -157,7 +155,7 @@ const TimeUnitPickerInput = (
           const fv = getDateByType(date, props.picker);
           setFilterValue(fv[0] === '0' ? fv.slice(1) : fv);
         }}
-        ref={(el) => (ref = el)}
+        ref={props.ref}
         isAutocompleteOpen={open()}
         onClick={() => {
           setFilterValue('');
@@ -189,9 +187,9 @@ const TimeUnitPickerInput = (
           );
         }}
       >
-        <div className="w-full -mt-2"></div>
+        <div class="w-full -mt-2" />
       </AutoComplete>
-    </>
+    </Show>
   );
 };
 

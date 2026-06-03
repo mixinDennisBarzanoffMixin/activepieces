@@ -32,14 +32,9 @@ const getPieceSelectorItemInfo = (item: PieceSelectorItem) => {
   };
 };
 
-const GenericActionOrTriggerItem = ({
-  item,
-  hidePieceIconAndDescription,
-  stepMetadataWithSuggestions,
-  onClick,
-}: GenericActionOrTriggerItemProps) => {
+const GenericActionOrTriggerItem = (props: GenericActionOrTriggerItemProps) => {
   // we add this style because we hide the piece icon and description when they are in a virtualized list
-  const style = hidePieceIconAndDescription
+  const style = props.hidePieceIconAndDescription
     ? {
         height: `${PIECE_SELECTOR_ELEMENTS_HEIGHTS.ACTION_OR_TRIGGER_ITEM_HEIGHT}px`,
         maxHeight: `${PIECE_SELECTOR_ELEMENTS_HEIGHTS.ACTION_OR_TRIGGER_ITEM_HEIGHT}px`,
@@ -47,34 +42,34 @@ const GenericActionOrTriggerItem = ({
     : {
         minHeight: '54px',
       };
-  const pieceSelectorItemInfo = getPieceSelectorItemInfo(item);
+  const pieceSelectorItemInfo = getPieceSelectorItemInfo(props.item);
   return (
     <CardListItem
       class={cn('p-2 w-full ', {
-        truncate: hidePieceIconAndDescription,
+        truncate: props.hidePieceIconAndDescription,
       })}
-      onClick={onClick}
+      onClick={props.onClick}
       style={style}
     >
-      <div className="flex gap-3 items-center">
+      <div class="flex gap-3 items-center">
         <div
-          className={cn({
-            'opacity-0': hidePieceIconAndDescription,
-          })}
+          classlist={{
+            'opacity-0': props.hidePieceIconAndDescription,
+          }}
         >
           <PieceIcon
-            logoUrl={stepMetadataWithSuggestions.logoUrl}
-            displayName={stepMetadataWithSuggestions.displayName}
+            logoUrl={props.stepMetadataWithSuggestions.logoUrl}
+            displayName={props.stepMetadataWithSuggestions.displayName}
             showTooltip={false}
             size={'sm'}
           />
         </div>
-        <div className="flex flex-col gap-0.5">
-          <div className="text-sm">{pieceSelectorItemInfo.displayName}</div>
-          <Show when={!hidePieceIconAndDescription()}>
-            <div className="text-xs text-muted-foreground">
+        <div class="flex flex-col gap-0.5">
+          <div class="text-sm">{pieceSelectorItemInfo.displayName}</div>
+          <Show when={!props.hidePieceIconAndDescription()}>
+            <div class="text-xs text-muted-foreground">
               <Show
-                when={pieceSelectorItemInfo.description.endsWith('.')()}
+                when={pieceSelectorItemInfo.description.endsWith('.')}
                 fallback={pieceSelectorItemInfo.description}
               >
                 {pieceSelectorItemInfo.description.slice(0, -1)}
@@ -87,5 +82,4 @@ const GenericActionOrTriggerItem = ({
   );
 };
 
-GenericActionOrTriggerItem.displayName = 'GenericActionOrTriggerItem';
 export default GenericActionOrTriggerItem;

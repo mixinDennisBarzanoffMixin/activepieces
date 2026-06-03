@@ -2,7 +2,7 @@
 
 import { t } from 'i18next';
 import { XIcon } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, For, Show, type JSX } from 'solid-js';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ type TagInputProps = Omit<InputProps, 'value' | 'onChange'> & {
   badgeClassName?: string;
   invalidBadgeClassName?: string;
   getTagMeta?: (item: string) => TagMeta | undefined;
-  rightContent?: any;
+  rightContent?: JSX.Element;
   type?: 'default' | 'email';
   showDescription?: boolean;
   onInputChange?: (value: string) => void;
@@ -97,10 +97,10 @@ const TagInput = (props: TagInputProps) => {
   };
 
   return (
-    <div className="w-full">
-      <div className="relative w-full">
+    <div class="w-full">
+      <div class="relative w-full">
         <div
-          className={cn(
+          class={cn(
             // caveat: :has() variant requires tailwind v3.4 or above: https://tailwindcss.com/blog/tailwindcss-v3-4#new-has-variant
             'has-focus-visible:ring-neutral-950 dark:has-focus-visible:ring-neutral-300 border-neutral-200 dark:border-neutral-800 dark:bg-neutral-950 dark:ring-offset-neutral-950 flex min-h-9 w-full rounded-md border bg-white ring-offset-white disabled:cursor-not-allowed disabled:opacity-50 has-focus-visible:outline-hidden has-focus-visible:ring-2 has-focus-visible:ring-offset-2 cursor-text',
             className,
@@ -109,7 +109,7 @@ const TagInput = (props: TagInputProps) => {
         >
           <ScrollArea class="w-full max-h-32" viewPortClassName="px-3 py-2">
             <div
-              className={cn(
+              class={cn(
                 'flex flex-wrap gap-2 text-sm',
                 rightContent && 'pr-[140px]',
               )}
@@ -132,7 +132,7 @@ const TagInput = (props: TagInputProps) => {
                     >
                       {tagMeta?.icon}
                       <span
-                        className={cn(
+                        class={cn(
                           'text-xs overflow-hidden text-ellipsis whitespace-nowrap min-w-0',
                           type === 'email' && 'max-w-[25ch]',
                         )}
@@ -165,13 +165,13 @@ const TagInput = (props: TagInputProps) => {
                 }}
               </For>
               <input
-                className={
+                class={
                   'placeholder:text-neutral-500 dark:placeholder:text-neutral-400 w-full min-w-[200px] flex-1 outline-hidden bg-transparent'
                 }
                 autoComplete="off"
                 value={pendingDataPoint()}
                 onChange={(e) => {
-                  const newValue = e.target.value;
+                  const newValue = e.currentTarget.value;
                   if (SPLIT_PATTERN.test(newValue)) {
                     commitWithSeparator(newValue);
                   } else {
@@ -210,13 +210,13 @@ const TagInput = (props: TagInputProps) => {
           </ScrollArea>
         </div>
         <Show when={rightContent}>
-          <div className="absolute right-2 top-2 pointer-events-auto">
+          <div class="absolute right-2 top-2 pointer-events-auto">
             {rightContent}
           </div>
         </Show>
       </div>
       <Show when={type === 'email' && showDescription}>
-        <p className="text-xs text-muted-foreground mt-2">
+        <p class="text-xs text-muted-foreground mt-2">
           {t('Separate email addresses with a space or comma.')}
         </p>
       </Show>
@@ -224,13 +224,11 @@ const TagInput = (props: TagInputProps) => {
   );
 };
 
-TagInput.displayName = 'TagInput';
-
 export { TagInput };
 
 type TagMeta = {
   className?: string;
-  icon?: any;
+  icon?: JSX.Element;
   tooltip?: string;
 };
 

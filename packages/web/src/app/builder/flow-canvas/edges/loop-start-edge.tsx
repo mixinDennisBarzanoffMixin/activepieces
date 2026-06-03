@@ -1,76 +1,76 @@
 import { StepLocationRelativeToParent } from '@activepieces/shared';
+import { createMemo, Show } from 'solid-js';
+
 import { BaseEdge } from '../solid-flow-adapter';
 import type { EdgeProps } from '../solid-flow-adapter';
-import { Show } from 'solid-js';
-
 import { flowCanvasConsts } from '../utils/consts';
 import { ApLoopStartEdge } from '../utils/types';
 
 import { ApAddButton } from './add-button';
 
-export const ApLoopStartLineCanvasEdge = ({
-  sourceX,
-  sourceY,
-  targetX,
-  data,
-  source,
-  id,
-}: EdgeProps & ApLoopStartEdge) => {
-  const startY =
-    sourceY + flowCanvasConsts.VERTICAL_SPACE_BETWEEN_STEP_AND_LINE;
+export const ApLoopStartLineCanvasEdge = (
+  props: EdgeProps & ApLoopStartEdge,
+) => {
+  const startY = createMemo(
+    () => props.sourceY + flowCanvasConsts.VERTICAL_SPACE_BETWEEN_STEP_AND_LINE,
+  );
   const verticalLineLength =
     flowCanvasConsts.VERTICAL_SPACE_BETWEEN_STEPS -
     2 * flowCanvasConsts.VERTICAL_SPACE_BETWEEN_STEP_AND_LINE;
 
-  const horizontalLineLength =
-    Math.abs(targetX - sourceX) - 2 * flowCanvasConsts.ARC_LENGTH;
-  const path = `M ${sourceX} ${startY} v${verticalLineLength / 2}
-  ${flowCanvasConsts.ARC_RIGHT_DOWN} h${horizontalLineLength}
+  const horizontalLineLength = createMemo(
+    () =>
+      Math.abs(props.targetX - props.sourceX) - 2 * flowCanvasConsts.ARC_LENGTH,
+  );
+  const path = createMemo(
+    () => `M ${props.sourceX} ${startY()} v${verticalLineLength / 2}
+  ${flowCanvasConsts.ARC_RIGHT_DOWN} h${horizontalLineLength()}
   ${flowCanvasConsts.ARC_RIGHT} v${verticalLineLength}
-   ${!data.isLoopEmpty ? flowCanvasConsts.ARROW_DOWN : ''}`;
+   ${!props.data.isLoopEmpty ? flowCanvasConsts.ARROW_DOWN : ''}`,
+  );
 
   const showDebugForLineEndPoint = false;
-  const buttonPosition = {
+  const buttonPosition = createMemo(() => ({
     x:
-      sourceX -
+      props.sourceX -
       flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.width / 2 +
-      horizontalLineLength +
+      horizontalLineLength() +
       flowCanvasConsts.ARC_LENGTH * 2,
-    y: startY + verticalLineLength + flowCanvasConsts.ARC_LENGTH,
-  };
+    y: startY() + verticalLineLength + flowCanvasConsts.ARC_LENGTH,
+  }));
 
   return (
     <>
       <BaseEdge
-        path={path}
-        style={{ strokeWidth: `${flowCanvasConsts.LINE_WIDTH}px` }}
+        path={path()}
+        style={{ 'stroke-width': `${flowCanvasConsts.LINE_WIDTH}px` }}
         class="relative"
-      ></BaseEdge>
-      <Show when={!data.isLoopEmpty()}>
+      />
+      <Show when={!props.data.isLoopEmpty}>
         <foreignObject
-          x={buttonPosition.x}
-          y={buttonPosition.y}
+          x={buttonPosition().x}
+          y={buttonPosition().y}
           width={flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.width}
           height={flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.height}
-          className="overflow-visible cursor-default"
+          class="overflow-visible cursor-default"
         >
           <ApAddButton
-            edgeId={id}
+            edgeId={props.id}
             stepLocationRelativeToParent={
               StepLocationRelativeToParent.INSIDE_LOOP
             }
-            parentStepName={source}
-          ></ApAddButton>
+            parentStepName={props.source}
+          />
         </foreignObject>
       </Show>
 
-      <Show when={showDebugForLineEndPoint()}>
+      <Show when={showDebugForLineEndPoint}>
         <foreignObject
-          x={sourceX}
-          y={startY}
-          className="w-[20px] h-[20px] rounded-full bg-[red] flex items-center justify-center absolute"
+          x={props.sourceX}
+          y={startY()}
+          class="w-[20px] h-[20px] rounded-full bg-[red] flex items-center justify-center absolute"
         >
-          <div className=" w-[20px] h-[20px] rounded-full bg-[red] flex items-center justify-center"></div>
+          <div class=" w-[20px] h-[20px] rounded-full bg-[red] flex items-center justify-center" />
         </foreignObject>
       </Show>
     </>

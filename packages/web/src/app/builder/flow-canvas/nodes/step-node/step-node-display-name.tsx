@@ -3,13 +3,7 @@ import { cn } from '@/lib/utils';
 
 import { StepNodeRunDurationAndPieceName } from './step-node-run-duration-and-piece-name';
 
-const StepNodeDisplayName = ({
-  stepDisplayName,
-  stepIndex,
-  isSkipped,
-  pieceDisplayName,
-  stepName,
-}: {
+const StepNodeDisplayName = (props: {
   stepDisplayName: string;
   stepIndex: number;
   isSkipped: boolean;
@@ -17,21 +11,24 @@ const StepNodeDisplayName = ({
   stepName: string;
 }) => {
   return (
-    <div className="grow flex flex-col items-start justify-center min-w-0 w-full">
-      <div className=" flex items-center justify-between min-w-0 w-full">
-        <TextWithTooltip tooltipMessage={stepDisplayName} key={stepDisplayName}>
+    <div class="grow flex flex-col items-start justify-center min-w-0 w-full">
+      <div class=" flex items-center justify-between min-w-0 w-full">
+        <TextWithTooltip
+          tooltipMessage={props.stepDisplayName}
+          key={props.stepDisplayName}
+        >
           <div
-            className={cn('text-sm truncate grow shrink ', {
-              'text-accent-foreground/70': isSkipped,
+            class={cn('text-sm truncate grow shrink ', {
+              'text-accent-foreground/70': props.isSkipped,
             })}
           >
-            {stepIndex}. {stepDisplayName}
+            {props.stepIndex}. {props.stepDisplayName}
           </div>
         </TextWithTooltip>
       </div>
       <StepNodeRunDurationAndPieceName
-        stepName={stepName}
-        pieceDisplayName={pieceDisplayName}
+        stepName={props.stepName}
+        pieceDisplayName={props.pieceDisplayName}
       />
     </div>
   );

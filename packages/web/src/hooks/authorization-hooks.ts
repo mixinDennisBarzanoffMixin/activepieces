@@ -8,8 +8,8 @@ import {
 import { createQuery } from '@tanstack/solid-query';
 
 import { authenticationApi } from '@/api/authentication-api';
-import { queryClient } from '@/app/query-client';
 import { platformApi } from '@/api/platforms-api';
+import { queryClient } from '@/app/query-client';
 import { flagsHooks } from '@/hooks/flags-hooks';
 import { userHooks } from '@/hooks/user-hooks';
 import { authenticationSession } from '@/lib/authentication-session';
@@ -24,8 +24,12 @@ export const useAuthorization = () => {
       queryFn: async () => {
         const platform = await platformApi.getCurrentPlatform();
         if (platform.plan.projectRolesEnabled) {
+          const projectId = authenticationSession.getProjectId();
+          if (isNil(projectId)) {
+            throw new Error('Missing project id');
+          }
           const projectRole = await authenticationApi.getCurrentProjectRole({
-            projectId: authenticationSession.getProjectId() ?? '',
+            projectId,
           });
           return projectRole;
         }
@@ -33,7 +37,9 @@ export const useAuthorization = () => {
       },
       retry: false,
       enabled:
-        !isNil(edition) && edition !== ApEdition.COMMUNITY && !isNil(platformId),
+        !isNil(edition) &&
+        edition !== ApEdition.COMMUNITY &&
+        !isNil(platformId),
     }),
     () => queryClient,
   );
@@ -43,7 +49,7 @@ export const useAuthorization = () => {
       return true;
     }
 
-    return projectRole?.permissions?.includes(permission) ?? true;
+    return projectRole?.permissions.includes(permission) ?? true;
   };
 
   return { checkAccess, isFetchingProjectRole: isLoading };

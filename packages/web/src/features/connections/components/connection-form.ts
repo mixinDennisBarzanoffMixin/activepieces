@@ -25,16 +25,15 @@ function getPath(value: unknown, path: string): unknown {
 function setPath<T>(value: T, path: string, next: unknown): T {
   const parts = path.split('.');
   const root = structuredClone(value) as Record<string, unknown>;
-  const parent = parts.slice(0, -1).reduce<Record<string, unknown>>(
-    (acc, part) => {
+  const parent = parts
+    .slice(0, -1)
+    .reduce<Record<string, unknown>>((acc, part) => {
       const child = acc[part];
       if (!child || typeof child !== 'object') {
         acc[part] = {};
       }
       return acc[part] as Record<string, unknown>;
-    },
-    root,
-  );
+    }, root);
   parent[parts.at(-1) ?? ''] = next;
   return root as T;
 }

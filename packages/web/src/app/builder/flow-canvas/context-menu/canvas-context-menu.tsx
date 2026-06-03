@@ -16,16 +16,11 @@ export type CanvasContextMenuProps = {
   children?: any;
   contextMenuType: ContextMenuType;
 };
-export const CanvasContextMenu = ({
-  contextMenuType,
-  children,
-}: CanvasContextMenuProps) => {
+export const CanvasContextMenu = (props: CanvasContextMenuProps) => {
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-      <CanvasContextMenuContent
-        contextMenuType={contextMenuType}
-      ></CanvasContextMenuContent>
+      <ContextMenuTrigger asChild>{props.children}</ContextMenuTrigger>
+      <CanvasContextMenuContent contextMenuType={props.contextMenuType} />
     </ContextMenu>
   );
 };

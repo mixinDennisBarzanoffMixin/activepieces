@@ -12,7 +12,7 @@ export const useCursorPosition = () => {
   return useContext(CursorPositionContext);
 };
 
-export const CursorPositionProvider = ({ children }: { children: any }) => {
+export const CursorPositionProvider = (props: { children: any }) => {
   let cursorPositionRef: { x: number; y: number } | undefined;
   const setCursorPosition = (position: { x: number; y: number }) => {
     cursorPositionRef = position;
@@ -21,7 +21,7 @@ export const CursorPositionProvider = ({ children }: { children: any }) => {
     <CursorPositionContext.Provider
       value={{ cursorPosition: cursorPositionRef, setCursorPosition }}
     >
-      {children}
+      {props.children}
     </CursorPositionContext.Provider>
   );
 };

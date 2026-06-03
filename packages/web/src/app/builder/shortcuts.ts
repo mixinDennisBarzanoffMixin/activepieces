@@ -105,7 +105,7 @@ export const useHandleKeyPressOnCanvas = () => {
         }
         e.stopPropagation();
         e.preventDefault();
-        canvasBulkActions.getActionsInClipboard().then((actions) => {
+        void canvasBulkActions.getActionsInClipboard().then((actions) => {
           if (actions.length > 0) {
             const lastStep = [
               flowVersion.trigger,
@@ -115,7 +115,7 @@ export const useHandleKeyPressOnCanvas = () => {
             ].at(-1)!.name;
             const lastSelectedNode =
               selectedNodes.length === 1 ? selectedNodes[0] : null;
-            canvasBulkActions.pasteNodes(
+            void canvasBulkActions.pasteNodes(
               flowVersion,
               {
                 parentStepName: lastSelectedNode ?? lastStep,
@@ -141,7 +141,7 @@ const shortcutHandler = (
 ) => {
   const shortcutActivated = Object.entries(CanvasShortcuts).find(
     ([_, shortcut]) =>
-      shortcut.shortcutKey?.toLowerCase() === event.key.toLowerCase() &&
+      shortcut.shortcutKey.toLowerCase() === event.key.toLowerCase() &&
       !!(
         shortcut.withCtrl === event.ctrlKey ||
         shortcut.withCtrl === event.metaKey

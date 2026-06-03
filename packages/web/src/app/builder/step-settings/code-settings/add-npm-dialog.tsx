@@ -16,9 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import {
-  FormDescription,
-} from '@/components/ui/form';
+import { FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api';
@@ -37,7 +35,7 @@ type AddNpmDialogProps = {
     packageVersion: string;
   }) => void;
 };
-const AddNpmDialog = ({ children, onAdd }: AddNpmDialogProps) => {
+const AddNpmDialog = (props: AddNpmDialogProps) => {
   const [open, setOpen] = createSignal(false);
   const [error, setError] = createSignal('');
   const [form, { Form, Field }] = createForm<z.infer<typeof formSchema>>({
@@ -59,7 +57,7 @@ const AddNpmDialog = ({ children, onAdd }: AddNpmDialogProps) => {
       };
     },
     onSuccess: (response) => {
-      onAdd(response);
+      props.onAdd(response);
       setOpen(false);
       toast.success(t('Package added successfully'), {
         duration: 3000,
@@ -72,7 +70,7 @@ const AddNpmDialog = ({ children, onAdd }: AddNpmDialogProps) => {
 
   return (
     <Dialog open={open} onOpenChange={(open) => setOpen(open)}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent class="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{t('Add NPM Package')}</DialogTitle>
@@ -80,40 +78,35 @@ const AddNpmDialog = ({ children, onAdd }: AddNpmDialogProps) => {
             {t('Type the name of the npm package you want to add.')}
           </DialogDescription>
         </DialogHeader>
-        <Form
-          onSubmit={(data) => mutate(data)}
-          class="flex flex-col gap-4"
-        >
-            <Field
-              name="packageName"
-            >
-              {(field, props) => (
-                <div class="space-y-1">
-                  <Label for="packageName">{t('Package Name')}</Label>
-                  <Input
-                    {...props}
-                    value={field.value ?? ''}
-                    id="packageName"
-                    type="text"
-                    placeholder="hello-world"
-                    class="rounded-sm"
-                  />
-                  <Show when={field.error}>
-                    <p class="text-sm font-medium text-destructive wrap-break-word">
-                      {t(field.error)}
-                    </p>
-                  </Show>
-                </div>
-              )}
-            </Field>
-            <FormDescription>
-              {t('The latest version will be fetched and added')}
-            </FormDescription>
-            <Show when={error()}>
-              <p class="text-sm font-medium text-destructive wrap-break-word">
-                {error()}
-              </p>
-            </Show>
+        <Form onSubmit={(data) => mutate(data)} class="flex flex-col gap-4">
+          <Field name="packageName">
+            {(field, props) => (
+              <div class="space-y-1">
+                <Label for="packageName">{t('Package Name')}</Label>
+                <Input
+                  {...props}
+                  value={field.value ?? ''}
+                  id="packageName"
+                  type="text"
+                  placeholder="hello-world"
+                  class="rounded-sm"
+                />
+                <Show when={field.error}>
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {t(field.error)}
+                  </p>
+                </Show>
+              </div>
+            )}
+          </Field>
+          <FormDescription>
+            {t('The latest version will be fetched and added')}
+          </FormDescription>
+          <Show when={error()}>
+            <p class="text-sm font-medium text-destructive wrap-break-word">
+              {error()}
+            </p>
+          </Show>
         </Form>
         <DialogFooter>
           <DialogClose asChild>
@@ -121,7 +114,11 @@ const AddNpmDialog = ({ children, onAdd }: AddNpmDialogProps) => {
               {t('Cancel')}
             </Button>
           </DialogClose>
-          <Button type="submit" loading={isPending} onClick={() => form.element?.requestSubmit()}>
+          <Button
+            type="submit"
+            loading={isPending}
+            onClick={() => form.element?.requestSubmit()}
+          >
             {t('Add')}
           </Button>
         </DialogFooter>
@@ -130,5 +127,4 @@ const AddNpmDialog = ({ children, onAdd }: AddNpmDialogProps) => {
   );
 };
 
-AddNpmDialog.displayName = 'AddNpmDialog';
 export { AddNpmDialog };

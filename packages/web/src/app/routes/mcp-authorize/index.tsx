@@ -1,13 +1,12 @@
 import { ProjectType, ProjectWithLimits, SeekPage } from '@activepieces/shared';
-import { useDebouncedCallback } from '@/lib/debounce';
 import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { jwtDecode } from 'jwt-decode';
 import { CheckCircle, FolderKanban, Lock, Plug, Workflow } from 'lucide-solid';
 import { createMemo, createSignal, Show } from 'solid-js';
 
-import { FullLogo } from '@/components/custom/full-logo';
 import { queryClient } from '@/app/query-client';
+import { FullLogo } from '@/components/custom/full-logo';
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { MultiSelectFilter } from '@/features/automations/components/multi-select-filter';
 import { api } from '@/lib/api';
 import { authenticationSession } from '@/lib/authentication-session';
+import { useDebouncedCallback } from '@/lib/debounce';
 
 function McpAuthorizePage() {
   const searchParams = new URLSearchParams(window.location.search);
@@ -42,13 +42,13 @@ function McpAuthorizePage() {
 
   const { data: projectsPage, isLoading: projectsLoading } = createQuery(
     () => ({
-      queryKey: ['mcp-authorize-projects', searchValue, selectedTypes],
+      queryKey: ['mcp-authorize-projects', searchValue(), selectedTypes()],
       queryFn: () =>
         api.get<SeekPage<ProjectWithLimits>>('/v1/projects', {
           limit: 1000,
-          ...(searchValue && { displayName: searchValue }),
-          ...(selectedTypes.length > 0 && { types: selectedTypes }),
-      }),
+          ...(searchValue() && { displayName: searchValue() }),
+          ...(selectedTypes().length > 0 && { types: selectedTypes() }),
+        }),
       enabled: isLoggedIn && !!authRequestId && !isPlatformScoped,
     }),
     () => queryClient,
@@ -66,7 +66,7 @@ function McpAuthorizePage() {
     () => queryClient,
   );
 
-  const { projectsMap, options } = createMemo(() => {
+  const projects = createMemo(() => {
     const list = projectsPage?.data ?? [];
     return {
       projectsMap: new Map(list.map((p) => [p.id, p])),
@@ -87,38 +87,36 @@ function McpAuthorizePage() {
   }
 
   const handleAuthorize = () => {
-    if (!isPlatformScoped && !selectedProjectId) return;
+    if (!isPlatformScoped && !selectedProjectId()) return;
     approveMutation.mutate({
       authRequestId,
-      ...(selectedProjectId && { projectId: selectedProjectId }),
+      ...(selectedProjectId() && { projectId: selectedProjectId() }),
     });
   };
 
-  if (authorized) {
+  if (authorized()) {
     return (
-      <div className="flex h-screen flex-col items-center justify-center px-4">
+      <div class="flex h-screen flex-col items-center justify-center px-4">
         <FullLogo />
         <Card class="mt-4 w-full max-w-md rounded-sm drop-shadow-xl">
           <CardContent class="flex flex-col items-center gap-5 pt-8 pb-8">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-success-100">
+            <div class="flex h-14 w-14 items-center justify-center rounded-full bg-success-100">
               <CheckCircle class="h-7 w-7 text-success" />
             </div>
-            <div className="flex flex-col items-center gap-2 text-center">
+            <div class="flex flex-col items-center gap-2 text-center">
               <CardTitle class="text-2xl">{t('Connected')}</CardTitle>
               <CardDescription>
-                <span className="font-medium text-foreground">
-                  {clientName}
-                </span>{' '}
+                <span class="font-medium text-foreground">{clientName}</span>{' '}
                 <Show
                   when={isPlatformScoped}
                   fallback={t('is now connected to your project.')}
                 >
-                  t('is now connected to your platform.'
+                  {t('is now connected to your platform.')}
                 </Show>
               </CardDescription>
             </div>
             <Separator />
-            <p className="text-sm text-muted-foreground">
+            <p class="text-sm text-muted-foreground">
               {t('You can close this tab and return to the application.')}
             </p>
           </CardContent>
@@ -128,22 +126,22 @@ function McpAuthorizePage() {
   }
 
   return (
-    <div className="flex h-screen flex-col items-center justify-center px-4">
+    <div class="flex h-screen flex-col items-center justify-center px-4">
       <FullLogo />
       <Card class="mt-4 w-full max-w-md rounded-sm drop-shadow-xl">
         <CardHeader class="text-center">
-          <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+          <div class="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
             <Plug class="h-5 w-5 text-primary" />
           </div>
           <CardTitle class="text-2xl">{t('Authorize Application')}</CardTitle>
           <CardDescription>
-            <span className="font-semibold text-foreground">{clientName}</span>{' '}
+            <span class="font-semibold text-foreground">{clientName}</span>{' '}
             {t('wants to connect to your Activepieces account')}
           </CardDescription>
         </CardHeader>
 
         <CardContent class="flex flex-col gap-5">
-          <div className="flex flex-col gap-3">
+          <div class="flex flex-col gap-3">
             <PermissionItem
               icon={<Workflow class="h-4 w-4 text-primary" />}
               text={t('Build, test, and manage automations')}
@@ -157,39 +155,37 @@ function McpAuthorizePage() {
           <Separator />
 
           <Show when={!isPlatformScoped}>
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">
-                  {t('Select Project')}
-                </label>
+            <div class="flex flex-col gap-2">
+              <div class="flex items-center justify-between">
+                <label class="text-sm font-medium">{t('Select Project')}</label>
                 <MultiSelectFilter
                   label={t('Type')}
                   icon={<FolderKanban class="size-4" />}
                   options={projectTypeOptions}
-                  selectedValues={selectedTypes}
+                  selectedValues={selectedTypes()}
                   onChange={setSelectedTypes}
                 />
               </div>
               <SearchableSelect<string>
-                options={options}
+                options={projects().options}
                 onChange={(value) => setSelectedProjectId(value ?? undefined)}
-                value={selectedProjectId}
+                value={selectedProjectId()}
                 placeholder={t('Search projects...')}
                 disabled={projectsLoading}
                 loading={projectsLoading}
                 refreshOnSearch={debouncedSetSearchValue}
                 valuesRendering={(value) => {
-                  const project = projectsMap.get(String(value));
+                  const project = projects().projectsMap.get(String(value));
                   if (!project) return null;
                   return (
-                    <div className="flex w-full items-center justify-between gap-2">
-                      <span className="truncate">{project.displayName}</span>
+                    <div class="flex w-full items-center justify-between gap-2">
+                      <span class="truncate">{project.displayName}</span>
                       <Badge variant="outline" class="shrink-0 text-[10px]">
                         <Show
                           when={project.type === ProjectType.PERSONAL}
                           fallback={t('Team')}
                         >
-                          t('Personal'
+                          {t('Personal')}
                         </Show>
                       </Badge>
                     </div>
@@ -200,12 +196,12 @@ function McpAuthorizePage() {
           </Show>
 
           <Show when={approveMutation.isError}>
-            <div className="rounded-md border border-destructive/50 bg-destructive-100 p-3 text-sm text-destructive">
+            <div class="rounded-md border border-destructive/50 bg-destructive-100 p-3 text-sm text-destructive">
               {t('Authorization failed. Please try again.')}
             </div>
           </Show>
 
-          <div className="flex gap-3">
+          <div class="flex gap-3">
             <Button
               type="button"
               variant="outline"
@@ -218,7 +214,7 @@ function McpAuthorizePage() {
               type="button"
               class="flex-1"
               loading={approveMutation.isPending}
-              disabled={!isPlatformScoped && !selectedProjectId}
+              disabled={!isPlatformScoped && !selectedProjectId()}
               onClick={handleAuthorize}
             >
               {t('Authorize')}
@@ -230,13 +226,13 @@ function McpAuthorizePage() {
   );
 }
 
-function PermissionItem({ icon, text }: { icon: JSX.Element; text: string }) {
+function PermissionItem(props: { icon: JSX.Element; text: string }) {
   return (
-    <div className="flex items-center gap-3 rounded-md border bg-accent/50 px-3 py-2.5 text-sm">
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
-        {icon}
+    <div class="flex items-center gap-3 rounded-md border bg-accent/50 px-3 py-2.5 text-sm">
+      <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10">
+        {props.icon}
       </div>
-      <span>{text}</span>
+      <span>{props.text}</span>
     </div>
   );
 }

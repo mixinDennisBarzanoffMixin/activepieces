@@ -35,58 +35,56 @@ export const AddAlertEmailForm = () => {
 
   return (
     <Form onSubmit={(data) => mutate(data)}>
-        <Field
-          name="email"
-        >
-          {(field, props) => (
-            <div class="flex flex-col gap-1">
-              <div className="flex items-stretch">
-                <Input
-                  {...props}
-                  value={field.value ?? ''}
-                  id="alert-email"
-                  type="text"
-                  placeholder="joe@doe.com"
-                  class="h-10 rounded-r-none"
-                  disabled={writeAlertPermission === false}
-                />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span>
-                      <Button
-                        type="submit"
-                        variant="default"
-                        class="h-10 rounded-l-none border-l-0 flex items-center gap-2"
-                        loading={isPending}
-                        disabled={writeAlertPermission === false}
-                      >
-                        <Plus class="size-4" />
-                        <span>{t('Add email')}</span>
-                      </Button>
-                    </span>
-                  </TooltipTrigger>
-                  {
-                    <Show when={writeAlertPermission === false}>
-                      <TooltipContent side="bottom">
-                        {t('Only project admins can do this')}
-                      </TooltipContent>
-                    </Show>
-                  }
-                </Tooltip>
-              </div>
-              <Show when={field.error}>
-                <p class="text-sm font-medium text-destructive wrap-break-word">
-                  {t(field.error)}
-                </p>
-              </Show>
+      <Field name="email">
+        {(field, props) => (
+          <div class="flex flex-col gap-1">
+            <div class="flex items-stretch">
+              <Input
+                {...props}
+                value={field.value ?? ''}
+                id="alert-email"
+                type="text"
+                placeholder="joe@doe.com"
+                class="h-10 rounded-r-none"
+                disabled={writeAlertPermission === false}
+              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    <Button
+                      type="submit"
+                      variant="default"
+                      class="h-10 rounded-l-none border-l-0 flex items-center gap-2"
+                      loading={isPending}
+                      disabled={writeAlertPermission === false}
+                    >
+                      <Plus class="size-4" />
+                      <span>{t('Add email')}</span>
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                {
+                  <Show when={writeAlertPermission === false}>
+                    <TooltipContent side="bottom">
+                      {t('Only project admins can do this')}
+                    </TooltipContent>
+                  </Show>
+                }
+              </Tooltip>
             </div>
-          )}
-        </Field>
-        <Show when={error()}>
-          <p class="mt-1 text-sm font-medium text-destructive wrap-break-word">
-            {error()}
-          </p>
-        </Show>
+            <Show when={field.error}>
+              <p class="text-sm font-medium text-destructive wrap-break-word">
+                {t(field.error)}
+              </p>
+            </Show>
+          </div>
+        )}
+      </Field>
+      <Show when={error()}>
+        <p class="mt-1 text-sm font-medium text-destructive wrap-break-word">
+          {error()}
+        </p>
+      </Show>
     </Form>
   );
 };

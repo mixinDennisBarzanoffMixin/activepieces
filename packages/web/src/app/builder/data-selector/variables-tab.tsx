@@ -1,5 +1,4 @@
 import { Permission } from '@activepieces/shared';
-import { useDebounce } from '@/lib/debounce';
 import { t } from 'i18next';
 import { Plus, SearchXIcon, Variable } from 'lucide-solid';
 import { For, Show, createSignal } from 'solid-js';
@@ -11,12 +10,15 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { variablesQueries } from '@/features/variables/hooks/variables-hooks';
 import { useAuthorization } from '@/hooks/authorization-hooks';
 import { authenticationSession } from '@/lib/authentication-session';
+import { useDebounce } from '@/lib/debounce';
 import { cn } from '@/lib/utils';
 
 import { useBuilderStateContext } from '../builder-hooks';
 
 const VariablesTab = () => {
-  const insertMention = useBuilderStateContext((state) => state.insertMention);
+  const insertMention = useBuilderStateContext((state) => ({
+    value: state.insertMention,
+  })).value;
   const [search, setSearch] = createSignal('');
   const [debouncedSearch] = useDebounce(search, 250);
   const [createOpen, setCreateOpen] = createSignal(false);
@@ -38,14 +40,14 @@ const VariablesTab = () => {
   const variables = data?.data ?? [];
 
   return (
-    <div className="flex flex-col gap-2 h-full">
-      <div className="flex items-center gap-2 px-5">
+    <div class="flex flex-col gap-2 h-full">
+      <div class="flex items-center gap-2 px-5">
         <SearchInput
           onChange={setSearch}
           value={search}
-          placeholder={t('Search variables')}
+          placeholder={String(t('Search variables'))}
         />
-        <Show when={canWrite()}>
+        <Show when={canWrite}>
           <Button
             type="button"
             size="sm"
@@ -60,30 +62,30 @@ const VariablesTab = () => {
       </div>
 
       <ScrollArea class="transition-all flex-1 w-full">
-        <Show when={isLoading()}>
-          <div className="text-center text-sm text-muted-foreground py-8">
+        <Show when={isLoading}>
+          <div class="text-center text-sm text-muted-foreground py-8">
             {t('Loading…')}
           </div>
         </Show>
 
-        <Show when={!isLoading && variables.length === 0()}>
-          <div className="flex items-center justify-center gap-2 mt-5 flex-col px-6">
+        <Show when={!isLoading && variables.length === 0}>
+          <div class="flex items-center justify-center gap-2 mt-5 flex-col px-6">
             <Show
               when={debouncedSearch()}
               fallback={
                 <>
-                  <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary">
+                  <div class="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary">
                     <Variable class="w-5 h-5" />
                   </div>
-                  <div className="text-center font-semibold text-md">
+                  <div class="text-center font-semibold text-md">
                     {t('No variables yet')}
                   </div>
-                  <div className="text-center text-sm text-muted-foreground max-w-[280px]">
+                  <div class="text-center text-sm text-muted-foreground max-w-[280px]">
                     {t(
                       'Create a variable to reference a value from any step input.',
                     )}
                   </div>
-                  <Show when={canWrite()}>
+                  <Show when={canWrite}>
                     <Button
                       type="button"
                       size="sm"
@@ -99,10 +101,10 @@ const VariablesTab = () => {
             >
               <>
                 <SearchXIcon class="w-[35px] h-[35px]" />
-                <div className="text-center font-semibold text-md">
+                <div class="text-center font-semibold text-md">
                   {t('No matching variables')}
                 </div>
-                <div className="text-center text-sm text-muted-foreground">
+                <div class="text-center text-sm text-muted-foreground">
                   {t('Try adjusting your search')}
                 </div>
               </>
@@ -110,12 +112,11 @@ const VariablesTab = () => {
           </div>
         </Show>
 
-        <Show when={!isLoading && variables.length > 0()}>
-          <div className="flex flex-col">
+        <Show when={!isLoading && variables.length > 0}>
+          <div class="flex flex-col">
             <For each={variables}>
               {(variable) => (
                 <div
-                  key={variable.id}
                   tabIndex={0}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -130,17 +131,17 @@ const VariablesTab = () => {
                       insertMention(`variables['${variable.name}']`);
                     }
                   }}
-                  className={cn(
+                  class={cn(
                     'group w-full max-w-full select-none focus:outline-hidden',
                     'hover:bg-accent dark:hover:bg-accent/20 focus:bg-accent focus:bg-opacity-75',
                     'cursor-pointer flex items-center gap-3 px-5 py-3',
                   )}
                 >
-                  <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-primary/10 text-primary">
+                  <div class="shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-primary/10 text-primary">
                     <Variable class="w-4 h-4" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-mono text-sm truncate">
+                  <div class="flex-1 min-w-0">
+                    <div class="font-mono text-sm truncate">
                       {variable.name}
                     </div>
                   </div>
@@ -154,11 +155,10 @@ const VariablesTab = () => {
       <VariableDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onSaved={() => refetch()}
+        onSaved={() => void refetch()}
       />
     </div>
   );
 };
 
-VariablesTab.displayName = 'VariablesTab';
 export { VariablesTab };

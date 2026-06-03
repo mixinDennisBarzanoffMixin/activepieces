@@ -27,10 +27,10 @@ export const stepsHooks = {
     const query = createQuery<
       StepMetadataWithActionOrTriggerOrAgentDisplayName,
       Error
-    >({
+    >(() => ({
       queryKey: getQueryKeyForStepMetadata(step, i18n.language as LocalesEnum),
       queryFn: () => stepUtils.getMetadata(step, i18n.language as LocalesEnum),
-    });
+    }));
     return {
       stepMetadata: query.data,
       isLoading: query.isLoading,
@@ -52,7 +52,7 @@ export const stepsHooks = {
     }));
   },
   useAllStepsMetadata: ({ searchQuery, type, enabled }: UseMetadataProps) => {
-    const query = createQuery<StepMetadataWithSuggestions[], Error>({
+    const query = createQuery<StepMetadataWithSuggestions[], Error>(() => ({
       queryKey: ['pieces-metadata', searchQuery, type],
       queryFn: async () => {
         const pieces = await piecesApi.list({
@@ -94,7 +94,7 @@ export const stepsHooks = {
       },
       enabled,
       staleTime: searchQuery ? 0 : Infinity,
-    });
+    }));
     return {
       refetch: query.refetch,
       metadata: query.data,
@@ -111,7 +111,7 @@ function passSearch(
   }
   return JSON.stringify({ data })
     .toLowerCase()
-    .includes(searchQuery?.toLowerCase());
+    .includes(searchQuery.toLowerCase());
 }
 
 type UseStepMetadata = {

@@ -14,10 +14,7 @@ import { Show, createEffect, onCleanup } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  ChartConfig,
-  ChartContainer,
-} from '@/components/ui/chart';
+import { ChartConfig, ChartContainer } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Tooltip,
@@ -53,34 +50,20 @@ type AnalyticsAreaChartProps = {
   tooltipFormatter?: (value: number) => string;
 };
 
-export function AnalyticsAreaChart({
-  title,
-  subtitle,
-  tooltipLabel,
-  dataKey,
-  color,
-  gradientId,
-  chartData,
-  isLoading,
-  emptyIcon,
-  emptyText,
-  downloadFilename,
-  yAxisFormatter,
-  tooltipFormatter,
-}: AnalyticsAreaChartProps) {
-  let chartRef = null;
+export function AnalyticsAreaChart(props: AnalyticsAreaChartProps) {
+  let chartRef: HTMLElement | undefined;
 
   const chartConfig = {
-    [dataKey]: { label: tooltipLabel, color },
+    [props.dataKey]: { label: props.tooltipLabel, color: props.color },
   } satisfies ChartConfig;
 
   return (
     <Card ref={(el) => (chartRef = el)}>
       <CardHeader class="space-y-0 pb-2">
-        <div className="flex items-start justify-between">
-          <div className="space-y-0.5">
-            <CardTitle class="text-base font-medium">{title}</CardTitle>
-            <p className="text-sm text-muted-foreground">{subtitle}</p>
+        <div class="flex items-start justify-between">
+          <div class="space-y-0.5">
+            <CardTitle class="text-base font-medium">{props.title}</CardTitle>
+            <p class="text-sm text-muted-foreground">{props.subtitle}</p>
           </div>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -88,7 +71,9 @@ export function AnalyticsAreaChart({
                 variant="outline"
                 size="icon"
                 class="h-8 w-8 print:hidden"
-                onClick={() => downloadChartAsPng(chartRef, downloadFilename)}
+                onClick={() => {
+                  void downloadChartAsPng(chartRef, props.downloadFilename);
+                }}
               >
                 <Download class="h-4 w-4" />
               </Button>
@@ -99,26 +84,26 @@ export function AnalyticsAreaChart({
       </CardHeader>
       <CardContent class="pt-4">
         <Show
-          when={isLoading}
+          when={props.isLoading}
           fallback={
             <Show
-              when={chartData.length === 0}
+              when={props.chartData.length === 0}
               fallback={
-                  <ChartContainer config={chartConfig} class="h-[300px] w-full">
-                    <AreaCanvas
-                      data={chartData}
-                      dataKey={dataKey}
-                      color={color}
-                      yAxisFormatter={yAxisFormatter}
-                      tooltipFormatter={tooltipFormatter}
-                      tooltipLabel={tooltipLabel}
-                    />
-                  </ChartContainer>
+                <ChartContainer config={chartConfig} class="h-[300px] w-full">
+                  <AreaCanvas
+                    data={props.chartData}
+                    dataKey={props.dataKey}
+                    color={props.color}
+                    yAxisFormatter={props.yAxisFormatter}
+                    tooltipFormatter={props.tooltipFormatter}
+                    tooltipLabel={props.tooltipLabel}
+                  />
+                </ChartContainer>
               }
             >
-              <div className="flex h-[300px] w-full flex-col items-center justify-center gap-2">
-                {emptyIcon}
-                <p className="text-sm text-muted-foreground">{emptyText}</p>
+              <div class="flex h-[300px] w-full flex-col items-center justify-center gap-2">
+                {props.emptyIcon}
+                <p class="text-sm text-muted-foreground">{props.emptyText}</p>
               </div>
             </Show>
           }
@@ -130,14 +115,7 @@ export function AnalyticsAreaChart({
   );
 }
 
-function AreaCanvas({
-  data,
-  dataKey,
-  color,
-  yAxisFormatter,
-  tooltipFormatter,
-  tooltipLabel,
-}: {
+function AreaCanvas(props: {
   data: Array<Record<string, string | number>>;
   dataKey: string;
   color: string;
@@ -154,7 +132,7 @@ function AreaCanvas({
     const chart = new Chart(canvas, {
       type: 'line',
       data: {
-        labels: data.map((item) =>
+        labels: props.data.map((item) =>
           new Date(item.date).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
@@ -162,10 +140,10 @@ function AreaCanvas({
         ),
         datasets: [
           {
-            label: tooltipLabel,
-            data: data.map((item) => Number(item[dataKey])),
-            borderColor: color,
-            backgroundColor: `${color}33`,
+            label: props.tooltipLabel,
+            data: props.data.map((item) => Number(item[props.dataKey])),
+            borderColor: props.color,
+            backgroundColor: `${props.color}33`,
             fill: true,
             pointRadius: 0,
             pointHoverRadius: 5,
@@ -183,7 +161,9 @@ function AreaCanvas({
             callbacks: {
               label: (item) => {
                 const value = Number(item.raw);
-                return `${tooltipLabel}: ${tooltipFormatter ? tooltipFormatter(value) : value}`;
+                return `${props.tooltipLabel}: ${
+                  props.tooltipFormatter ? props.tooltipFormatter(value) : value
+                }`;
               },
             },
           },
@@ -199,7 +179,9 @@ function AreaCanvas({
             ticks: {
               color: 'hsl(var(--muted-foreground))',
               callback: (value) =>
-                yAxisFormatter ? yAxisFormatter(Number(value)) : value,
+                props.yAxisFormatter
+                  ? props.yAxisFormatter(Number(value))
+                  : value,
             },
           },
         },

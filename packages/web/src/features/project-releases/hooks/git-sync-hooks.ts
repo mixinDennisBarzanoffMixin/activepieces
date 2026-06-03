@@ -32,7 +32,7 @@ export const gitSyncHooks = {
     const { platform } = platformHooks.useCurrentPlatform();
     const { gitSync } = gitSyncHooks.useGitSync(
       authenticationSession.getProjectId()!,
-      platform.plan.environmentsEnabled,
+      platform?.plan.environmentsEnabled === true,
     );
     const userHasPermissionToPushToGit = useAuthorization().checkAccess(
       Permission.WRITE_PROJECT_RELEASE,

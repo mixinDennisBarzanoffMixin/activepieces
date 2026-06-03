@@ -1,10 +1,11 @@
 import { ActivepiecesError, ErrorCode, isNil, Principal, PrincipalType } from '@activepieces/shared'
-import { FastifyBaseLogger } from 'fastify'
+import { FastifyBaseLogger, FastifyReply, FastifyRequest } from 'fastify'
 import { nanoid } from 'nanoid'
 import { accessTokenManager } from '../../../../authentication/lib/access-token-manager'
 import { apiKeyService } from '../../../../ee/api-keys/api-key-service'
+import { resolveVeritlyPrincipal } from '../../../../veritly/veritly-auth'
 
-export const authenticateOrThrow = async (log: FastifyBaseLogger, rawToken: string | null): Promise<Principal> => {
+export const authenticateOrThrow = async ({ log, rawToken, request, reply }: AuthenticateParams): Promise<Principal> => {
     if (!isNil(rawToken) && rawToken.startsWith('Bearer sk-')) {
         const trimBearerPrefix = rawToken.replace('Bearer ', '')
         return createPrincipalForApiKey(trimBearerPrefix)
@@ -13,10 +14,19 @@ export const authenticateOrThrow = async (log: FastifyBaseLogger, rawToken: stri
         const trimBearerPrefix = rawToken.replace('Bearer ', '')
         return accessTokenManager(log).verifyPrincipal(trimBearerPrefix)
     }
+    const veritly = await resolveVeritlyPrincipal({ request, reply, log })
+    if (veritly) return veritly
     return {
         id: nanoid(),
         type: PrincipalType.UNKNOWN,
     }
+}
+
+type AuthenticateParams = {
+    log: FastifyBaseLogger
+    rawToken: string | null
+    request: FastifyRequest
+    reply: FastifyReply
 }
 
 
@@ -38,4 +48,3 @@ async function createPrincipalForApiKey(apiKeyValue: string): Promise<Principal>
         },
     }
 }
-

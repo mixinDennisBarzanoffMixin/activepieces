@@ -1,7 +1,7 @@
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { TriangleAlert } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, Show, type JSXElement } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -18,77 +18,73 @@ import {
 
 interface ConfirmationDeleteDialogProps {
   title: string;
-  message: any | string;
-  mutationFn: () => Promise<void>;
+  message: JSXElement;
+  mutationFn: () => Promise<unknown>;
   entityName: string;
-  children?: any;
+  children?: JSXElement;
   open?: boolean;
   isDanger?: boolean;
   buttonText?: string;
   onOpenChange?: (open: boolean) => void;
   showToast?: boolean;
   onError?: (error: Error) => void;
-  warning?: any | string;
+  warning?: JSXElement;
 }
 
-export const ConfirmationDeleteDialog = ({
-  title,
-  message,
-  mutationFn,
-  showToast,
-  isDanger,
-  entityName,
-  buttonText,
-  children,
-  open,
-  onError,
-  onOpenChange,
-  warning,
-}: ConfirmationDeleteDialogProps) => {
-  const [isControlled] = createSignal(
-    open !== undefined && onOpenChange !== undefined,
-  );
+export const ConfirmationDeleteDialog = (
+  props: ConfirmationDeleteDialogProps,
+) => {
   const [isUncontrolledOpen, setIsUncontrolledOpen] = createSignal(false);
+  const isControlled = () =>
+    props.open !== undefined && props.onOpenChange !== undefined;
 
   const { mutate, isPending } = createMutation(() => ({
-    mutationFn,
+    mutationFn: props.mutationFn,
     onSuccess: () => {
       handleClose();
-      if (showToast) {
-        toast.success(t('Removed {entityName}', { entityName }));
+      if (props.showToast) {
+        toast.success(
+          t('Removed {entityName}', { entityName: props.entityName }),
+        );
       }
     },
-    onError,
+    onError: props.onError,
   }));
 
   const handleClose = () => {
     if (isControlled()) {
-      onOpenChange?.(false);
+      props.onOpenChange?.(false);
     } else {
       setIsUncontrolledOpen(false);
     }
   };
 
-  const isOpen = isControlled() ? open : isUncontrolledOpen();
+  const isOpen = () => (isControlled() ? props.open : isUncontrolledOpen());
 
   return (
     <Dialog
-      open={isOpen}
-      onOpenChange={isControlled() ? onOpenChange : setIsUncontrolledOpen}
+      open={isOpen()}
+      onOpenChange={(open) => {
+        if (isControlled()) {
+          props.onOpenChange?.(open);
+          return;
+        }
+        setIsUncontrolledOpen(open);
+      }}
     >
-      <Show when={children}>
-        <DialogTrigger asChild>{children}</DialogTrigger>
+      <Show when={props.children}>
+        <DialogTrigger asChild>{props.children}</DialogTrigger>
       </Show>
 
-      <DialogContent onClick={(e) => e.stopPropagation()}>
+      <DialogContent onClick={(e: MouseEvent) => e.stopPropagation()}>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription class="pt-2">{message}</DialogDescription>
+          <DialogTitle>{props.title}</DialogTitle>
+          <DialogDescription class="pt-2">{props.message}</DialogDescription>
         </DialogHeader>
-        <Show when={warning}>
+        <Show when={props.warning}>
           <Alert variant="warning">
             <TriangleAlert class="h-4 w-4" />
-            <AlertDescription>{warning}</AlertDescription>
+            <AlertDescription>{props.warning}</AlertDescription>
           </Alert>
         </Show>
         <DialogFooter class="mt-3">
@@ -104,10 +100,10 @@ export const ConfirmationDeleteDialog = ({
             loading={isPending}
             onClick={() => mutate()}
           >
-            <Show when={isDanger}>
+            <Show when={props.isDanger}>
               <TriangleAlert class="size-4 mr-2" />
             </Show>
-            {buttonText || t('Remove')}
+            {props.buttonText || t('Remove')}
           </Button>
         </DialogFooter>
       </DialogContent>

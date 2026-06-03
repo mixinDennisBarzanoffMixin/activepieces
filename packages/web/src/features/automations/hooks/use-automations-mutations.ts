@@ -5,9 +5,9 @@ import {
   isNil,
   UncategorizedFolderId,
 } from '@activepieces/shared';
-import { createMutation, useQueryClient } from "@tanstack/solid-query";
+import { useNavigate } from '@solidjs/router';
+import { createMutation, useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { useNavigate } from "@solidjs/router";
 import { toast } from 'solid-sonner';
 
 import { flowsApi } from '@/features/flows/api/flows-api';
@@ -40,11 +40,11 @@ export function useAutomationsMutations(deps: MutationDeps) {
   const projectId = authenticationSession.getProjectId() ?? '';
 
   const { mutate: startFromScratch, isPending: isCreateFlowPending } =
-    createMutation<PopulatedFlow, Error, string | undefined>({
+    createMutation<PopulatedFlow, Error, string | undefined>(() => ({
       mutationFn: async (folderId) => {
         return flowsApi.create({
           projectId,
-          displayName: t('Untitled'),
+          displayName: t('Untitled').toString(),
           folderId:
             !folderId || folderId === UncategorizedFolderId
               ? undefined
@@ -52,12 +52,12 @@ export function useAutomationsMutations(deps: MutationDeps) {
         });
       },
       onSuccess: (flow) => {
-        navigate(`/flows/${flow.id}?${NEW_FLOW_QUERY_PARAM}=true`);
+        void navigate(`/flows/${flow.id}?${NEW_FLOW_QUERY_PARAM}=true`);
       },
-    });
+    }));
 
   const { mutate: createTableMutation, isPending: isCreatingTable } =
-    createMutation<Table, Error, { name: string; folderId?: string }>({
+    createMutation<Table, Error, { name: string; folderId?: string }>(() => ({
       mutationFn: async ({ name, folderId }) => {
         return tableHooks.createTableWithDefaults({
           name,
@@ -66,12 +66,12 @@ export function useAutomationsMutations(deps: MutationDeps) {
         });
       },
       onSuccess: (table) => {
-        queryClient.invalidateQueries({ queryKey: ['tables'] });
-        navigate(
+        void queryClient.invalidateQueries({ queryKey: ['tables'] });
+        void navigate(
           `/projects/${projectId}/tables/${table.id}?${NEW_TABLE_QUERY_PARAM}=true`,
         );
       },
-    });
+    }));
 
   const { mutate: exportFlows, isPending: isExportFlowsPending } =
     flowHooks.useExportFlows();
@@ -97,59 +97,63 @@ export function useAutomationsMutations(deps: MutationDeps) {
     onError: () => toast.error(t('Failed to delete item')),
   }));
 
-  const { mutateAsync: bulkDelete, isPending: isDeleting } = createMutation(() => ({
-    mutationFn: async (selectedItems: SelectedItemsMap) => {
-      const { flowIds, tableIds, folderIds } =
-        getSelectedIdsByType(selectedItems);
-      await Promise.all([
-        ...flowIds.map((id) => flowsApi.delete(id)),
-        ...tableIds.map((id) => tablesApi.delete(id)),
-        ...folderIds.map((id) => foldersApi.delete(id)),
-      ]);
-    },
-    onSuccess: () => {
-      deps.clearSelection();
-      deps.invalidateAll();
-      toast.success(t('Items deleted successfully'));
-    },
-    onError: () => toast.error(t('Failed to delete items')),
-  }));
+  const { mutateAsync: bulkDelete, isPending: isDeleting } = createMutation(
+    () => ({
+      mutationFn: async (selectedItems: SelectedItemsMap) => {
+        const { flowIds, tableIds, folderIds } =
+          getSelectedIdsByType(selectedItems);
+        await Promise.all([
+          ...flowIds.map((id) => flowsApi.delete(id)),
+          ...tableIds.map((id) => tablesApi.delete(id)),
+          ...folderIds.map((id) => foldersApi.delete(id)),
+        ]);
+      },
+      onSuccess: () => {
+        deps.clearSelection();
+        deps.invalidateAll();
+        toast.success(t('Items deleted successfully'));
+      },
+      onError: () => toast.error(t('Failed to delete items')),
+    }),
+  );
 
-  const { mutateAsync: bulkMoveTo, isPending: isBulkMoving } = createMutation(() => ({
-    mutationFn: async ({
-      selectedItems,
-      targetFolderId,
-    }: {
-      selectedItems: SelectedItemsMap;
-      targetFolderId: string;
-    }) => {
-      const { flowIds, tableIds } = getSelectedIdsByType(selectedItems);
-      const folderId =
-        isNil(targetFolderId) || targetFolderId === UncategorizedFolderId
-          ? null
-          : targetFolderId;
-      await Promise.all([
-        ...flowIds.map((id) =>
-          flowsApi.update(id, {
-            type: FlowOperationType.CHANGE_FOLDER,
-            request: { folderId },
-          }),
-        ),
-        ...tableIds.map((id) => tablesApi.update(id, { folderId })),
-      ]);
-    },
-    onSuccess: (_data, { selectedItems, targetFolderId }) => {
-      if (targetFolderId && targetFolderId !== UncategorizedFolderId) {
-        for (const [id] of selectedItems) {
-          deps.unpinItem?.(id);
+  const { mutateAsync: bulkMoveTo, isPending: isBulkMoving } = createMutation(
+    () => ({
+      mutationFn: async ({
+        selectedItems,
+        targetFolderId,
+      }: {
+        selectedItems: SelectedItemsMap;
+        targetFolderId: string;
+      }) => {
+        const { flowIds, tableIds } = getSelectedIdsByType(selectedItems);
+        const folderId =
+          isNil(targetFolderId) || targetFolderId === UncategorizedFolderId
+            ? null
+            : targetFolderId;
+        await Promise.all([
+          ...flowIds.map((id) =>
+            flowsApi.update(id, {
+              type: FlowOperationType.CHANGE_FOLDER,
+              request: { folderId },
+            }),
+          ),
+          ...tableIds.map((id) => tablesApi.update(id, { folderId })),
+        ]);
+      },
+      onSuccess: (_data, { selectedItems, targetFolderId }) => {
+        if (targetFolderId && targetFolderId !== UncategorizedFolderId) {
+          for (const [id] of selectedItems) {
+            deps.unpinItem?.(id);
+          }
         }
-      }
-      deps.clearSelection();
-      deps.invalidateAll();
-      toast.success(t('Items moved successfully'));
-    },
-    onError: () => toast.error(t('Failed to move items')),
-  }));
+        deps.clearSelection();
+        deps.invalidateAll();
+        toast.success(t('Items moved successfully'));
+      },
+      onError: () => toast.error(t('Failed to move items')),
+    }),
+  );
 
   const { mutateAsync: rename, isPending: isRenaming } = createMutation(() => ({
     mutationFn: async ({
@@ -177,32 +181,34 @@ export function useAutomationsMutations(deps: MutationDeps) {
     onError: () => toast.error(t('Failed to rename item')),
   }));
 
-  const { mutate: duplicateFlow, isPending: isDuplicating } = createMutation(() => ({
-    mutationFn: async (flow: PopulatedFlow) => {
-      const version = flow.version;
-      const displayName = `${version.displayName} - Copy`;
-      const createdFlow = await flowsApi.create({
-        displayName,
-        projectId: flow.projectId,
-        folderId: flow.folderId ?? undefined,
-      });
-      return flowsApi.update(createdFlow.id, {
-        type: FlowOperationType.IMPORT_FLOW,
-        request: {
+  const { mutate: duplicateFlow, isPending: isDuplicating } = createMutation(
+    () => ({
+      mutationFn: async (flow: PopulatedFlow) => {
+        const version = flow.version;
+        const displayName = `${version.displayName} - Copy`;
+        const createdFlow = await flowsApi.create({
           displayName,
-          trigger: version.trigger,
-          schemaVersion: version.schemaVersion,
-          notes: version.notes,
-        },
-      });
-    },
-    onSuccess: (data) => {
-      openNewWindow(`/flows/${data.id}`);
-      deps.invalidateAll();
-      toast.success(t('Flow duplicated successfully'));
-    },
-    onError: () => toast.error(t('Failed to duplicate flow')),
-  }));
+          projectId: flow.projectId,
+          folderId: flow.folderId ?? undefined,
+        });
+        return flowsApi.update(createdFlow.id, {
+          type: FlowOperationType.IMPORT_FLOW,
+          request: {
+            displayName,
+            trigger: version.trigger,
+            schemaVersion: version.schemaVersion,
+            notes: version.notes,
+          },
+        });
+      },
+      onSuccess: (data) => {
+        openNewWindow(`/flows/${data.id}`);
+        deps.invalidateAll();
+        toast.success(t('Flow duplicated successfully'));
+      },
+      onError: () => toast.error(t('Failed to duplicate flow')),
+    }),
+  );
 
   const { mutate: moveItem, isPending: isMovingItem } = createMutation(() => ({
     mutationFn: async ({
@@ -235,14 +241,16 @@ export function useAutomationsMutations(deps: MutationDeps) {
     onError: () => toast.error(t('Failed to move item')),
   }));
 
-  const { mutate: exportTable, isPending: isExportingTable } = createMutation(() => ({
-    mutationFn: async (table: Table) => {
-      const exported = await tablesApi.export(table.id);
-      tablesUtils.exportTables([exported]);
-    },
-    onSuccess: () => toast.success(t('Table has been exported.')),
-    onError: () => toast.error(t('Failed to export table')),
-  }));
+  const { mutate: exportTable, isPending: isExportingTable } = createMutation(
+    () => ({
+      mutationFn: async (table: Table) => {
+        const exported = await tablesApi.export(table.id);
+        tablesUtils.exportTables([exported]);
+      },
+      onSuccess: () => toast.success(t('Table has been exported.')),
+      onError: () => toast.error(t('Failed to export table')),
+    }),
+  );
 
   const handleBulkExport = (selectedItems: SelectedItemsMap) => {
     const { flowIds, tableIds } = getSelectedIdsByType(selectedItems);

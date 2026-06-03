@@ -18,6 +18,6 @@ export const AfterImportFlowRedirect = () => {
       });
     }
     navigate(`/flows/${flowId}`, { replace: true });
-  }, []);
+  });
   return <></>;
 };

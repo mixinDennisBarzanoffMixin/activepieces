@@ -18,25 +18,26 @@ export const auditLogQueries = {
     const [searchParams] = useSearchParams();
     const { platform } = platformHooks.useCurrentPlatform();
     return createQuery(() => ({
-      queryKey: auditLogKeys.all(searchParams.toString()),
+      queryKey: auditLogKeys.all(new URLSearchParams(searchParams).toString()),
       staleTime: 0,
       gcTime: 0,
       enabled: platform.plan.auditLogEnabled,
       meta: { showErrorDialog: true, loadSubsetOptions: {} },
       queryFn: async () => {
-        const cursor = searchParams.get(CURSOR_QUERY_PARAM);
-        const limit = searchParams.get(LIMIT_QUERY_PARAM);
-        const action = searchParams.getAll('action');
-        const projectId = searchParams.getAll('projectId');
-        const userId = searchParams.get('userId');
+        const params = new URLSearchParams(searchParams);
+        const cursor = params.get(CURSOR_QUERY_PARAM);
+        const limit = params.get(LIMIT_QUERY_PARAM);
+        const action = params.getAll('action');
+        const projectId = params.getAll('projectId');
+        const userId = params.get('userId');
         return auditEventsApi.list({
           cursor: cursor ?? undefined,
           limit: limit ? parseInt(limit) : undefined,
-          action: action ?? undefined,
-          projectId: projectId ?? undefined,
+          action: action.length > 0 ? action : undefined,
+          projectId: projectId.length > 0 ? projectId : undefined,
           userId: userId ?? undefined,
-          createdBefore: searchParams.get('createdBefore') ?? undefined,
-          createdAfter: searchParams.get('createdAfter') ?? undefined,
+          createdBefore: params.get('createdBefore') ?? undefined,
+          createdAfter: params.get('createdAfter') ?? undefined,
         });
       },
     }));

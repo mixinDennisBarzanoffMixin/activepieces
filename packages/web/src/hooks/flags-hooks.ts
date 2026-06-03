@@ -4,7 +4,7 @@ import { createMemo } from 'solid-js';
 
 import { queryClient } from '@/app/query-client';
 
-import { flagsApi, FlagsMap } from '../api/flags-api';
+import { flagsApi } from '../api/flags-api';
 
 type WebsiteBrand = {
   websiteName: string;
@@ -28,7 +28,7 @@ export const flagsHooks = {
     return createQuery(
       () => ({
         queryKey,
-        queryFn: flagsApi.getAll,
+        queryFn: () => flagsApi.getAll(),
         staleTime: Infinity,
       }),
       () => queryClient,
@@ -36,13 +36,16 @@ export const flagsHooks = {
   },
   useWebsiteBranding: () => {
     const query = flagsHooks.useFlags();
-    return createMemo(() => query.data?.[ApFlagId.THEME] as WebsiteBrand | undefined);
+    const branding = createMemo(
+      () => query.data?.[ApFlagId.THEME] as WebsiteBrand | undefined,
+    );
+    return branding;
   },
   useFlag: <T>(flagId: ApFlagId) => {
     const data = createQuery(
       () => ({
         queryKey: ['flags'],
-        queryFn: flagsApi.getAll,
+        queryFn: () => flagsApi.getAll(),
         staleTime: Infinity,
       }),
       () => queryClient,

@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -66,7 +66,7 @@ function LayoutGridIcon(
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -122,6 +122,5 @@ function LayoutGridIcon(
     </div>
   );
 }
-LayoutGridIcon.displayName = 'LayoutGridIcon';
 
 export { LayoutGridIcon };

@@ -1,4 +1,4 @@
-import { For } from 'solid-js';
+import { For, mergeProps } from 'solid-js';
 
 import {
   Carousel,
@@ -13,11 +13,12 @@ type CategorySectionSkeletonProps = {
   hideHeader?: boolean;
 };
 
-export const CategorySectionSkeleton = ({
-  hideHeader = false,
-}: CategorySectionSkeletonProps) => {
+export const CategorySectionSkeleton = (
+  _props: CategorySectionSkeletonProps,
+) => {
+  const props = mergeProps({ hideHeader: false }, _props);
   return (
-    <div className="space-y-4">
+    <div class="space-y-4">
       <Carousel
         opts={{
           align: 'start',
@@ -25,11 +26,11 @@ export const CategorySectionSkeleton = ({
         }}
         class="w-full"
       >
-        <div className="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-4">
           <Skeleton class="h-8 w-48" />
-          <div className="flex items-center gap-2">
+          <div class="flex items-center gap-2">
             <Skeleton class="h-8 w-20" />
-            <div className="flex items-center gap-1">
+            <div class="flex items-center gap-1">
               <Skeleton class="h-8 w-8 rounded-md" />
               <Skeleton class="h-8 w-8 rounded-md" />
             </div>
@@ -37,13 +38,15 @@ export const CategorySectionSkeleton = ({
         </div>
 
         <CarouselContent class="pb-3">
-          <For each={[...Array(4)]}>
+          <For each={[0, 1, 2, 3]}>
             {(_, index) => (
               <CarouselItem
                 key={index}
                 class="basis-full sm:basis-1/3 lg:basis-1/4 xl:basis-1/5 min-w-[350px]"
               >
-                <TemplateCardSkeleton showCategoryCarouselButton={hideHeader} />
+                <TemplateCardSkeleton
+                  showCategoryCarouselButton={props.hideHeader}
+                />
               </CarouselItem>
             )}
           </For>

@@ -45,7 +45,7 @@ export const LanguageToggle = () => {
   }));
 
   return (
-    <div className="space-y-2">
+    <div class="space-y-2">
       <Label class="text-sm font-medium flex items-center gap-2">
         <Globe class="w-4 h-4" />
         {t('Language')}
@@ -96,7 +96,7 @@ export const LanguageToggle = () => {
                           onSelect={(value) => mutate(value)}
                           class="flex items-center justify-between py-2 text-sm"
                         >
-                          <div className="flex items-center gap-2">{label}</div>
+                          <div class="flex items-center gap-2">{label}</div>
                           <Check
                             class={cn(
                               'h-4 w-4',
@@ -117,7 +117,7 @@ export const LanguageToggle = () => {
       </Popover>
       {
         <Show when={showCommunity}>
-          <div className="pt-1">
+          <div class="pt-1">
             <a
               class="text-xs text-primary hover:underline font-medium"
               rel="noopener noreferrer"

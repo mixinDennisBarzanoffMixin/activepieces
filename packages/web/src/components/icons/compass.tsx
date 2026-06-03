@@ -1,5 +1,5 @@
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,7 @@ function CompassIcon(props: CompassIconProps & { ref?: CompassIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -93,6 +93,5 @@ function CompassIcon(props: CompassIconProps & { ref?: CompassIconHandle }) {
     </div>
   );
 }
-CompassIcon.displayName = 'CompassIcon';
 
 export { CompassIcon };

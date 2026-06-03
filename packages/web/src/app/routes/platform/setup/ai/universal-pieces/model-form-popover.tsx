@@ -24,12 +24,9 @@ type ModelFormPopoverProps = {
   children: JSX.Element;
 };
 
-const ModelFormPopover = ({
-  initialData,
-  onSubmit,
-  children,
-}: ModelFormPopoverProps) => {
+const ModelFormPopover = (props: ModelFormPopoverProps) => {
   const [open, setOpen] = createSignal(false);
+  const types = Object.values(AIProviderModelType);
   const defaultModel: ProviderModelConfig = {
     modelId: '',
     modelName: '',
@@ -37,15 +34,15 @@ const ModelFormPopover = ({
   };
 
   const [model, setModel] = createSignal<ProviderModelConfig>(
-    initialData || defaultModel,
+    props.initialData || defaultModel,
   );
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: SubmitEvent) => {
     e.preventDefault();
     // so parent form doesn't submit
     e.stopPropagation();
-    onSubmit(model);
-    if (!initialData) {
+    props.onSubmit(model());
+    if (!props.initialData) {
       setModel(defaultModel);
     }
     setOpen(false);
@@ -53,54 +50,56 @@ const ModelFormPopover = ({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverTrigger asChild>{props.children}</PopoverTrigger>
       <PopoverContent class="w-80">
-        <div className="grid gap-4">
-          <div className="space-y-2">
-            <h4 className="font-medium leading-none">
-              <Show when={initialData} fallback={t('Add Model')}>
-                t('Edit Model'
+        <div class="grid gap-4">
+          <div class="space-y-2">
+            <h4 class="font-medium leading-none">
+              <Show when={props.initialData} fallback={t('Add Model')}>
+                {t('Edit Model')}
               </Show>
             </h4>
-            <p className="text-sm text-muted-foreground">
+            <p class="text-sm text-muted-foreground">
               {t('Configure the model settings')}
             </p>
           </div>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
+          <form onSubmit={handleSubmit} class="space-y-4">
+            <div class="space-y-2">
               <Label for="modelId">{t('Model ID')}</Label>
               <Input
                 id="modelId"
-                value={model.modelId}
+                value={model().modelId}
                 onChange={(e) =>
-                  setModel({ ...model, modelId: e.target.value })
+                  setModel({ ...model(), modelId: e.currentTarget.value })
                 }
                 placeholder="e.g., gpt-4"
                 required
               />
             </div>
 
-            <div className="space-y-2">
+            <div class="space-y-2">
               <Label for="modelName">{t('Model Name')}</Label>
               <Input
                 id="modelName"
-                value={model.modelName}
+                value={model().modelName}
                 onChange={(e) =>
-                  setModel({ ...model, modelName: e.target.value })
+                  setModel({ ...model(), modelName: e.currentTarget.value })
                 }
                 placeholder="e.g., GPT-4"
                 required
               />
             </div>
 
-            <div className="space-y-2">
+            <div class="space-y-2">
               <Label for="modelType">{t('Model Type')}</Label>
               <Select
-                value={model.modelType}
-                onValueChange={(value) =>
+                value={model().modelType}
+                onValueChange={(value: string) =>
                   setModel({
-                    ...model,
-                    modelType: value as AIProviderModelType,
+                    ...model(),
+                    modelType:
+                      types.find((type) => String(type) === value) ??
+                      AIProviderModelType.TEXT,
                   })
                 }
               >
@@ -119,7 +118,7 @@ const ModelFormPopover = ({
               </Select>
             </div>
 
-            <div className="flex justify-end gap-2">
+            <div class="flex justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -128,8 +127,8 @@ const ModelFormPopover = ({
                 {t('Cancel')}
               </Button>
               <Button type="submit">
-                <Show when={initialData} fallback={t('Add')}>
-                  t('Update'
+                <Show when={props.initialData} fallback={t('Add')}>
+                  {t('Update')}
                 </Show>
               </Button>
             </div>
@@ -140,5 +139,4 @@ const ModelFormPopover = ({
   );
 };
 
-ModelFormPopover.displayName = 'ModelFormPopover';
 export { ModelFormPopover };

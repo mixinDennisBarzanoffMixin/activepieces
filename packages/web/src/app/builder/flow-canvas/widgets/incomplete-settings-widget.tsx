@@ -1,16 +1,11 @@
-import {
-  FlowAction,
-  FlowVersion,
-  Step,
-  flowStructureUtil,
-} from '@activepieces/shared';
-import { useReactFlow } from '../solid-flow-adapter';
+import { FlowVersion, Step, flowStructureUtil } from '@activepieces/shared';
 import { t } from 'i18next';
-import { createMemo } from 'solid-js';
+import { createMemo, Show } from 'solid-js';
 
 import { BuilderState } from '@/app/builder/builder-hooks';
 import { Button } from '@/components/ui/button';
 
+import { useReactFlow } from '../solid-flow-adapter';
 import { flowCanvasUtils } from '../utils/flow-canvas-utils';
 
 type IncompleteSettingsButtonProps = {
@@ -18,27 +13,27 @@ type IncompleteSettingsButtonProps = {
   selectStepByName: BuilderState['selectStepByName'];
 };
 
-const IncompleteSettingsButton: any = ({ flowVersion, selectStepByName }) => {
+const IncompleteSettingsButton = (props: IncompleteSettingsButtonProps) => {
   const invalidSteps = createMemo(
     () =>
       flowStructureUtil
-        .getAllSteps(flowVersion.trigger)
+        .getAllSteps(props.flowVersion.trigger)
         .filter(filterValidOrSkippedSteps).length,
   );
   const { fitView } = useReactFlow();
   function onClick() {
     const invalidSteps = flowStructureUtil
-      .getAllSteps(flowVersion.trigger)
+      .getAllSteps(props.flowVersion.trigger)
       .filter(filterValidOrSkippedSteps);
     if (invalidSteps.length > 0) {
-      selectStepByName(invalidSteps[0].name);
-      fitView(
+      props.selectStepByName(invalidSteps[0].name);
+      void fitView(
         flowCanvasUtils.createFocusStepInGraphParams(invalidSteps[0].name),
       );
     }
   }
   return (
-    !flowVersion.valid && (
+    <Show when={!props.flowVersion.valid}>
       <Button
         variant="ghost"
         class="h-[28px] hover:bg-amber-50 p-2 dark:hover:bg-amber-950 dark:bg-amber-950 bg-amber-50 border border-solid border-amber-500 hover:border-amber-700 dark:hover:border-amber-600  dark:border-amber-900 dark:text-amber-600 text-amber-700 hover:text-amber-700 dark:hover:text-amber-600   animate-fade"
@@ -49,15 +44,14 @@ const IncompleteSettingsButton: any = ({ flowVersion, selectStepByName }) => {
           e.preventDefault();
         }}
       >
-        {t('incompleteSteps', { invalidSteps: invalidSteps })}
+        {t('incompleteSteps', { invalidSteps: invalidSteps() })}
       </Button>
-    )
+    </Show>
   );
 };
 
-IncompleteSettingsButton.displayName = 'IncompleteSettingsButton';
 export default IncompleteSettingsButton;
 function filterValidOrSkippedSteps(step: Step) {
-  if ((step as FlowAction).skip) return false;
+  if ('skip' in step && step.skip) return false;
   return !step.valid;
 }

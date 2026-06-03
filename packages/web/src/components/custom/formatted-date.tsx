@@ -1,3 +1,5 @@
+import { Show } from 'solid-js';
+
 import {
   Tooltip,
   TooltipContent,
@@ -11,20 +13,21 @@ type FormattedDateProps = {
   className?: string;
 };
 
-export const FormattedDate = ({
-  date,
-  includeTime,
-  className,
-}: FormattedDateProps) => {
-  const formattedDate = formatUtils.formatDate(date);
-  const formattedDateWithTime = formatUtils.formatDateWithTime(date, false);
-  const fullDateTimeTooltip = formatUtils.formatDateWithTime(date, true);
+export const FormattedDate = (props: FormattedDateProps) => {
+  const formattedDate = formatUtils.formatDate(props.date);
+  const formattedDateWithTime = formatUtils.formatDateWithTime(
+    props.date,
+    false,
+  );
+  const fullDateTimeTooltip = formatUtils.formatDateWithTime(props.date, true);
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className={className}>
-          {includeTime ? formattedDateWithTime : formattedDate}
+        <span class={props.className}>
+          <Show when={props.includeTime} fallback={formattedDate}>
+            {formattedDateWithTime}
+          </Show>
         </span>
       </TooltipTrigger>
       <TooltipContent>

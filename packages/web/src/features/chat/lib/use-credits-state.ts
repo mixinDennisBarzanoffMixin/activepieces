@@ -48,7 +48,8 @@ function computeCreditsWarning({
   providers?: { provider: string; enabledForChat?: boolean }[];
 }): CreditsWarning | null {
   const isActivepieces = providers?.some(
-    (p) => p.provider === AIProviderName.ACTIVEPIECES && p.enabledForChat,
+    (p) =>
+      p.provider === String(AIProviderName.ACTIVEPIECES) && p.enabledForChat,
   );
   if (
     !isActivepieces ||

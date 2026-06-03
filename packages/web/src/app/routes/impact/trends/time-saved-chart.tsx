@@ -1,6 +1,7 @@
 import { PlatformAnalyticsReport } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Clock } from 'lucide-solid';
+import { createMemo } from 'solid-js';
 
 import { formatUtils } from '@/lib/format-utils';
 
@@ -10,18 +11,20 @@ type TimeSavedChartProps = {
   report?: PlatformAnalyticsReport;
 };
 
-export function TimeSavedChart({ report }: TimeSavedChartProps) {
-  const chartData =
-    report?.runs
-      .map((data) => ({
-        date: data.day,
-        minutesSaved:
-          (report?.flows.find((flow) => flow.flowId === data.flowId)
-            ?.timeSavedPerRun ?? 0) * data.runs,
-      }))
-      .sort(
-        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-      ) ?? [];
+export function TimeSavedChart(props: TimeSavedChartProps) {
+  const chartData = createMemo(
+    () =>
+      props.report?.runs
+        .map((data) => ({
+          date: data.day,
+          minutesSaved:
+            (props.report?.flows.find((flow) => flow.flowId === data.flowId)
+              ?.timeSavedPerRun ?? 0) * data.runs,
+        }))
+        .sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        ) ?? [],
+  );
 
   return (
     <AnalyticsAreaChart
@@ -31,8 +34,8 @@ export function TimeSavedChart({ report }: TimeSavedChartProps) {
       dataKey="minutesSaved"
       color="#10b981"
       gradientId="fillTimeSaved"
-      chartData={chartData}
-      isLoading={!report}
+      chartData={chartData()}
+      isLoading={!props.report}
       emptyIcon={<Clock class="h-10 w-10 text-muted-foreground/50" />}
       emptyText={t(
         'No time saved yet. Data will appear here once your flows start running.',

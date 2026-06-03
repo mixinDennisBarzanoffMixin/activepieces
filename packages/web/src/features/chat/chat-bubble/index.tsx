@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import { JSX } from 'solid-js';
+import { JSX, mergeProps, splitProps, Show } from 'solid-js';
 
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button, ButtonProps } from '@/components/ui/button';
@@ -27,40 +27,50 @@ const chatBubbleVariant = cva('flex gap-2 w-full items-start relative group', {
 
 interface ChatBubbleProps
   extends JSX.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof chatBubbleVariant> {}
+    VariantProps<typeof chatBubbleVariant> {
+  class?: string;
+}
 
 function ChatBubble(props: ChatBubbleProps) {
-  const { className, variant, layout, children, ref, ...rest } = props;
+  const [local, rest] = splitProps(props, [
+    'class',
+    'variant',
+    'layout',
+    'children',
+    'ref',
+  ]);
   return (
     <div
-      className={cn(
-        chatBubbleVariant({ variant, layout, className }),
+      class={cn(
+        chatBubbleVariant({ variant: local.variant, layout: local.layout }),
         'relative group',
+        local.class,
       )}
-      ref={ref}
+      ref={local.ref}
       {...rest}
     >
-      {children}
+      {local.children}
     </div>
   );
 }
-ChatBubble.displayName = 'ChatBubble';
 
 // ChatBubbleAvatar
 interface ChatBubbleAvatarProps {
   src?: string;
-  fallback?: any;
+  fallback?: JSX.Element;
   className?: string;
 }
 
-const ChatBubbleAvatar = ({ src, fallback, className }) => (
+const ChatBubbleAvatar = (props: ChatBubbleAvatarProps) => (
   <Avatar>
     <AvatarImage
-      src={src}
+      src={props.src}
       alt="Avatar"
-      class={cn('aspect-square p-2', className)}
+      class={cn('aspect-square p-2', props.className)}
     />
-    <AvatarFallback class="bg-background border">{fallback}</AvatarFallback>
+    <AvatarFallback class="bg-background border">
+      {props.fallback}
+    </AvatarFallback>
   </Avatar>
 );
 
@@ -86,55 +96,67 @@ interface ChatBubbleMessageProps
   extends JSX.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof chatBubbleMessageVariants> {
   isLoading?: boolean;
+  class?: string;
 }
 
 function ChatBubbleMessage(props: ChatBubbleMessageProps) {
-  const { className, variant, layout, isLoading = false, children, ref, ...rest } = props;
+  const merged = mergeProps({ isLoading: false }, props);
+  const [local, rest] = splitProps(merged, [
+    'class',
+    'variant',
+    'layout',
+    'isLoading',
+    'children',
+    'ref',
+  ]);
   return (
     <div
-      className={cn(
-        chatBubbleMessageVariants({ variant, layout, className }),
+      class={cn(
+        chatBubbleMessageVariants({
+          variant: local.variant,
+          layout: local.layout,
+        }),
         'wrap-break-word max-w-full whitespace-pre-wrap overflow-x-auto',
+        local.class,
       )}
-      ref={ref}
+      ref={local.ref}
       {...rest}
     >
-      {isLoading ? (
-        <div className="flex items-center space-x-2">
+      <Show when={local.isLoading} fallback={local.children}>
+        <div class="flex items-center space-x-2">
           <MessageLoading />
         </div>
-      ) : (
-        children
-      )}
+      </Show>
     </div>
   );
 }
-ChatBubbleMessage.displayName = 'ChatBubbleMessage';
 
 // ChatBubbleAction
 type ChatBubbleActionProps = ButtonProps & {
-  icon: any;
+  icon: JSX.Element;
 };
 
-const ChatBubbleAction = ({
-  icon,
-  onClick,
-  className,
-  variant = 'ghost',
-  size = 'icon',
-  ...props
-}) => (
-  <Button
-    variant={variant}
-    size={size}
-    class={className}
-    onClick={onClick}
-    {...props}
-  >
-    {icon}
-  </Button>
-);
-
+const ChatBubbleAction = (_props: ChatBubbleActionProps) => {
+  const merged = mergeProps({ variant: 'ghost', size: 'icon' }, _props);
+  const [local, rest] = splitProps(merged, [
+    'icon',
+    'onClick',
+    'className',
+    'variant',
+    'size',
+  ]);
+  return (
+    <Button
+      variant={local.variant}
+      size={local.size}
+      class={local.className}
+      onClick={local.onClick}
+      {...rest}
+    >
+      {local.icon}
+    </Button>
+  );
+};
 export {
   ChatBubble,
   ChatBubbleAvatar,

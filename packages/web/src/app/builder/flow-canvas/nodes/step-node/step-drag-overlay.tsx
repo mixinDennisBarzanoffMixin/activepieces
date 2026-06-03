@@ -11,7 +11,7 @@ import {
 } from '../../../state/cursor-position-context';
 import { flowCanvasConsts } from '../../utils/consts';
 
-const StepDragOverlay = ({ step }: { step: FlowAction | FlowTrigger }) => {
+const StepDragOverlay = (props: { step: FlowAction | FlowTrigger }) => {
   const { cursorPosition } = useCursorPosition();
   const [overlayPosition, setOverlayPosition] =
     createSignal<typeof cursorPosition>(cursorPosition);
@@ -26,14 +26,14 @@ const StepDragOverlay = ({ step }: { step: FlowAction | FlowTrigger }) => {
     overlayPosition.y - flowCanvasConsts.STEP_DRAG_OVERLAY_HEIGHT - 20
   }px`;
   const { stepMetadata } = stepsHooks.useStepMetadata({
-    step,
+    step: props.step,
   });
   useCursorPositionEffect((position) => {
     setOverlayPosition(position);
   });
   return (
     <div
-      className={
+      class={
         'p-4 absolute left-0 top-0 cursor-grabbing z-50  opacity-75  flex items-center justify-center rounded-2xl border border-solid border bg-background cursor-grabbing'
       }
       style={{
@@ -41,18 +41,31 @@ const StepDragOverlay = ({ step }: { step: FlowAction | FlowTrigger }) => {
         top,
         height: `${flowCanvasConsts.STEP_DRAG_OVERLAY_HEIGHT}px`,
         width: `${flowCanvasConsts.STEP_DRAG_OVERLAY_WIDTH}px`,
-        zIndex: 99999,
+        'z-index': 99999,
       }}
       id={'dragged-step-overlay'}
     >
       <img
         id={t('logo')}
-        className={'object-contain left-0 right-0 static !cursor-grabbing'}
-        src={step?.settings?.customLogoUrl ?? stepMetadata?.logoUrl}
+        class={'object-contain left-0 right-0 static !cursor-grabbing'}
+        src={getLogoUrl(props.step.settings, stepMetadata)}
         alt={t('Step Icon')}
       />
     </div>
   );
 };
+
+function getLogoUrl(settings: unknown, metadata: unknown) {
+  const custom = getStringProperty(settings, 'customLogoUrl');
+  return custom ?? getStringProperty(metadata, 'logoUrl');
+}
+
+function getStringProperty(value: unknown, key: string) {
+  if (typeof value !== 'object' || value === null || !(key in value)) {
+    return undefined;
+  }
+  const property = value[key as keyof typeof value];
+  return typeof property === 'string' ? property : undefined;
+}
 
 export default StepDragOverlay;

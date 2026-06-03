@@ -1,4 +1,4 @@
-import { ApFlagId, SourceCode, deepMergeAndCast } from '@activepieces/shared';
+import { ApFlagId, SourceCode } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Code, Package } from 'lucide-solid';
 import { Show, createSignal } from 'solid-js';
@@ -18,32 +18,22 @@ type CodeEditorProps = {
   minHeight?: string;
 };
 
-const CodeEditor = ({
-  sourceCode,
-  readonly,
-  onChange,
-  applyCodeToCurrentStep,
-  minHeight,
-}: CodeEditorProps) => {
-  const { code, packageJson } = sourceCode;
+const CodeEditor = (props: CodeEditorProps) => {
+  const { code, packageJson } = props.sourceCode;
   const [activeTab, setActiveTab] = createSignal<keyof SourceCode>('code');
-  const [language, setLanguage] = createSignal<'typescript' | 'json'>(
-    'typescript'
-  );
-  const codeApplicationEnabled = typeof applyCodeToCurrentStep === 'function';
+  const codeApplicationEnabled =
+    typeof props.applyCodeToCurrentStep === 'function';
 
   const { data: allowNpmPackagesInCodeStep } = flagsHooks.useFlag<boolean>(
-    ApFlagId.ALLOW_NPM_PACKAGES_IN_CODE_STEP
+    ApFlagId.ALLOW_NPM_PACKAGES_IN_CODE_STEP,
   );
 
   function handlePackageClick() {
     setActiveTab('packageJson');
-    setLanguage('json');
   }
 
   function handleCodeClick() {
     setActiveTab('code');
-    setLanguage('typescript');
   }
 
   function handleAddPackages({
@@ -54,13 +44,18 @@ const CodeEditor = ({
     packageVersion: string;
   }) {
     try {
-      const json = deepMergeAndCast(JSON.parse(packageJson), {
+      const parsed: unknown = JSON.parse(packageJson);
+      const json = {
+        ...(isRecord(parsed) ? parsed : {}),
         dependencies: {
+          ...(isRecord(parsed) && isRecord(parsed.dependencies)
+            ? parsed.dependencies
+            : {}),
           [packageName]: packageVersion,
         },
-      });
+      };
       setActiveTab('packageJson');
-      onChange({ code, packageJson: JSON.stringify(json, null, 2) });
+      props.onChange({ code, packageJson: JSON.stringify(json, null, 2) });
     } catch (e) {
       console.error(e);
       internalErrorToast();
@@ -68,21 +63,21 @@ const CodeEditor = ({
   }
 
   return (
-    <div className="flex flex-col gap-2 border rounded py-2 px-2 transition-all">
-      <div className="flex flex-row justify-center items-center h-full">
-        <div className="flex justify-start gap-4 items-center">
+    <div class="flex flex-col gap-2 border rounded py-2 px-2 transition-all">
+      <div class="flex flex-row justify-center items-center h-full">
+        <div class="flex justify-start gap-4 items-center">
           <div
-            className={cn('text-sm cursor-pointer', {
-              'font-bold': activeTab === 'code',
+            class={cn('text-sm cursor-pointer', {
+              'font-bold': activeTab() === 'code',
             })}
             onClick={() => handleCodeClick()}
           >
             {t('Code')}
           </div>
-          <Show when={allowNpmPackagesInCodeStep()}>
+          <Show when={allowNpmPackagesInCodeStep}>
             <div
-              className={cn('text-sm cursor-pointer', {
-                'font-bold': activeTab === 'packageJson',
+              class={cn('text-sm cursor-pointer', {
+                'font-bold': activeTab() === 'packageJson',
               })}
               onClick={() => handlePackageClick()}
             >
@@ -90,9 +85,9 @@ const CodeEditor = ({
             </div>
           </Show>
         </div>
-        <div className="flex grow"></div>
+        <div class="flex grow" />
         <Show
-          when={codeApplicationEnabled()}
+          when={codeApplicationEnabled}
           fallback={
             allowNpmPackagesInCodeStep && (
               <AddNpmDialog onAdd={handleAddPackages}>
@@ -113,7 +108,7 @@ const CodeEditor = ({
             variant="outline"
             class="flex gap-2"
             size={'sm'}
-            onClick={applyCodeToCurrentStep}
+            onClick={props.applyCodeToCurrentStep}
           >
             <Code class="w-3 h-3" />
             {t('Use code')}
@@ -121,16 +116,16 @@ const CodeEditor = ({
         </Show>
       </div>
       <textarea
-        value={activeTab === 'code' ? code : packageJson}
+        value={activeTab() === 'code' ? code : packageJson}
         class="min-h-[200px] w-full border-none bg-transparent font-mono text-sm outline-none"
-        style={{ 'min-height': minHeight ?? '200px' }}
-        readOnly={readonly}
+        style={{ 'min-height': props.minHeight ?? '200px' }}
+        readOnly={props.readonly}
         onInput={(e) => {
           const value = e.currentTarget.value;
-          onChange(
-            activeTab === 'code'
+          props.onChange(
+            activeTab() === 'code'
               ? { code: value, packageJson }
-            : { code, packageJson: value }
+              : { code, packageJson: value },
           );
         }}
       />
@@ -139,3 +134,7 @@ const CodeEditor = ({
 };
 
 export { CodeEditor };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}

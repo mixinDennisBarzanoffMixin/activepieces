@@ -72,7 +72,7 @@ const doesElementHaveAnInputThatUsesMentions = (
   return false;
 };
 
-const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
+const DataSelector = (props: DataSelectorProps) => {
   let containerRef: HTMLDivElement | undefined;
   const [DataSelectorSize, setDataSelectorSize] =
     createSignal<DataSelectorSizeState>(DataSelectorSizeState.DOCKED);
@@ -81,13 +81,13 @@ const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
     buildDataSelectorStructure,
   );
   const filteredNodes = createMemo(() =>
-    dataSelectorUtils.filterBy(dataSelectorStructure, searchTerm),
+    dataSelectorUtils.filterBy(dataSelectorStructure, searchTerm()),
   );
   const [showDataSelector, setShowDataSelector] = createSignal(false);
-  const isTriggerSelected = useBuilderStateContext(
-    (state) => state.selectedStep === 'trigger',
-  );
-  const defaultTab = isTriggerSelected ? 'variables' : 'data';
+  const state = useBuilderStateContext((state) => ({
+    isTriggerSelected: state.selectedStep === 'trigger',
+  }));
+  const defaultTab = state.isTriggerSelected ? 'variables' : 'data';
 
   const checkFocus = () => {
     const isTextMentionInputFocused =
@@ -110,35 +110,35 @@ const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
     <div
       ref={(el) => (containerRef = el)}
       tabIndex={0}
-      className={cn(
+      class={cn(
         'absolute bottom-0 mr-5 mb-5 right-0 z-50 transition-all  border border-solid border-outline overflow-x-hidden bg-background shadow-lg rounded-md',
         {
-          'opacity-0 pointer-events-none': !showDataSelector,
+          'opacity-0 pointer-events-none': !showDataSelector(),
         },
         textMentionUtils.dataSelectorCssClassSelector,
       )}
     >
-      <div className="text-lg items-center px-3 py-2 flex gap-2">
-        {t('Data Selector')} <div className="grow"></div>{' '}
+      <div class="text-lg items-center px-3 py-2 flex gap-2">
+        {t('Data Selector')} <div class="grow" />{' '}
         <DataSelectorSizeTogglers
           state={DataSelectorSize}
           setListSizeState={setDataSelectorSize}
-        ></DataSelectorSizeTogglers>
+        />
       </div>
       <div
         style={{
           height:
-            DataSelectorSize === DataSelectorSizeState.COLLAPSED
+            DataSelectorSize() === DataSelectorSizeState.COLLAPSED
               ? '0px'
-              : DataSelectorSize === DataSelectorSizeState.DOCKED
+              : DataSelectorSize() === DataSelectorSizeState.DOCKED
               ? '450px'
-              : `${parentHeight - 100}px`,
+              : `${props.parentHeight - 100}px`,
           width:
-            DataSelectorSize !== DataSelectorSizeState.EXPANDED
+            DataSelectorSize() !== DataSelectorSizeState.EXPANDED
               ? '450px'
-              : `${parentWidth - 40}px`,
+              : `${props.parentWidth - 40}px`,
         }}
-        className="transition-all overflow-hidden"
+        class="transition-all overflow-hidden"
       >
         <Tabs
           key={defaultTab}
@@ -171,32 +171,32 @@ const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
             value="data"
             class="flex-1 min-h-0 flex flex-col gap-2 mt-2"
           >
-            <div className="flex items-center gap-2 px-5">
+            <div class="flex items-center gap-2 px-5">
               <SearchInput
                 onChange={(e) => setSearchTerm(e)}
-                value={searchTerm}
-              ></SearchInput>
+                value={searchTerm()}
+              />
             </div>
             <ScrollArea class="transition-all flex-1 w-full ">
               <Show when={filteredNodes()}>
-                <For each={filteredNodes}>
+                <For each={filteredNodes()}>
                   {(node) => (
                     <DataSelectorNode
                       depth={0}
                       key={node.key}
                       node={node}
-                      searchTerm={searchTerm}
-                    ></DataSelectorNode>
+                      searchTerm={searchTerm()}
+                    />
                   )}
                 </For>
               </Show>
-              <Show when={filteredNodes.length === 0()}>
-                <div className="flex items-center justify-center gap-2 mt-5  flex-col">
-                  <SearchXIcon class="w-[35px] h-[35px]"></SearchXIcon>
-                  <div className="text-center font-semibold text-md">
+              <Show when={filteredNodes().length === 0}>
+                <div class="flex items-center justify-center gap-2 mt-5  flex-col">
+                  <SearchXIcon class="w-[35px] h-[35px]" />
+                  <div class="text-center font-semibold text-md">
                     {t('No matching data')}
                   </div>
-                  <div className="text-center ">
+                  <div class="text-center ">
                     {t('Try adjusting your search')}
                   </div>
                 </div>
@@ -213,5 +213,4 @@ const DataSelector = ({ parentHeight, parentWidth }: DataSelectorProps) => {
   );
 };
 
-DataSelector.displayName = 'DataSelector';
 export { DataSelector };

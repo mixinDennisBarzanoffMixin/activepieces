@@ -63,7 +63,7 @@ const SSOPage = () => {
         title={t('Single Sign On')}
         description={t('Manage single sign on providers')}
       >
-        <div className="flex flex-col gap-4">
+        <div class="flex flex-col gap-4">
           <Item variant="outline">
             <ItemMedia variant="icon">
               <Earth />
@@ -74,7 +74,7 @@ const SSOPage = () => {
                 {t('Restrict authentication to specific email domains.')}
               </ItemDescription>
               <Show when={(platform?.allowedAuthDomains ?? []).length > 0}>
-                <div className="mt-1 gap-2 flex">
+                <div class="mt-1 gap-2 flex">
                   <For each={platform?.allowedAuthDomains ?? []}>
                     {(text, index) => (
                       <Badge key={index} variant={'outline'}>
@@ -92,7 +92,7 @@ const SSOPage = () => {
 
           <Item variant="outline">
             <ItemMedia variant="icon">
-              <img className="size-6" src={GoogleIcon} alt="icon" />
+              <img class="size-6" src={GoogleIcon} alt="icon" />
             </ItemMedia>
             <ItemContent>
               <ItemTitle>Google</ItemTitle>
@@ -127,17 +127,17 @@ const SSOPage = () => {
                 )}
               </ItemDescription>
               <Show when={platform.ssoDomain}>
-                <div className="mt-1 gap-2 flex items-center">
+                <div class="mt-1 gap-2 flex items-center">
                   <Badge variant="outline">{platform.ssoDomain}</Badge>
                   <Show
                     when={ssoDomainVerified}
                     fallback={
-                      <span className="text-xs text-warning">
+                      <span class="text-xs text-warning">
                         {t('Pending verification')}
                       </span>
                     }
                   >
-                    <span className="flex items-center gap-1 text-xs text-success-600">
+                    <span class="flex items-center gap-1 text-xs text-success-600">
                       <CheckCircle class="size-3" />
                       {t('Verified')}
                     </span>
@@ -182,5 +182,4 @@ const SSOPage = () => {
   );
 };
 
-SSOPage.displayName = 'SSOPage';
 export { SSOPage };

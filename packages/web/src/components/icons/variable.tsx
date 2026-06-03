@@ -1,5 +1,5 @@
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,7 @@ function VariableIcon(props: VariableIconProps & { ref?: VariableIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -85,6 +85,5 @@ function VariableIcon(props: VariableIconProps & { ref?: VariableIconHandle }) {
     </div>
   );
 }
-VariableIcon.displayName = 'VariableIcon';
 
 export { VariableIcon };

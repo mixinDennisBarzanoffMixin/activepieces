@@ -1,22 +1,18 @@
 import { MarkdownVariant } from '@activepieces/shared';
-import { createMutation } from '@tanstack/solid-query';
-import { t } from 'i18next';
-import { Check, Copy, Info, AlertTriangle, Lightbulb } from 'lucide-solid';
+import { Info, AlertTriangle, Lightbulb } from 'lucide-solid';
 import { marked } from 'marked';
-import { createSignal, Show } from 'solid-js';
-import { toast } from 'solid-sonner';
+import { createEffect, Show, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
 import { Alert, AlertDescription } from '../ui/alert';
-import { Button } from '../ui/button';
 
 function applyVariables(markdown: string, variables: Record<string, string>) {
   if (typeof markdown !== 'string') {
     return '';
   }
   let result = markdown.split('<br>').join('\n');
-  result = result.replace(/\{\{(.*?)\}\}/g, (_, variableName) => {
+  result = result.replace(/\{\{(.*?)\}\}/g, (_match, variableName: string) => {
     return variables[variableName] ?? '';
   });
   return result;
@@ -30,90 +26,85 @@ type MarkdownProps = {
   loading?: string;
 };
 
-const Container = ({
-  variant,
-  children,
-}: {
+const Container = (props: {
   variant?: MarkdownVariant;
-  children: any;
+  children: JSX.Element;
 }) => {
   return (
     <Alert
       class={cn('rounded-md border', {
         'dark:bg-amber-950 bg-amber-50  border-none dark:text-amber-600 text-amber-700':
-          variant === MarkdownVariant.WARNING,
+          props.variant === MarkdownVariant.WARNING,
         'bg-success-100 text-success-300 border-none':
-          variant === MarkdownVariant.TIP,
+          props.variant === MarkdownVariant.TIP,
         'p-0 bg-transparent border-none':
-          variant === MarkdownVariant.BORDERLESS,
+          props.variant === MarkdownVariant.BORDERLESS,
       })}
     >
-      <Show when={variant !== MarkdownVariant.BORDERLESS}>
+      <Show when={props.variant !== MarkdownVariant.BORDERLESS}>
         <>
           <Show
-            when={variant === MarkdownVariant.INFO || variant === undefined}
+            when={
+              props.variant === MarkdownVariant.INFO ||
+              props.variant === undefined
+            }
           >
             <Info class="w-4 h-4 mt-1" />
           </Show>
-          <Show when={variant === MarkdownVariant.WARNING}>
+          <Show when={props.variant === MarkdownVariant.WARNING}>
             <AlertTriangle class="w-4 h-4 mt-1 stroke-amber-700" />
           </Show>
-          <Show when={variant === MarkdownVariant.TIP}>
+          <Show when={props.variant === MarkdownVariant.TIP}>
             <Lightbulb class="w-4 h-4 mt-1" />
           </Show>
         </>
       </Show>
-      <AlertDescription class="grow w-full">{children}</AlertDescription>
+      <AlertDescription class="grow w-full">{props.children}</AlertDescription>
     </Alert>
   );
 };
 
-const ApMarkdown = ({
-  markdown,
-  variables,
-  variant,
-  className,
-  loading,
-}: MarkdownProps) => {
-  const [copiedText, setCopiedText] = createSignal<string | null>(null);
+const ApMarkdown = (props: MarkdownProps) => {
+  let el: HTMLDivElement | undefined;
 
-  const { mutate: copyToClipboard } = createMutation(() => ({
-    mutationFn: async (text: string) => {
-      await navigator.clipboard.writeText(text);
-      setCopiedText(text);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setCopiedText(null);
-    },
-    onError: () => {
-      toast.error(t('Failed to copy to clipboard'), {
-        duration: 3000,
-      });
-    },
-  }));
-
-  if (loading && loading.length > 0) {
+  if (props.loading && props.loading.length > 0) {
     return (
-      <Container variant={variant}>
-        <div className="flex items-center gap-2">{loading}</div>
+      <Container variant={props.variant}>
+        <div class="flex items-center gap-2">{props.loading}</div>
       </Container>
     );
   }
 
-  if (!markdown) {
+  if (!props.markdown) {
     return null;
   }
 
-  const markdownProcessed = applyVariables(markdown, variables ?? {});
+  const html = () => {
+    if (!props.markdown) {
+      return '';
+    }
+    return marked.parse(
+      applyVariables(props.markdown, props.variables ?? {}).trim(),
+      { async: false },
+    );
+  };
+
+  createEffect(() => {
+    if (el) {
+      el.innerHTML = html();
+    }
+  });
 
   return (
-    <Container variant={variant}>
+    <Container variant={props.variant}>
       <div
-        class={cn('grow w-full', className)}
-        innerHTML={marked.parse(markdownProcessed.trim(), { async: false })}
+        class={cn('grow w-full', props.className)}
+        ref={(node) => {
+          el = node;
+        }}
       />
     </Container>
   );
 };
 
-ApMarkdown.displayName = 'ApMarkdown';
 export { ApMarkdown };

@@ -1,5 +1,5 @@
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,7 @@ function PuzzleIcon(props: PuzzleIconProps & { ref?: PuzzleIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -82,6 +82,5 @@ function PuzzleIcon(props: PuzzleIconProps & { ref?: PuzzleIconHandle }) {
     </div>
   );
 }
-PuzzleIcon.displayName = 'PuzzleIcon';
 
 export { PuzzleIcon };

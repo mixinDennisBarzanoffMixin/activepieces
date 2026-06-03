@@ -1,9 +1,9 @@
 import { FlowTrigger, TriggerEventWithPayload } from '@activepieces/shared';
 import deepEqual from 'deep-equal';
 import { t } from 'i18next';
-import { useFormContext } from '@/app/builder/builder-form';
-import { For, Show } from 'solid-js';
+import { For, Show, createMemo } from 'solid-js';
 
+import { useFormContext } from '@/app/builder/builder-form';
 import {
   Select,
   SelectContent,
@@ -19,25 +19,24 @@ type TriggerEventSelectProps = {
   sampleData: unknown;
 };
 
-export const TriggerEventSelect = ({
-  pollResults,
-  sampleData,
-}: TriggerEventSelectProps) => {
-  const selectedId = getSelectedId(sampleData, pollResults?.data ?? []);
+export const TriggerEventSelect = (props: TriggerEventSelectProps) => {
+  const selectedId = createMemo(() =>
+    getSelectedId(props.sampleData, props.pollResults?.data ?? []),
+  );
 
   const form = useFormContext<Pick<FlowTrigger, 'name' | 'settings'>>();
   const formValues = form.getValues();
 
-  const updateSampleData = useBuilderStateContext(
-    (state) => state.updateSampleData,
-  );
+  const updateSampleData = useBuilderStateContext((state) => ({
+    value: state.updateSampleData,
+  })).value;
 
   return (
-    <div className="mb-3 px-3 pt-3">
+    <div class="mb-3 px-3 pt-3">
       <Select
-        value={selectedId}
+        value={selectedId()}
         onValueChange={(value: string) => {
-          const triggerEvent = pollResults?.data.find(
+          const triggerEvent = props.pollResults?.data.find(
             (triggerEvent) => triggerEvent.id === value,
           );
           if (triggerEvent) {
@@ -50,37 +49,33 @@ export const TriggerEventSelect = ({
       >
         <SelectTrigger
           class="w-full"
-          disabled={pollResults && pollResults.data.length === 0}
+          disabled={props.pollResults && props.pollResults.data.length === 0}
         >
           <Show
-            when={pollResults && pollResults.data.length > 0()}
+            when={props.pollResults && props.pollResults.data.length > 0}
             fallback={t('Old results were removed, retest for new sample data')}
           >
-            <SelectValue
-              placeholder={t('No sample data available')}
-            ></SelectValue>
+            <SelectValue placeholder={String(t('No sample data available'))} />
           </Show>
         </SelectTrigger>
         <SelectContent>
-          <Show when={pollResults()}>
-            <For each={pollResults.data}>
+          <Show when={props.pollResults}>
+            <For each={props.pollResults.data}>
               {(triggerEvent, index) => (
                 <SelectItem key={triggerEvent.id} value={triggerEvent.id}>
-                  {t('Result #') + (index + 1)}
+                  {t('Result #') + (index() + 1)}
                 </SelectItem>
               )}
             </For>
           </Show>
         </SelectContent>
       </Select>
-      <span className="text-sm mt-2 text-muted-foreground">
+      <span class="text-sm mt-2 text-muted-foreground">
         {t('The sample data can be used in the next steps.')}
       </span>
     </div>
   );
 };
-
-TriggerEventSelect.displayName = 'TriggerEventSelect';
 
 function getSelectedId(
   sampleData: unknown,

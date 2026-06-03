@@ -1,3 +1,5 @@
+import { mergeProps, untrack } from 'solid-js';
+
 import { piecesHooks } from '../hooks/pieces-hooks';
 
 import { PieceIcon } from './piece-icon';
@@ -9,21 +11,22 @@ type PieceIconWithPieceNameProps = {
   showTooltip?: boolean;
 };
 
-const PieceIconWithPieceName = ({
-  pieceName,
-  size = 'md',
-  border = true,
-  showTooltip = true,
-}: PieceIconWithPieceNameProps) => {
-  const { summary } = piecesHooks.usePieceSummary({ name: pieceName });
+const PieceIconWithPieceName = (_props: PieceIconWithPieceNameProps) => {
+  const props = mergeProps(
+    { size: 'md', border: true, showTooltip: true },
+    _props,
+  );
+  const { summary } = piecesHooks.usePieceSummary({
+    name: untrack(() => props.pieceName),
+  });
 
   return (
     <PieceIcon
-      size={size}
-      border={border}
-      displayName={summary?.displayName}
-      logoUrl={summary?.logoUrl}
-      showTooltip={showTooltip}
+      size={props.size}
+      border={props.border}
+      displayName={summary()?.displayName}
+      logoUrl={summary()?.logoUrl}
+      showTooltip={props.showTooltip}
     />
   );
 };

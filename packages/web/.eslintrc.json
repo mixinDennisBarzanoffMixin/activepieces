@@ -3,7 +3,9 @@
     "../../.eslintrc.base.json"
   ],
   "ignorePatterns": [
-    "!**/*"
+    "!**/*",
+    "src/lib/test/*",
+    "src/hooks/use-mobile.tsx"
   ],
   "overrides": [
     {
@@ -12,10 +14,11 @@
         "**/*.tsx"
       ],
       "parser": "@typescript-eslint/parser",
+      "parserOptions": {
+        "project": "./tsconfig.app.json",
+        "tsconfigRootDir": "./"
+      },
       "settings": {
-        "react": {
-          "version": "detect"
-        },
         "import/resolver": {
           "typescript": {},
           "alias": {
@@ -46,17 +49,106 @@
         "plugin:import/warnings",
         "plugin:import/typescript",
         "plugin:@typescript-eslint/recommended",
-        "plugin:react/recommended",
-        "plugin:react-hooks/recommended",
+        "plugin:@typescript-eslint/recommended-requiring-type-checking",
+        "plugin:solid/typescript",
         //"plugin:jsx-a11y/recommended",
         "plugin:prettier/recommended",
-        "plugin:testing-library/react",
         "plugin:jest-dom/recommended",
         "plugin:vitest/legacy-recommended"
       ],
       "rules": {
-        "react-hooks/rules-of-hooks": "error",
-        "react-hooks/exhaustive-deps": "warn",
+        "@typescript-eslint/no-unsafe-call": "error",
+        "@typescript-eslint/no-unsafe-member-access": "error",
+        "@typescript-eslint/no-unnecessary-condition": "error",
+        "@typescript-eslint/no-unnecessary-type-assertion": "error",
+        "@typescript-eslint/no-unsafe-return": "error",
+        "@typescript-eslint/restrict-template-expressions": "error",
+        "@typescript-eslint/consistent-type-assertions": [
+          "warn",
+          {
+            "assertionStyle": "as",
+            "objectLiteralTypeAssertions": "allow-as-parameter"
+          }
+        ],
+        "warn-casts": "warn",
+        "no-react-migration-leftovers": "error",
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.type='LogicalExpression']",
+            "message": "Do not call logical expressions. Remove the trailing ()."
+          },
+          {
+            "selector": "CallExpression[callee.type='BinaryExpression']",
+            "message": "Do not call comparison expressions. Remove the trailing ()."
+          },
+          {
+            "selector": "CallExpression[callee.type='ConditionalExpression']",
+            "message": "Do not call conditional expressions. Remove the trailing ()."
+          },
+          {
+            "selector": "CallExpression[callee.type='Literal']",
+            "message": "Do not call literals. Remove the trailing ()."
+          },
+          {
+            "selector": "CallExpression[callee.type='TemplateLiteral']",
+            "message": "Do not call template literals. Remove the trailing ()."
+          },
+          {
+            "selector": "CallExpression[callee.type='ObjectExpression']",
+            "message": "Do not call object literals. Remove the trailing ()."
+          },
+          {
+            "selector": "CallExpression[callee.type='ArrayExpression']",
+            "message": "Do not call array literals. Remove the trailing ()."
+          },
+          {
+            "selector": "TSNonNullExpression[expression.property.name='data'][expression.object.name=/[Qq]uery$/]",
+            "message": "Do not hide query loading state with data!. Guard with <Show>, enabled, or an explicit assertion."
+          },
+          {
+            "selector": "JSXOpeningElement[name.name='ResizablePanel'] > JSXAttribute[name.name=/^(initialSize|minSize|maxSize|collapsedSize)$/][value.value=/^[0-9]+(?:\\\\.[0-9]+)?%$/]",
+            "message": "Corvu ResizablePanel size props do not accept percent strings. Use a number ratio like 0, 0.6, or 1, or a px string."
+          }
+        ],
+        "solid/components-return-once": "error",
+        "solid/event-handlers": "error",
+        "solid/imports": "error",
+        "solid/jsx-no-duplicate-props": "error",
+        "solid/jsx-no-script-url": "error",
+        "solid/jsx-no-undef": "error",
+        "solid/jsx-uses-vars": "error",
+        "solid/no-array-handlers": "error",
+        "solid/no-destructure": "error",
+        "solid/no-innerhtml": "error",
+        "solid/no-proxy-apis": "error",
+        "solid/no-react-deps": "error",
+        "solid/no-react-specific-props": "error",
+        "solid/no-unknown-namespaces": "error",
+        "solid/prefer-classlist": "error",
+        "solid/prefer-for": "error",
+        "solid/prefer-show": "error",
+        "solid/reactivity": "error",
+        "solid/self-closing-comp": "error",
+        "solid/style-prop": "error",
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "queryParams",
+            "property": "get",
+            "message": "Solid useSearchParams returns a proxy object. Use queryParams.key."
+          },
+          {
+            "object": "queryParams",
+            "property": "getAll",
+            "message": "Solid useSearchParams returns a proxy object. Use queryParams.key and normalize arrays only where needed."
+          },
+          {
+            "object": "queryParams",
+            "property": "has",
+            "message": "Solid useSearchParams returns a proxy object. Use queryParams.key !== undefined."
+          }
+        ],
         "import/no-restricted-paths": [
           "error",
           {
@@ -92,7 +184,6 @@
           "error",
           "unix"
         ],
-        "react/prop-types": "error",
         "import/order": [
           "error",
           {
@@ -113,9 +204,9 @@
           }
         ],
         "import/default": "off",
+        "import/namespace": "off",
         "import/no-named-as-default-member": "off",
         "import/no-named-as-default": "off",
-        "react/react-in-jsx-scope": "off",
         "jsx-a11y/anchor-is-valid": "off",
         "unused-imports/no-unused-imports": "error",
         "@typescript-eslint/no-unused-vars": [
@@ -149,14 +240,6 @@
             "jsxBracketSameLine": false
           }
         ]
-      }
-    },
-    {
-      "files": [
-        "./src/components/**/*.{ts,tsx}"
-      ],
-      "rules": {
-        "react/prop-types": "off"
       }
     },
     {

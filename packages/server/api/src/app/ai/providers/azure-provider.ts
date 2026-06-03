@@ -1,7 +1,7 @@
 import { httpClient, HttpMethod } from '@activepieces/pieces-common'
 import { AIProviderModel, AIProviderModelType, AzureProviderAuthConfig, AzureProviderConfig, DEFAULT_AZURE_API_VERSION } from '@activepieces/shared'
 import { FastifyBaseLogger } from 'fastify'
-import { AIProviderStrategy } from './ai-provider'
+import type { AIProviderStrategy } from './ai-provider'
 
 export const azureProvider: AIProviderStrategy<AzureProviderAuthConfig, AzureProviderConfig> = {
     name: 'Azure OpenAI',

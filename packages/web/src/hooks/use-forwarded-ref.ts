@@ -1,6 +1,9 @@
 import { createEffect } from 'solid-js';
 
-type ForwardedRef<T> = ((value: T | undefined) => void) | { current: T | undefined } | undefined;
+type ForwardedRef<T> =
+  | ((value: T | undefined) => void)
+  | { current: T | undefined }
+  | undefined;
 
 export function useForwardedRef<T>(ref: ForwardedRef<T>) {
   let node: T | undefined;

@@ -5,10 +5,12 @@ type PieceDisplayNameProps = {
   fallback?: string;
 };
 
-const PieceDisplayName = ({ pieceName, fallback }: PieceDisplayNameProps) => {
-  const { summary } = piecesHooks.usePieceSummary({ name: pieceName });
+const PieceDisplayName = (props: PieceDisplayNameProps) => {
+  const { summary } = piecesHooks.usePieceSummary({ name: props.pieceName });
 
-  return <span>{summary?.displayName || fallback || pieceName}</span>;
+  return (
+    <span>{summary.displayName || props.fallback || props.pieceName}</span>
+  );
 };
 
 export { PieceDisplayName };

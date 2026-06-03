@@ -71,7 +71,7 @@ const RunsList = () => {
     },
   }));
 
-  const allViewedRuns: RunsListItem[] = createMemo(() => {
+  const allViewedRuns = createMemo<RunsListItem[]>(() => {
     const allRuns = (runs?.pages.flatMap((page) => page.data) ?? []).map(
       (run) => ({ type: 'flowRun' as const, run }),
     );
@@ -85,15 +85,15 @@ const RunsList = () => {
   });
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div class="h-full w-full flex flex-col">
       <SidebarHeader onClose={() => setRightSidebar(RightSideBarType.NONE)}>
         {t('Recent Runs')}
       </SidebarHeader>
-      <Show when={isLoading()}>
+      <Show when={isLoading}>
         <CardListItemSkeleton numberOfCards={10} />
       </Show>
 
-      <Show when={isError()}>
+      <Show when={isError}>
         <div>{t('Error, please try again.')}</div>
       </Show>
 
@@ -102,16 +102,16 @@ const RunsList = () => {
           runs &&
           runs.pages.flatMap((page) => page.data).length === 0 &&
           !isLoading &&
-          !isRefetching()
+          !isRefetching
         }
       >
         <CardListEmpty message={t('No runs found')} />
       </Show>
 
-      <Show when={runs && runs.pages.flatMap((page) => page.data).length > 0()}>
+      <Show when={runs && runs.pages.flatMap((page) => page.data).length > 0}>
         <VirtualizedScrollArea
           class="w-full grow max-w-[calc(100%-6px)]"
-          items={allViewedRuns}
+          items={allViewedRuns()}
           estimateSize={() => FLOW_CARD_HEIGHT}
           getItemKey={(index) => index}
           renderItem={(item) => {
@@ -119,20 +119,20 @@ const RunsList = () => {
               return (
                 <FlowRunCard
                   refetchRuns={() => {
-                    refetch();
+                    void refetch();
                   }}
                   run={item.run}
                   key={item.run.id + item.run.status}
                   viewedRunId={run?.id}
-                ></FlowRunCard>
+                />
               );
             }
             return (
-              <div className="mx-5 h-full flex items-center ">
+              <div class="mx-5 h-full flex items-center ">
                 <Button
                   class="w-full"
                   variant={'accent'}
-                  onClick={() => fetchNextPage()}
+                  onClick={() => void fetchNextPage()}
                   loading={isFetchingNextPage}
                 >
                   {t('More...')}
@@ -140,11 +140,10 @@ const RunsList = () => {
               </div>
             );
           }}
-        ></VirtualizedScrollArea>
+        />
       </Show>
     </div>
   );
 };
 
-RunsList.displayName = 'RunsList';
 export { RunsList };

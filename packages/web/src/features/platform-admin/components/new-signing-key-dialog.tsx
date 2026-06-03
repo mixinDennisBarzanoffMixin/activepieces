@@ -26,10 +26,7 @@ type NewSigningKeyDialogProps = {
   onCreate: () => void;
 };
 
-export const NewSigningKeyDialog = ({
-  children,
-  onCreate,
-}: NewSigningKeyDialogProps) => {
+export const NewSigningKeyDialog = (props: NewSigningKeyDialogProps) => {
   const [open, setOpen] = createSignal(false);
   const [signingKey, setSigningKey] = createSignal<
     AddSigningKeyResponse | undefined
@@ -42,22 +39,22 @@ export const NewSigningKeyDialog = ({
   });
 
   const { mutate, isPending } = createMutation(() => ({
-    mutationFn: signingKeyApi.create,
+    mutationFn: (body: AddSigningKeyRequestBody) => signingKeyApi.create(body),
     onSuccess: (key) => {
       setSigningKey(key);
-      onCreate();
+      props.onCreate();
     },
   }));
 
   return (
     <Dialog
       open={open}
-        onOpenChange={(open) => {
-          setOpen(open);
+      onOpenChange={(open) => {
+        setOpen(open);
         reset(form);
-        }}
+      }}
     >
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -65,13 +62,13 @@ export const NewSigningKeyDialog = ({
           </DialogTitle>
         </DialogHeader>
         <Show when={signingKey()}>
-          <div className="p-4">
-            <div className="flex flex-col items-start gap-2">
-              <span className="text-md">
+          <div class="p-4">
+            <div class="flex flex-col items-start gap-2">
+              <span class="text-md">
                 {t(
                   'Please save this secret key somewhere safe and accessible. For security reasons,',
                 )}{' '}
-                <span className="font-semibold">
+                <span class="font-semibold">
                   {t(
                     "you won't be able to view it again after closing this dialog.",
                   )}
@@ -86,37 +83,32 @@ export const NewSigningKeyDialog = ({
           </div>
         </Show>
         <Show when={!signingKey()}>
-          <Form
-              class="grid space-y-4"
-              onSubmit={(data) => mutate(data)}
-          >
-              <Field
-                name="displayName"
-              >
-                {(field, props) => (
-                  <div class="grid space-y-4">
-                    <Label for="displayName">{t('Name')}</Label>
-                    <Input
-                      {...props}
-                      value={field.value ?? ''}
-                      required
-                      id="displayName"
-                      class="rounded-sm"
-                    />
-                    <Show when={field.error}>
-                      <p class="text-sm font-medium text-destructive wrap-break-word">
-                        {t(field.error)}
-                      </p>
-                    </Show>
-                  </div>
-                )}
-              </Field>
+          <Form class="grid space-y-4" onSubmit={(data) => mutate(data)}>
+            <Field name="displayName">
+              {(field, props) => (
+                <div class="grid space-y-4">
+                  <Label for="displayName">{t('Name')}</Label>
+                  <Input
+                    {...props}
+                    value={field.value ?? ''}
+                    required
+                    id="displayName"
+                    class="rounded-sm"
+                  />
+                  <Show when={field.error}>
+                    <p class="text-sm font-medium text-destructive wrap-break-word">
+                      {t(field.error)}
+                    </p>
+                  </Show>
+                </div>
+              )}
+            </Field>
           </Form>
         </Show>
         <DialogFooter>
           <Show
             when={!signingKey()}
-            fallback={(
+            fallback={
               <Button
                 variant={'accent'}
                 onClick={() => {
@@ -126,7 +118,7 @@ export const NewSigningKeyDialog = ({
               >
                 {t('Done')}
               </Button>
-            )}
+            }
           >
             <>
               <Button variant="outline" onClick={() => setOpen(false)}>

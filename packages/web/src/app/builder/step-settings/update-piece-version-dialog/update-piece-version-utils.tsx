@@ -97,17 +97,20 @@ function getLatestVersion({
   return latest;
 }
 
-export function LatestVersionAvailableAlert({
-  isLatestMinorOrMajor,
-}: LatestVersionAvailableAlertProps) {
+export function LatestVersionAvailableAlert(
+  props: LatestVersionAvailableAlertProps,
+) {
   return (
-    <Alert variant={isLatestMinorOrMajor ? 'warning' : 'default'}>
-      <Show when={isLatestMinorOrMajor()} fallback={<ArrowUp class="size-4" />}>
+    <Alert variant={props.isLatestMinorOrMajor ? 'warning' : 'default'}>
+      <Show
+        when={props.isLatestMinorOrMajor}
+        fallback={<ArrowUp class="size-4" />}
+      >
         <AlertTriangle class="size-4" />
       </Show>
       <AlertTitle>
         <Show
-          when={isLatestMinorOrMajor()}
+          when={props.isLatestMinorOrMajor}
           fallback={t('Newer version available')}
         >
           {t('Significant update available')}
@@ -115,7 +118,7 @@ export function LatestVersionAvailableAlert({
       </AlertTitle>
       <AlertDescription>
         <Show
-          when={isLatestMinorOrMajor()}
+          when={props.isLatestMinorOrMajor}
           fallback={t(
             'Settings will carry over. Retest the step as the output may have changed.',
           )}

@@ -10,7 +10,7 @@ import {
   Lightbulb,
   Rocket,
 } from 'lucide-solid';
-import { createEffect, createSignal, For } from 'solid-js';
+import { createEffect, createSignal, For, type Component } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 const TIER_CONFIG: Record<
   string,
   {
-    icon: ComponentType<{ className?: string }>;
+    icon: Component<{ class?: string }>;
     displayLabel: string;
     description: string;
   }
@@ -45,24 +45,22 @@ const TIER_CONFIG: Record<
   },
 };
 
-export function ChatModelSelector({
-  selectedModel,
-  onModelChange,
-}: {
+export function ChatModelSelector(props: {
   selectedModel: string | null;
   onModelChange: (modelId: string) => void;
 }) {
   const [open, setOpen] = createSignal(false);
   const [focusedIndex, setFocusedIndex] = createSignal(-1);
-  let listRef = null;
+  let listRef: HTMLDivElement | undefined;
 
-  const selectedTierId = selectedModel ?? 'smart';
-  const selectedConfig = TIER_CONFIG[selectedTierId] ?? TIER_CONFIG.smart;
+  const selectedTierId = () => props.selectedModel ?? 'smart';
+  const selectedConfig = () =>
+    TIER_CONFIG[selectedTierId()] ?? TIER_CONFIG.smart;
 
   createEffect(() => {
     if (!open) return;
     const idx = ACTIVEPIECES_CHAT_TIERS.findIndex(
-      (tier) => tier.id === selectedTierId,
+      (tier) => tier.id === selectedTierId(),
     );
     setFocusedIndex(idx >= 0 ? idx : 0);
     const rafId = requestAnimationFrame(() => listRef?.focus());
@@ -82,9 +80,9 @@ export function ChatModelSelector({
       );
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const tier = ACTIVEPIECES_CHAT_TIERS[focusedIndex];
+      const tier = ACTIVEPIECES_CHAT_TIERS[focusedIndex()];
       if (tier) {
-        onModelChange(tier.id);
+        props.onModelChange(tier.id);
         setOpen(false);
       }
     }
@@ -97,10 +95,10 @@ export function ChatModelSelector({
           variant="ghost"
           size="sm"
           role="combobox"
-          aria-expanded={open}
+          aria-expanded={open()}
           class="h-7 gap-1 rounded-full px-2.5 text-xs text-muted-foreground hover:text-foreground"
         >
-          <span>{t(selectedConfig.displayLabel)}</span>
+          <span>{t(selectedConfig().displayLabel)}</span>
           <ChevronDown class="size-3 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -114,44 +112,43 @@ export function ChatModelSelector({
           ref={(el) => (listRef = el)}
           tabIndex={0}
           onKeyDown={handleKeyDown}
-          className="outline-none"
+          class="outline-none"
         >
-          <div className="py-1">
+          <div class="py-1">
             <For each={ACTIVEPIECES_CHAT_TIERS}>
               {(tier, index) => {
                 const config = TIER_CONFIG[tier.id];
                 if (!config) return null;
                 const Icon = config.icon;
-                const isSelected = selectedTierId === tier.id;
-                const isFocused = focusedIndex === index;
+                const isSelected = () => selectedTierId() === tier.id;
+                const isFocused = () => focusedIndex() === index();
                 return (
                   <div
-                    key={tier.id}
                     onClick={() => {
-                      onModelChange(tier.id);
+                      props.onModelChange(tier.id);
                       setOpen(false);
                     }}
-                    onMouseEnter={() => setFocusedIndex(index)}
-                    className={cn(
+                    onMouseEnter={() => setFocusedIndex(index())}
+                    class={cn(
                       'flex items-center gap-3 px-3 py-3.5 cursor-pointer transition-colors',
-                      isFocused && 'bg-accent',
+                      isFocused() && 'bg-accent',
                     )}
                   >
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-background">
+                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-background">
                       <Icon class="size-4 text-foreground" />
                     </div>
-                    <div className="flex flex-1 flex-col gap-0.5">
-                      <span className="text-sm font-medium">
+                    <div class="flex flex-1 flex-col gap-0.5">
+                      <span class="text-sm font-medium">
                         {t(config.displayLabel)}
                       </span>
-                      <span className="text-xs text-muted-foreground">
+                      <span class="text-xs text-muted-foreground">
                         {t(config.description)}
                       </span>
                     </div>
                     <Check
                       class={cn(
                         'size-4 shrink-0',
-                        isSelected ? 'opacity-100' : 'opacity-0',
+                        isSelected() ? 'opacity-100' : 'opacity-0',
                       )}
                     />
                   </div>
@@ -159,18 +156,18 @@ export function ChatModelSelector({
               }}
             </For>
           </div>
-          <div className="flex items-center gap-3 border-t px-3 py-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <kbd className="flex h-5 w-5 items-center justify-center rounded border bg-muted">
+          <div class="flex items-center gap-3 border-t px-3 py-2 text-xs text-muted-foreground">
+            <div class="flex items-center gap-1">
+              <kbd class="flex h-5 w-5 items-center justify-center rounded border bg-muted">
                 <ArrowUp class="size-3" />
               </kbd>
-              <kbd className="flex h-5 w-5 items-center justify-center rounded border bg-muted">
+              <kbd class="flex h-5 w-5 items-center justify-center rounded border bg-muted">
                 <ArrowDown class="size-3" />
               </kbd>
               <span>{t('to navigate')}</span>
             </div>
-            <div className="flex items-center gap-1">
-              <kbd className="flex h-5 w-5 items-center justify-center rounded border bg-muted">
+            <div class="flex items-center gap-1">
+              <kbd class="flex h-5 w-5 items-center justify-center rounded border bg-muted">
                 <CornerDownLeft class="size-3" />
               </kbd>
               <span>{t('to select')}</span>

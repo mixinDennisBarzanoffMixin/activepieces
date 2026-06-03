@@ -45,7 +45,7 @@ const PushToGitDialog = (props: PushToGitDialogProps) => {
   const { platform } = platformHooks.useCurrentPlatform();
   const { gitSync } = gitSyncHooks.useGitSync(
     authenticationSession.getProjectId()!,
-    platform.plan.environmentsEnabled,
+    platform?.plan.environmentsEnabled === true,
   );
   const { mutate, isPending } = createMutation(() => ({
     mutationFn: async (message: string) => {
@@ -93,7 +93,7 @@ const PushToGitDialog = (props: PushToGitDialogProps) => {
             <DialogTitle>{t('Push to Git')}</DialogTitle>
           </DialogHeader>
           <div class="gap-2 flex flex-col">
-            <label className="text-sm font-medium" for="commitMessage">
+            <label class="text-sm font-medium" for="commitMessage">
               {t('Commit Message')}
             </label>
             <Textarea
@@ -102,7 +102,7 @@ const PushToGitDialog = (props: PushToGitDialogProps) => {
               onInput={(event) => setCommitMessage(event.currentTarget.value)}
             />
           </div>
-          <div className="text-sm text-gray-500 mt-2">
+          <div class="text-sm text-gray-500 mt-2">
             {t(
               'Enter a commit message to describe the changes you want to push.',
             )}
@@ -128,5 +128,4 @@ const PushToGitDialog = (props: PushToGitDialogProps) => {
   );
 };
 
-PushToGitDialog.displayName = 'PushToGitDialog';
 export { PushToGitDialog };

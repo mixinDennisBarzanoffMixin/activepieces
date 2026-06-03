@@ -5,6 +5,7 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from 'lucide-solid';
+import { type JSX } from 'solid-js';
 import { Toaster as Sonner, toast, type ToasterProps } from 'solid-sonner';
 
 import { useTheme } from '@/components/providers/theme-provider';
@@ -29,12 +30,18 @@ export const UNSAVED_CHANGES_TOAST = {
   duration: Infinity,
 };
 
-function Toaster({ ...props }: ToasterProps) {
+function Toaster(props: ToasterProps) {
   const { theme } = useTheme();
+  const style: JSX.CSSProperties = {
+    '--normal-text': 'var(--foreground)',
+    '--normal-bg': 'var(--background)',
+    '--normal-border': 'var(--border)',
+    '--border-radius': 'var(--radius)',
+  };
 
   return (
     <Sonner
-      theme={theme as ToasterProps['theme']}
+      theme={theme}
       class="toaster group"
       expand={true}
       toastOptions={{
@@ -59,14 +66,7 @@ function Toaster({ ...props }: ToasterProps) {
         error: <OctagonXIcon class="size-4" />,
         loading: <Loader2Icon class="size-4 animate-spin" />,
       }}
-      style={
-        {
-          '--normal-text': 'var(--foreground)',
-          '--normal-bg': 'var(--background)',
-          '--normal-border': 'var(--border)',
-          '--border-radius': 'var(--radius)',
-        } as JSX.CSSProperties
-      }
+      style={style}
       {...props}
     />
   );

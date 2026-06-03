@@ -39,14 +39,14 @@ export const getRankText = (rank: number) => {
   return rank <= 3 ? null : `#${rank}`;
 };
 
-export function RankCell({ rank }: { rank: number }) {
-  const icon = getRankIcon(rank);
+export function RankCell(props: { rank: number }) {
+  const icon = getRankIcon(props.rank);
   return (
-    <div className="flex items-center gap-2 shrink-0">
+    <div class="flex items-center gap-2 shrink-0">
       <Show when={icon}>
         <div>{icon}</div>
       </Show>
-      <span className="text-sm text-foreground">{getRankText(rank)}</span>
+      <span class="text-sm text-foreground">{getRankText(props.rank)}</span>
     </div>
   );
 }
@@ -54,34 +54,34 @@ export function RankCell({ rank }: { rank: number }) {
 const createColumns = (): ColumnDef<RowDataWithActions<ProjectStats>>[] => [
   {
     accessorKey: 'rank',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Rank')} />
+    header: (props) => (
+      <DataTableColumnHeader column={props.column} title={t('Rank')} />
     ),
-    cell: ({ row }) => <RankCell rank={row.original.rank} />,
+    cell: (props) => <RankCell rank={props.row.original.rank} />,
     enableSorting: false,
     size: 20,
   },
   {
     accessorKey: 'projectName',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Projects')} />
+    header: (props) => (
+      <DataTableColumnHeader column={props.column} title={t('Projects')} />
     ),
-    cell: ({ row }) => {
-      const palette = row.original.iconColor
-        ? PROJECT_COLOR_PALETTE[row.original.iconColor]
+    cell: (props) => {
+      const palette = props.row.original.iconColor
+        ? PROJECT_COLOR_PALETTE[props.row.original.iconColor]
         : PROJECT_COLOR_PALETTE[ColorName.BLUE];
       return (
-        <div className="flex items-center gap-2">
+        <div class="flex items-center gap-2">
           <Avatar
             class="size-6 text-xs font-medium flex items-center justify-center rounded-sm shrink-0"
             style={{
-              backgroundColor: palette.color,
+              'background-color': palette.color,
               color: palette.textColor,
             }}
           >
-            {row.original.projectName.charAt(0).toUpperCase()}
+            {props.row.original.projectName.charAt(0).toUpperCase()}
           </Avatar>
-          <p className="h-8 flex items-center">{row.original.projectName}</p>
+          <p class="h-8 flex items-center">{props.row.original.projectName}</p>
         </div>
       );
     },
@@ -89,22 +89,22 @@ const createColumns = (): ColumnDef<RowDataWithActions<ProjectStats>>[] => [
   },
   {
     accessorKey: 'flowCount',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Active Flows')} />
+    header: (props) => (
+      <DataTableColumnHeader column={props.column} title={t('Active Flows')} />
     ),
-    cell: ({ row }) => (
-      <div className="text-left">{row.original.flowCount}</div>
+    cell: (props) => (
+      <div class="text-left">{props.row.original.flowCount}</div>
     ),
     enableSorting: false,
   },
   {
     accessorKey: 'minutesSaved',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Time Saved')} />
+    header: (props) => (
+      <DataTableColumnHeader column={props.column} title={t('Time Saved')} />
     ),
-    cell: ({ row }) => (
-      <div className="text-left">
-        {formatUtils.formatToHoursAndMinutes(row.original.minutesSaved)}
+    cell: (props) => (
+      <div class="text-left">
+        {formatUtils.formatToHoursAndMinutes(props.row.original.minutesSaved)}
       </div>
     ),
     enableSorting: false,
@@ -119,21 +119,18 @@ const getRowClassName = (
   return 'hover:bg-accent';
 };
 
-export function ProjectsLeaderboard({
-  data,
-  isLoading,
-}: ProjectsLeaderboardProps) {
+export function ProjectsLeaderboard(props: ProjectsLeaderboardProps) {
   const columns = createMemo(() => createColumns());
 
   return (
     <DataTable
-      columns={columns}
+      columns={columns()}
       page={{
-        data,
+        data: props.data,
         next: null,
         previous: null,
       }}
-      isLoading={isLoading ?? false}
+      isLoading={props.isLoading ?? false}
       clientPagination={true}
       getRowClassName={getRowClassName}
       emptyStateTextTitle={t('No projects on the board yet')}

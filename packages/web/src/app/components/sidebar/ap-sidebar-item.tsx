@@ -1,6 +1,6 @@
 import { useLocation } from '@solidjs/router';
 import { LockKeyhole } from 'lucide-solid';
-import { Component, Show } from 'solid-js';
+import { Component, createEffect, createSignal, Show } from 'solid-js';
 
 import { Dot } from '@/components/custom/dot';
 import {
@@ -14,7 +14,7 @@ export type SidebarItemType = {
   to: string;
   label: string;
   type: 'link';
-  icon?: Component<any>;
+  icon?: Component<IconProps>;
   notification?: boolean;
   locked?: boolean;
   newWindow?: boolean;
@@ -31,25 +31,25 @@ export type SidebarItemType = {
 export const ApSidebarItem = (item: SidebarItemType) => {
   const location = useLocation();
   const { state } = useSidebar();
-  const iconRef = undefined;
+  let iconRef: AnimatedIconHandle | undefined;
   const [isHovered, setIsHovered] = createSignal(false);
-  const isLinkActive =
+  const isLinkActive = () =>
     location.pathname.startsWith(item.to) || item.isActive?.(location.pathname);
   const isCollapsed = state === 'collapsed';
 
   createEffect(() => {
     if (isHovered()) {
-      iconRef?.startAnimation?.();
+      iconRef?.startAnimation();
     } else {
-      iconRef?.stopAnimation?.();
+      iconRef?.stopAnimation();
     }
   });
 
   const button = (
     <SidebarMenuButton
       class={cn(
-        { 'bg-sidebar-accent hover:bg-sidebar-accent!': isLinkActive },
-        item.highlight && !isLinkActive && 'hover:bg-sidebar-accent/60',
+        { 'bg-sidebar-accent hover:bg-sidebar-accent!': isLinkActive() },
+        item.highlight && !isLinkActive() && 'hover:bg-sidebar-accent/60',
       )}
       onClick={() => {
         item.onClick?.();
@@ -58,17 +58,24 @@ export const ApSidebarItem = (item: SidebarItemType) => {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {item.icon && renderIcon(item.icon, iconRef, item.iconClassName)}
+      {item.icon &&
+        renderIcon(
+          item.icon,
+          (handle) => {
+            iconRef = handle;
+          },
+          item.iconClassName,
+        )}
       {
         <Show when={!isCollapsed}>
-          <span className={cn('text-sm', { 'font-semibold': isLinkActive })}>
+          <span class={cn('text-sm', { 'font-semibold': isLinkActive() })}>
             {item.label}
           </span>
         </Show>
       }
       {
         <Show when={!isCollapsed && item.badge}>
-          <span className="ml-auto text-[10px] font-medium text-primary">
+          <span class="ml-auto text-[10px] font-medium text-primary">
             {item.badge}
           </span>
         </Show>
@@ -92,11 +99,15 @@ export const ApSidebarItem = (item: SidebarItemType) => {
   return <SidebarMenuItem>{button}</SidebarMenuItem>;
 };
 
-function renderIcon(Icon: Component<any>, ref: any, iconClassName?: string) {
+function renderIcon(
+  Icon: Component<IconProps>,
+  setRef: (handle: AnimatedIconHandle) => void,
+  iconClassName?: string,
+) {
   return (
     <Icon
       class={cn('size-4 pointer-events-none', iconClassName)}
-      ref={(el) => (ref = el)}
+      ref={setRef}
     />
   );
 }
@@ -104,4 +115,9 @@ function renderIcon(Icon: Component<any>, ref: any, iconClassName?: string) {
 type AnimatedIconHandle = {
   startAnimation: () => void;
   stopAnimation: () => void;
+};
+
+type IconProps = {
+  class?: string;
+  ref?: (handle: AnimatedIconHandle) => void;
 };

@@ -2,7 +2,7 @@ import { isNil } from '@activepieces/shared';
 import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { ChevronsUpDown, LogOut, UserCogIcon } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
 import { UserAvatar } from '@/components/custom/user-avatar';
 import { useEmbedding } from '@/components/providers/embed-provider';
@@ -53,7 +53,7 @@ export function SidebarUser() {
         <DropdownMenu modal>
           <DropdownMenuTrigger asChild class="w-full">
             <SidebarMenuButton class="h-10! pl-2! group-data-[collapsible=icon]:h-10! group-data-[collapsible=icon]:pl-2!">
-              <div className="size-[18px] shrink-0 overflow-hidden flex items-center justify-center rounded-full">
+              <div class="size-[18px] shrink-0 overflow-hidden flex items-center justify-center rounded-full">
                 <UserAvatar
                   class={cn('size-full object-cover', {
                     'scale-150': isNil(user.imageUrl),
@@ -69,7 +69,7 @@ export function SidebarUser() {
               {
                 <Show when={!isCollapsed}>
                   <>
-                    <span className="truncate">
+                    <span class="truncate">
                       {user.firstName + ' ' + user.lastName}
                     </span>
                     <ChevronsUpDown class="ml-auto size-4" />
@@ -85,8 +85,8 @@ export function SidebarUser() {
             sideOffset={10}
           >
             <DropdownMenuLabel class="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <div className="size-8 shrink-0 overflow-hidden rounded-full">
+              <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <div class="size-8 shrink-0 overflow-hidden rounded-full">
                   <UserAvatar
                     class="size-full object-cover"
                     name={user.firstName + ' ' + user.lastName}
@@ -97,11 +97,11 @@ export function SidebarUser() {
                   />
                 </div>
 
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
+                <div class="grid flex-1 text-left text-sm leading-tight">
+                  <span class="truncate font-medium">
                     {user.firstName + ' ' + user.lastName}
                   </span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <span class="truncate text-xs">{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -124,7 +124,7 @@ export function SidebarUser() {
       </SidebarMenuItem>
 
       <AccountSettingsDialog
-        open={accountSettingsOpen}
+        open={accountSettingsOpen()}
         onClose={() => setAccountSettingsOpen(false)}
       />
     </SidebarMenu>

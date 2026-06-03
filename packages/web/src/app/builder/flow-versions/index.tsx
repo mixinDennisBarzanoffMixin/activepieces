@@ -28,18 +28,18 @@ const FlowVersionsList = () => {
         {t('Version History')}
       </SidebarHeader>
       <CardList>
-        <Show when={isLoading()}>
+        <Show when={isLoading}>
           <CardListItemSkeleton numberOfCards={10} />
         </Show>
-        <Show when={isError()}>
+        <Show when={isError}>
           <div>{t('Error, please try again.')}</div>
         </Show>
-        <Show when={flowVersionPage && flowVersionPage.data()}>
+        <Show when={flowVersionPage && flowVersionPage.data}>
           <ScrollArea class="w-full h-full">
             <For each={flowVersionPage.data}>
               {(flowVersion, index) => (
                 <FlowVersionDetailsCard
-                  selected={flowVersion.id === selectedFlowVersion?.id}
+                  selected={flowVersion.id === selectedFlowVersion.id}
                   publishedVersionId={flow.publishedVersionId}
                   flowVersion={flowVersion}
                   flowVersionNumber={flowVersionPage.data.length - index}
@@ -53,7 +53,5 @@ const FlowVersionsList = () => {
     </>
   );
 };
-
-FlowVersionsList.displayName = 'FlowVersionsList';
 
 export { FlowVersionsList };

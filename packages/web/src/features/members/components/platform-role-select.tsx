@@ -4,14 +4,14 @@ import { FormItem, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { RoleSelector } from '@/features/members/components/role-selector';
 
-export const PlatformRoleSelect = ({ value, onChange }: PlatformRoleSelectProps) => {
+export const PlatformRoleSelect = (props: PlatformRoleSelectProps) => {
   return (
     <FormItem class="grid gap-3">
       <Label>{t('Platform Role')}</Label>
       <RoleSelector
         type="platform"
-        value={value}
-        onValueChange={onChange}
+        value={props.value}
+        onValueChange={props.onInput}
         placeholder={t('Select a platform role')}
       />
       <FormMessage />
@@ -21,5 +21,5 @@ export const PlatformRoleSelect = ({ value, onChange }: PlatformRoleSelectProps)
 
 type PlatformRoleSelectProps = {
   value: string | undefined;
-  onChange: (value: string) => void;
+  onInput: (value: string) => void;
 };

@@ -8,9 +8,9 @@ const FullLogo = () => {
 
   return (
     <Show when={branding()}>
-      <div className="h-[60px]">
+      <div class="h-[60px]">
         <img
-          className="h-full"
+          class="h-full"
           src={branding()?.logos.fullLogoUrl}
           alt={t('logo')}
         />
@@ -18,5 +18,4 @@ const FullLogo = () => {
     </Show>
   );
 };
-FullLogo.displayName = 'FullLogo';
 export { FullLogo };

@@ -1,7 +1,8 @@
-import { PieceMetadataModelSummary } from '@activepieces/pieces-framework';
-import { AppConnectionWithoutSensitiveData, isNil } from '@activepieces/shared';
+import type { PieceMetadataModelSummary } from '@activepieces/pieces-framework';
+import type { AppConnectionWithoutSensitiveData } from '@activepieces/shared';
+import { isNil } from '@activepieces/shared';
 import { t } from 'i18next';
-import { createSignal, JSX } from 'solid-js';
+import { createSignal, Show, type JSX } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -15,9 +16,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { CreateOrEditConnectionDialog } from '@/features/connections';
 import { piecesHooks } from '@/features/pieces';
-
-import { CreateOrEditConnectionDialog } from './create-edit-connection-dialog';
 
 type NewConnectionDialogProps = {
   onConnectionCreated: (connection: AppConnectionWithoutSensitiveData) => void;
@@ -25,11 +25,7 @@ type NewConnectionDialogProps = {
   isGlobalConnection: boolean;
 };
 
-const NewConnectionDialog = ({
-  onConnectionCreated,
-  children,
-  isGlobalConnection,
-}: NewConnectionDialogProps) => {
+const NewConnectionDialog = (props: NewConnectionDialogProps) => {
   const [dialogTypesOpen, setDialogTypesOpen] = createSignal(false);
   const [connectionDialogOpen, setConnectionDialogOpen] = createSignal(false);
   const [selectedPiece, setSelectedPiece] = createSignal<
@@ -41,7 +37,7 @@ const NewConnectionDialog = ({
   const filteredPieces = pieces?.filter((piece) => {
     return (
       !isNil(piece.auth) &&
-      piece.displayName.toLowerCase().includes(searchTerm.toLowerCase())
+      piece.displayName.toLowerCase().includes(searchTerm().toLowerCase())
     );
   });
 
@@ -53,21 +49,23 @@ const NewConnectionDialog = ({
 
   return (
     <>
-      {selectedPiece && (
-        <CreateOrEditConnectionDialog
-          reconnectConnection={null}
-          piece={selectedPiece}
-          open={connectionDialogOpen}
-          isGlobalConnection={isGlobalConnection}
-          key={`CreateOrEditConnectionDialog-open-${connectionDialogOpen}`}
-          setOpen={(open, connection) => {
-            setConnectionDialogOpen(open);
-            if (connection) {
-              onConnectionCreated(connection);
-            }
-          }}
-        ></CreateOrEditConnectionDialog>
-      )}
+      <Show when={selectedPiece()}>
+        {(piece) => (
+          <CreateOrEditConnectionDialog
+            reconnectConnection={null}
+            piece={piece()}
+            open={connectionDialogOpen}
+            isGlobalConnection={props.isGlobalConnection}
+            key={`CreateOrEditConnectionDialog-open-${connectionDialogOpen()}`}
+            setOpen={(open, connection) => {
+              setConnectionDialogOpen(open);
+              if (connection) {
+                props.onConnectionCreated(connection);
+              }
+            }}
+          />
+        )}
+      </Show>
       <Dialog
         open={dialogTypesOpen}
         onOpenChange={(open) => {
@@ -75,37 +73,36 @@ const NewConnectionDialog = ({
           setSearchTerm('');
         }}
       >
-        <DialogTrigger asChild>{children}</DialogTrigger>
+        <DialogTrigger asChild>{props.children}</DialogTrigger>
         <DialogContent class="min-w-[700px] max-w-[700px] h-[680px] max-h-[680px] flex flex-col">
           <DialogHeader>
             <DialogTitle>{t('New Connection')}</DialogTitle>
           </DialogHeader>
-          <div className="mb-4">
+          <div class="mb-4">
             <Input
               placeholder={t('Search')}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.currentTarget.value)}
             />
           </div>
           <ScrollArea class="grow overflow-y-auto ">
-            <div className="grid grid-cols-4 gap-4">
-              {(isLoading ||
-                (filteredPieces && filteredPieces.length === 0)) && (
-                <div className="text-center">{t('No pieces found')}</div>
-              )}
+            <div class="grid grid-cols-4 gap-4">
+              <Show
+                when={
+                  isLoading || (filteredPieces && filteredPieces.length === 0)
+                }
+              >
+                <div class="text-center">{t('No pieces found')}</div>
+              </Show>
               {!isLoading &&
                 filteredPieces &&
-                filteredPieces.map((piece, index) => (
+                filteredPieces.map((piece) => (
                   <div
-                    key={index}
                     onClick={() => clickPiece(piece.name)}
-                    className="border p-2 h-[150px] w-[150px] flex flex-col items-center justify-center hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-lg"
+                    class="border p-2 h-[150px] w-[150px] flex flex-col items-center justify-center hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-lg"
                   >
-                    <img
-                      className="w-[40px] h-[40px]"
-                      src={piece.logoUrl}
-                    ></img>
-                    <div className="mt-2 text-center text-md">
+                    <img class="w-[40px] h-[40px]" src={piece.logoUrl} />
+                    <div class="mt-2 text-center text-md">
                       {piece.displayName}
                     </div>
                   </div>
@@ -125,5 +122,4 @@ const NewConnectionDialog = ({
   );
 };
 
-NewConnectionDialog.displayName = 'NewConnectionDialog';
 export { NewConnectionDialog };

@@ -6,10 +6,12 @@ import {
   flowOperations,
   flowStructureUtil,
   FlowVersion,
+  FlowTriggerType,
   isNil,
   LoopStepOutput,
   SampleDataFileType,
   StepRunResponse,
+  StepSettings,
   stringifyNullOrUndefined,
   WebsocketClientEvent,
 } from '@activepieces/shared';
@@ -65,7 +67,7 @@ type RunStateInitialState = {
 type StepTestListener = {
   onProgress: (response: StepRunResponse) => void;
   onFinish: (response: StepRunResponse) => void;
-  error: (error: any) => void;
+  error: (error: unknown) => void;
 };
 export const createRunState = (
   initialState: RunStateInitialState,
@@ -79,7 +81,7 @@ export const createRunState = (
       initialState.run && initialState.run.steps
         ? flowRunUtils.pinLoopsToIterationsWithFailedStep(initialState.run, {})
         : {},
-    setRun: async (run: FlowRun, flowVersion: FlowVersion) =>
+    setRun: (run: FlowRun, flowVersion: FlowVersion) =>
       set((state) => {
         get().removeAllStepTestsListeners();
         const isNewRun = state.run?.id !== run.id;
@@ -180,7 +182,7 @@ export const createRunState = (
         stepName,
         get().flowVersion.trigger,
       );
-      if (isNil(step) || !flowStructureUtil.isAction(step?.type)) {
+      if (isNil(step) || !flowStructureUtil.isAction(step.type)) {
         console.error(`Step ${stepName} not found or is not an action`);
         return;
       }
@@ -211,7 +213,7 @@ export const createRunState = (
                   type: FlowOperationType.UPDATE_SAMPLE_DATA_INFO,
                   request: {
                     stepName,
-                    sampleDataSettings: failedStep?.settings.sampleData ?? {},
+                    sampleDataSettings: getSampleDataSettings(failedStep) ?? {},
                   },
                 }),
               };
@@ -225,7 +227,7 @@ export const createRunState = (
           }
         }
       };
-      const handleError = (error: any) => {
+      const handleError = (error: unknown) => {
         get().removeStepTestListener(stepName);
         get().revertSampleDataLocallyCallbacks[stepName]?.();
         console.error(error);
@@ -293,7 +295,7 @@ export const createRunState = (
             type: FlowOperationType.UPDATE_SAMPLE_DATA_INFO,
             request: {
               stepName: step.name,
-              sampleDataSettings: step.settings.sampleData ?? {},
+              sampleDataSettings: getSampleDataSettings(step) ?? {},
             },
           }),
         };
@@ -426,3 +428,18 @@ export const createRunState = (
     },
   };
 };
+
+function getSampleDataSettings(
+  step:
+    | { type: FlowActionType | FlowTriggerType; settings: StepSettings }
+    | null
+    | undefined,
+) {
+  if (isNil(step)) {
+    return undefined;
+  }
+  if (step.type === FlowTriggerType.EMPTY) {
+    return undefined;
+  }
+  return step.settings.sampleData;
+}

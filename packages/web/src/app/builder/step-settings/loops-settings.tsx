@@ -1,7 +1,7 @@
 import { LoopOnItemsAction } from '@activepieces/shared';
 import { t } from 'i18next';
-import { useFormContext } from '@/app/builder/builder-form';
 
+import { BuilderField, useFormContext } from '@/app/builder/builder-form';
 import { ApMarkdown } from '@/components/custom/markdown';
 import { FormField, FormItem, FormLabel } from '@/components/ui/form';
 
@@ -15,28 +15,31 @@ type LoopsSettingsProps = {
   readonly: boolean;
 };
 
-const LoopsSettings = ({ readonly }: LoopsSettingsProps) => {
+const LoopsSettings = (props: LoopsSettingsProps) => {
   const form = useFormContext<LoopOnItemsAction>();
 
   return (
     <FormField
       control={form.control}
       name="settings.items"
-      render={({ field }) => (
+      render={({
+        field,
+      }: {
+        field: BuilderField<LoopOnItemsAction['settings']['items']>;
+      }) => (
         <FormItem class="flex flex-col gap-2">
           <ApMarkdown markdown={markdown} />
           <FormLabel showRequiredIndicator>{t('Items')}</FormLabel>
           <TextInputWithMentions
-            disabled={readonly}
+            disabled={props.readonly}
             onChange={field.onChange}
             initialValue={field.value}
             placeholder={t('Select an array of items')}
-          ></TextInputWithMentions>
+          />
         </FormItem>
       )}
     />
   );
 };
 
-LoopsSettings.displayName = 'LoopsSettings';
 export { LoopsSettings };

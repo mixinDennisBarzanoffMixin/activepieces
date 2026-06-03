@@ -5,7 +5,7 @@ import {
 } from '@activepieces/shared';
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
-import { createEffect, createSignal, For, Show } from 'solid-js';
+import { createEffect, createSignal, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { SearchableSelect } from '@/components/custom/searchable-select';
@@ -30,12 +30,7 @@ type ProjectSelectionDialogProps = {
   onSuccess: () => void;
 };
 
-export function ProjectSelectionDialog({
-  projectId,
-  open,
-  setOpen,
-  onSuccess,
-}: ProjectSelectionDialogProps) {
+export function ProjectSelectionDialog(props: ProjectSelectionDialogProps) {
   const { data: projects } = projectCollectionUtils.useAll();
   const [isCreateReleaseDialogOpen, setIsCreateReleaseDialogOpen] =
     createSignal(false);
@@ -44,32 +39,34 @@ export function ProjectSelectionDialog({
   const [error, setError] = createSignal('');
 
   createEffect(() => {
-    if (!open) {
+    if (!props.open) {
       return;
     }
-    const project = projects?.find((project) => project.id !== projectId);
+    const project = projects.find((project) => project.id !== props.projectId);
     setSelectedProject(project ? project.id : '');
     setError('');
   });
 
-  const { mutate: loadSyncPlan, isPending: isDoingDiff } = createMutation({
-    mutationFn: (request: DiffReleaseRequest) =>
-      projectReleaseApi.diff(request),
-    onSuccess: (plan) => {
-      if (
-        (!plan.flows || plan.flows.length === 0) &&
-        (!plan.tables || plan.tables.length === 0)
-      ) {
-        toast(t('No Changes Found'), {
-          description: t('There are no differences to apply'),
-        });
-        return;
-      }
-      setSyncPlan(plan);
-      setOpen(false);
-      setIsCreateReleaseDialogOpen(true);
-    },
-  });
+  const { mutate: loadSyncPlan, isPending: isDoingDiff } = createMutation(
+    () => ({
+      mutationFn: (request: DiffReleaseRequest) =>
+        projectReleaseApi.diff(request),
+      onSuccess: (plan: ProjectSyncPlan) => {
+        if (
+          (!plan.flows || plan.flows.length === 0) &&
+          (!plan.tables || plan.tables.length === 0)
+        ) {
+          toast(t('No Changes Found'), {
+            description: t('There are no differences to apply'),
+          });
+          return;
+        }
+        setSyncPlan(plan);
+        props.setOpen(false);
+        setIsCreateReleaseDialogOpen(true);
+      },
+    }),
+  );
 
   const submit = (event: SubmitEvent) => {
     event.preventDefault();
@@ -78,7 +75,7 @@ export function ProjectSelectionDialog({
       return;
     }
     loadSyncPlan({
-      projectId,
+      projectId: props.projectId,
       type: ProjectReleaseType.PROJECT,
       targetProjectId: selectedProject(),
     });
@@ -86,15 +83,12 @@ export function ProjectSelectionDialog({
 
   return (
     <>
-      <Dialog
-        open={open}
-        onOpenChange={setOpen}
-      >
+      <Dialog open={props.open} onOpenChange={props.setOpen}>
         <DialogContent class="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{t('Create Release')}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={submit} className="flex flex-col gap-4">
+          <form onSubmit={submit} class="flex flex-col gap-4">
             <div class="grid gap-2">
               <Label>{t('Project')}</Label>
               <SearchableSelect
@@ -104,17 +98,13 @@ export function ProjectSelectionDialog({
                 }}
                 value={selectedProject()}
                 placeholder={t('Search projects...')}
-                options=<For
-                  each={(projects ?? []).filter(
-                    (project) => project.id !== projectId,
-                  )}
-                >
-                  {(project) => ({
+                options={(projects ?? [])
+                  .filter((project) => project.id !== props.projectId)
+                  .map((project) => ({
                     label: project.displayName,
                     value: project.id,
-                  })}
-                </For>
-              ></SearchableSelect>
+                  }))}
+              />
               <Show when={error()}>
                 <p class="text-sm font-medium text-destructive wrap-break-word">
                   {error()}
@@ -126,7 +116,7 @@ export function ProjectSelectionDialog({
               <Button
                 variant={'outline'}
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={() => props.setOpen(false)}
               >
                 {t('Cancel')}
               </Button>
@@ -142,11 +132,11 @@ export function ProjectSelectionDialog({
         {(plan) => (
           <CreateReleaseDialog
             loading={isDoingDiff}
-            open={isCreateReleaseDialogOpen}
+            open={isCreateReleaseDialogOpen()}
             setOpen={setIsCreateReleaseDialogOpen}
-            refetch={onSuccess}
+            refetch={props.onSuccess}
             diffRequest={{
-              projectId,
+              projectId: props.projectId,
               targetProjectId: selectedProject(),
               type: ProjectReleaseType.PROJECT,
             }}

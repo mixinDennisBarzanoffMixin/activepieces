@@ -1,92 +1,129 @@
+import { splitProps, type JSX } from 'solid-js';
+
 import { cn } from '@/lib/utils';
 
-function Table({ className, ...props }: JSX.IntrinsicElements['table']) {
+function Table(props: TableProps<'table'>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
-    <div data-slot="table-container" className="relative w-full overflow-auto">
+    <div data-slot="table-container" class="relative w-full overflow-auto">
       <table
         data-slot="table"
-        className={cn('w-full caption-bottom text-sm', className)}
-        {...props}
+        class={cn(
+          'w-full caption-bottom text-sm',
+          local.class,
+          local.className,
+        )}
+        {...rest}
       />
     </div>
   );
 }
 
-function TableHeader({ className, ...props }: JSX.IntrinsicElements['thead']) {
+function TableHeader(props: TableProps<'thead'>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <thead
       data-slot="table-header"
-      className={cn('border-t bg-muted/70 [&_tr]:border-b', className)}
-      {...props}
+      class={cn(
+        'border-t bg-muted/70 [&_tr]:border-b',
+        local.class,
+        local.className,
+      )}
+      {...rest}
     />
   );
 }
 
-function TableBody({ className, ...props }: JSX.IntrinsicElements['tbody']) {
-  return <tbody data-slot="table-body" className={cn(className)} {...props} />;
+function TableBody(props: TableProps<'tbody'>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
+  return (
+    <tbody
+      data-slot="table-body"
+      class={cn(local.class, local.className)}
+      {...rest}
+    />
+  );
 }
 
-function TableFooter({ className, ...props }: JSX.IntrinsicElements['tfoot']) {
+function TableFooter(props: TableProps<'tfoot'>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <tfoot
       data-slot="table-footer"
-      className={cn(
+      class={cn(
         'border-t bg-muted/50 font-medium [&>tr]:last:border-b-0',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function TableRow({ className, ...props }: JSX.IntrinsicElements['tr']) {
+function TableRow(props: TableProps<'tr'>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <tr
       data-slot="table-row"
-      className={cn(
+      class={cn(
         'border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function TableHead({ className, ...props }: JSX.IntrinsicElements['th']) {
+function TableHead(props: TableProps<'th'>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <th
       data-slot="table-head"
-      className={cn(
+      class={cn(
         'py-2.5 px-2 text-left align-middle text-xs font-medium text-foreground first:pl-8 last:pr-8 [&:has([role=checkbox])]:pl-4 [&:has([role=checkbox])]:pr-2',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function TableCell({ className, ...props }: JSX.IntrinsicElements['td']) {
+function TableCell(props: TableProps<'td'>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <td
       data-slot="table-cell"
-      className={cn(
+      class={cn(
         'px-2 py-2 align-middle first:pl-8 last:pr-8 [&:has([role=checkbox])]:pl-4 [&:has([role=checkbox])]:pr-2 [&:has([role=checkbox])]:py-2',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function TableCaption({
-  className,
-  ...props
-}: JSX.IntrinsicElements['caption']) {
+function TableCaption(props: TableProps<'caption'>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <caption
       data-slot="table-caption"
-      className={cn('mt-4 text-sm text-muted-foreground', className)}
-      {...props}
+      class={cn(
+        'mt-4 text-sm text-muted-foreground',
+        local.class,
+        local.className,
+      )}
+      {...rest}
     />
   );
 }
@@ -101,3 +138,8 @@ export {
   TableCell,
   TableCaption,
 };
+
+type TableProps<T extends keyof JSX.IntrinsicElements> =
+  JSX.IntrinsicElements[T] & {
+    className?: string;
+  };

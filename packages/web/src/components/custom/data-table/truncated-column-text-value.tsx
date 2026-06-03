@@ -1,22 +1,19 @@
 import { TextWithTooltip } from '@/components/custom/text-with-tooltip';
 import { cn } from '@/lib/utils';
 
-const TruncatedColumnTextValue = ({
-  value,
-  className,
-}: {
+const TruncatedColumnTextValue = (props: {
   value: string;
   className?: string;
 }) => {
   return (
-    <TextWithTooltip tooltipMessage={value}>
+    <TextWithTooltip tooltipMessage={props.value}>
       <div
-        className={cn(
+        class={cn(
           'text-left truncate max-w-[120px] 2xl:max-w-[250px]',
-          className,
+          props.className,
         )}
       >
-        {value}
+        {props.value}
       </div>
     </TextWithTooltip>
   );

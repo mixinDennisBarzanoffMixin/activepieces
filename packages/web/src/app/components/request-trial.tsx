@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { mergeProps } from 'solid-js';
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { SendIcon } from '@/components/icons/send';
@@ -40,11 +41,11 @@ type RequestTrialProps = {
   buttonSize?: 'default' | 'sm' | 'xs';
 };
 
-export const RequestTrial = ({
-  featureKey,
-  buttonVariant = 'default',
-  buttonSize = 'default',
-}: RequestTrialProps) => {
+export const RequestTrial = (_props: RequestTrialProps) => {
+  const props = mergeProps(
+    { buttonVariant: 'default', buttonSize: 'default' },
+    _props,
+  );
   const { data: currentUser } = userHooks.useCurrentUser();
   const { data: flags } = flagsHooks.useFlags();
 
@@ -53,7 +54,7 @@ export const RequestTrial = ({
       firstName: currentUser?.firstName || '',
       lastName: currentUser?.lastName || '',
       email: currentUser?.email || '',
-      featureKey,
+      featureKey: props.featureKey,
       flags: btoa(JSON.stringify(flags)),
     };
 
@@ -71,8 +72,8 @@ export const RequestTrial = ({
 
   return (
     <AnimatedIconButton
-      variant={buttonVariant}
-      size={buttonSize}
+      variant={props.buttonVariant}
+      size={props.buttonSize}
       onClick={handleClick}
       icon={SendIcon}
       iconSize={14}

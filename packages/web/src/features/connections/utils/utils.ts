@@ -4,6 +4,7 @@ import {
   PieceAuthProperty,
   PieceMetadataModel,
   PieceMetadataModelSummary,
+  PiecePropertyMap,
   PropertyType,
 } from '@activepieces/pieces-framework';
 import {
@@ -106,9 +107,6 @@ export const newConnectionUtils = {
   }: DefaultValuesParams): Partial<UpsertAppConnectionRequestBody> {
     const projectId = projectIdOverride ?? authenticationSession.getProjectId();
     assertNotNullOrUndefined(projectId, 'projectId');
-    if (!auth) {
-      throw new Error(`Unsupported property type: ${auth}`);
-    }
     const commmonProps = {
       externalId: suggestedExternalId,
       displayName: suggestedDisplayName,
@@ -143,7 +141,7 @@ export const newConnectionUtils = {
           value: {
             type: AppConnectionType.CUSTOM_AUTH,
             props: formUtils.getDefaultValueForProperties({
-              props: auth.props ?? {},
+              props: propertyMap(auth.props),
               existingInput: {},
             }),
           },
@@ -232,6 +230,13 @@ export const newConnectionUtils = {
     }, {});
   },
 };
+
+function propertyMap(props: unknown): PiecePropertyMap {
+  if (!props || typeof props !== 'object' || Array.isArray(props)) {
+    return {};
+  }
+  return props as PiecePropertyMap;
+}
 
 export const isConnectionNameUnique = async ({
   isGlobalConnection,

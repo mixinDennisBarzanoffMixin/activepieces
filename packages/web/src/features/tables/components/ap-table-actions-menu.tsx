@@ -8,7 +8,7 @@ import {
   Import,
   FileJson,
 } from 'lucide-solid';
-import React, { createSignal } from 'solid-js';
+import React, { createEffect, createSignal, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
@@ -31,12 +31,7 @@ import { tablesUtils } from '../utils/utils';
 
 import { ImportTableDialog } from './import-table-dialog';
 
-const ApTableActionsMenu = ({
-  table,
-  refetch,
-  onDelete,
-  children,
-}: {
+const ApTableActionsMenu = (props: {
   table: Table;
   refetch: (() => void) | null;
   onDelete?: () => void;
@@ -45,18 +40,23 @@ const ApTableActionsMenu = ({
   const [isImportTableDialogOpen, setIsImportTableDialogOpen] =
     createSignal(false);
   const [isRenameOpen, setIsRenameOpen] = createSignal(false);
-  const [renameValue, setRenameValue] = createSignal(table.name);
+  const [renameValue, setRenameValue] = createSignal('');
+
+  createEffect(() => {
+    setRenameValue(props.table.name);
+  });
 
   const { mutate: renameTableMutate, isPending: isRenamePending } =
     tableMutations.useRenameTable({
       onSuccess: () => {
         setIsRenameOpen(false);
-        refetch?.();
+        props.refetch?.();
         toast.success(t('Table renamed'));
       },
     });
-  const renameTable = () =>
-    renameTableMutate({ tableId: table.id, name: renameValue });
+  const renameTable = () => {
+    renameTableMutate({ tableId: props.table.id, name: renameValue() });
+  };
 
   const userHasPermissionToUpdateTable = useAuthorization().checkAccess(
     Permission.WRITE_TABLE,
@@ -67,9 +67,9 @@ const ApTableActionsMenu = ({
   const showPushToGit = gitSyncHooks.useShowPushToGit();
 
   const exportTemplate = async () => {
-    const tableTemplate = await tablesApi.getTemplate(table.id);
+    const tableTemplate = await tablesApi.getTemplate(props.table.id);
     const { downloadFile } = await import('@/lib/dom-utils');
-    downloadFile({
+    void downloadFile({
       obj: JSON.stringify(tableTemplate, null, 2),
       fileName: tableTemplate.name,
       extension: 'json',
@@ -77,27 +77,27 @@ const ApTableActionsMenu = ({
   };
 
   const downloadCsv = async () => {
-    const exportedTable = await tablesApi.export(table.id);
+    const exportedTable = await tablesApi.export(props.table.id);
     tablesUtils.exportTables([exportedTable]);
   };
   return (
     <>
       <DropdownMenu modal={true}>
-        <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+        <DropdownMenuTrigger asChild>{props.children}</DropdownMenuTrigger>
         <DropdownMenuContent>
           <PermissionNeededTooltip
             hasPermission={userHasPermissionToUpdateTable}
           >
             <DropdownMenuItem
               disabled={!userHasPermissionToUpdateTable}
-              onSelect={(e) => {
+              onSelect={(e: Event) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setRenameValue(table.name);
+                setRenameValue(props.table.name);
                 setIsRenameOpen(true);
               }}
             >
-              <div className="flex items-center gap-2">
+              <div class="flex items-center gap-2">
                 <PencilIcon class="h-4 w-4" />
                 {t('Rename')}
               </div>
@@ -111,22 +111,30 @@ const ApTableActionsMenu = ({
             {t('Import')}
           </DropdownMenuItem>
 
-          <DropdownMenuItem onSelect={exportTemplate}>
+          <DropdownMenuItem
+            onSelect={() => {
+              void exportTemplate();
+            }}
+          >
             <FileJson class="mr-2 h-4 w-4" />
             {t('Export Template')}
           </DropdownMenuItem>
 
-          {showPushToGit && (
+          <Show when={showPushToGit}>
             <>
               <DropdownMenuSeparator />
               <PermissionNeededTooltip
                 hasPermission={userHasPermissionToPushToGit}
               >
-                <PushToGitDialog type="table" tables={[table]}>
+                <PushToGitDialog type="table" tables={[props.table]}>
                   <DropdownMenuItem
                     disabled={!userHasPermissionToPushToGit}
-                    onSelect={(e) => e.preventDefault()}
-                    onClick={(e) => e.stopPropagation()}
+                    onSelect={(e: Event) => {
+                      e.preventDefault();
+                    }}
+                    onClick={(e: Event) => {
+                      e.stopPropagation();
+                    }}
                   >
                     <UploadCloud class="mr-2 h-4 w-4" />
                     {t('Push to Git')}
@@ -135,10 +143,16 @@ const ApTableActionsMenu = ({
               </PermissionNeededTooltip>
               <DropdownMenuSeparator />
             </>
-          )}
-          {!showPushToGit && <DropdownMenuSeparator />}
+          </Show>
+          <Show when={!showPushToGit}>
+            <DropdownMenuSeparator />
+          </Show>
 
-          <DropdownMenuItem onSelect={downloadCsv}>
+          <DropdownMenuItem
+            onSelect={() => {
+              void downloadCsv();
+            }}
+          >
             <Download class="mr-2 h-4 w-4" />
             {t('Download Data')}
           </DropdownMenuItem>
@@ -148,23 +162,27 @@ const ApTableActionsMenu = ({
           >
             <DropdownMenuItem
               disabled={!userHasPermissionToUpdateTable}
-              onSelect={(e) => e.preventDefault()}
-              onClick={(e) => e.stopPropagation()}
+              onSelect={(e: Event) => {
+                e.preventDefault();
+              }}
+              onClick={(e: Event) => {
+                e.stopPropagation();
+              }}
             >
               <ConfirmationDeleteDialog
                 title={t('Delete Table')}
-                message={t(
-                  'This table and all its data will be permanently deleted.',
+                message={String(
+                  t('This table and all its data will be permanently deleted.'),
                 )}
-                entityName={table.name}
+                entityName={props.table.name}
                 buttonText={t('Delete')}
-                mutationFn={async () => {
-                  await tablesApi.delete(table.id);
-                  onDelete?.();
-                  refetch?.();
+                mutationFn={() => {
+                  void tablesApi.delete(props.table.id);
+                  props.onDelete?.();
+                  props.refetch?.();
                 }}
               >
-                <div className="flex items-center gap-2 text-destructive">
+                <div class="flex items-center gap-2 text-destructive">
                   <TrashIcon class="h-4 w-4" />
                   {t('Delete')}
                 </div>
@@ -177,17 +195,17 @@ const ApTableActionsMenu = ({
         open={isImportTableDialogOpen}
         setIsOpen={setIsImportTableDialogOpen}
         showTrigger={false}
-        tableId={table.id}
+        tableId={props.table.id}
         allowedFileTypes={['json', 'csv']}
         onImportSuccess={() => {
-          refetch?.();
+          props.refetch?.();
         }}
       />
       <RenameDialog
         open={isRenameOpen}
         onOpenChange={setIsRenameOpen}
         value={renameValue}
-        onChange={setRenameValue}
+        onInput={setRenameValue}
         onConfirm={() => renameTable()}
         isRenaming={isRenamePending}
       />
@@ -195,5 +213,4 @@ const ApTableActionsMenu = ({
   );
 };
 
-ApTableActionsMenu.displayName = 'ApTableActionsMenu';
 export { ApTableActionsMenu };

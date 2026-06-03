@@ -21,38 +21,35 @@ const tryParseJson = (value: unknown): unknown => {
 };
 
 type JsonEditorProps = {
-  field: any;
+  field: {
+    value: unknown;
+    onChange: (event: { target: { value: unknown } }) => void;
+  };
   readonly: boolean;
-  onFocus?: (ref: any) => void;
+  onFocus?: (ref: HTMLTextAreaElement | undefined) => void;
   className?: string;
 };
 
-const JsonEditor = ({
-  field,
-  readonly,
-  onFocus,
-  className,
-}: JsonEditorProps) => {
-  const [value, setValue] = createSignal(convertToString(field.value));
-  let ref: any;
+const JsonEditor = (props: JsonEditorProps) => {
+  const [value, setValue] = createSignal(convertToString(props.field.value));
+  let ref: HTMLTextAreaElement | undefined;
   return (
-    <div className="flex flex-col gap-2 border rounded py-2 px-2">
+    <div class="flex flex-col gap-2 border rounded py-2 px-2">
       <textarea
         ref={(el) => (ref = el)}
         value={value()}
-        class={cn('border-none', className)}
+        class={cn('border-none', props.className)}
         style={{ height: '250px', width: '100%' }}
-        readOnly={readonly}
+        readOnly={props.readonly}
         onInput={(e) => {
           const value = e.currentTarget.value;
           setValue(value);
-          field.onChange({ target: { value: tryParseJson(value) } });
+          props.field.onChange({ target: { value: tryParseJson(value) } });
         }}
-        onFocus={() => onFocus?.(ref)}
+        onFocus={() => props.onFocus?.(ref)}
       />
     </div>
   );
 };
 
-JsonEditor.displayName = 'JsonEditor';
 export { JsonEditor };

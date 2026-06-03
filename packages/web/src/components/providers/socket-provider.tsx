@@ -1,5 +1,11 @@
 import { io } from 'socket.io-client';
-import { createEffect, createContext, useContext, onCleanup, JSX } from 'solid-js';
+import {
+  createEffect,
+  createContext,
+  useContext,
+  onCleanup,
+  JSX,
+} from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { API_BASE_URL } from '@/lib/api';
@@ -14,7 +20,7 @@ const socket = io(API_BASE_URL, {
 
 const SocketContext = createContext<typeof socket>(socket);
 
-export const SocketProvider = ({ children }: { children: JSX.Element }) => {
+export const SocketProvider = (props: { children: JSX.Element }) => {
   const token = authenticationSession.getToken();
   const projectId = authenticationSession.getProjectId();
   let toastId: string | null = null;
@@ -58,7 +64,9 @@ export const SocketProvider = ({ children }: { children: JSX.Element }) => {
   });
 
   return (
-    <SocketContext.Provider value={socket}>{children}</SocketContext.Provider>
+    <SocketContext.Provider value={socket}>
+      {props.children}
+    </SocketContext.Provider>
   );
 };
 

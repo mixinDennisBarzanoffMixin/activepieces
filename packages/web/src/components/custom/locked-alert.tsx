@@ -8,23 +8,19 @@ interface LockedAlertProps {
   button: any;
 }
 
-export const LockedAlert = ({
-  title,
-  description,
-  button,
-}: LockedAlertProps) => {
+export const LockedAlert = (props: LockedAlertProps) => {
   return (
     <Alert class="flex items-center gap-4 mb-4">
-      <div className="flex items-start gap-3">
+      <div class="flex items-start gap-3">
         <Lock class="h-5 w-5 text-primary-600 mt-1" />
         <div>
-          <AlertTitle class="font-semibold text-lg">{title}</AlertTitle>
+          <AlertTitle class="font-semibold text-lg">{props.title}</AlertTitle>
           <AlertDescription class="text-sm text-muted-foreground">
-            {description}
+            {props.description}
           </AlertDescription>
         </div>
       </div>
-      <div className="ml-auto">{button}</div>
+      <div class="ml-auto">{props.button}</div>
     </Alert>
   );
 };

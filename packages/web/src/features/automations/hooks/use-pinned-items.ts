@@ -1,6 +1,6 @@
 import { useParams } from '@solidjs/router';
-import { createSignal } from 'solid-js';
 import { t } from 'i18next';
+import { createSignal } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { authenticationSession } from '@/lib/authentication-session';
@@ -11,6 +11,10 @@ function getStorageKey(projectId: string, userId: string): string {
   return `${STORAGE_KEY_PREFIX}${projectId}_${userId}`;
 }
 
+function isPinnedList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((id) => typeof id === 'string');
+}
+
 /**
  * Stored as an ordered array where index 0 = most recently pinned (shown first).
  * New pins are prepended so "last pinned = very top".
@@ -19,15 +23,11 @@ function readPinnedList(projectId: string, userId: string): string[] {
   try {
     const raw = localStorage.getItem(getStorageKey(projectId, userId));
     if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (
-      Array.isArray(parsed) &&
-      parsed.length > 0 &&
-      typeof parsed[0] === 'object'
-    ) {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isPinnedList(parsed)) {
       return [];
     }
-    return parsed as string[];
+    return parsed;
   } catch {
     return [];
   }
@@ -69,7 +69,9 @@ export function usePinnedItems() {
       return next;
     });
     toast.success(
-      wasPinned ? t('Removed from favorites.') : t('Favorited and moved to the top.'),
+      wasPinned
+        ? t('Removed from favorites.')
+        : t('Favorited and moved to the top.'),
     );
   };
 

@@ -15,7 +15,7 @@ export const projectMembersHooks = {
   useProjectMembers: () => {
     const { data } = flagsHooks.useFlag<boolean>(ApFlagId.SHOW_PROJECT_MEMBERS);
     const { platform } = platformHooks.useCurrentPlatform();
-    const query = createQuery<ProjectMemberWithUser[]>({
+    const query = createQuery<ProjectMemberWithUser[]>(() => ({
       queryKey: ['project-members', authenticationSession.getProjectId()],
       queryFn: async () => {
         const projectId = authenticationSession.getProjectId();
@@ -28,8 +28,8 @@ export const projectMembersHooks = {
         });
         return res.data;
       },
-      enabled: !!data && platform.plan.projectRolesEnabled,
-    });
+      enabled: !!data && platform?.plan.projectRolesEnabled === true,
+    }));
     return {
       projectMembers: query.data,
       isLoading: query.isLoading,
@@ -46,13 +46,16 @@ export const projectMembersMutations = {
     onSuccess: (variables: { memberId: string; role: string }) => void;
     onError: () => void;
   }) => {
-    return createMutation({
+    return createMutation(() => ({
       mutationFn: ({ memberId, role }: { memberId: string; role: string }) =>
         projectMembersApi.update(memberId, { role }),
-      onSuccess: (_data, variables) => {
+      onSuccess: (
+        _data: unknown,
+        variables: { memberId: string; role: string },
+      ) => {
         onSuccess(variables);
       },
       onError,
-    });
+    }));
   },
 };

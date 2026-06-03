@@ -4,7 +4,7 @@ import { TriangleAlert } from 'lucide-solid';
 import { Alert, AlertDescription } from '../ui/alert';
 export const DefaultTag = () => {
   return (
-    <div className="text-xss flex items-center justify-center  rounded-lg border border-border px-2.5 py-0.5">
+    <div class="text-xss flex items-center justify-center  rounded-lg border border-border px-2.5 py-0.5">
       {t('Default')}
     </div>
   );

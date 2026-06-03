@@ -23,7 +23,7 @@ type ManagePiecesDialogProps = {
   onSuccess: () => void;
 };
 
-export const ManagePiecesDialog = ({ onSuccess }: ManagePiecesDialogProps) => {
+export const ManagePiecesDialog = (props: ManagePiecesDialogProps) => {
   const [open, setOpen] = createSignal(false);
   const [pieces, setPieces] = createSignal<string[]>([]);
   const { pieces: visiblePieces, isLoading: isLoadingVisiblePieces } =
@@ -52,7 +52,7 @@ export const ManagePiecesDialog = ({ onSuccess }: ManagePiecesDialogProps) => {
             )}
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-4 mb-4">
+        <div class="flex flex-col gap-4 mb-4">
           <div class="grid space-y-2">
             <Label for="pieces">{t('Pieces')}</Label>
             <MultiSelectPieceProperty
@@ -67,7 +67,7 @@ export const ManagePiecesDialog = ({ onSuccess }: ManagePiecesDialogProps) => {
               onChange={(value) => setPieces(value?.map(String) ?? [])}
               initialValues={pieces()}
               showDeselect={pieces().length > 0}
-            ></MultiSelectPieceProperty>
+            />
           </div>
         </div>
         <DialogFooter>
@@ -85,13 +85,16 @@ export const ManagePiecesDialog = ({ onSuccess }: ManagePiecesDialogProps) => {
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();
-              projectCollectionUtils.update(authenticationSession.getProjectId()!, {
-                plan: {
-                  piecesFilterType: PiecesFilterType.ALLOWED,
-                  pieces: pieces(),
+              projectCollectionUtils.update(
+                authenticationSession.getProjectId()!,
+                {
+                  plan: {
+                    piecesFilterType: PiecesFilterType.ALLOWED,
+                    pieces: pieces(),
+                  },
                 },
-              });
-              onSuccess();
+              );
+              props.onSuccess();
               setOpen(false);
             }}
           >

@@ -5,6 +5,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { ExternalLink } from 'lucide-solid';
+import { For } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -27,74 +28,72 @@ type FailedRetryRunsDialogProps = {
   failedRuns: Required<FlowRunWithRetryError>[];
 };
 
-export const FailedRetryRunsDialog = ({
-  open,
-  onOpenChange,
-  failedRuns,
-}: FailedRetryRunsDialogProps) => {
+export const FailedRetryRunsDialog = (props: FailedRetryRunsDialogProps) => {
   const openNewWindow = useNewWindow();
   const { data: retentionDays } = flagsHooks.useFlag<number>(
     ApFlagId.EXECUTION_DATA_RETENTION_DAYS,
   );
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent class="max-w-lg">
         <DialogHeader>
           <DialogTitle>{t('Failed Retries')}</DialogTitle>
         </DialogHeader>
         <ScrollArea class="max-h-[400px]">
-          <ul className="flex flex-col gap-3 pr-3">
-            {failedRuns.map((run) => {
-              const { Icon, variant } = flowRunUtils.getStatusIcon(run.status);
-              return (
-                <li
-                  key={run.id}
-                  className="flex items-start justify-between gap-3 rounded-md border p-3"
-                >
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <div className="flex items-center gap-1.5 text-sm font-medium">
-                      <Icon
-                        class={cn('size-4 shrink-0', {
-                          'text-destructive': variant === 'error',
-                          'text-success': variant === 'success',
-                          'text-muted-foreground': variant === 'default',
-                        })}
-                      />
-                      <span className="truncate">
-                        {t('Previous status')}:{' '}
-                        {formatUtils.convertEnumToHumanReadable(run.status)}
-                      </span>
+          <ul class="flex flex-col gap-3 pr-3">
+            <For each={props.failedRuns}>
+              {(run) => {
+                const { Icon, variant } = flowRunUtils.getStatusIcon(
+                  run.status,
+                );
+                return (
+                  <li class="flex items-start justify-between gap-3 rounded-md border p-3">
+                    <div class="flex flex-col gap-1 min-w-0">
+                      <div class="flex items-center gap-1.5 text-sm font-medium">
+                        <Icon
+                          class={cn('size-4 shrink-0', {
+                            'text-destructive': variant === 'error',
+                            'text-success': variant === 'success',
+                            'text-muted-foreground': variant === 'default',
+                          })}
+                        />
+                        <span class="truncate">
+                          {t('Previous status')}:{' '}
+                          {formatUtils.convertEnumToHumanReadable(run.status)}
+                        </span>
+                      </div>
+                      <p class="text-xs text-muted-foreground">
+                        {run.error.errorCode ===
+                        ErrorCode.FLOW_RUN_RETRY_OUTSIDE_RETENTION
+                          ? t(
+                              'Retry is only available for {failedJobRetentionDays} after a run fails.',
+                              {
+                                failedJobRetentionDays: retentionDays,
+                              },
+                            )
+                          : run.error.errorMessage ??
+                            t('Internal server error')}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {run.error?.errorCode ===
-                      ErrorCode.FLOW_RUN_RETRY_OUTSIDE_RETENTION
-                        ? t(
-                            'Retry is only available for {failedJobRetentionDays} after a run fails.',
-                            {
-                              failedJobRetentionDays: retentionDays,
-                            },
-                          )
-                        : run.error.errorMessage ?? t('Internal server error')}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    class="shrink-0"
-                    onClick={() =>
-                      openNewWindow(
-                        authenticationSession.appendProjectRoutePrefix(
-                          `/runs/${run.id}`,
-                        ),
-                      )
-                    }
-                  >
-                    <ExternalLink class="size-4" />
-                    <span className="sr-only">{t('Open run')}</span>
-                  </Button>
-                </li>
-              );
-            })}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      class="shrink-0"
+                      onClick={() =>
+                        openNewWindow(
+                          authenticationSession.appendProjectRoutePrefix(
+                            `/runs/${run.id}`,
+                          ),
+                        )
+                      }
+                    >
+                      <ExternalLink class="size-4" />
+                      <span class="sr-only">{t('Open run')}</span>
+                    </Button>
+                  </li>
+                );
+              }}
+            </For>
           </ul>
         </ScrollArea>
       </DialogContent>

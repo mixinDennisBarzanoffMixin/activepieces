@@ -1,4 +1,5 @@
 import { VariantProps, cva } from 'class-variance-authority';
+import { Show } from 'solid-js';
 
 import { ImageWithColorBackground } from '@/components/custom/image-with-color-background';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -51,40 +52,39 @@ interface PieceIconProps extends VariantProps<typeof pieceIconVariants> {
   background?: string;
 }
 
-const PieceIcon = ({
-  displayName,
-  logoUrl,
-  border,
-  size,
-  showTooltip,
-  background,
-}: PieceIconProps) => {
+const PieceIcon = (props: PieceIconProps) => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <div
-          className={cn(pieceIconVariants({ border, size }), 'overflow-hidden')}
-          style={background ? { backgroundColor: background } : undefined}
+          class={cn(
+            pieceIconVariants({ border: props.border, size: props.size }),
+            'overflow-hidden',
+          )}
+          style={
+            props.background ? { backgroundColor: props.background } : undefined
+          }
         >
-          {logoUrl ? (
+          <Show
+            when={props.logoUrl}
+            fallback={<Skeleton class="rounded-md w-full h-full" />}
+          >
             <ImageWithColorBackground
-              src={logoUrl}
-              alt={displayName}
+              src={props.logoUrl}
+              alt={props.displayName}
               class={cn(
-                pieceIconVariantsWithPadding({ size }),
+                pieceIconVariantsWithPadding({ size: props.size }),
                 'object-contain w-full h-full',
               )}
-              key={logoUrl}
+              key={props.logoUrl}
               fallback={<Skeleton class="rounded-md w-full h-full" />}
             />
-          ) : (
-            <Skeleton class="rounded-md w-full h-full" />
-          )}
+          </Show>
         </div>
       </TooltipTrigger>
-      {showTooltip ? (
-        <TooltipContent side="bottom">{displayName}</TooltipContent>
-      ) : null}
+      <Show when={props.showTooltip} fallback={null}>
+        <TooltipContent side="bottom">{props.displayName}</TooltipContent>
+      </Show>
     </Tooltip>
   );
 };

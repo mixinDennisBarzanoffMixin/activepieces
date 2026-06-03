@@ -1,6 +1,6 @@
 import { useLocation } from '@solidjs/router';
 import { ChevronRightIcon } from 'lucide-solid';
-import { Component, Show, For } from 'solid-js';
+import { Component, createEffect, createSignal, Show, For } from 'solid-js';
 
 import {
   Collapsible,
@@ -21,7 +21,7 @@ export type SidebarGeneralItemType = SidebarItemType | SidebarGroupType;
 export type SidebarGroupType = {
   name?: string;
   label: string;
-  icon?: Component<any>;
+  icon?: Component<IconProps>;
   items: SidebarItemType[];
   type: 'group';
   open: boolean;
@@ -31,14 +31,14 @@ export type SidebarGroupType = {
 
 export function ApSidebareGroup(item: SidebarGroupType) {
   const location = useLocation();
-  const iconRef = undefined;
+  let iconRef: AnimatedIconHandle | undefined;
   const [isHovered, setIsHovered] = createSignal(false);
 
   createEffect(() => {
     if (isHovered()) {
-      iconRef?.startAnimation?.();
+      iconRef?.startAnimation();
     } else {
-      iconRef?.stopAnimation?.();
+      iconRef?.stopAnimation();
     }
   });
 
@@ -55,7 +55,10 @@ export function ApSidebareGroup(item: SidebarGroupType) {
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            {item.icon && renderIcon(item.icon, iconRef)}
+            {item.icon &&
+              renderIcon(item.icon, (handle) => {
+                iconRef = handle;
+              })}
             <span>{item.label}</span>
             <ChevronRightIcon
               class={`${item.open && 'rotate-90'} ml-auto duration-150`}
@@ -67,20 +70,18 @@ export function ApSidebareGroup(item: SidebarGroupType) {
           <SidebarMenuSub>
             {
               <For each={item.items}>
-                {(link, index) => (
+                {(link) => (
                   <Show when={link.show}>
                     <SidebarMenuSubItem>
-                      <SidebarMenuButton asChild>
-                        <ApSidebarItem
-                          href={link.to}
-                          label={link.label}
-                          icon={link.icon}
-                          notification={link.notification}
-                          locked={link.locked}
-                          isActive={link.isActive}
-                          type={link.type}
-                        />
-                      </SidebarMenuButton>
+                      <ApSidebarItem
+                        to={link.to}
+                        label={link.label}
+                        icon={link.icon}
+                        notification={link.notification}
+                        locked={link.locked}
+                        isActive={link.isActive}
+                        type={link.type}
+                      />
                     </SidebarMenuSubItem>
                   </Show>
                 )}
@@ -93,11 +94,19 @@ export function ApSidebareGroup(item: SidebarGroupType) {
   );
 }
 
-function renderIcon(Icon: Component<any>, ref: any) {
-  return <Icon class={'size-4 pointer-events-none'} ref={(el) => (ref = el)} />;
+function renderIcon(
+  Icon: Component<IconProps>,
+  setRef: (handle: AnimatedIconHandle) => void,
+) {
+  return <Icon class="size-4 pointer-events-none" ref={setRef} />;
 }
 
 type AnimatedIconHandle = {
   startAnimation: () => void;
   stopAnimation: () => void;
+};
+
+type IconProps = {
+  class?: string;
+  ref?: (handle: AnimatedIconHandle) => void;
 };

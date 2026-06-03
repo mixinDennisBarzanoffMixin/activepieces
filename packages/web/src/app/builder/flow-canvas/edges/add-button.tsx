@@ -1,9 +1,13 @@
 import { isNil } from '@activepieces/shared';
-import { useDndMonitor, useDroppable, DragMoveEvent } from '@/lib/solid-dnd-kit';
 import { Plus } from 'lucide-solid';
 import { Show, createSignal } from 'solid-js';
 
 import { PieceSelector } from '@/app/builder/pieces-selector';
+import {
+  useDndMonitor,
+  useDroppable,
+  DragMoveEvent,
+} from '@/lib/solid-dnd-kit';
 import { cn } from '@/lib/utils';
 
 import { useBuilderStateContext } from '../../builder-hooks';
@@ -41,13 +45,13 @@ const ApAddButton = (props: ApButtonData) => {
 
   return (
     <>
-      <Show when={showDropIndicator && !readonly()}>
+      <Show when={showDropIndicator && !readonly}>
         <div
           style={{
             width: flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.width + 'px',
             height: flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.height + 'px',
           }}
-          className={cn('transition-all bg-primary/90  rounded-md', {
+          class={cn('transition-all bg-primary/90  rounded-md', {
             'shadow-add-button': isStepInsideDropZone,
           })}
         >
@@ -58,12 +62,12 @@ const ApAddButton = (props: ApButtonData) => {
               left: `${-flowCanvasConsts.AP_NODE_SIZE.STEP.width / 2}px`,
               top: `${-flowCanvasConsts.VERTICAL_SPACE_BETWEEN_STEPS / 2}px`,
             }}
-            className={cn(' absolute    rounded-md box-content ')}
+            class={cn(' absolute    rounded-md box-content ')}
             ref={setNodeRef}
-          ></div>
+          />
         </div>
       </Show>
-      <Show when={!showDropIndicator && !readonly()}>
+      <Show when={!showDropIndicator && !readonly}>
         <PieceSelector
           operation={flowCanvasUtils.createAddOperationFromAddButtonData(props)}
           id={props.edgeId}
@@ -79,7 +83,7 @@ const ApAddButton = (props: ApButtonData) => {
                 width: flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.width + 'px',
                 height: flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.height + 'px',
               }}
-              className={cn('rounded-md cursor-pointer transition-all z-50', {
+              class={cn('rounded-md cursor-pointer transition-all z-50', {
                 'shadow-add-button': isPieceSelectorOpen,
               })}
             >
@@ -89,7 +93,7 @@ const ApAddButton = (props: ApButtonData) => {
                   height:
                     flowCanvasConsts.AP_NODE_SIZE.ADD_BUTTON.height + 'px',
                 }}
-                className={cn(
+                class={cn(
                   'bg-background  border border-border border-solid relative group overflow-visible rounded-md cursor-pointer  flex items-center justify-center  transition-all duration-300 ease-in-out',
                   {
                     'bg-primary border-primary': isPieceSelectorOpen,
@@ -97,7 +101,7 @@ const ApAddButton = (props: ApButtonData) => {
                 )}
                 data-testid="add-action-button"
               >
-                <Show when={!isPieceSelectorOpen()}>
+                <Show when={!isPieceSelectorOpen}>
                   <Plus class="w-3 h-3 stroke-[3px] text-foreground" />
                 </Show>
               </div>
@@ -109,5 +113,4 @@ const ApAddButton = (props: ApButtonData) => {
   );
 };
 
-ApAddButton.displayName = 'ApAddButton';
 export { ApAddButton };

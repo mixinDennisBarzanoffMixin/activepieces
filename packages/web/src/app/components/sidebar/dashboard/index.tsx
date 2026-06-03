@@ -6,8 +6,7 @@ import {
   TeamProjectsLimit,
   TemplateTelemetryEventType,
 } from '@activepieces/shared';
-import { useDebounce } from '@/lib/debounce';
-import { useLocation } from '@solidjs/router';
+import { useLocation, useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
 import { Search } from 'lucide-solid';
 import { createEffect, createMemo, createSignal, Show, For } from 'solid-js';
@@ -46,6 +45,7 @@ import { templatesTelemetryApi } from '@/features/templates';
 import { useIsPlatformAdmin } from '@/hooks/authorization-hooks';
 import { platformHooks } from '@/hooks/platform-hooks';
 import { userHooks } from '@/hooks/user-hooks';
+import { useDebounce } from '@/lib/debounce';
 import { cn } from '@/lib/utils';
 
 import { recordAccess } from '../../global-search/access-history';
@@ -58,13 +58,12 @@ import { AppSidebarHeader } from '../sidebar-header';
 import SidebarUsageLimits from '../sidebar-usage-limits';
 import { SidebarUser } from '../sidebar-user';
 
-export function ProjectDashboardSidebar({
-  className,
-}: { className?: string } = {}) {
+export function ProjectDashboardSidebar(props: { className?: string } = {}) {
   const { data: projects } = projectCollectionUtils.useAll();
   const { embedState } = useEmbedding();
   const { state } = useSidebar();
   const location = useLocation();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = createSignal('');
   const [debouncedSearchQuery] = useDebounce(searchQuery, 300);
   const [searchOpen, setSearchOpen] = createSignal(false);
@@ -96,18 +95,18 @@ export function ProjectDashboardSidebar({
     projects.filter((project) => project.type === ProjectType.TEAM).length ===
       0;
 
-  const isSearchMode = debouncedSearchQuery.length > 0;
+  const isSearchMode = () => debouncedSearchQuery().length > 0;
 
   const displayProjects = createMemo(() => {
-    if (isSearchMode) {
-      const query = debouncedSearchQuery.toLowerCase();
+    if (isSearchMode()) {
+      const query = debouncedSearchQuery().toLowerCase();
       return projects.filter((project) =>
         project.displayName.toLowerCase().includes(query),
       );
     }
     return projects;
   });
-  const handleProjectSelect = async (projectId: string) => {
+  const handleProjectSelect = (projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
     if (project) {
       const palette = project.icon
@@ -136,7 +135,7 @@ export function ProjectDashboardSidebar({
     return true;
   };
   const handleExploreClick = () => {
-    templatesTelemetryApi.sendEvent({
+    void templatesTelemetryApi.sendEvent({
       eventType: TemplateTelemetryEventType.EXPLORE_VIEW,
       userId: currentUser?.id,
     });
@@ -219,17 +218,17 @@ export function ProjectDashboardSidebar({
     .filter(permissionFilter);
 
   return (
-    !embedState.hideSideNav && (
+    <Show when={!embedState.hideSideNav}>
       <Sidebar
         collapsible="icon"
         id={SIDEBAR_ID}
-        class={cn('max-h-[100vh]', className)}
+        class={cn('max-h-[100vh]', props.className)}
       >
         <AppSidebarHeader />
 
         <SidebarContent class="overflow-x-hidden">
           <SidebarGroup>
-            <div className="mb-1 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
+            <div class="mb-1 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center">
               <GlobalSearchCommand />
             </div>
             <SidebarMenu>
@@ -240,16 +239,16 @@ export function ProjectDashboardSidebar({
           <SidebarSeparator />
 
           <SidebarGroup class="flex-1 overflow-hidden">
-            <div className="flex items-center justify-between group-data-[collapsible=icon]:hidden">
+            <div class="flex items-center justify-between group-data-[collapsible=icon]:hidden">
               <SidebarGroupLabel>{t('Projects')}</SidebarGroupLabel>
-              <div className="flex items-center justify-center gap-2">
+              <div class="flex items-center justify-center gap-2">
                 {
                   <Show when={shouldShowNewProjectButton()}>
                     <CreateProjectButton
                       variant="icon"
                       projects={projects ?? []}
                       onCreate={(project) => {
-                        navigate(`/projects/${project.id}/flows`);
+                        void navigate(`/projects/${project.id}/flows`);
                       }}
                     />
                   </Show>
@@ -273,9 +272,9 @@ export function ProjectDashboardSidebar({
                         sideOffset={8}
                       >
                         <SearchInput
-                          placeholder={t('Search projects...')}
+                          placeholder={String(t('Search projects...'))}
                           value={searchQuery}
-                          onChange={(e) => setSearchQuery(e)}
+                          onChange={(value: string) => setSearchQuery(value)}
                           class="h-8"
                           autoFocus
                         />
@@ -286,18 +285,18 @@ export function ProjectDashboardSidebar({
               </div>
             </div>
             <div
-              className="flex-1 grow min-h-0 flex flex-col overflow-hidden"
+              class="flex-1 grow min-h-0 flex flex-col overflow-hidden"
               onClick={(e) => {
                 e.stopPropagation();
               }}
             >
-              <div className="flex max-h-[100%]">
+              <div class="flex max-h-[100%]">
                 {
                   <Show
-                    when={displayProjects.length > 0}
+                    when={displayProjects().length > 0}
                     fallback={
-                      <Show when={isSearchMode}>
-                        <div className="px-2 py-2 text-sm text-muted-foreground">
+                      <Show when={isSearchMode()}>
+                        <div class="px-2 py-2 text-sm text-muted-foreground">
                           {state === 'expanded' && t('No projects found.')}
                         </div>
                       </Show>
@@ -310,10 +309,10 @@ export function ProjectDashboardSidebar({
                           ? 'flex flex-col items-center scrollbar-none'
                           : '',
                       )}
-                      items={displayProjects}
+                      items={displayProjects()}
                       estimateSize={() => 35}
                       getItemKey={(index) =>
-                        displayProjects[index]?.id ?? index
+                        displayProjects()[index]?.id ?? index
                       }
                       overscan={10}
                       renderItem={(project) => (
@@ -340,7 +339,7 @@ export function ProjectDashboardSidebar({
                         variant="sidebar-menu"
                         projects={projects ?? []}
                         onCreate={(project) => {
-                          navigate(`/projects/${project.id}/flows`);
+                          void navigate(`/projects/${project.id}/flows`);
                         }}
                       />
                     </SidebarMenuItem>
@@ -360,7 +359,7 @@ export function ProjectDashboardSidebar({
           <SidebarUser />
         </SidebarFooter>
       </Sidebar>
-    )
+    </Show>
   );
 }
 
@@ -372,11 +371,13 @@ function DelayedSidebarUsageLimits() {
     return () => clearTimeout(timer);
   });
 
-  return show ? (
-    <div>
-      <SidebarUsageLimits />
-    </div>
-  ) : null;
+  return (
+    <Show when={show}>
+      <div>
+        <SidebarUsageLimits />
+      </div>
+    </Show>
+  );
 }
 
 function SidebarPlatformAdminLink() {
@@ -391,7 +392,7 @@ function SidebarPlatformAdminLink() {
     <SidebarMenu>
       <ApSidebarItem
         type="link"
-        href="/platform/projects"
+        to="/platform/projects"
         label={t('Platform Admin')}
         icon={ShieldIcon}
         isSubItem={false}

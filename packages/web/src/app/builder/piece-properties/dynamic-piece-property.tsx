@@ -1,16 +1,23 @@
-import { PiecePropertyMap, PropertyType } from '@activepieces/pieces-framework';
+import {
+  ExecutePropsResult,
+  PiecePropertyMap,
+  PropertyType,
+} from '@activepieces/pieces-framework';
 import {
   AUTHENTICATION_PROPERTY_NAME,
   isNil,
+  PieceOptionRequest,
   PropertySettings,
 } from '@activepieces/shared';
+import { createMutation } from '@tanstack/solid-query';
 import deepEqual from 'deep-equal';
 import { Show, createEffect, createSignal, useContext } from 'solid-js';
 
 import { BuilderForm, useFormContext } from '@/app/builder/builder-form';
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { SkeletonList } from '@/components/ui/skeleton';
-import { piecesHooks, formUtils } from '@/features/pieces';
+import { formUtils } from '@/features/pieces';
+import { piecesApi } from '@/features/pieces/api/pieces-api';
 import { authenticationSession } from '@/lib/authentication-session';
 
 import { DynamicPropertiesErrorBoundary } from './dynamic-piece-properties-error-boundary';
@@ -38,20 +45,9 @@ const DynamicPropertiesImplementation = (props: DynamicPropertiesProps) => {
     state.flowVersion,
     state.readonly,
   ]);
-  const form = useFormContext();
-  const allInputsValues = form.watch(
-    props.placedInside === 'stepSettings' ? 'settings.input' : undefined,
-  );
-  const refreshersPropertiesNames = [
-    ...props.refreshers,
-    AUTHENTICATION_PROPERTY_NAME,
-  ];
-  const refresherValues = refreshersPropertiesNames.reduce<
-    Record<string, unknown>
-  >((acc, refresher) => {
-    acc[refresher] = allInputsValues[refresher];
-    return acc;
-  }, {});
+  const form = useFormContext() as BuilderForm & {
+    watch: (name?: string) => unknown;
+  };
   let previousRefresherValues: Record<string, unknown> | undefined;
   const { propertyLoadingFinished, propertyLoadingStarted } = useContext(
     DynamicPropertiesContext,
@@ -59,30 +55,55 @@ const DynamicPropertiesImplementation = (props: DynamicPropertiesProps) => {
   const [propertyMap, setPropertyMap] = createSignal<
     PiecePropertyMap | undefined
   >(undefined);
-  const propertyPrefix =
+  const propertyPrefix = () =>
     props.placedInside === 'stepSettings' ? 'settings.input' : '';
-  const { mutate, isPending } =
-    piecesHooks.usePieceOptions<PropertyType.DYNAMIC>({
-      onMutate: () => {
-        propertyLoadingStarted(props.propertyName);
-      },
-      onError: (error) => {
-        console.error(error);
-        propertyLoadingFinished(props.propertyName);
-      },
-      onSuccess: () => {
-        propertyLoadingFinished(props.propertyName);
-      },
-    });
+  const { mutate, isPending } = createMutation<
+    ExecutePropsResult<PropertyType.DYNAMIC>,
+    Error,
+    { request: PieceOptionRequest; propertyType: PropertyType.DYNAMIC }
+  >(() => ({
+    mutationFn: async ({ request, propertyType }) => {
+      return piecesApi.options(request, propertyType);
+    },
+    onMutate: () => {
+      propertyLoadingStarted(props.propertyName);
+    },
+    onError: (error) => {
+      console.error(error);
+      propertyLoadingFinished(props.propertyName);
+    },
+    onSuccess: () => {
+      propertyLoadingFinished(props.propertyName);
+    },
+  }));
+
+  const getRefresherValues = () => {
+    const values = form.watch(
+      props.placedInside === 'stepSettings' ? 'settings.input' : undefined,
+    );
+    const input =
+      values && typeof values === 'object'
+        ? (values as Record<string, unknown>)
+        : undefined;
+    return [...props.refreshers, AUTHENTICATION_PROPERTY_NAME].reduce<
+      Record<string, unknown>
+    >(
+      (acc, refresher) => ({
+        ...acc,
+        [refresher]: input?.[refresher],
+      }),
+      {},
+    );
+  };
 
   const clearPropertyValue = () => {
     // the field state won't be cleared if you only unset the parent prop value
-    if (propertyMap) {
-      Object.keys(propertyMap).forEach((childPropName) => {
+    if (propertyMap()) {
+      Object.keys(propertyMap() ?? {}).forEach((childPropName) => {
         form.setValue(
           prependPrefixToPropertyName({
             propertyName: `${props.propertyName}.${childPropName}`,
-            prefix: propertyPrefix,
+            prefix: propertyPrefix(),
           }),
           null,
           {
@@ -95,7 +116,7 @@ const DynamicPropertiesImplementation = (props: DynamicPropertiesProps) => {
     form.setValue(
       prependPrefixToPropertyName({
         propertyName: props.propertyName,
-        prefix: propertyPrefix,
+        prefix: propertyPrefix(),
       }),
       null,
       {
@@ -104,6 +125,7 @@ const DynamicPropertiesImplementation = (props: DynamicPropertiesProps) => {
     );
   };
   createEffect(() => {
+    const refresherValues = getRefresherValues();
     if (!deepEqual(previousRefresherValues, refresherValues)) {
       clearPropertyValue();
     }
@@ -124,13 +146,13 @@ const DynamicPropertiesImplementation = (props: DynamicPropertiesProps) => {
       },
       {
         onSuccess: (response) => {
-          const currentValue = form.getValues(
+          const currentValue: unknown = form.getValues(
             prependPrefixToPropertyName({
               propertyName: props.propertyName,
-              prefix: propertyPrefix,
+              prefix: propertyPrefix(),
             }),
           );
-          const defaultValue = formUtils.getDefaultValueForProperties({
+          const defaultValue: unknown = formUtils.getDefaultValueForProperties({
             props: response.options,
             existingInput: currentValue ?? {},
             propertySettings: props.propertySettings ?? {},
@@ -141,7 +163,7 @@ const DynamicPropertiesImplementation = (props: DynamicPropertiesProps) => {
           props.updateFormSchema?.(
             prependPrefixToPropertyName({
               propertyName: props.propertyName,
-              prefix: propertyPrefix,
+              prefix: propertyPrefix(),
             }),
             schemaWithoutDropdownOptions,
           );
@@ -156,7 +178,7 @@ const DynamicPropertiesImplementation = (props: DynamicPropertiesProps) => {
           form.setValue(
             prependPrefixToPropertyName({
               propertyName: props.propertyName,
-              prefix: propertyPrefix,
+              prefix: propertyPrefix(),
             }),
             defaultValue,
             {
@@ -167,28 +189,28 @@ const DynamicPropertiesImplementation = (props: DynamicPropertiesProps) => {
         },
       },
     );
-  }, [refresherValues]);
+  });
 
   return (
     <>
-      <Show when={isPending()}>
-        <SkeletonList numberOfItems={3} class="h-7"></SkeletonList>
+      <Show when={isPending}>
+        <SkeletonList numberOfItems={3} class="h-7" />
       </Show>
       <Show when={!isPending && propertyMap()}>
         <GenericPropertiesForm
           prefixValue={prependPrefixToPropertyName({
             propertyName: props.propertyName,
-            prefix: propertyPrefix,
+            prefix: propertyPrefix(),
           })}
-          props={propertyMap}
+          props={propertyMap()}
           useMentionTextInput={!isNil(props.propertySettings)}
           disabled={props.disabled}
           propertySettings={props.propertySettings}
           dynamicPropsInfo={null}
           onValueChange={() => {
-            form.trigger();
+            void form.trigger();
           }}
-        ></GenericPropertiesForm>
+        />
       </Show>
     </>
   );
@@ -201,8 +223,7 @@ const DynamicProperties = (props: DynamicPropertiesProps) => {
     </DynamicPropertiesErrorBoundary>
   );
 };
-DynamicPropertiesImplementation.displayName = 'DynamicPropertiesImplementation';
-DynamicProperties.displayName = 'DynamicProperties';
+
 export { DynamicProperties };
 
 const prependPrefixToPropertyName = ({

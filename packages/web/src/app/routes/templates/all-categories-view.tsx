@@ -1,5 +1,5 @@
 import { Template } from '@activepieces/shared';
-import { createEffect, createSignal, For, Show } from 'solid-js';
+import { createEffect, createSignal, For, mergeProps, Show } from 'solid-js';
 
 import { CategorySection } from './category-section';
 import { CategorySectionSkeleton } from './skeletons/category-section-skeleton';
@@ -8,32 +8,26 @@ type AllCategoriesViewSkeletonProps = {
   hideHeader?: boolean;
 };
 
-const AllCategoriesViewSkeleton = ({
-  hideHeader = false,
-}: AllCategoriesViewSkeletonProps) => {
+const AllCategoriesViewSkeleton = (_props: AllCategoriesViewSkeletonProps) => {
+  const props = mergeProps({ hideHeader: false }, _props);
   return (
-    <div className="space-y-6">
-      <For each={[...Array(4)]}>
+    <div class="space-y-6">
+      <For each={Array.from({ length: 4 })}>
         {(_, index) => (
-          <CategorySectionSkeleton key={index} hideHeader={hideHeader} />
+          <CategorySectionSkeleton key={index} hideHeader={props.hideHeader} />
         )}
       </For>
     </div>
   );
 };
 
-function LazyCategorySection({
-  category,
-  templates,
-  onCategorySelect,
-  onTemplateSelect,
-}: {
+function LazyCategorySection(props: {
   category: string;
   templates: Template[];
   onCategorySelect: (category: string) => void;
   onTemplateSelect: (template: Template) => void;
 }) {
-  let ref = null;
+  let ref: HTMLDivElement | undefined;
   const [isVisible, setIsVisible] = createSignal(false);
 
   createEffect(() => {
@@ -55,13 +49,13 @@ function LazyCategorySection({
   });
 
   return (
-    <div ref={(el) => (ref = el)}>
+    <div ref={ref}>
       <Show when={isVisible} fallback={<CategorySectionSkeleton />}>
         <CategorySection
-          category={category}
-          templates={templates}
-          onCategorySelect={onCategorySelect}
-          onTemplateSelect={onTemplateSelect}
+          category={props.category}
+          templates={props.templates}
+          onCategorySelect={props.onCategorySelect}
+          onTemplateSelect={props.onTemplateSelect}
         />
       </Show>
     </div>
@@ -77,38 +71,26 @@ type AllCategoriesViewProps = {
   hideHeader?: boolean;
 };
 
-export const AllCategoriesView = ({
-  templatesByCategory,
-  categories,
-  onCategorySelect,
-  onTemplateSelect,
-  isLoading = false,
-  hideHeader = false,
-}: AllCategoriesViewProps) => {
-  const stableOnCategorySelect = onCategorySelect;
-  const stableOnTemplateSelect = onTemplateSelect;
-
-  if (isLoading) {
-    return <AllCategoriesViewSkeleton hideHeader={hideHeader} />;
-  }
+export const AllCategoriesView = (_props: AllCategoriesViewProps) => {
+  const props = mergeProps({ isLoading: false, hideHeader: false }, _props);
 
   return (
-    <div className="space-y-6">
-      <For each={categories}>
-        {(category) => {
-          const categoryTemplates = templatesByCategory[category];
-
-          return (
+    <Show
+      when={!props.isLoading}
+      fallback={<AllCategoriesViewSkeleton hideHeader={props.hideHeader} />}
+    >
+      <div class="space-y-6">
+        <For each={props.categories}>
+          {(category) => (
             <LazyCategorySection
-              key={category}
               category={category}
-              templates={categoryTemplates}
-              onCategorySelect={stableOnCategorySelect}
-              onTemplateSelect={stableOnTemplateSelect}
+              templates={props.templatesByCategory[category]}
+              onCategorySelect={props.onCategorySelect}
+              onTemplateSelect={props.onTemplateSelect}
             />
-          );
-        }}
-      </For>
-    </div>
+          )}
+        </For>
+      </div>
+    </Show>
   );
 };

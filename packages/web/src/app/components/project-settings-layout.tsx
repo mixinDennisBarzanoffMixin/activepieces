@@ -2,9 +2,7 @@ import { isNil } from '@activepieces/shared';
 
 import { authenticationSession } from '../../lib/authentication-session';
 
-export default function ProjectSettingsLayout({
-  children,
-}: {
+export default function ProjectSettingsLayout(props: {
   children: JSX.Element;
 }) {
   const currentProjectId = authenticationSession.getProjectId();
@@ -14,5 +12,5 @@ export default function ProjectSettingsLayout({
     return null;
   }
 
-  return <div className="w-full">{children}</div>;
+  return <div class="w-full">{props.children}</div>;
 }

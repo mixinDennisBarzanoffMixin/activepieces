@@ -2,7 +2,7 @@ export type Row = {
   id: string;
   agentRunId: string | null;
   locked: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export enum RowHeight {

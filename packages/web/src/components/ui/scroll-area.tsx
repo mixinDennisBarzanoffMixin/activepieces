@@ -1,23 +1,34 @@
-import { createEffect, createSignal } from 'solid-js';
+import {
+  createEffect,
+  createSignal,
+  splitProps,
+  type JSX,
+  Show,
+} from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
-function ScrollArea({
-  className,
-  children,
-  viewPortClassName,
-  viewPortRef,
-  orientation = 'vertical',
-  showGradient = false,
-  gradientClassName,
-  ...props
-}: JSX.IntrinsicElements['div'] & ScrollAreaCustomProps) {
+function ScrollArea(props: ScrollAreaProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'children',
+    'viewPortClassName',
+    'viewPortRef',
+    'orientation',
+    'showGradient',
+    'gradientClassName',
+  ]);
   const [showBottomGradient, setShowBottomGradient] = createSignal(false);
-  let internalViewPortRef: HTMLDivElement | undefined;
-  let viewportRef = viewPortRef || internalViewPortRef;
+  let viewportRef: HTMLDivElement | undefined;
+  const orientation = () => local.orientation ?? 'vertical';
+  const showGradient = () => local.showGradient ?? false;
 
   createEffect(() => {
-    if (!showGradient || !viewportRef) return;
+    if (local.viewPortRef) {
+      viewportRef = local.viewPortRef;
+    }
+    if (!showGradient() || !viewportRef) return;
 
     const viewport = viewportRef;
     const checkScroll = () => {
@@ -45,50 +56,55 @@ function ScrollArea({
   return (
     <div
       data-slot="scroll-area"
-      class={cn('relative overflow-hidden', className)}
-      {...props}
+      class={cn('relative overflow-hidden', local.class, local.className)}
+      {...rest}
     >
       <div
         data-slot="scroll-area-viewport"
         class={cn(
           'size-full overflow-auto rounded-[inherit] [&>div]:block!',
-          viewPortClassName,
+          local.viewPortClassName,
         )}
         ref={(el) => {
           viewportRef = el;
         }}
       >
-        {children}
+        {local.children}
       </div>
-      <ScrollBar orientation={orientation} />
+      <ScrollBar orientation={orientation()} />
 
-      {showGradient && showBottomGradient && (
+      <Show when={showGradient() && showBottomGradient()}>
         <div
-          className={cn(
+          class={cn(
             'pointer-events-none absolute bottom-0 left-0 right-0 h-1/5 bg-linear-to-t from-sidebar to-transparent',
-            gradientClassName,
+            local.gradientClassName,
           )}
         />
-      )}
+      </Show>
     </div>
   );
 }
 
-function ScrollBar({
-  className,
-  orientation = 'vertical',
-  ...props
-}: JSX.IntrinsicElements['div'] & { orientation?: 'vertical' | 'horizontal' }) {
+function ScrollBar(props: ScrollBarProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'orientation',
+  ]);
+  const orientation = () => local.orientation ?? 'vertical';
+
   return (
     <div
       data-slot="scroll-area-scrollbar"
       class={cn(
         'pointer-events-none absolute flex touch-none transition-colors select-none',
-        orientation === 'vertical' && 'right-0 top-0 h-full w-1.5',
-        orientation === 'horizontal' && 'bottom-0 left-0 h-1.5 w-full flex-col',
-        className,
+        orientation() === 'vertical' && 'right-0 top-0 h-full w-1.5',
+        orientation() === 'horizontal' &&
+          'bottom-0 left-0 h-1.5 w-full flex-col',
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     >
       <div
         data-slot="scroll-area-thumb"
@@ -100,10 +116,16 @@ function ScrollBar({
 
 export { ScrollArea, ScrollBar };
 
-type ScrollAreaCustomProps = {
+type ScrollAreaProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
   viewPortClassName?: string;
   orientation?: 'vertical' | 'horizontal';
   viewPortRef?: HTMLDivElement | null | undefined;
   showGradient?: boolean;
   gradientClassName?: string;
+};
+
+type ScrollBarProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
+  orientation?: 'vertical' | 'horizontal';
 };

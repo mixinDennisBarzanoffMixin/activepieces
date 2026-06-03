@@ -6,7 +6,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Search } from 'lucide-solid';
-import { createMemo, createSignal } from 'solid-js';
+import { createEffect, createMemo, createSignal } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
@@ -32,13 +32,16 @@ type AgentFlowToolDialogProps = {
   tools: AgentTool[];
 };
 
-export function AgentFlowToolDialog({
-  onToolsUpdate,
-  tools,
-}: AgentFlowToolDialogProps) {
-  const [selectedFlows, setSelectedFlows] = createSignal<AgentFlowTool[]>(
-    tools.filter((tools) => tools.type === AgentToolType.FLOW),
-  );
+export function AgentFlowToolDialog(props: AgentFlowToolDialogProps) {
+  const [selectedFlows, setSelectedFlows] = createSignal<AgentFlowTool[]>([]);
+
+  createEffect(() => {
+    setSelectedFlows(
+      props.tools.filter((tool): tool is AgentFlowTool => {
+        return tool.type === AgentToolType.FLOW;
+      }),
+    );
+  });
 
   const {
     showAddFlowDialog,
@@ -58,13 +61,13 @@ export function AgentFlowToolDialog({
   });
 
   const handleSave = () => {
-    const noneFlowTools: AgentTool[] = tools.filter(
+    const noneFlowTools: AgentTool[] = props.tools.filter(
       (tool) => tool.type !== AgentToolType.FLOW,
     );
 
-    const updatedTools = [...noneFlowTools, ...selectedFlows];
+    const updatedTools = [...noneFlowTools, ...selectedFlows()];
     setShowAddFlowDialog(false);
-    onToolsUpdate(updatedTools);
+    props.onToolsUpdate(updatedTools);
     toast('Changes to flow tools saved');
   };
 
@@ -75,13 +78,13 @@ export function AgentFlowToolDialog({
           <DialogTitle>{t('Add Flow Tools')}</DialogTitle>
         </DialogHeader>
 
-        <div className="px-4 py-3 border-b">
-          <div className="relative border rounded-sm">
+        <div class="px-4 py-3 border-b">
+          <div class="relative border rounded-sm">
             <Search class="absolute left-2 top-2.5 size-4 text-muted-foreground" />
             <Input
               placeholder={t('Search')}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onInput={(e) => setSearchQuery(e.currentTarget.value)}
               class="pl-9 shadow-none border-none"
             />
           </div>
@@ -89,7 +92,7 @@ export function AgentFlowToolDialog({
 
         <ScrollArea class="grow overflow-y-auto">
           <FlowDialogContent
-            flows={flows || []}
+            flows={flows() || []}
             searchQuery={searchQuery}
             selectedFlows={selectedFlows}
             setSelectedFlows={setSelectedFlows}

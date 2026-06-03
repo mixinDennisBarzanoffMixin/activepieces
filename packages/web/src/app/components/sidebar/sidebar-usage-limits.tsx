@@ -28,13 +28,13 @@ const SidebarUsageLimits = () => {
 
   if (isNil(project)) {
     return (
-      <div className="flex flex-col w-full p-2.5 bg-background rounded-md border">
-        <div className="flex flex-col gap-2">
+      <div class="flex flex-col w-full p-2.5 bg-background rounded-md border">
+        <div class="flex flex-col gap-2">
           {
             <For each={[1, 2, 3]}>
-              {(i) => (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+              {() => (
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
                     <Skeleton class="size-4" />
                     <Skeleton class="w-20 h-4" />
                   </div>
@@ -49,8 +49,8 @@ const SidebarUsageLimits = () => {
   }
 
   return (
-    <div className="flex flex-col w-full p-2.5 bg-background rounded-md border">
-      <div className="flex flex-col gap-1.5">
+    <div class="flex flex-col w-full p-2.5 bg-background rounded-md border">
+      <div class="flex flex-col gap-1.5">
         <UsageRow name={t('Runs')} isUnlimited={true} />
         <UsageRow
           name={t('AI Credits')}
@@ -90,55 +90,48 @@ type UsageRowProps = {
   tooltip?: string;
 };
 
-const UsageRow = ({
-  name,
-  value,
-  max,
-  isUnlimited,
-  suffix,
-  tooltip,
-}: UsageRowProps) => {
-  const hasMax = !isNil(max);
-
+const UsageRow = (props: UsageRowProps) => {
   return (
-    <div className="flex items-center justify-between gap-2 w-full text-xs">
-      <div className="flex items-center gap-2">
-        <span className="text-muted-foreground">•</span>
-        <span className="truncate font-medium">{name}</span>
+    <div class="flex items-center justify-between gap-2 w-full text-xs">
+      <div class="flex items-center gap-2">
+        <span class="text-muted-foreground">•</span>
+        <span class="truncate font-medium">{props.name}</span>
         {
-          <Show when={tooltip}>
+          <Show when={props.tooltip}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Info class="size-3.5 text-muted-foreground cursor-help" />
               </TooltipTrigger>
               <TooltipContent side="top" class="max-w-[220px]">
-                <p className="text-sm">{tooltip}</p>
+                <p class="text-sm">{props.tooltip}</p>
               </TooltipContent>
             </Tooltip>
           </Show>
         }
       </div>
-      <div className="flex items-center gap-2 text-foreground">
+      <div class="flex items-center gap-2 text-foreground">
         {
           <Show
-            when={isUnlimited}
+            when={props.isUnlimited}
             fallback={
               <Show
-                when={suffix}
+                when={props.suffix}
                 fallback={
                   <span>
-                    {formatUtils.formatNumber(value ?? 0)} /{' '}
-                    {hasMax ? formatUtils.formatNumber(max) : t('Unlimited')}
+                    {formatUtils.formatNumber(props.value ?? 0)} /{' '}
+                    {!isNil(props.max)
+                      ? formatUtils.formatNumber(props.max)
+                      : t('Unlimited')}
                   </span>
                 }
               >
                 <span>
-                  {formatUtils.formatNumber(value ?? 0)} {suffix}
+                  {formatUtils.formatNumber(props.value ?? 0)} {props.suffix}
                 </span>
               </Show>
             }
           >
-            <span className="text-muted-foreground">{t('Unlimited')}</span>
+            <span class="text-muted-foreground">{t('Unlimited')}</span>
           </Show>
         }
       </div>

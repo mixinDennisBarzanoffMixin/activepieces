@@ -43,13 +43,13 @@ export const GeneralSettings = (props: GeneralSettingsProps) => {
   const colorOptions = Object.values(ColorName);
 
   return (
-    <div className="space-y-6">
+    <div class="space-y-6">
       <Show when={showGeneralSettings}>
         <div>
           <Label for="projectName" class="text-sm font-medium">
             {t('Project Name')}
           </Label>
-          <div className="flex mt-2">
+          <div class="flex mt-2">
             <Popover open={colorPickerOpen} onOpenChange={setColorPickerOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -59,9 +59,9 @@ export const GeneralSettings = (props: GeneralSettingsProps) => {
                   disabled={props.disabled}
                 >
                   <div
-                    className="h-3 w-3 rounded-none shrink-0"
+                    class="h-3 w-3 rounded-none shrink-0"
                     style={{
-                      backgroundColor:
+                      'background-color':
                         PROJECT_COLOR_PALETTE[props.values().icon.color].color,
                     }}
                   />
@@ -69,7 +69,7 @@ export const GeneralSettings = (props: GeneralSettingsProps) => {
                 </Button>
               </PopoverTrigger>
               <PopoverContent class="w-auto p-3" align="start">
-                <div className="grid grid-cols-6 gap-2">
+                <div class="grid grid-cols-6 gap-2">
                   <For each={colorOptions}>
                     {(colorName) => (
                       <Button
@@ -82,7 +82,8 @@ export const GeneralSettings = (props: GeneralSettingsProps) => {
                             'ring-2 ring-offset-2 ring-foreground',
                         )}
                         style={{
-                          backgroundColor: PROJECT_COLOR_PALETTE[colorName].color,
+                          'background-color':
+                            PROJECT_COLOR_PALETTE[colorName].color,
                         }}
                         onClick={() => {
                           props.setField('icon', { color: colorName });
@@ -146,7 +147,7 @@ export const GeneralSettings = (props: GeneralSettingsProps) => {
             onChange={(e) =>
               props.setField(
                 'maxConcurrentJobs',
-                e.target.value ? Number(e.target.value) : null,
+                e.currentTarget.value ? Number(e.currentTarget.value) : null,
               )
             }
             onClear={() => props.setField('maxConcurrentJobs', null)}
@@ -176,6 +177,9 @@ export type FormValues = {
 
 type GeneralSettingsProps = {
   values: Accessor<FormValues>;
-  setField: <K extends keyof FormValues>(field: K, value: FormValues[K]) => void;
+  setField: <K extends keyof FormValues>(
+    field: K,
+    value: FormValues[K],
+  ) => void;
   disabled: boolean;
 };

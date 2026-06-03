@@ -1,7 +1,7 @@
 import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
 import { MailCheck, MailX } from 'lucide-solid';
-import { createEffect, createSignal } from 'solid-js';
+import { createEffect, createSignal, Show } from 'solid-js';
 
 import { FullLogo } from '@/components/custom/full-logo';
 import { LoadingSpinner } from '@/components/custom/spinner';
@@ -45,42 +45,40 @@ const VerifyEmail = () => {
       mutate({ otp, identityId });
       hasMutated = true;
     }
-  }, [otp, identityId, mutate]);
+  });
 
   if (!otp || !identityId) {
     window.location.replace('/sign-in');
     return null;
   }
   return (
-    <div className="mx-auto h-screen w-screen flex flex-col items-center justify-center gap-2">
+    <div class="mx-auto h-screen w-screen flex flex-col items-center justify-center gap-2">
       <FullLogo />
 
       <Card class="w-md rounded-sm drop-shadow-xl p-4">
-        <div className="gap-2 w-full flex flex-col">
-          <div className="gap-4 w-full flex flex-row items-center justify-center">
-            {!isPending && !isExpired && (
+        <div class="gap-2 w-full flex flex-col">
+          <div class="gap-4 w-full flex flex-row items-center justify-center">
+            <Show when={!isPending && !isExpired}>
               <>
                 <MailCheck class="w-16 h-16" />
-                <span className="text-left w-fit">
+                <span class="text-left w-fit">
                   {t(
                     'Email has been verified. You will be redirected to sign in...',
                   )}
                 </span>
               </>
-            )}
-            {isPending && !isExpired && (
+            </Show>
+            <Show when={isPending && !isExpired}>
               <>
                 <LoadingSpinner class="size-6" />
-                <span className="text-left w-fit">
-                  {t('Verifying email...')}
-                </span>
+                <span class="text-left w-fit">{t('Verifying email...')}</span>
               </>
-            )}
+            </Show>
 
-            {isExpired && (
+            <Show when={isExpired}>
               <>
                 <MailX class="w-16 h-16" />
-                <div className="text-left w-fit">
+                <div class="text-left w-fit">
                   <div>
                     {t(
                       'invitation has expired, once you sign in again you will be able to resend the verification email.',
@@ -89,7 +87,7 @@ const VerifyEmail = () => {
                   <div>{t('Redirecting to sign in...')}</div>
                 </div>
               </>
-            )}
+            </Show>
           </div>
         </div>
       </Card>

@@ -66,8 +66,7 @@ function VariablesPage() {
   >([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = createSignal(false);
 
-  const { cursor, limit, name, ownerEmails } =
-    variablesQueries.useListSearchParams();
+  const params = variablesQueries.useListSearchParams();
 
   const {
     data: variables,
@@ -76,31 +75,33 @@ function VariablesPage() {
   } = variablesQueries.useVariables({
     request: {
       projectId,
-      cursor,
-      limit,
-      name,
+      cursor: params().cursor,
+      limit: params().limit,
+      name: params().name,
     },
     extraKeys: [
       'variables',
-      cursor ?? '',
-      String(limit),
-      name ?? '',
+      params().cursor ?? '',
+      String(params().limit),
+      params().name ?? '',
       projectId,
     ],
     showErrorDialog: true,
   });
 
   const { mutateAsync: deleteVariable } =
-    variablesMutations.useBulkDeleteVariables(refetch);
+    variablesMutations.useBulkDeleteVariables(() => {
+      void refetch();
+    });
 
   const { data: owners } = variablesQueries.useVariableOwners(projectId);
 
   const filteredData = createMemo(() => {
     if (!variables?.data) return undefined;
-    if (ownerEmails.length === 0) return variables;
+    if (params().ownerEmails.length === 0) return variables;
     return {
       data: variables.data.filter(
-        (v) => v.owner && ownerEmails.includes(v.owner.email),
+        (v) => v.owner && params().ownerEmails.includes(v.owner.email),
       ),
       next: variables.next,
       previous: variables.previous,
@@ -129,20 +130,20 @@ function VariablesPage() {
       {
         accessorKey: 'name',
         size: 280,
-        header: ({ column }) => (
+        header: (props) => (
           <DataTableColumnHeader
-            column={column}
+            column={props.column}
             title={t('Name')}
             icon={Variable}
           />
         ),
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-primary/10 text-primary">
+        cell: (props) => (
+          <div class="flex items-center gap-2 min-w-0">
+            <div class="shrink-0 flex items-center justify-center w-8 h-8 rounded-md bg-primary/10 text-primary">
               <Variable class="w-4 h-4" />
             </div>
-            <span className="font-mono text-sm truncate">
-              {row.original.name}
+            <span class="font-mono text-sm truncate">
+              {props.row.original.name}
             </span>
           </div>
         ),
@@ -150,18 +151,21 @@ function VariablesPage() {
       {
         accessorKey: 'updated',
         size: 180,
-        header: ({ column }) => (
-          <DataTableColumnHeader column={column} title={t('Last updated')} />
+        header: (props) => (
+          <DataTableColumnHeader
+            column={props.column}
+            title={t('Last updated')}
+          />
         ),
-        cell: ({ row }) => (
-          <FormattedDate date={new Date(row.original.updated)} />
+        cell: (props) => (
+          <FormattedDate date={new Date(props.row.original.updated)} />
         ),
       },
       {
         id: 'actions',
         size: 60,
-        cell: ({ row }) => (
-          <div className="flex justify-end">
+        cell: (props) => (
+          <div class="flex justify-end">
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -176,18 +180,16 @@ function VariablesPage() {
               <DropdownMenuContent align="end" class="w-48">
                 <DropdownMenuItem
                   disabled={!canWrite}
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setEditing(row.original);
+                  onSelect={() => {
+                    setEditing(props.row.original);
                   }}
                 >
                   <Pencil class="h-4 w-4 mr-2" />
                   {t('Edit')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    void copyReferenceToClipboard(row.original.name);
+                  onSelect={() => {
+                    void copyReferenceToClipboard(props.row.original.name);
                   }}
                 >
                   <Link2 class="h-4 w-4 mr-2" />
@@ -197,9 +199,8 @@ function VariablesPage() {
                 <DropdownMenuItem
                   disabled={!canWrite}
                   class="text-destructive focus:text-destructive"
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    setDeleting(row.original);
+                  onSelect={() => {
+                    setDeleting(props.row.original);
                   }}
                 >
                   <Trash2 class="h-4 w-4 mr-2" />
@@ -217,13 +218,18 @@ function VariablesPage() {
   const bulkActions: BulkAction<VariableWithoutSensitiveData>[] = createMemo(
     () => [
       {
-        render: (_rows, resetSelection) => (
+        render: (
+          _rows: RowDataWithActions<VariableWithoutSensitiveData>[],
+          resetSelection: () => void,
+        ) => (
           <>
-            <Show when={selectedRows.length > 0}>
+            <Show when={selectedRows().length > 0}>
               <ConfirmationDeleteDialog
                 title={t('Delete variables')}
-                message={t(
-                  'This permanently deletes the selected variables. Flows that reference them will fail at runtime.',
+                message={String(
+                  t(
+                    'This permanently deletes the selected variables. Flows that reference them will fail at runtime.',
+                  ),
                 )}
                 entityName={t('variable')}
                 buttonText={t('Delete')}
@@ -232,7 +238,7 @@ function VariablesPage() {
                 open={showBulkDeleteDialog}
                 onOpenChange={setShowBulkDeleteDialog}
                 mutationFn={async () => {
-                  await deleteVariable(selectedRows.map((row) => row.id));
+                  await deleteVariable(selectedRows().map((row) => row.id));
                   resetSelection();
                   setSelectedRows([]);
                 }}
@@ -245,7 +251,7 @@ function VariablesPage() {
                   onClick={() => setShowBulkDeleteDialog(true)}
                 >
                   <Trash2 class="h-4 w-4 mr-1" />
-                  {t('Delete')} ({selectedRows.length})
+                  {t('Delete')} ({selectedRows().length})
                 </Button>
               </ConfirmationDeleteDialog>
             </Show>
@@ -269,7 +275,7 @@ function VariablesPage() {
   ];
 
   return (
-    <div className="flex flex-col w-full">
+    <div class="flex flex-col w-full">
       <DataTable
         emptyStateTextTitle={t('No variables yet')}
         emptyStateTextDescription={t(
@@ -288,38 +294,43 @@ function VariablesPage() {
       <VariableDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        onSaved={() => refetch()}
+        onSaved={() => {
+          void refetch();
+        }}
       />
       <VariableDialog
-        open={!!editing}
-        existing={editing}
+        open={!!editing()}
+        existing={editing()}
         onOpenChange={(open) => {
           if (!open) {
             setEditing(undefined);
           }
         }}
         onSaved={() => {
-          refetch();
+          void refetch();
           setEditing(undefined);
         }}
       />
       <ConfirmationDeleteDialog
         title={t('Delete variable')}
-        message={t(
-          'This permanently deletes the variable. Flows that reference it will fail at runtime.',
+        message={String(
+          t(
+            'This permanently deletes the variable. Flows that reference it will fail at runtime.',
+          ),
         )}
-        entityName={deleting?.name ?? ''}
+        entityName={deleting()?.name ?? ''}
         isDanger
         showToast
-        open={!!deleting}
+        open={!!deleting()}
         onOpenChange={(open) => {
           if (!open) {
             setDeleting(undefined);
           }
         }}
         mutationFn={async () => {
-          if (!deleting) return;
-          await deleteVariable([deleting.id]);
+          const variable = deleting();
+          if (!variable) return;
+          await deleteVariable([variable.id]);
           setDeleting(undefined);
         }}
       />

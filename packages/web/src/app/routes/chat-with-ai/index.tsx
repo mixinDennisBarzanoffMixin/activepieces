@@ -72,17 +72,17 @@ export function ChatWithAIPage() {
       renameCancelledRef = false;
       return;
     }
-    const convId = selectedConversationId ?? pendingConversationId;
-    if (!convId || !renameValue.trim()) {
+    const convId = selectedConversationId ?? pendingConversationId();
+    if (!convId || !renameValue().trim()) {
       setIsRenaming(false);
       return;
     }
     renameCancelledRef = true;
     try {
       await chatApi.updateConversation(convId, {
-        title: renameValue.trim(),
+        title: renameValue().trim(),
       });
-      setConversationTitle(renameValue.trim());
+      setConversationTitle(renameValue().trim());
       void queryClient.invalidateQueries({
         queryKey: ['chat-conversations'],
       });
@@ -95,7 +95,7 @@ export function ChatWithAIPage() {
   };
 
   const handleDelete = async () => {
-    const convId = selectedConversationId ?? pendingConversationId;
+    const convId = selectedConversationId ?? pendingConversationId();
     if (!convId) return;
     try {
       await chatApi.deleteConversation(convId);
@@ -109,7 +109,7 @@ export function ChatWithAIPage() {
   };
 
   createEffect(() => {
-    if (!selectedConversationId || conversationTitle) return;
+    if (!selectedConversationId || conversationTitle()) return;
     let cancelled = false;
     chatApi
       .getConversation(selectedConversationId)
@@ -137,29 +137,30 @@ export function ChatWithAIPage() {
     return () => window.removeEventListener('keydown', handler);
   });
 
-  const activeConversationId = selectedConversationId ?? pendingConversationId;
-  const displayTitle = conversationTitle ?? t('New conversation');
+  const activeConversationId = () =>
+    selectedConversationId ?? pendingConversationId();
+  const displayTitle = () => conversationTitle() ?? t('New conversation');
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <div className="shrink-0 overflow-hidden opacity-40 hover:opacity-100 transition-opacity duration-200">
+    <div class="flex h-full overflow-hidden">
+      <div class="shrink-0 overflow-hidden opacity-40 hover:opacity-100 transition-opacity duration-200">
         <ConversationList
           onNewChat={handleNewChat}
           onSelect={handleSelectConversation}
-          selectedId={pendingConversationId ?? selectedConversationId}
+          selectedId={pendingConversationId() ?? selectedConversationId}
         />
       </div>
-      <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
-        <div className="shrink-0 flex items-center gap-1.5 px-6 py-3 border-b">
+      <div class="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
+        <div class="shrink-0 flex items-center gap-1.5 px-6 py-3 border-b">
           <Show
             when={isRenaming}
             fallback={
               <>
                 <TypewriterText
-                  text={displayTitle}
+                  text={displayTitle()}
                   class="text-sm font-semibold truncate max-w-[400px]"
                 />
-                <Show when={activeConversationId}>
+                <Show when={activeConversationId()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
@@ -173,7 +174,7 @@ export function ChatWithAIPage() {
                     <DropdownMenuContent align="start">
                       <DropdownMenuItem
                         onClick={() => {
-                          setRenameValue(conversationTitle ?? '');
+                          setRenameValue(conversationTitle() ?? '');
                           setIsRenaming(true);
                         }}
                       >
@@ -195,8 +196,8 @@ export function ChatWithAIPage() {
           >
             <Input
               autoFocus
-              value={renameValue}
-              onChange={(e) => setRenameValue(e.target.value)}
+              value={renameValue()}
+              onChange={(e) => setRenameValue(e.currentTarget.value)}
               onBlur={() => void handleRename()}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void handleRename();
@@ -209,9 +210,9 @@ export function ChatWithAIPage() {
             />
           </Show>
         </div>
-        <div className="flex-1 min-h-0">
+        <div class="flex-1 min-h-0">
           <AIChatBox
-            key={`${selectedConversationId ?? 'new'}-${resetKey}`}
+            key={`${selectedConversationId ?? 'new'}-${resetKey()}`}
             incognito={false}
             conversationId={selectedConversationId}
             onTitleUpdate={handleTitleUpdate}

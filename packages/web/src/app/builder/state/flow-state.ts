@@ -1,12 +1,15 @@
 import {
+  type FlowAction,
   FlowOperationRequest,
   FlowOperationType,
   FlowVersion,
   FlowVersionState,
+  PieceTrigger,
   PopulatedFlow,
   flowOperations,
   flowStructureUtil,
   isNil,
+  SampleDataSetting,
   StepSettings,
   FlowTriggerType,
   debounce,
@@ -29,8 +32,8 @@ import { flowCanvasUtils } from '../flow-canvas/utils/flow-canvas-utils';
 export type FlowState = {
   flow: PopulatedFlow;
   flowVersion: FlowVersion;
-  outputSampleData: Record<string, unknown | undefined>;
-  inputSampleData: Record<string, unknown | undefined>;
+  outputSampleData: Record<string, unknown>;
+  inputSampleData: Record<string, unknown>;
   saving: boolean;
   renameFlowClientSide: (newName: string) => void;
   moveToFolderClientSide: (folderId: string) => void;
@@ -386,10 +389,7 @@ export const createFlowState = (
             );
             break;
           }
-          if (
-            !flowStructureUtil.isAction(currentAction.type) ||
-            !flowStructureUtil.isAction(defaultValues.type)
-          ) {
+          if (!isFlowAction(currentAction) || !isFlowAction(defaultValues)) {
             break;
           }
           applyOperation({
@@ -398,10 +398,7 @@ export const createFlowState = (
               type: defaultValues.type,
               displayName: defaultValues.displayName,
               name: operation.stepName,
-              settings: {
-                ...defaultValues.settings,
-                customLogoUrl,
-              },
+              settings: defaultValues.settings,
               valid: defaultValues.valid,
             },
           });
@@ -446,11 +443,49 @@ const handleUpdatingSampleDataForStepLocallyAfterServerUpdate = ({
     console.error(`Step ${operation.request.stepName} not found`);
     return localFlowVersion;
   }
+  const sampleDataSettings =
+    operation.request.stepName === 'trigger'
+      ? getTriggerSampleDataSettings(updatedFlowVersion.trigger)
+      : getSampleDataSettingsFromStep(
+          flowStructureUtil.getActionOrThrow(
+            operation.request.stepName,
+            updatedFlowVersion.trigger,
+          ),
+        );
+
   return flowOperations.apply(localFlowVersion, {
     type: FlowOperationType.UPDATE_SAMPLE_DATA_INFO,
     request: {
       stepName: operation.request.stepName,
-      sampleDataSettings: updatedStep.settings.sampleData,
+      sampleDataSettings,
     },
   });
 };
+
+function isFlowAction(
+  step: FlowAction | FlowVersion['trigger'],
+): step is FlowAction {
+  return flowStructureUtil.isAction(step.type);
+}
+
+function getSampleDataSettingsFromStep(step: FlowAction) {
+  return getSampleDataSettings(step.settings.sampleData);
+}
+
+function getTriggerSampleDataSettings(trigger: unknown) {
+  const result = PieceTrigger.safeParse(trigger);
+  if (!result.success) {
+    return undefined;
+  }
+  return getSampleDataSettings(result.data.settings.sampleData);
+}
+
+function getSampleDataSettings(settings: unknown) {
+  const result = SampleDataSetting.omit({ lastTestDate: true })
+    .nullable()
+    .safeParse(settings ?? null);
+  if (!result.success) {
+    return undefined;
+  }
+  return result.data;
+}

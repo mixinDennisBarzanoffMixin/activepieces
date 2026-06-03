@@ -289,50 +289,50 @@ const getDefaultStepValues = ({
 
 // Adjusts piece list height to prevent overflow on short screens
 const useAdjustPieceListHeightToAvailableSpace = () => {
-  let listHeightRef = MAX_PIECE_SELECTOR_LIST_HEIGHT;
-  let popoverTriggerRef: HTMLButtonElement | null = null;
+  const trigger: { current: HTMLButtonElement | undefined } = {
+    current: undefined,
+  };
+  const popoverTriggerRef = (el: HTMLButtonElement) => {
+    trigger.current = el;
+  };
 
-  if (!popoverTriggerRef) {
+  if (!trigger.current) {
     return {
-      listHeightRef,
+      listHeightRef: { current: MAX_PIECE_SELECTOR_LIST_HEIGHT },
       popoverTriggerRef,
       searchInputDivHeight: SEARCH_INPUT_DIV_HEIGHT,
     };
   }
 
-  const popOverTriggerRect = popoverTriggerRef.getBoundingClientRect();
+  const rect = trigger.current.getBoundingClientRect();
   const viewportHeight =
     window.innerHeight || document.documentElement.clientHeight;
   const shouldRenderBelowPopoverTrigger =
-    popOverTriggerRect.top < viewportHeight - popOverTriggerRect.bottom;
+    rect.top < viewportHeight - rect.bottom;
 
-  if (shouldRenderBelowPopoverTrigger) {
-    const availableSpaceBelow =
-      viewportHeight - popOverTriggerRect.bottom - SEARCH_INPUT_DIV_HEIGHT;
-    listHeightRef = Math.max(
-      MIN_PIECE_SELECTOR_LIST_HEIGHT,
-      availableSpaceBelow,
-    );
-  } else {
-    const availableSpaceAbove =
-      popOverTriggerRect.top - SEARCH_INPUT_DIV_HEIGHT;
-    listHeightRef = Math.max(
-      MIN_PIECE_SELECTOR_LIST_HEIGHT,
-      availableSpaceAbove,
-    );
-  }
+  const listHeightRef = {
+    current: shouldRenderBelowPopoverTrigger
+      ? Math.max(
+          MIN_PIECE_SELECTOR_LIST_HEIGHT,
+          viewportHeight - rect.bottom - SEARCH_INPUT_DIV_HEIGHT,
+        )
+      : Math.max(
+          MIN_PIECE_SELECTOR_LIST_HEIGHT,
+          rect.top - SEARCH_INPUT_DIV_HEIGHT,
+        ),
+  };
 
   return {
     listHeightRef,
     popoverTriggerRef,
   };
 };
-const MAX_PIECE_SELECTOR_LIST_HEIGHT = 300 as const;
-const MIN_PIECE_SELECTOR_LIST_HEIGHT = 100 as const;
-const SEARCH_INPUT_DIV_HEIGHT = 113 as const;
-const PIECE_ITEM_HEIGHT = 48 as const;
-const ACTION_OR_TRIGGER_ITEM_HEIGHT = 41 as const;
-const CATEGORY_ITEM_HEIGHT = 28 as const;
+const MAX_PIECE_SELECTOR_LIST_HEIGHT = 300;
+const MIN_PIECE_SELECTOR_LIST_HEIGHT = 100;
+const SEARCH_INPUT_DIV_HEIGHT = 113;
+const PIECE_ITEM_HEIGHT = 48;
+const ACTION_OR_TRIGGER_ITEM_HEIGHT = 41;
+const CATEGORY_ITEM_HEIGHT = 28;
 export const PIECE_SELECTOR_ELEMENTS_HEIGHTS = {
   MAX_PIECE_SELECTOR_LIST_HEIGHT,
   MIN_PIECE_SELECTOR_LIST_HEIGHT,

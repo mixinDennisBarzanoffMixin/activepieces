@@ -21,23 +21,22 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 
-export const AllowedDomainDialog = ({
-  platform,
-  refetch,
-}: AllowedDomainDialogProps) => {
-  const initial = () => platform.allowedAuthDomains.map((domain) => domain);
+export const AllowedDomainDialog = (props: AllowedDomainDialogProps) => {
+  const initial = () =>
+    props.platform.allowedAuthDomains.map((domain) => domain);
   const [open, setOpen] = createSignal(false);
   const [domains, setDomains] = createSignal(initial());
-  const valid = createMemo(() =>
-    AllowedDomainsFormValues.safeParse({
-      allowedAuthDomains: domains().map((domain) => ({ domain })),
-    }).success,
+  const valid = createMemo(
+    () =>
+      AllowedDomainsFormValues.safeParse({
+        allowedAuthDomains: domains().map((domain) => ({ domain })),
+      }).success,
   );
 
   const { mutate, isPending } = createMutation(() => ({
     mutationFn: async (request: UpdatePlatformRequestBody) => {
-      await platformApi.update(request, platform.id);
-      await refetch();
+      await platformApi.update(request, props.platform.id);
+      await props.refetch();
     },
     onSuccess: () => {
       toast.success(t('Allowed domains updated'), {
@@ -59,7 +58,10 @@ export const AllowedDomainDialog = ({
     >
       <DialogTrigger asChild>
         <Button size={'sm'} variant={'basic'} onClick={() => setOpen(true)}>
-          <Show when={platform.allowedAuthDomains.length > 0} fallback={t('Enable')}>
+          <Show
+            when={props.platform.allowedAuthDomains.length > 0}
+            fallback={t('Enable')}
+          >
             {t('Update')}
           </Show>
         </Button>
@@ -69,7 +71,7 @@ export const AllowedDomainDialog = ({
           <DialogTitle>{t('Configure Allowed Domains')}</DialogTitle>
         </DialogHeader>
         <form
-          className="grid space-y-4"
+          class="grid space-y-4"
           onSubmit={(e) => {
             e.preventDefault();
             mutate({
@@ -78,8 +80,8 @@ export const AllowedDomainDialog = ({
             });
           }}
         >
-          <div className="flex flex-col gap-1">
-            <div className="text-muted-foreground text-sm">
+          <div class="flex flex-col gap-1">
+            <div class="text-muted-foreground text-sm">
               {t(
                 'Enter the allowed domains for the users to authenticate with. An empty list will allow all domains.',
               )}
@@ -88,7 +90,7 @@ export const AllowedDomainDialog = ({
           <For each={domains()}>
             {(domain, index) => (
               <div class="grid space-y-4">
-                <div className="flex space-x-2">
+                <div class="flex space-x-2">
                   <Input
                     id={`allowedAuthDomains.${index()}`}
                     value={domain}
@@ -130,7 +132,11 @@ export const AllowedDomainDialog = ({
           </Button>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)} type="button">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              type="button"
+            >
               {t('Cancel')}
             </Button>
             <Button loading={isPending} disabled={!valid()} type="submit">

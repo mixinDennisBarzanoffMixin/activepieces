@@ -11,7 +11,7 @@ import { useBuilderStateContext } from '../../builder-hooks';
 import { flowCanvasHooks } from '../../flow-canvas/hooks';
 import { AboveTriggerButton } from '../../flow-canvas/widgets/above-trigger-button';
 
-const EditFlowOrViewDraftButton = ({ onCanvas }: { onCanvas: boolean }) => {
+const EditFlowOrViewDraftButton = (props: { onCanvas: boolean }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { checkAccess } = useAuthorization();
@@ -26,7 +26,7 @@ const EditFlowOrViewDraftButton = ({ onCanvas }: { onCanvas: boolean }) => {
     return null;
   }
   const handleClick = () => {
-    if (location.pathname?.includes('/runs')) {
+    if (location.pathname.includes('/runs')) {
       navigate(`/flows/${flowId}`);
     } else {
       switchToDraft();
@@ -38,23 +38,23 @@ const EditFlowOrViewDraftButton = ({ onCanvas }: { onCanvas: boolean }) => {
 
   return (
     <>
-      <Show when={onCanvas()}>
+      <Show when={props.onCanvas}>
         <AboveTriggerButton
           shortCutIsEscape={true}
           showPrimaryBg={false}
           onClick={handleClick}
           text={text}
-        ></AboveTriggerButton>
+        />
       </Show>
 
-      <Show when={!onCanvas()}>
+      <Show when={!props.onCanvas}>
         <Button
           size={'sm'}
           variant={'basic'}
           loading={isSwitchingToDraftPending}
           class="gap-2"
           onClick={() => {
-            if (location.pathname?.includes('/runs')) {
+            if (location.pathname.includes('/runs')) {
               navigate(`/flows/${flowId}`);
             } else {
               switchToDraft();
@@ -68,16 +68,12 @@ const EditFlowOrViewDraftButton = ({ onCanvas }: { onCanvas: boolean }) => {
     </>
   );
 };
-EditFlowOrViewDraftButton.displayName = 'EditFlowOrViewDraftButton';
-export { EditFlowOrViewDraftButton };
-function getButtonTextAndIcon({
-  hasPermissionToEditFlow,
-}: {
-  hasPermissionToEditFlow: boolean;
-}) {
-  const text = hasPermissionToEditFlow ? t('Edit flow') : t('View draft');
 
-  if (hasPermissionToEditFlow) {
+export { EditFlowOrViewDraftButton };
+function getButtonTextAndIcon(props: { hasPermissionToEditFlow: boolean }) {
+  const text = props.hasPermissionToEditFlow ? t('Edit flow') : t('View draft');
+
+  if (props.hasPermissionToEditFlow) {
     return {
       icon: <PencilIcon class="size-4" />,
       text,

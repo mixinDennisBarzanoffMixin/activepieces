@@ -11,43 +11,40 @@ import { useAuthorization } from '@/hooks/authorization-hooks';
 import { userInvitationApi } from '../api/user-invitation';
 import { userInvitationsHooks } from '../hooks/user-invitations-hooks';
 
-export function InvitationCard({ invitation }: { invitation: UserInvitation }) {
+export function InvitationCard(props: { invitation: UserInvitation }) {
   const { refetch } = userInvitationsHooks.useInvitations();
   const { checkAccess } = useAuthorization();
   const userHasPermissionToRemoveInvitation = checkAccess(
     Permission.WRITE_INVITATION,
   );
   async function deleteInvitation() {
-    await userInvitationApi.delete(invitation.id);
-    refetch();
+    await userInvitationApi.delete(props.invitation.id);
+    void refetch();
   }
   return (
-    <div
-      className="flex items-center justify-between space-x-4"
-      key={invitation.id}
-    >
-      <div className="flex items-center space-x-4">
+    <div class="flex items-center justify-between space-x-4">
+      <div class="flex items-center space-x-4">
         <UserAvatar
-          name={invitation.email}
-          email={invitation.email}
+          name={props.invitation.email}
+          email={props.invitation.email}
           size={32}
           disableTooltip={true}
-        ></UserAvatar>
+        />
         <div>
-          <p className="text-sm font-medium leading-none">
-            {invitation.email} ({invitation.projectRole?.name})
+          <p class="text-sm font-medium leading-none">
+            {props.invitation.email} ({props.invitation.projectRole?.name})
           </p>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div class="flex gap-2">
         <PermissionNeededTooltip
           hasPermission={userHasPermissionToRemoveInvitation}
         >
           <ConfirmationDeleteDialog
             mutationFn={() => deleteInvitation()}
-            entityName={invitation.email}
-            title={t('Remove {email}', { email: invitation.email })}
-            message={t('This invitation will be revoked immediately.')}
+            entityName={props.invitation.email}
+            title={t('Remove {email}', { email: props.invitation.email })}
+            message={String(t('This invitation will be revoked immediately.'))}
           >
             <Button
               disabled={!userHasPermissionToRemoveInvitation}

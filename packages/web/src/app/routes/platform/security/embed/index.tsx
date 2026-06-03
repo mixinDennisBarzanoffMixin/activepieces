@@ -12,7 +12,7 @@ import {
   ListChecks,
   ShieldCheck,
 } from 'lucide-solid';
-import { createSignal, Show } from 'solid-js';
+import { createMemo, createSignal, Show } from 'solid-js';
 
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
 import { Button } from '@/components/ui/button';
@@ -97,10 +97,11 @@ const EmbedPage = () => {
       : firstIncompleteIndex;
 
   const [viewingIndex, setViewingIndex] = createSignal<number | null>(null);
-  const displayedIndex =
-    viewingIndex !== null && viewingIndex < activeStepIndex
-      ? viewingIndex
-      : activeStepIndex;
+  const displayedIndex = createMemo(() =>
+    viewingIndex() !== null && viewingIndex()! < activeStepIndex
+      ? viewingIndex()!
+      : activeStepIndex,
+  );
 
   const handleStepClick = (index: number) => {
     if (index > activeStepIndex) return;
@@ -115,7 +116,7 @@ const EmbedPage = () => {
         'Configure who can embed your workflows and create the signing keys to authenticate sessions.',
       );
 
-  const displayedStep = steps[displayedIndex];
+  const displayedStep = createMemo(() => steps[displayedIndex()]);
 
   return (
     <LockedFeatureGuard
@@ -126,10 +127,10 @@ const EmbedPage = () => {
         'Enable signing keys to access embedding functionalities.',
       )}
     >
-      <div className="w-full max-w-4/5 2xl:max-w-6xl mx-auto py-6">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-medium">{t('Embed Onboarding')}</h1>
-          <div className="text-sm text-muted-foreground">
+      <div class="w-full max-w-4/5 2xl:max-w-6xl mx-auto py-6">
+        <div class="flex flex-col gap-1">
+          <h1 class="text-xl font-medium">{t('Embed Onboarding')}</h1>
+          <div class="text-sm text-muted-foreground">
             {description}
             <Button
               variant="link"
@@ -150,34 +151,34 @@ const EmbedPage = () => {
         </div>
         <Separator class="mt-4 mb-12" />
 
-        <div className="grid grid-cols-[16rem_1fr] gap-16">
+        <div class="grid grid-cols-[16rem_1fr] gap-16">
           <Stepper
             steps={steps}
             completion={stepCompletion}
             activeStepIndex={activeStepIndex}
-            displayedIndex={displayedIndex}
+            displayedIndex={displayedIndex()}
             onStepClick={handleStepClick}
           />
 
-          <div className="min-w-0">
+          <div class="min-w-0">
             <Show
               when={isLoading}
               fallback={
                 <Show
-                  when={displayedStep?.kind === 'hostname'}
+                  when={displayedStep().kind === 'hostname'}
                   fallback={
                     <Show
-                      when={displayedStep?.kind === 'dns'}
+                      when={displayedStep().kind === 'dns'}
                       fallback={
-                        displayedStep?.kind === 'allowed-domains' ? (
+                        displayedStep().kind === 'allowed-domains' ? (
                           <AllowedDomainsStep
                             allowedEmbedOrigins={allowedEmbedOrigins}
                           />
-                        ) : displayedStep?.kind === 'signing-keys' ? (
+                        ) : displayedStep().kind === 'signing-keys' ? (
                           <SigningKeysStep
                             signingKeys={signingKeys}
                             isLoading={isKeysLoading}
-                            refetch={refetch}
+                            refetch={() => void refetch()}
                           />
                         ) : null
                       }
@@ -199,5 +200,4 @@ const EmbedPage = () => {
   );
 };
 
-EmbedPage.displayName = 'EmbedPage';
 export { EmbedPage };

@@ -8,6 +8,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { CircleHelp, Zap } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import {
   Item,
@@ -32,12 +33,10 @@ type BusinessActiveFlowsProps = {
   platformSubscription: PlatformBillingInformation;
 };
 
-export function ActiveFlowAddon({
-  platformSubscription,
-}: BusinessActiveFlowsProps) {
+export function ActiveFlowAddon(props: BusinessActiveFlowsProps) {
   const { openDialog } = useManagePlanDialogStore();
 
-  const { plan, usage } = platformSubscription;
+  const { plan, usage } = props.platformSubscription;
   const currentActiveFlows = usage.activeFlows || 0;
 
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
@@ -76,24 +75,24 @@ export function ActiveFlowAddon({
           </TooltipProvider>
         </ItemTitle>
         <ItemDescription>
-          <span className="font-medium text-foreground">
+          <span class="font-medium text-foreground">
             {currentActiveFlows.toLocaleString()} / {limitLabel}
           </span>{' '}
           {t('flows used')}
-          {approachingLimit && (
-            <span className="ml-2 text-destructive font-medium">
+          <Show when={approachingLimit}>
+            <span class="ml-2 text-destructive font-medium">
               {t('Approaching limit')}
             </span>
-          )}
+          </Show>
         </ItemDescription>
       </ItemContent>
-      {canManageActiveFlowsLimit && (
+      <Show when={canManageActiveFlowsLimit}>
         <ItemActions>
           <Button variant="outline" size="sm" onClick={() => openDialog()}>
             {t('Manage')}
           </Button>
         </ItemActions>
-      )}
+      </Show>
     </Item>
   );
 }

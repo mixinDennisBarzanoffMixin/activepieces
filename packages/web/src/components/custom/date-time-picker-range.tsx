@@ -1,7 +1,13 @@
 import { format, subDays, addDays, startOfDay, endOfDay } from 'date-fns';
 import { t } from 'i18next';
 import { Calendar as CalendarIcon, Clock } from 'lucide-solid';
-import { createSignal, createMemo, createEffect } from 'solid-js';
+import {
+  createSignal,
+  createMemo,
+  createEffect,
+  Show,
+  mergeProps,
+} from 'solid-js';
 
 import { TimePicker } from '@/components/custom/time-picker';
 import { Button } from '@/components/ui/button';
@@ -115,8 +121,8 @@ const detectPreset = (
 
 export const getDefaultRange = (presetKey: PresetKey) => {
   const preset = PRESETS[presetKey]();
-  preset.from!.setHours(0, 0, 0, 0);
-  preset.to!.setHours(23, 59, 59, 999);
+  preset.from.setHours(0, 0, 0, 0);
+  preset.to.setHours(23, 59, 59, 999);
   return preset;
 };
 
@@ -143,18 +149,15 @@ const getInitialDateAndPreset = (
   return { initialDate, initialPreset };
 };
 
-export function DateTimePickerWithRange({
-  className,
-  onChange,
-  from,
-  to,
-  maxDate = new Date(),
-  minDate,
-  presetType = 'past',
-  defaultSelectedRange,
-}: DateTimePickerWithRangeProps) {
+export function DateTimePickerWithRange(_props: DateTimePickerWithRangeProps) {
+  const props = mergeProps({ maxDate: new Date(), presetType: 'past' }, _props);
   const { initialDate, initialPreset } = createMemo(() => {
-    return getInitialDateAndPreset(from, to, presetType, defaultSelectedRange);
+    return getInitialDateAndPreset(
+      props.from,
+      props.to,
+      props.presetType,
+      props.defaultSelectedRange,
+    );
   })();
 
   const [date, setDate] = createSignal<DateRange | undefined>(initialDate);
@@ -166,23 +169,28 @@ export function DateTimePickerWithRange({
     initialPreset,
   );
 
-  const isDefaultApplied = { current: !!initialPreset && !from && !to };
+  const isDefaultApplied = {
+    current: !!initialPreset && !props.from && !props.to,
+  };
 
   createEffect(() => {
     if (isDefaultApplied.current && date()) {
-      onChange(date());
+      props.onChange(date());
       isDefaultApplied.current = false;
     }
   });
 
   createEffect(() => {
-    if (from && to) {
-      const newDate: DateRange = { from: new Date(from), to: new Date(to) };
+    if (props.from && props.to) {
+      const newDate: DateRange = {
+        from: new Date(props.from),
+        to: new Date(props.to),
+      };
       setDate(newDate);
       setTimeDate({ from: newDate.from, to: newDate.to });
-      const preset = detectPreset(newDate.from, newDate.to, presetType);
+      const preset = detectPreset(newDate.from, newDate.to, props.presetType);
       setSelectedPreset(preset);
-    } else if (!from && !to) {
+    } else if (!props.from && !props.to) {
       setDate(initialDate);
       setTimeDate({ from: initialDate?.from, to: initialDate?.to });
       setSelectedPreset(initialPreset);
@@ -193,7 +201,7 @@ export function DateTimePickerWithRange({
     setSelectedPreset(null);
     if (!selectedDate) {
       setDate(undefined);
-      onChange(undefined);
+      props.onChange(undefined);
       return;
     }
 
@@ -212,22 +220,22 @@ export function DateTimePickerWithRange({
         : undefined,
     };
     setDate(newDate);
-    onChange(newDate);
+    props.onChange(newDate);
   };
 
   const handlePresetChange = (value: string) => {
     const newRange = PRESETS[value as PresetKey]();
-    newRange.from!.setHours(0, 0, 0, 0);
-    newRange.to!.setHours(23, 59, 59, 999);
+    newRange.from.setHours(0, 0, 0, 0);
+    newRange.to.setHours(23, 59, 59, 999);
 
     setDate(newRange);
     setTimeDate({ from: newRange.from, to: newRange.to });
     setSelectedPreset(value);
-    onChange(newRange);
+    props.onChange(newRange);
   };
 
   return (
-    <div className={cn('grid gap-2', className)}>
+    <div class={cn('grid gap-2', props.className)}>
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -248,7 +256,7 @@ export function DateTimePickerWithRange({
                     when={date()?.to}
                     fallback={format(date()!.from!, 'LLL dd, y, hh:mm a')}
                   >
-                    <div className="flex gap-2 items-center">
+                    <div class="flex gap-2 items-center">
                       <div>{format(date()!.from!, 'LLL dd, y, hh:mm a')}</div>
                       <div>{t('to')}</div>
                       <div>{format(date()!.to!, 'LLL dd, y, hh:mm a')}</div>
@@ -262,17 +270,17 @@ export function DateTimePickerWithRange({
           </Button>
         </PopoverTrigger>
         <PopoverContent class="w-auto p-2" align="start">
-          <div className="flex space-x-2 mb-2">
+          <div class="flex space-x-2 mb-2">
             <Select
               onValueChange={handlePresetChange}
               value={selectedPreset() || undefined}
             >
               <SelectTrigger>
-                <SelectValue placeholder={t('Select preset')} />
+                <SelectValue placeholder={String(t('Select preset'))} />
               </SelectTrigger>
               <SelectContent>
                 <Show
-                  when={presetType === 'past'}
+                  when={props.presetType === 'past'}
                   fallback={
                     <>
                       <SelectItem value="7">{t('Next 7 days')}</SelectItem>
@@ -301,18 +309,18 @@ export function DateTimePickerWithRange({
             onSelect={handleSelect}
             numberOfMonths={2}
             weekStartsOn={1}
-            toDate={maxDate}
-            fromDate={minDate}
+            toDate={props.maxDate}
+            fromDate={props.minDate}
           />
 
           <Separator class="mb-4" />
 
-          <div className="flex gap-1.5 px-2 items-center text-sm mb-3">
+          <div class="flex gap-1.5 px-2 items-center text-sm mb-3">
             <Clock class="w-4 h-4 text-muted-foreground" />
             {t('Select Time Range')}
           </div>
 
-          <div className="flex gap-3 items-center px-2 mb-2">
+          <div class="flex gap-3 items-center px-2 mb-2">
             <TimePicker
               date={timeDate().from}
               name="from"
@@ -325,7 +333,7 @@ export function DateTimePickerWithRange({
                 setDate(updated);
                 setTimeDate({ ...timeDate(), from: fromTime });
                 setSelectedPreset(null);
-                onChange(updated);
+                props.onChange(updated);
               }}
             />
             {t('to')}
@@ -341,12 +349,12 @@ export function DateTimePickerWithRange({
                 setDate(updated);
                 setTimeDate({ ...timeDate(), to: toTime });
                 setSelectedPreset(null);
-                onChange(updated);
+                props.onChange(updated);
               }}
             />
           </div>
 
-          <div className="flex justify-center mt-3">
+          <div class="flex justify-center mt-3">
             <Button
               variant="ghost"
               size="sm"
@@ -355,7 +363,7 @@ export function DateTimePickerWithRange({
                 setDate(undefined);
                 setTimeDate({ from: undefined, to: undefined });
                 setSelectedPreset(null);
-                onChange(undefined);
+                props.onChange(undefined);
               }}
             >
               {t('Clear')}

@@ -16,7 +16,7 @@ type PieceActionsProps = {
   isEnabled: boolean;
 };
 
-const PieceActions = ({ pieceName, isEnabled }: PieceActionsProps) => {
+const PieceActions = (props: PieceActionsProps) => {
   const { platform, refetch } = platformHooks.useCurrentPlatform();
 
   const { mutate: togglePiece, isPending: isTogglePending } =
@@ -32,24 +32,24 @@ const PieceActions = ({ pieceName, isEnabled }: PieceActionsProps) => {
       refetch,
     });
 
-  const filtered = platform.filteredPieceNames.includes(pieceName);
-  const pinned = platform.pinnedPieces.includes(pieceName);
+  const filtered = platform.filteredPieceNames.includes(props.pieceName);
+  const pinned = platform.pinnedPieces.includes(props.pieceName);
 
   return (
-    <div className="flex gap-2">
+    <div class="flex gap-2">
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             variant="ghost"
             size={'sm'}
             loading={isTogglePending}
-            disabled={!isEnabled}
+            disabled={!props.isEnabled}
             onClick={(e) => {
-              if (!isEnabled) {
+              if (!props.isEnabled) {
                 e.preventDefault();
                 return;
               }
-              togglePiece(pieceName);
+              togglePiece(props.pieceName);
             }}
           >
             <Show when={filtered} fallback={<Eye class="size-4" />}>
@@ -62,7 +62,7 @@ const PieceActions = ({ pieceName, isEnabled }: PieceActionsProps) => {
             when={filtered}
             fallback={t('Show this piece for all projects')}
           >
-            t('Hide this piece from all projects'
+            {t('Hide this piece from all projects')}
           </Show>
         </TooltipContent>
       </Tooltip>
@@ -73,13 +73,13 @@ const PieceActions = ({ pieceName, isEnabled }: PieceActionsProps) => {
             variant="ghost"
             size={'sm'}
             loading={isPinPending}
-            disabled={!isEnabled}
+            disabled={!props.isEnabled}
             onClick={(e) => {
-              if (!isEnabled) {
+              if (!props.isEnabled) {
                 e.preventDefault();
                 return;
               }
-              togglePin(pieceName);
+              togglePin(props.pieceName);
             }}
           >
             <Show when={pinned} fallback={<Pin class="size-4" />}>
@@ -89,14 +89,12 @@ const PieceActions = ({ pieceName, isEnabled }: PieceActionsProps) => {
         </TooltipTrigger>
         <TooltipContent>
           <Show when={pinned} fallback={t('Pin this piece')}>
-            t('Unpin this piece'
+            {t('Unpin this piece')}
           </Show>
         </TooltipContent>
       </Tooltip>
     </div>
   );
 };
-
-PieceActions.displayName = 'PieceActions';
 
 export { PieceActions };

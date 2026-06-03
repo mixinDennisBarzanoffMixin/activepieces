@@ -20,64 +20,82 @@ export const McpServerSettings = () => {
 
   if (isLoading) {
     return (
-      <div className="w-full flex items-center justify-center py-20">
+      <div class="w-full flex items-center justify-center py-20">
         <LoadingSpinner />
       </div>
     );
   }
 
   return (
-    <div className="w-full mt-4">
+    <div class="w-full mt-4">
       {
-        <Show when={mcpServer}>
-          <Tabs defaultValue="connection">
-            <TabsList>
-              <TabsTrigger value="connection">{t('Connection')}</TabsTrigger>
-              <TabsTrigger value="tools">{t('Tools')}</TabsTrigger>
-            </TabsList>
+        <Show when={mcpServer} keyed>
+          {(server) => {
+            const tools = getDisabledTools(server);
 
-            <TabsContent value="connection" class="mt-4 pb-6" tabIndex={-1}>
-              <McpCredentials />
-            </TabsContent>
+            return (
+              <Tabs defaultValue="connection">
+                <TabsList>
+                  <TabsTrigger value="connection">
+                    {t('Connection')}
+                  </TabsTrigger>
+                  <TabsTrigger value="tools">{t('Tools')}</TabsTrigger>
+                </TabsList>
 
-            <TabsContent
-              value="tools"
-              class="mt-4 space-y-6 pb-6"
-              tabIndex={-1}
-            >
-              <div>
-                <h3 className="font-semibold text-base mb-1">
-                  {t('Internal Tools')}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {t(
-                    'Control which built-in Activepieces tools are available to agents via this MCP server.',
-                  )}
-                </p>
-                <McpTools
-                  disabledTools={mcpServer.disabledTools}
-                  isPending={isUpdating}
-                  onUpdateDisabledTools={(tools) =>
-                    updateMcpServer({ disabledTools: tools })
-                  }
-                />
-              </div>
+                <TabsContent value="connection" class="mt-4 pb-6" tabIndex={-1}>
+                  <McpCredentials />
+                </TabsContent>
 
-              <div>
-                <h3 className="font-semibold text-base mb-1">
-                  {t('Your Flows')}
-                </h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  {t(
-                    'Flows with the MCP Trigger are exposed as tools on this server.',
-                  )}
-                </p>
-                <McpFlows mcpServer={mcpServer} />
-              </div>
-            </TabsContent>
-          </Tabs>
+                <TabsContent
+                  value="tools"
+                  class="mt-4 space-y-6 pb-6"
+                  tabIndex={-1}
+                >
+                  <div>
+                    <h3 class="font-semibold text-base mb-1">
+                      {t('Internal Tools')}
+                    </h3>
+                    <p class="text-sm text-muted-foreground mb-3">
+                      {t(
+                        'Control which built-in Activepieces tools are available to agents via this MCP server.',
+                      )}
+                    </p>
+                    <McpTools
+                      disabledTools={tools}
+                      isPending={isUpdating}
+                      onUpdateDisabledTools={(tools) =>
+                        updateMcpServer({ disabledTools: tools })
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <h3 class="font-semibold text-base mb-1">
+                      {t('Your Flows')}
+                    </h3>
+                    <p class="text-sm text-muted-foreground mb-3">
+                      {t(
+                        'Flows with the MCP Trigger are exposed as tools on this server.',
+                      )}
+                    </p>
+                    <McpFlows mcpServer={server} />
+                  </div>
+                </TabsContent>
+              </Tabs>
+            );
+          }}
         </Show>
       }
     </div>
   );
 };
+
+function getDisabledTools(server: unknown) {
+  if (!server || typeof server !== 'object' || !('disabledTools' in server)) {
+    return null;
+  }
+  const value = server.disabledTools;
+  return Array.isArray(value)
+    ? value.filter((tool) => typeof tool === 'string')
+    : null;
+}

@@ -11,7 +11,7 @@ import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
 import JSZip from 'jszip';
 import { TriangleAlert } from 'lucide-solid';
-import { createSignal, JSX } from 'solid-js';
+import { createSignal, JSX, For, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
@@ -65,7 +65,11 @@ const readTemplateJson = async (
     const reader = new FileReader();
 
     reader.onload = () => {
-      const template = templateUtils.parseTemplate(reader.result as string);
+      if (typeof reader.result !== 'string') {
+        resolve(null);
+        return;
+      }
+      const template = templateUtils.parseTemplate(reader.result);
       resolve(template);
     };
     reader.readAsText(templateFile);
@@ -83,9 +87,9 @@ const ImportFlowDialog = (
   const [errorMessage, setErrorMessage] = createSignal('');
   const [isDialogOpen, setIsDialogOpen] = createSignal(false);
   const [failedFiles, setFailedFiles] = createSignal<string[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = createSignal<string | undefined>(
-    props.insideBuilder ? undefined : props.folderId,
-  );
+  const [selectedFolderId, setSelectedFolderId] = createSignal<
+    string | undefined
+  >();
 
   const { folders, isLoading } = foldersHooks.useFolders();
 
@@ -109,7 +113,8 @@ const ImportFlowDialog = (
       }
 
       const folder =
-        !isNil(selectedFolderId()) && selectedFolderId() !== UncategorizedFolderId
+        !isNil(selectedFolderId()) &&
+        selectedFolderId() !== UncategorizedFolderId
           ? await foldersApi.get(selectedFolderId()!)
           : undefined;
 
@@ -164,7 +169,7 @@ const ImportFlowDialog = (
     },
   });
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (templates().length === 0) {
       setErrorMessage(
         failedFiles().length
@@ -179,8 +184,10 @@ const ImportFlowDialog = (
     }
   };
 
-  const handleFileChange = async (event: Event<HTMLInputElement>) => {
-    const files = event.target.files;
+  const handleFileChange = async (
+    event: Event & { currentTarget: HTMLInputElement },
+  ) => {
+    const files = event.currentTarget.files;
     if (!files?.[0]) return;
 
     setTemplates([]);
@@ -229,27 +236,28 @@ const ImportFlowDialog = (
           setErrorMessage('');
           setTemplates([]);
           setFailedFiles([]);
+          setSelectedFolderId(props.insideBuilder ? undefined : props.folderId);
         }
       }}
     >
       <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent class="sm:max-w-[500px]">
         <DialogHeader>
-          <div className="flex flex-col gap-3">
+          <div class="flex flex-col gap-3">
             <DialogTitle>{t('Import Flow')}</DialogTitle>
           </div>
         </DialogHeader>
-        <div className="flex flex-col gap-4">
-          {props.insideBuilder && (
+        <div class="flex flex-col gap-4">
+          <Show when={props.insideBuilder}>
             <Alert variant="warning">
               <TriangleAlert class="h-4 w-4" />
               <AlertDescription>
                 {t('Importing a flow will overwrite your current one.')}
               </AlertDescription>
             </Alert>
-          )}
-          <div className="w-full flex flex-col gap-2 justify-between items-start">
-            <span className="w-16 text-sm font-medium text-gray-700">
+          </Show>
+          <div class="w-full flex flex-col gap-2 justify-between items-start">
+            <span class="w-16 text-sm font-medium text-gray-700">
               {t('Flow')}
             </span>
             <Input
@@ -257,52 +265,61 @@ const ImportFlowDialog = (
               type="file"
               accept={props.insideBuilder ? '.json' : '.json,.zip'}
               ref={fileInputRef}
-              onChange={handleFileChange}
+              onInput={(event) => void handleFileChange(event)}
             />
           </div>
-          {!props.insideBuilder && !embedState.hideFolders && (
-            <div className="w-full flex flex-col gap-2 justify-between items-start">
-              <span className="w-16 text-sm font-medium text-gray-700">
+          <Show when={!props.insideBuilder && !embedState.hideFolders}>
+            <div class="w-full flex flex-col gap-2 justify-between items-start">
+              <span class="w-16 text-sm font-medium text-gray-700">
                 {t('Folder')}
               </span>
-              {isLoading ? (
-                <div className="flex justify-center items-center w-full">
+              <Show
+                when={isLoading}
+                fallback={
+                  <Select
+                    onValueChange={(value: string) =>
+                      setSelectedFolderId(value)
+                    }
+                    defaultValue={selectedFolderId()}
+                  >
+                    <SelectTrigger>
+                      <SelectValue
+                        defaultValue={selectedFolderId()}
+                        placeholder={String(t('Select a folder'))}
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>{t('Folders')}</SelectLabel>
+                        <SelectItem value={UncategorizedFolderId}>
+                          {t('Uncategorized')}
+                        </SelectItem>
+                        {
+                          <For each={folders}>
+                            {(folder) => (
+                              <SelectItem key={folder.id} value={folder.id}>
+                                {folder.displayName}
+                              </SelectItem>
+                            )}
+                          </For>
+                        }
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                }
+              >
+                <div class="flex justify-center items-center w-full">
                   <LoadingSpinner />
                 </div>
-              ) : (
-                <Select
-                  onValueChange={(value) => setSelectedFolderId(value)}
-                  defaultValue={selectedFolderId()}
-                >
-                  <SelectTrigger>
-                    <SelectValue
-                      defaultValue={selectedFolderId()}
-                      placeholder={t('Select a folder')}
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>{t('Folders')}</SelectLabel>
-                      <SelectItem value={UncategorizedFolderId}>
-                        {t('Uncategorized')}
-                      </SelectItem>
-                      {folders?.map((folder) => (
-                        <SelectItem key={folder.id} value={folder.id}>
-                          {folder.displayName}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              )}
+              </Show>
             </div>
-          )}
+          </Show>
         </div>
-        {errorMessage() && (
+        <Show when={errorMessage()}>
           <FormError formMessageId="import-flow-error-message" class="mt-4">
             {errorMessage()}
           </FormError>
-        )}
+        </Show>
         <DialogFooter>
           <Button
             variant="outline"
@@ -311,7 +328,7 @@ const ImportFlowDialog = (
           >
             {t('Cancel')}
           </Button>
-          <Button onClick={handleSubmit} loading={isPending}>
+          <Button onClick={() => handleSubmit()} loading={isPending}>
             {t('Import')}
           </Button>
         </DialogFooter>

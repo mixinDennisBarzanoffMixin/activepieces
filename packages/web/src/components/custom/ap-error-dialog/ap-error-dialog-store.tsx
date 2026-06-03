@@ -1,14 +1,14 @@
-import { createSignal } from 'solid-js';
+import { createSignal, type JSXElement } from 'solid-js';
 
 type ApErrorDialogParams = {
   title: string;
-  description: any;
+  description: JSXElement;
   error: unknown;
 };
 const [params, setParams] = createSignal<ApErrorDialogParams | null>(null);
 
 export const useApErrorDialogStore = () => ({
-  params: params(),
+  params,
   openDialog: setParams,
   closeDialog: () => setParams(null),
 });

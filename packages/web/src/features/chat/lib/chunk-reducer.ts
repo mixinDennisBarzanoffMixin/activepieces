@@ -77,7 +77,7 @@ function applyChunk({
       const idx = state.activeTextParts[chunk.id];
       if (idx === undefined) break;
       const part = state.message.parts[idx];
-      if (part?.type === 'text') {
+      if (part.type === 'text') {
         part.text += chunk.delta;
       }
       break;
@@ -99,7 +99,7 @@ function applyChunk({
       const idx = state.activeReasoningParts[chunk.id];
       if (idx === undefined) break;
       const part = state.message.parts[idx];
-      if (part?.type === 'reasoning') {
+      if (part.type === 'reasoning') {
         part.text += chunk.delta;
       }
       break;
@@ -279,7 +279,7 @@ function handleDataChunk({
   state: StreamingState;
   chunk: DataChunk;
 }): void {
-  if (!chunk.type?.startsWith('data-')) return;
+  if (!chunk.type.startsWith('data-')) return;
   if (chunk.transient) return;
 
   if (chunk.id) {

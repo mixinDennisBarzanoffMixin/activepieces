@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { JSX } from 'solid-js';
+import { JSX, Show } from 'solid-js';
 
 import {
   Tooltip,
@@ -20,13 +20,11 @@ export function PublishedNeededTooltip(props: PublishedNeededTooltipProps) {
       <TooltipTrigger ref={ref} asChild disabled={!allowPush}>
         <div>{children}</div>
       </TooltipTrigger>
-      {!allowPush && (
+      <Show when={!allowPush}>
         <TooltipContent side="top">
           {t('Only published flows can be pushed to Git')}
         </TooltipContent>
-      )}
+      </Show>
     </Tooltip>
   );
 }
-
-PublishedNeededTooltip.displayName = 'PublishedNeededWrapper';

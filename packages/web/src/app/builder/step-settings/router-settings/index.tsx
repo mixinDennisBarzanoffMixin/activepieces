@@ -8,12 +8,16 @@ import {
   RouterAction,
   RouterExecutionType,
 } from '@activepieces/shared';
-import { useReactFlow } from '../../flow-canvas/solid-flow-adapter';
 import { t } from 'i18next';
 import { Split } from 'lucide-solid';
 import { Show, createEffect } from 'solid-js';
 
-import { createBuilderFieldArray, useFormContext } from '@/app/builder/builder-form';
+import {
+  BuilderField,
+  createBuilderFieldArray,
+  useFormContext,
+} from '@/app/builder/builder-form';
+
 import { FormField, FormItem } from '../../../../components/ui/form';
 import { Label } from '../../../../components/ui/label';
 import {
@@ -24,13 +28,14 @@ import {
   SelectItem,
 } from '../../../../components/ui/select';
 import { useBuilderStateContext } from '../../builder-hooks';
+import { useReactFlow } from '../../flow-canvas/solid-flow-adapter';
 import { flowCanvasUtils } from '../../flow-canvas/utils/flow-canvas-utils';
 import { BranchSettings } from '../branch-settings';
 
 import { BranchesList } from './branches-list';
 import BranchesToolbar from './branches-toolbar';
 
-export const RouterSettings = ({ readonly }: { readonly: boolean }) => {
+export const RouterSettings = (props: { readonly: boolean }) => {
   const [
     step,
     applyOperation,
@@ -69,7 +74,7 @@ export const RouterSettings = ({ readonly }: { readonly: boolean }) => {
     });
 
     setSelectedBranchIndex(null);
-    fitView(flowCanvasUtils.createFocusStepInGraphParams(step.name));
+    void fitView(flowCanvasUtils.createFocusStepInGraphParams(step.name));
   };
 
   createEffect(() => {
@@ -114,7 +119,7 @@ export const RouterSettings = ({ readonly }: { readonly: boolean }) => {
               ),
             );
           }
-          form.trigger();
+          void form.trigger();
           break;
         }
         case FlowOperationType.MOVE_BRANCH: {
@@ -134,11 +139,11 @@ export const RouterSettings = ({ readonly }: { readonly: boolean }) => {
 
   return (
     <>
-      <Show when={isNil(selectedBranchIndex)()}>
+      <Show when={isNil(selectedBranchIndex)}>
         <FormField
           control={control}
           name="settings.executionType"
-          render={({ field }) => (
+          render={({ field }: { field: BuilderField<RouterExecutionType> }) => (
             <FormItem>
               <Label>{t('Execute')}</Label>
               <Select
@@ -147,7 +152,7 @@ export const RouterSettings = ({ readonly }: { readonly: boolean }) => {
                 value={field.value}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={t('Execute')} />
+                  <SelectValue placeholder={String(t('Execute'))} />
                 </SelectTrigger>
 
                 <SelectContent>
@@ -165,19 +170,19 @@ export const RouterSettings = ({ readonly }: { readonly: boolean }) => {
               </Select>
             </FormItem>
           )}
-        ></FormField>
+        />
       </Show>
 
-      <Show when={isNil(selectedBranchIndex)()}>
+      <Show when={isNil(selectedBranchIndex)}>
         <div>
-          <div className="flex gap-2 mb-2 items-center">
-            <Split class="w-4 h-4 rotate-180"></Split>
+          <div class="flex gap-2 mb-2 items-center">
+            <Split class="w-4 h-4 rotate-180" />
             <Label>{t('Branches')}</Label>
           </div>
 
           <BranchesList
             errors={(formState.errors.settings?.branches as unknown[]) ?? []}
-            readonly={readonly}
+            readonly={props.readonly}
             step={step}
             branchNameChanged={(index, name) => {
               setValue(`settings.branches.${index}.branchName` as const, name, {
@@ -208,22 +213,22 @@ export const RouterSettings = ({ readonly }: { readonly: boolean }) => {
             setSelectedBranchIndex={(index) => {
               setSelectedBranchIndex(index);
               if (step.children[index]) {
-                fitView(
+                void fitView(
                   flowCanvasUtils.createFocusStepInGraphParams(
                     step.children[index].name,
                   ),
                 );
               } else {
-                fitView(
+                void fitView(
                   flowCanvasUtils.createFocusStepInGraphParams(
                     `${step.name}-big-add-button-${step.name}-branch-${index}-start-edge`,
                   ),
                 );
               }
             }}
-          ></BranchesList>
-          <Show when={!readonly()}>
-            <div className="mt-2">
+          />
+          <Show when={!props.readonly}>
+            <div class="mt-2">
               <BranchesToolbar
                 addButtonClicked={() => {
                   applyOperation({
@@ -237,21 +242,19 @@ export const RouterSettings = ({ readonly }: { readonly: boolean }) => {
 
                   setSelectedBranchIndex(step.settings.branches.length - 1);
                 }}
-              ></BranchesToolbar>
+              />
             </div>
           </Show>
         </div>
       </Show>
 
-      <Show when={!isNil(selectedBranchIndex)()}>
+      <Show when={!isNil(selectedBranchIndex)}>
         <BranchSettings
-          readonly={readonly}
+          readonly={props.readonly}
           key={`settings.branches[${selectedBranchIndex}].conditions`}
           branchIndex={selectedBranchIndex}
-        ></BranchSettings>
+        />
       </Show>
     </>
   );
 };
-
-RouterSettings.displayName = 'RouterSettings';

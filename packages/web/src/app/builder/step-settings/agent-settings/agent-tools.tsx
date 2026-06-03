@@ -6,9 +6,9 @@ import type {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Plus } from 'lucide-solid';
-import { BuilderField } from '@/app/builder/builder-form';
 import { For, Show } from 'solid-js';
 
+import { BuilderField } from '@/app/builder/builder-form';
 import { Accordion } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,16 +36,13 @@ interface AgentToolsProps {
   selectedProvider?: AIProviderName;
 }
 
-export const AgentTools = ({
-  disabled,
-  toolsField: agentToolsField,
-  selectedProvider,
-}: AgentToolsProps) => {
-  const tools = Array.isArray(agentToolsField.value)
-    ? (agentToolsField.value as AgentTool[])
+export const AgentTools = (props: AgentToolsProps) => {
+  const tools = Array.isArray(props.toolsField.value)
+    ? (props.toolsField.value as AgentTool[])
     : [];
 
-  const onToolsUpdate = (tools: AgentTool[]) => agentToolsField.onChange(tools);
+  const onToolsUpdate = (tools: AgentTool[]) =>
+    props.toolsField.onChange(tools);
 
   const removeTool = (toolName: string) => {
     onToolsUpdate(tools.filter((tool) => toolName !== tool.toolName));
@@ -60,7 +57,7 @@ export const AgentTools = ({
   const pieceToToolMap = tools
     .filter((tool) => tool.type === AgentToolType.PIECE)
     .reduce<Record<string, AgentPieceTool[]>>((acc, tool) => {
-      const key = tool.pieceMetadata?.pieceName;
+      const key = tool.pieceMetadata.pieceName;
 
       if (!key) return acc;
 
@@ -70,47 +67,46 @@ export const AgentTools = ({
 
   return (
     <div>
-      <h2 className="text-sm font-medium">{t('Agent Tools')}</h2>
+      <h2 class="text-sm font-medium">{t('Agent Tools')}</h2>
 
-      <div className="mt-2">
+      <div class="mt-2">
         <Show
           when={
             flowTools.length +
               mcpTools.length +
               Object.keys(pieceToToolMap).length >
-            0()
+            0
           }
           fallback={
-            <div className="flex flex-col items-center justify-center gap-4 rounded-xl border bg-card px-4 py-8 text-center">
-              <div className="flex items-center">
+            <div class="flex flex-col items-center justify-center gap-4 rounded-xl border bg-card px-4 py-8 text-center">
+              <div class="flex items-center">
                 <For each={icons.slice(0, 4)}>
                   {(icon, index) => (
                     <div
-                      key={icon}
-                      className="relative flex size-9 items-center justify-center rounded-full border bg-background"
-                      style={{ marginLeft: index === 0 ? 0 : -10 }}
+                      class="relative flex size-9 items-center justify-center rounded-full border bg-background"
+                      style={{ 'margin-left': index === 0 ? 0 : -10 }}
                     >
                       <img
                         src={icon}
                         alt={icon}
-                        className="size-4 object-contain"
+                        class="size-4 object-contain"
                       />
                     </div>
                   )}
                 </For>
                 <div
-                  className="relative flex size-9 items-center justify-center rounded-full border text-[10px] bg-background text-foreground font-medium"
-                  style={{ marginLeft: -10 }}
+                  class="relative flex size-9 items-center justify-center rounded-full border text-[10px] bg-background text-foreground font-medium"
+                  style={{ 'margin-left': -10 }}
                 >
                   <span>+500</span>
                 </div>
               </div>
 
-              <p className="text-sm font-medium text-muted-foreground">
+              <p class="text-sm font-medium text-muted-foreground">
                 {t('Connect apps, flows, MCPs and more.')}
               </p>
 
-              <AddToolDropdown disabled={disabled} align="center">
+              <AddToolDropdown disabled={props.disabled} align="center">
                 <Button variant="outline" class="gap-2">
                   <Plus class="size-4" />
                   {t('Add')}
@@ -129,28 +125,28 @@ export const AgentTools = ({
                 {([pieceName, tools]) => (
                   <AgentPieceToolComponent
                     key={pieceName}
-                    disabled={disabled}
+                    disabled={props.disabled}
                     tools={tools}
                     removeTool={removeTool}
                   />
                 )}
               </For>
-              <Show when={flowTools.length > 0()}>
+              <Show when={flowTools.length > 0}>
                 <AgentFlowToolComponent
-                  disabled={disabled}
+                  disabled={props.disabled}
                   tools={flowTools}
                   removeTool={removeTool}
                 />
               </Show>
-              <Show when={mcpTools.length > 0()}>
+              <Show when={mcpTools.length > 0}>
                 <AgentMcpToolComponent
-                  disabled={disabled}
+                  disabled={props.disabled}
                   tools={mcpTools}
                   removeTool={removeTool}
                 />
               </Show>
             </Accordion>
-            <AddToolDropdown disabled={disabled} align="start">
+            <AddToolDropdown disabled={props.disabled} align="start">
               <Button variant="outline" class="mt-2">
                 <Plus class="size-4 mr-2" />
                 {t('Add')}
@@ -161,12 +157,12 @@ export const AgentTools = ({
       </div>
 
       <KnowledgeBaseSection
-        disabled={disabled}
+        disabled={props.disabled}
         tools={kbTools}
         allTools={tools}
         removeTool={removeTool}
         onToolsUpdate={onToolsUpdate}
-        selectedProvider={selectedProvider}
+        selectedProvider={props.selectedProvider}
       />
 
       <AgentFlowToolDialog onToolsUpdate={onToolsUpdate} tools={tools} />

@@ -5,7 +5,7 @@ import {
   PieceCategory,
 } from '@activepieces/shared';
 import { useQueries } from '@tanstack/solid-query';
-import { createMemo } from 'solid-js';
+import { createMemo, untrack } from 'solid-js';
 
 import { piecesHooks } from '@/features/pieces/hooks/pieces-hooks';
 import { StepMetadata } from '@/features/pieces/types';
@@ -16,7 +16,9 @@ const rgbToHex = (r: number, g: number, b: number): string => {
   return '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('');
 };
 
-const colorDistance = (c1: number[], c2: number[]): number => {
+type Rgb = [number, number, number];
+
+const colorDistance = (c1: Rgb, c2: Rgb): number => {
   return Math.sqrt(
     (c1[0] - c2[0]) ** 2 + (c1[1] - c2[1]) ** 2 + (c1[2] - c2[2]) ** 2,
   );
@@ -49,15 +51,22 @@ const extractImagePixels = (img: HTMLImageElement) => {
 };
 
 const buildColorMap = (pixels: Uint8ClampedArray) => {
-  const colorMap = new Map<string, { rgb: number[]; count: number }>();
+  const colorMap = new Map<string, { rgb: Rgb; count: number }>();
 
   for (let i = 0; i < pixels.length; i += 4) {
-    const [r, g, b, a] = [
-      pixels[i],
-      pixels[i + 1],
-      pixels[i + 2],
-      pixels[i + 3],
-    ];
+    const r = pixels[i];
+    const g = pixels[i + 1];
+    const b = pixels[i + 2];
+    const a = pixels[i + 3];
+
+    if (
+      r === undefined ||
+      g === undefined ||
+      b === undefined ||
+      a === undefined
+    ) {
+      continue;
+    }
 
     if (shouldSkipPixel(r, g, b, a)) continue;
 
@@ -74,13 +83,13 @@ const buildColorMap = (pixels: Uint8ClampedArray) => {
 };
 
 const clusterSimilarColors = (
-  colorMap: Map<string, { rgb: number[]; count: number }>,
+  colorMap: Map<string, { rgb: Rgb; count: number }>,
 ) => {
   const sortedColors = Array.from(colorMap.entries()).sort(
     (a, b) => b[1].count - a[1].count,
   );
   const processed = new Set<string>();
-  const clusters: Array<{ rgb: number[]; count: number }> = [];
+  const clusters: Array<{ rgb: Rgb; count: number }> = [];
 
   for (const [key, colorData] of sortedColors) {
     if (processed.has(key)) continue;
@@ -116,7 +125,7 @@ const extractColorsFromImage = async (imageUrl: string): Promise<string[]> => {
     return clusters
       .sort((a, b) => b.count - a.count)
       .slice(0, 2)
-      .map((cluster) => rgbToHex(...(cluster.rgb as [number, number, number])));
+      .map((cluster) => rgbToHex(...cluster.rgb));
   } catch {
     return [];
   }
@@ -139,22 +148,20 @@ export const useGradientFromPieces = (
   trigger: FlowTrigger | undefined,
   excludeCore = false,
 ) => {
-  const steps = createMemo(
-    () => (trigger ? flowStructureUtil.getAllSteps(trigger) : []),
-    [trigger],
+  const steps = createMemo(() =>
+    trigger ? flowStructureUtil.getAllSteps(trigger) : [],
   );
 
-  const { pieceNames, coreMetadata } = createMemo(
-    () => extractPieceNamesAndCoreMetadata(steps, excludeCore),
-    [steps, excludeCore],
+  const metadata = createMemo(() =>
+    extractPieceNamesAndCoreMetadata(steps(), excludeCore),
   );
 
   const { summaries } = piecesHooks.usePieceSummariesByNames({
-    names: pieceNames,
+    names: untrack(metadata).pieceNames,
   });
 
-  const uniqueMetadata: StepMetadata[] = createMemo(() => {
-    const pieceMetadata: StepMetadata[] = summaries
+  const uniqueMetadata = createMemo<StepMetadata[]>(() => {
+    const pieceMetadata: StepMetadata[] = summaries()
       .filter(
         (piece) =>
           !excludeCore || !piece.categories?.includes(PieceCategory.CORE),
@@ -172,36 +179,34 @@ export const useGradientFromPieces = (
         auth: piece.auth,
       }));
 
-    const allMetadata = [...coreMetadata, ...pieceMetadata];
+    const allMetadata = [...metadata().coreMetadata, ...pieceMetadata];
     return allMetadata.filter(
       (item, index, self) =>
         self.findIndex(
           (secondItem) => item.displayName === secondItem.displayName,
         ) === index,
     );
-  }, [summaries, coreMetadata, excludeCore]);
+  });
 
-  const logosToProcess = createMemo(
-    () =>
-      uniqueMetadata
-        .slice(0, 4)
-        .filter((metadata) => metadata.logoUrl)
-        .map((metadata) => metadata.logoUrl),
-    [uniqueMetadata],
+  const logosToProcess = createMemo(() =>
+    uniqueMetadata()
+      .slice(0, 4)
+      .filter((metadata) => metadata.logoUrl)
+      .map((metadata) => metadata.logoUrl),
   );
 
-  const colorQueries = useQueries({
-    queries: logosToProcess.map((logoUrl) => ({
+  const colorQueries = useQueries(() => ({
+    queries: logosToProcess().map((logoUrl) => ({
       queryKey: ['logo-colors', logoUrl],
       queryFn: () => extractColorsFromImage(logoUrl),
       staleTime: Infinity,
       gcTime: 1000 * 60 * 60 * 24,
       retry: false,
     })),
-  });
+  }));
 
   const gradient = createMemo(() => {
-    if (logosToProcess.length === 0) {
+    if (logosToProcess().length === 0) {
       return '';
     }
 
@@ -213,7 +218,7 @@ export const useGradientFromPieces = (
     const allColors = colorQueries.map((query) => query.data || []).flat();
 
     return buildGradientFromColors(allColors);
-  }, [colorQueries, logosToProcess.length]);
+  });
 
   return { gradient, piecesMetadata: uniqueMetadata };
 };

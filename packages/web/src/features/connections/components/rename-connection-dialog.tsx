@@ -1,6 +1,6 @@
 import { t } from 'i18next';
 import { Pencil } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -30,32 +30,27 @@ type RenameConnectionDialogProps = {
   onRename: () => void;
 };
 
-const RenameConnectionDialog = ({
-  connectionId,
-  currentName,
-  userHasPermissionToRename,
-  onRename,
-}: RenameConnectionDialogProps) => {
+const RenameConnectionDialog = (props: RenameConnectionDialogProps) => {
   const [isRenameDialogOpen, setIsRenameDialogOpen] = createSignal(false);
-  const [displayName, setDisplayName] = createSignal(currentName);
+  const [displayName, setDisplayName] = createSignal(props.currentName);
   const [error, setError] = createSignal('');
 
   const { mutate: renameConnection, isPending } =
     appConnectionsMutations.useRenameAppConnection({
-      currentName,
+      currentName: props.currentName,
       setIsRenameDialogOpen,
       renameConnectionForm: {
         setError: (_field: string, err: { message?: string }) =>
           setError(err.message || ''),
       },
-      refetch: onRename,
+      refetch: props.onRename,
     });
 
   const onSubmit = (e: SubmitEvent) => {
     e.preventDefault();
     setError('');
     renameConnection({
-      connectionId,
+      connectionId: props.connectionId,
       displayName: displayName().trim(),
     });
   };
@@ -72,7 +67,7 @@ const RenameConnectionDialog = ({
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={!userHasPermissionToRename}
+                disabled={!props.userHasPermissionToRename}
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -83,7 +78,9 @@ const RenameConnectionDialog = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {!userHasPermissionToRename ? t('Permission needed') : t('Edit')}
+              {!props.userHasPermissionToRename
+                ? t('Permission needed')
+                : t('Edit')}
             </TooltipContent>
           </>
         </DialogTrigger>
@@ -94,34 +91,36 @@ const RenameConnectionDialog = ({
               {t('Enter a new display name for this connection.')}
             </DialogDescription>
           </DialogHeader>
-            <form className="grid space-y-4" onSubmit={onSubmit}>
-              <div class="grid space-y-2">
-                <Label for="displayName">{t('Name')}</Label>
-                <Input
-                  id="displayName"
-                  value={displayName()}
-                  placeholder={t('New Connection Name')}
-                  class="rounded-sm"
-                  onInput={(e) => setDisplayName(e.currentTarget.value)}
-                />
-              </div>
-              {error() && (
-                <p class="text-sm font-medium text-destructive">{error()}</p>
-              )}
-              <DialogFooter class="justify-end">
-                <DialogClose asChild>
-                  <Button type="button" variant={'outline'}>{t('Cancel')}</Button>
-                </DialogClose>
+          <form class="grid space-y-4" onSubmit={onSubmit}>
+            <div class="grid space-y-2">
+              <Label for="displayName">{t('Name')}</Label>
+              <Input
+                id="displayName"
+                value={displayName()}
+                placeholder={t('New Connection Name')}
+                class="rounded-sm"
+                onInput={(e) => setDisplayName(e.currentTarget.value)}
+              />
+            </div>
+            <Show when={error()}>
+              <p class="text-sm font-medium text-destructive">{error()}</p>
+            </Show>
+            <DialogFooter class="justify-end">
+              <DialogClose asChild>
+                <Button type="button" variant={'outline'}>
+                  {t('Cancel')}
+                </Button>
+              </DialogClose>
 
-                <Button type="submit" loading={isPending}>{t('Rename')}</Button>
-              </DialogFooter>
-            </form>
+              <Button type="submit" loading={isPending}>
+                {t('Rename')}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </Tooltip>
   );
 };
-
-RenameConnectionDialog.displayName = 'RenameConnectionDialog';
 
 export { RenameConnectionDialog };

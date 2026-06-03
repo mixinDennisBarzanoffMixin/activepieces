@@ -1,5 +1,5 @@
 import { t } from 'i18next';
-import { Show, createEffect } from 'solid-js';
+import { Show, createEffect, mergeProps } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,20 +20,22 @@ type AboveTriggerButtonProps = {
   showPrimaryBg?: boolean;
 };
 
-const AboveTriggerButton = ({
-  onClick,
-  text,
-  disable = false,
-  loading = false,
-  showKeyboardShortcut = true,
-  shortCutIsEscape = false,
-  showPrimaryBg = true,
-}: AboveTriggerButtonProps) => {
+const AboveTriggerButton = (_props: AboveTriggerButtonProps) => {
+  const props = mergeProps(
+    {
+      disable: false,
+      loading: false,
+      showKeyboardShortcut: true,
+      shortCutIsEscape: false,
+      showPrimaryBg: true,
+    },
+    _props,
+  );
   const isMacSystem = isMac();
 
   createEffect(() => {
     const keydownHandler = (event: KeyboardEvent) => {
-      const isEscapePressed = event.key === 'Escape' && shortCutIsEscape;
+      const isEscapePressed = event.key === 'Escape' && props.shortCutIsEscape;
       const ctrlAndDPressed =
         (isMacSystem &&
           event.metaKey &&
@@ -44,8 +46,8 @@ const AboveTriggerButton = ({
       if (isEscapePressed || ctrlAndDPressed) {
         event.preventDefault();
         event.stopPropagation();
-        if (!loading && !disable) {
-          onClick();
+        if (!props.loading && !props.disable) {
+          props.onClick();
         }
       }
     };
@@ -60,33 +62,33 @@ const AboveTriggerButton = ({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="bg-builder-background">
+        <div class="bg-builder-background">
           <Button
             variant="ghost"
             class={cn(
               'h-8 bg-background border-input hover:border-border  border p-2.5 border-solid rounded-lg animate-fade',
               {
                 'bg-primary-100/50! dark:text-primary-foreground  text-primary hover:text-primary disabled:pointer-events-auto hover:border-primary!  border-primary/50':
-                  showPrimaryBg,
+                  props.showPrimaryBg,
               },
             )}
-            loading={loading}
-            disabled={disable}
-            onClick={onClick}
+            loading={props.loading}
+            disabled={props.disable}
+            onClick={props.onClick}
           >
-            <div className="flex justify-center items-center gap-2">
-              {text}
-              <Show when={showKeyboardShortcut()}>
+            <div class="flex justify-center items-center gap-2">
+              {props.text}
+              <Show when={props.showKeyboardShortcut}>
                 <span
-                  className={cn(
+                  class={cn(
                     'text-[10px] bg-muted h-[20px] flex items-center justify-center px-1 rounded-sm tracking-widest whitespace-nowrap text-muted-foreground',
                     {
-                      'bg-primary/13 text-primary': showPrimaryBg,
+                      'bg-primary/13 text-primary': props.showPrimaryBg,
                     },
                   )}
                 >
                   <Show
-                    when={shortCutIsEscape()}
+                    when={props.shortCutIsEscape}
                     fallback={isMacSystem ? '⌘ + D' : 'Ctrl + D'}
                   >
                     {'Esc'}
@@ -97,7 +99,7 @@ const AboveTriggerButton = ({
           </Button>
         </div>
       </TooltipTrigger>
-      <Show when={disable()}>
+      <Show when={props.disable}>
         <TooltipContent side="bottom">
           {t('Please test the trigger first')}
         </TooltipContent>
@@ -105,7 +107,5 @@ const AboveTriggerButton = ({
     </Tooltip>
   );
 };
-
-AboveTriggerButton.displayName = 'AboveTriggerButton';
 
 export { AboveTriggerButton };

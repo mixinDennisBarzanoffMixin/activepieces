@@ -1,5 +1,6 @@
 import { t } from 'i18next';
 import { ArrowLeftIcon } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { SearchInput } from '@/components/custom/search-input';
 import { Button } from '@/components/ui/button';
@@ -10,14 +11,11 @@ import {
 } from '@/features/pieces/stores/piece-selector-tabs-provider';
 
 type PiecesSearchInputProps = {
-  searchInputRef: RefObject<HTMLInputElement | null>;
+  searchInputRef: HTMLInputElement | undefined;
   onSearchChange: (query: string) => void;
 };
 
-const PiecesSearchInput = ({
-  searchInputRef,
-  onSearchChange,
-}: PiecesSearchInputProps) => {
+const PiecesSearchInput = (props: PiecesSearchInputProps) => {
   const { searchQuery, setSearchQuery } = usePieceSearchContext();
   const {
     resetToBeforeNoneWasSelected: resetToPreviousValue,
@@ -29,8 +27,8 @@ const PiecesSearchInput = ({
   const showBackButton =
     selectedPieceInExplore && selectedTab === PieceSelectorTabType.EXPLORE;
   return (
-    <div className="p-2 flex gap-2 items-center">
-      {showBackButton && (
+    <div class="p-2 flex gap-2 items-center">
+      <Show when={showBackButton}>
         <Button
           variant="ghost"
           size="icon"
@@ -40,15 +38,15 @@ const PiecesSearchInput = ({
         >
           <ArrowLeftIcon class="size-4" />
         </Button>
-      )}
+      </Show>
       <SearchInput
-        placeholder={t('Search')}
+        placeholder={String(t('Search'))}
         value={searchQuery}
         data-testid="pieces-search-input"
-        ref={searchInputRef}
-        onChange={(e) => {
+        ref={props.searchInputRef}
+        onInput={(e) => {
           setSearchQuery(e);
-          onSearchChange(e);
+          props.onSearchChange(e);
           if (e === '') {
             resetToPreviousValue();
           } else {

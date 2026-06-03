@@ -18,16 +18,16 @@ export function McpCredentials() {
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium">{t('Server URL')}</label>
-        <p className="text-xs text-muted-foreground">
+    <div class="space-y-4">
+      <div class="flex flex-col gap-1.5">
+        <label class="text-sm font-medium">{t('Server URL')}</label>
+        <p class="text-xs text-muted-foreground">
           {t(
             'Use this URL to connect from Cursor, Windsurf, Claude Desktop, or any MCP-compatible client. Authentication is handled via OAuth.',
           )}
         </p>
-        <div className="flex items-center gap-2">
-          <div className="bg-muted/50 rounded-md px-3 py-2 text-sm flex-1 overflow-x-auto">
+        <div class="flex items-center gap-2">
+          <div class="bg-muted/50 rounded-md px-3 py-2 text-sm flex-1 overflow-x-auto">
             {serverUrl}
           </div>
           <CopyButton textToCopy={serverUrl} />

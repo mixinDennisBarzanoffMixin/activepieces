@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -87,7 +87,7 @@ function ReplaceIcon(props: ReplaceIconProps & { ref?: ReplaceIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -124,6 +124,5 @@ function ReplaceIcon(props: ReplaceIconProps & { ref?: ReplaceIconHandle }) {
     </div>
   );
 }
-ReplaceIcon.displayName = 'ReplaceIcon';
 
 export { ReplaceIcon };

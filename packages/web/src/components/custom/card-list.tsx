@@ -1,34 +1,33 @@
 import { cva, type VariantProps } from 'class-variance-authority';
 import { PackageOpen } from 'lucide-solid';
-import { For, Show, type JSX } from 'solid-js';
+import { For, mergeProps, Show, splitProps, type JSX } from 'solid-js';
 
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 
 import { Skeleton } from '../ui/skeleton';
 
-const CardList = ({
-  children,
-  className,
-  listClassName,
-  ...props
-}: JSX.IntrinsicElements['div'] & { listClassName?: string }) => {
+const CardList = (_props: ClassName<JSX.IntrinsicElements['div']>) => {
+  const [local, props] = splitProps(_props, [
+    'children',
+    'className',
+    'listClassName',
+  ]);
   return (
     <ScrollArea
-      class={`h-full overflow-auto ${className}`}
+      class={cn('h-full overflow-auto', local.className)}
       viewPortClassName="[&>div]:h-full"
     >
       <div
-        className={cn('flex flex-col h-full w-full', listClassName)}
+        class={cn('flex flex-col h-full w-full', local.listClassName)}
         {...props}
       >
-        {children}
+        {local.children}
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
   );
 };
-CardList.displayName = 'CardList';
 export { CardList };
 
 const cardItemListVariants = cva('flex items-center gap-3 w-full py-3 px-2 ', {
@@ -50,29 +49,37 @@ const cardItemListVariants = cva('flex items-center gap-3 w-full py-3 px-2 ', {
 
 type CardListItemProps = JSX.IntrinsicElements['div'] &
   VariantProps<typeof cardItemListVariants> & {
-    children: any;
+    children: JSX.Element;
+    className?: string;
   };
 
-const CardListItem = ({
-  children,
-  onClick,
-  className,
-  interactive,
-  selected,
-  ...props
-}: CardListItemProps) => {
+const CardListItem = (_props: CardListItemProps) => {
+  const [local, props] = splitProps(_props, [
+    'children',
+    'onClick',
+    'className',
+    'interactive',
+    'selected',
+  ]);
   return (
     <div
-      onClick={onClick}
-      className={cn(cardItemListVariants({ interactive, selected }), className)}
+      onClick={(e) => {
+        local.onClick?.(e);
+      }}
+      class={cn(
+        cardItemListVariants({
+          interactive: local.interactive,
+          selected: local.selected,
+        }),
+        local.className,
+      )}
       {...props}
     >
-      {children}
+      {local.children}
     </div>
   );
 };
 
-CardListItem.displayName = 'CardListItem';
 export { CardListItem };
 
 type CardListItemSkeletonProps = {
@@ -80,19 +87,17 @@ type CardListItemSkeletonProps = {
   withCircle?: boolean;
 };
 
-const CardListItemSkeleton = ({
-  numberOfCards = 3,
-  withCircle = true,
-}: CardListItemSkeletonProps) => {
+const CardListItemSkeleton = (_props: CardListItemSkeletonProps) => {
+  const props = mergeProps({ numberOfCards: 3, withCircle: true }, _props);
   return (
     <>
-      <For each={[...Array(numberOfCards)].map((_, i) => i)}>
-        {(index) => (
-          <div className="flex items-center gap-3 w-full py-3 px-5">
-            <Show when={withCircle}>
+      <For each={Array.from({ length: props.numberOfCards })}>
+        {() => (
+          <div class="flex items-center gap-3 w-full py-3 px-5">
+            <Show when={props.withCircle}>
               <Skeleton class="h-8 w-8 rounded-full" />
             </Show>
-            <div className="space-y-2">
+            <div class="space-y-2">
               <Skeleton class="h-4 w-[250px]" />
               <Skeleton class="h-4 w-[200px]" />
             </div>
@@ -103,20 +108,23 @@ const CardListItemSkeleton = ({
   );
 };
 
-CardListItemSkeleton.displayName = 'CardListItemSkeleton';
 export { CardListItemSkeleton };
 
 type CardListEmptyProps = {
   message: string;
 };
-const CardListEmpty = ({ message }: CardListEmptyProps) => {
+const CardListEmpty = (props: CardListEmptyProps) => {
   return (
-    <div className="flex h-full w-full items-center justify-center gap-3 flex-col text-muted-foreground">
+    <div class="flex h-full w-full items-center justify-center gap-3 flex-col text-muted-foreground">
       <PackageOpen class="w-10 h-10" />
-      <div className="text-center tracking-tight">{message}</div>
+      <div class="text-center tracking-tight">{props.message}</div>
     </div>
   );
 };
 
-CardListEmpty.displayName = 'CardListEmpty';
 export { CardListEmpty };
+
+type ClassName<T> = Omit<T, 'className'> & {
+  className?: string;
+  listClassName?: string;
+};

@@ -1,7 +1,8 @@
-import { useDebouncedCallback } from '@/lib/debounce';
 import { createSignal, createEffect } from 'solid-js';
 
-export const useElementSize = (ref: RefObject<HTMLElement | null>) => {
+import { useDebouncedCallback } from '@/lib/debounce';
+
+export const useElementSize = (ref: ElementRef) => {
   const [size, setSize] = createSignal({ width: 0, height: 0 });
   const debouncedSetSize = useDebouncedCallback(setSize, 150);
   createEffect(() => {
@@ -13,15 +14,28 @@ export const useElementSize = (ref: RefObject<HTMLElement | null>) => {
     };
 
     const resizeObserver = new ResizeObserver(handleResize);
+    const element = getElement(ref);
 
-    if (ref.current) {
-      resizeObserver.observe(ref.current);
+    if (element) {
+      resizeObserver.observe(element);
     }
 
     return () => {
       resizeObserver.disconnect();
     };
-  }, [debouncedSetSize, ref]);
+  });
 
   return size;
 };
+
+function getElement(ref: ElementRef) {
+  return ref instanceof HTMLElement ? ref : ref?.current ?? null;
+}
+
+type ElementRef =
+  | HTMLElement
+  | null
+  | undefined
+  | {
+      current: HTMLElement | null;
+    };

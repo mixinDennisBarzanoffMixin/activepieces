@@ -18,6 +18,7 @@ import {
   User,
   Database,
 } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { DataTable, RowDataWithActions } from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
@@ -58,39 +59,49 @@ const ProjectReleasesPage = () => {
       accessorKey: 'name',
       size: 200,
       accessorFn: (row) => row.name,
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={t('Name')} icon={Tag} />
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title={t('Name')}
+          icon={Tag}
+        />
       ),
-      cell: ({ row }) => <div className="text-left">{row.original.name}</div>,
+      cell: (props) => <div class="text-left">{props.row.original.name}</div>,
     },
     {
       accessorKey: 'type',
       size: 150,
       accessorFn: (row) => row.type,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Source')}
           icon={Database}
         />
       ),
-      cell: ({ row }) => {
-        const isGit = row.original.type === ProjectReleaseType.GIT;
-        const isProject = row.original.type === ProjectReleaseType.PROJECT;
+      cell: (props) => {
+        const isGit = props.row.original.type === ProjectReleaseType.GIT;
+        const isProject =
+          props.row.original.type === ProjectReleaseType.PROJECT;
         return (
-          <div className="flex items-center gap-2">
-            {isGit ? (
+          <div class="flex items-center gap-2">
+            <Show
+              when={isGit}
+              fallback={
+                isProject ? (
+                  <div class="flex items-center gap-2">
+                    <FolderOpenDot class="size-4" />
+                    {projects.find(
+                      (project) => project.id === props.row.original.projectId,
+                    )?.displayName ?? t('Project')}
+                  </div>
+                ) : (
+                  <RotateCcw class="size-4" />
+                )
+              }
+            >
               <GitBranch class="size-4" />
-            ) : isProject ? (
-              <div className="flex items-center gap-2">
-                <FolderOpenDot class="size-4" />
-                {projects?.find(
-                  (project) => project.id === row.original.projectId,
-                )?.displayName ?? t('Project')}
-              </div>
-            ) : (
-              <RotateCcw class="size-4" />
-            )}
+            </Show>
             {isGit ? 'Git' : isProject ? '' : t('Rollback')}
           </div>
         );
@@ -100,16 +111,16 @@ const ProjectReleasesPage = () => {
       accessorKey: 'created',
       size: 150,
       accessorFn: (row) => row.created,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Imported At')}
           icon={Clock}
         />
       ),
-      cell: ({ row }) => (
-        <div className="text-left">
-          <FormattedDate date={new Date(row.original.created)} />
+      cell: (props) => (
+        <div class="text-left">
+          <FormattedDate date={new Date(props.row.original.created)} />
         </div>
       ),
     },
@@ -117,41 +128,41 @@ const ProjectReleasesPage = () => {
       accessorKey: 'importedBy',
       size: 180,
       accessorFn: (row) => row.importedBy,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Imported By')}
           icon={User}
         />
       ),
-      cell: ({ row }) => (
-        <div className="text-left">{row.original.importedByUser?.email}</div>
+      cell: (props) => (
+        <div class="text-left">{props.row.original.importedByUser?.email}</div>
       ),
     },
     {
       accessorKey: 'actions',
       id: 'select',
-      header: ({ column }) => (
-        <DataTableColumnHeader column={column} title="" />
+      header: (props) => (
+        <DataTableColumnHeader column={props.column} title="" />
       ),
-      cell: ({ row }) => {
+      cell: (props) => {
         return (
           <div
-            className="flex items-center justify-center z-10"
+            class="flex items-center justify-center z-10"
             onClick={(e) => e.stopPropagation()}
           >
             <Tooltip>
               <TooltipTrigger asChild>
                 <ApplyButton
-                  onSuccess={refetch}
+                  onSuccess={() => void refetch()}
                   variant="ghost"
                   class="size-8 p-0"
                   request={{
                     projectId: authenticationSession.getProjectId()!,
                     type: ProjectReleaseType.ROLLBACK,
-                    projectReleaseId: row.original.id,
+                    projectReleaseId: props.row.original.id,
                   }}
-                  defaultName={row.original.name}
+                  defaultName={props.row.original.name}
                 >
                   <Undo2 class="size-4" />
                 </ApplyButton>
@@ -165,7 +176,7 @@ const ProjectReleasesPage = () => {
   ];
 
   return (
-    <div className="flex-col w-full gap-4">
+    <div class="flex-col w-full gap-4">
       <DataTable
         emptyStateTextTitle={t('No project releases found')}
         emptyStateTextDescription={t('Create a project release to get started')}
@@ -198,14 +209,14 @@ const ProjectReleasesPage = () => {
                 <DropdownMenuItem class="cursor-pointer" asChild>
                   <ApplyButton
                     variant="ghost"
-                    onSuccess={refetch}
+                    onSuccess={() => void refetch()}
                     class="w-full justify-start"
                     request={{
                       type: ProjectReleaseType.GIT,
                       projectId: authenticationSession.getProjectId()!,
                     }}
                   >
-                    <div className="flex flex-row gap-2 items-center">
+                    <div class="flex flex-row gap-2 items-center">
                       <GitBranch class="size-4" />
                       <span>{t('From Git')}</span>
                     </div>
@@ -214,11 +225,11 @@ const ProjectReleasesPage = () => {
                 <DropdownMenuItem class="cursor-pointer" asChild>
                   <SelectionButton
                     variant="ghost"
-                    onSuccess={refetch}
+                    onSuccess={() => void refetch()}
                     class="w-full justify-start"
                     ReleaseType={ProjectReleaseType.PROJECT}
                   >
-                    <div className="flex flex-row gap-2 items-center">
+                    <div class="flex flex-row gap-2 items-center">
                       <FolderOpenDot class="size-4" />
                       <span>{t('From Project')}</span>
                     </div>
@@ -238,5 +249,4 @@ const ProjectReleasesPage = () => {
   );
 };
 
-ProjectReleasesPage.displayName = 'ProjectReleasesPage';
 export { ProjectReleasesPage };

@@ -1,6 +1,7 @@
 import { t } from 'i18next';
 import { Download, FolderInput, Trash2, X } from 'lucide-solid';
 import { AnimatePresence, motion } from 'motion/react';
+import { Show } from 'solid-js';
 
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
 import { LoadingSpinner } from '@/components/custom/spinner';
@@ -19,22 +20,14 @@ type AutomationsSelectionBarProps = {
   onClearSelection: () => void;
 };
 
-export const AutomationsSelectionBar = ({
-  selectedCount,
-  isDeleting,
-  isMoving,
-  isExporting,
-  hasMovableOrExportableItems,
-  onMoveClick,
-  onDeleteClick,
-  onExportClick,
-  onClearSelection,
-}: AutomationsSelectionBarProps) => {
+export const AutomationsSelectionBar = (
+  props: AutomationsSelectionBarProps,
+) => {
   const { embedState } = useEmbedding();
 
   return (
     <AnimatePresence>
-      {selectedCount > 0 && (
+      <Show when={props.selectedCount > 0}>
         <motion.div
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -42,40 +35,43 @@ export const AutomationsSelectionBar = ({
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
         >
-          <div className="flex items-center gap-3 bg-background border rounded-lg shadow-lg p-2">
-            {!embedState.hideFolders && (
+          <div class="flex items-center gap-3 bg-background border rounded-lg shadow-lg p-2">
+            <Show when={!embedState.hideFolders}>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onMoveClick}
-                disabled={isMoving || !hasMovableOrExportableItems}
+                onClick={props.onMoveClick}
+                disabled={props.isMoving || !props.hasMovableOrExportableItems}
               >
                 <FolderInput class="h-4 w-4 mr-1" />
                 {t('Move to')}
               </Button>
-            )}
-            {!embedState.hideExportAndImportFlow && (
+            </Show>
+            <Show when={!embedState.hideExportAndImportFlow}>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onExportClick}
-                disabled={isExporting || !hasMovableOrExportableItems}
+                onClick={props.onExportClick}
+                disabled={
+                  props.isExporting || !props.hasMovableOrExportableItems
+                }
               >
-                {isExporting ? (
+                <Show
+                  when={props.isExporting}
+                  fallback={<Download class="size-4 mr-2" />}
+                >
                   <LoadingSpinner class="size-4 mr-2" />
-                ) : (
-                  <Download class="size-4 mr-2" />
-                )}
-                {isExporting ? t('Exporting') : t('Export')}
+                </Show>
+                {props.isExporting ? t('Exporting') : t('Export')}
               </Button>
-            )}
+            </Show>
             <ConfirmationDeleteDialog
               title={t('Delete Selected Items')}
               message={t(
                 'This will permanently delete {count} selected items. This action cannot be undone.',
-                { count: selectedCount },
-              )}
-              mutationFn={async () => onDeleteClick()}
+                { count: props.selectedCount },
+              ).toString()}
+              mutationFn={() => Promise.resolve(props.onDeleteClick())}
               entityName={t('items')}
               buttonText={t('Delete')}
             >
@@ -83,27 +79,27 @@ export const AutomationsSelectionBar = ({
                 variant="ghost"
                 size="sm"
                 class="text-destructive hover:text-destructive"
-                disabled={isDeleting}
+                disabled={props.isDeleting}
               >
                 <Trash2 class="h-4 w-4 mr-1" />
                 {t('Delete')}
               </Button>
             </ConfirmationDeleteDialog>
-            <div className="border-l h-6 mx-1" />
-            <span className="text-sm text-muted-foreground">
-              {t('{count} selected', { count: selectedCount })}
+            <div class="border-l h-6 mx-1" />
+            <span class="text-sm text-muted-foreground">
+              {t('{count} selected', { count: props.selectedCount })}
             </span>
             <Button
               variant="ghost"
               size="icon"
               class="h-8 w-8"
-              onClick={onClearSelection}
+              onClick={props.onClearSelection}
             >
               <X class="h-4 w-4" />
             </Button>
           </div>
         </motion.div>
-      )}
+      </Show>
     </AnimatePresence>
   );
 };

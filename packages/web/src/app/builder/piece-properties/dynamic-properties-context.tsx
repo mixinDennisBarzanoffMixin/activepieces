@@ -12,7 +12,7 @@ export const DynamicPropertiesContext = createContext<{
   isLoadingDynamicProperties: false,
 });
 
-export const DynamicPropertiesProvider = ({ children }: { children: any }) => {
+export const DynamicPropertiesProvider = (props: { children: any }) => {
   const [propertiesNamesStillLoading, setPropertiesNamesStillLoading] =
     createSignal<string[]>([]);
 
@@ -39,7 +39,7 @@ export const DynamicPropertiesProvider = ({ children }: { children: any }) => {
 
   return (
     <DynamicPropertiesContext.Provider value={contextValue()}>
-      {children}
+      {props.children}
     </DynamicPropertiesContext.Provider>
   );
 };

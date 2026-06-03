@@ -1,16 +1,18 @@
+import { splitProps, type ComponentProps } from 'solid-js';
+
 import { Tooltip, TooltipProvider } from '@/components/ui/tooltip';
 
-export function DelayedTooltip({
-  delayDuration = 400,
-  children,
-  ...props
-}: ComponentProps<typeof Tooltip> & {
-  delayDuration?: number;
-}) {
+export function DelayedTooltip(
+  props: ComponentProps<typeof Tooltip> & {
+    delayDuration?: number;
+  },
+) {
+  const [local, tooltip] = splitProps(props, ['delayDuration', 'children']);
+
   return (
-    <TooltipProvider delayDuration={delayDuration}>
-      <Tooltip data-slot="tooltip" {...props}>
-        {children}
+    <TooltipProvider delayDuration={local.delayDuration ?? 400}>
+      <Tooltip data-slot="tooltip" {...tooltip}>
+        {local.children}
       </Tooltip>
     </TooltipProvider>
   );

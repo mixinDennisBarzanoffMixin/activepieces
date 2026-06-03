@@ -22,11 +22,7 @@ export const RefreshAnalyticsContext =
     clearTimeSavedPerRunOverrides: () => {},
   });
 
-export const RefreshAnalyticsProvider = ({
-  children,
-}: {
-  children: JSX.Element;
-}) => {
+export const RefreshAnalyticsProvider = (props: { children: JSX.Element }) => {
   const [isRefreshing, setIsRefreshing] = createSignal(false);
   const [timeSavedPerRunOverrides, setTimeSavedPerRunOverrides] = createStore<
     Record<string, TimeSavedOverride>
@@ -52,7 +48,7 @@ export const RefreshAnalyticsProvider = ({
         clearTimeSavedPerRunOverrides,
       }}
     >
-      {children}
+      {props.children}
     </RefreshAnalyticsContext.Provider>
   );
 };

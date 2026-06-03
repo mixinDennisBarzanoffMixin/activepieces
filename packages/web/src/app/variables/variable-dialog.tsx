@@ -126,8 +126,8 @@ function VariableForm(props: VariableFormProps) {
             }
             return acc;
           },
-          {}
-        )
+          {},
+        ),
       );
       return;
     }
@@ -140,14 +140,14 @@ function VariableForm(props: VariableFormProps) {
   };
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
+    <form class="flex flex-col gap-4" onSubmit={handleSubmit}>
       <DialogHeader>
         <DialogTitle>
           {isEdit ? t('Edit variable') : t('New variable')}
         </DialogTitle>
         <DialogDescription>
           {t(
-            'Store an API key, token, or other value you can reuse across flow steps without exposing it.'
+            'Store an API key, token, or other value you can reuse across flow steps without exposing it.',
           )}
         </DialogDescription>
       </DialogHeader>
@@ -174,7 +174,7 @@ function VariableForm(props: VariableFormProps) {
           <label class="text-sm font-medium leading-none" for="variable-value">
             {t('Value')}
           </label>
-          <div className="relative">
+          <div class="relative">
             <Input
               id="variable-value"
               name="value"
@@ -193,11 +193,9 @@ function VariableForm(props: VariableFormProps) {
               onClick={() => setValueVisible((v) => !v)}
               aria-label={valueVisible() ? t('Hide value') : t('Show value')}
             >
-              {valueVisible() ? (
+              <Show when={valueVisible()} fallback={<Eye class="h-4 w-4" />}>
                 <EyeOff class="h-4 w-4" />
-              ) : (
-                <Eye class="h-4 w-4" />
-              )}
+              </Show>
             </Button>
           </div>
           <Show when={errors().value}>

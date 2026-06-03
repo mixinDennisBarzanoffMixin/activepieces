@@ -6,6 +6,7 @@ import {
   ErrorCode,
   isObject,
   PlanStepUpdate,
+  PlanStepStatus,
   tryCatch,
 } from '@activepieces/shared';
 import { createQuery } from '@tanstack/solid-query';
@@ -24,9 +25,25 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const AGENT_POLL_INTERVAL_MS = 5_000;
 
 const ALLOWED_MIME_SET: ReadonlySet<string> = new Set(CHAT_ALLOWED_MIME_TYPES);
+const PLAN_STATUS_SET: ReadonlySet<string> = new Set([
+  'pending',
+  'executing',
+  'done',
+  'error',
+]);
 
 function isAllowedMimeType(value: string): value is ChatAllowedMimeType {
   return ALLOWED_MIME_SET.has(value);
+}
+
+function isPlanStepStatus(value: string): value is PlanStepStatus {
+  return PLAN_STATUS_SET.has(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === 'string')
+  );
 }
 
 function fileToBase64(
@@ -115,129 +132,138 @@ export function useAgentChat({
     DEFAULT_CHAT_TIER_ID,
   );
   const [isLoadingHistory, setIsLoadingHistory] = createSignal(false);
-  const [isPollingForAgentReply, setIsPollingForAgentReply] = createSignal(false);
-  const [sendStatus, setSendStatus] = createSignal<SendStatus>({ type: 'idle' });
-  let sendStatusRef = { type: 'idle' };
-  let onCreditsExhaustedRef = onCreditsExhausted;
-  onCreditsExhaustedRef.current = onCreditsExhausted;
+  const [isPollingForAgentReply, setIsPollingForAgentReply] =
+    createSignal(false);
+  const [sendStatus, setSendStatus] = createSignal<SendStatus>({
+    type: 'idle',
+  });
+  const sendStatusRef: { current: SendStatus } = { current: { type: 'idle' } };
+  const onCreditsExhaustedRef: { current?: () => void } = {
+    current: onCreditsExhausted,
+  };
 
-  const [persistedMessages, setPersistedMessages] = createSignal<ChatUIMessage[]>(
-    [],
-  );
-  let persistedMessagesRef = persistedMessages;
-  persistedMessagesRef.current = persistedMessages;
+  const [persistedMessages, setPersistedMessages] = createSignal<
+    ChatUIMessage[]
+  >([]);
   const [optimisticUserMessage, setOptimisticUserMessage] =
     createSignal<ChatUIMessage | null>(null);
 
-  let pendingFilesRef = undefined;
-  let lastSentFileNamesRef = [];
-  let conversationIdRef = null;
-  let modelNameRef = DEFAULT_CHAT_TIER_ID;
-  let onTitleUpdateRef = onTitleUpdate;
-  onTitleUpdateRef.current = onTitleUpdate;
-  let onConversationCreatedRef = onConversationCreated;
-  onConversationCreatedRef.current = onConversationCreated;
+  const pendingFilesRef: {
+    current?: Array<{
+      name: string;
+      mimeType: ChatAllowedMimeType;
+      data: string;
+    }>;
+  } = {};
+  const lastSentFileNamesRef: { current: string[] } = { current: [] };
+  const conversationIdRef: { current: string | null } = { current: null };
+  const modelNameRef: { current: string | null } = {
+    current: DEFAULT_CHAT_TIER_ID,
+  };
+  const onTitleUpdateRef: { current?: (title: string) => void } = {
+    current: onTitleUpdate,
+  };
+  const onConversationCreatedRef: { current?: (id: string) => void } = {
+    current: onConversationCreated,
+  };
 
-  const handleDataPart = (
-    (dataPart: DataPart) => {
-      if (!isObject(dataPart.data)) return;
-      const d = dataPart.data as Record<string, unknown>;
+  const handleDataPart = (dataPart: DataPart) => {
+    if (!isObject(dataPart.data)) return;
+    const d = dataPart.data;
 
-      if (
-        dataPart.type === 'data-session-title' &&
-        typeof d['title'] === 'string'
-      ) {
-        onTitleUpdateRef.current?.(d['title']);
-      }
+    if (
+      dataPart.type === 'data-session-title' &&
+      typeof d['title'] === 'string'
+    ) {
+      onTitleUpdateRef.current?.(d['title']);
+    }
 
-      switch (dataPart.type) {
-        case 'data-approval-request':
-          if (typeof d.gateId === 'string' && typeof d.toolName === 'string') {
-            store.setState({
-              pendingApprovalRequest: {
-                gateId: d.gateId,
-                toolName: d.toolName,
-                displayName:
-                  typeof d.displayName === 'string'
-                    ? d.displayName
-                    : d.toolName,
-              },
-            });
-          }
-          break;
+    switch (dataPart.type) {
+      case 'data-approval-request':
+        if (typeof d.gateId === 'string' && typeof d.toolName === 'string') {
+          store.setState({
+            pendingApprovalRequest: {
+              gateId: d.gateId,
+              toolName: d.toolName,
+              displayName:
+                typeof d.displayName === 'string' ? d.displayName : d.toolName,
+            },
+          });
+        }
+        break;
 
-        case 'data-plan-approval-request':
-          if (typeof d.gateId === 'string') {
-            store.setState({
-              pendingPlanApproval: {
-                gateId: d.gateId,
-                planSummary:
-                  typeof d.planSummary === 'string' ? d.planSummary : '',
-                steps: Array.isArray(d.steps) ? (d.steps as string[]) : [],
-              },
-            });
-          }
-          break;
+      case 'data-plan-approval-request':
+        if (typeof d.gateId === 'string') {
+          store.setState({
+            pendingPlanApproval: {
+              gateId: d.gateId,
+              planSummary:
+                typeof d.planSummary === 'string' ? d.planSummary : '',
+              steps: isStringArray(d.steps) ? d.steps : [],
+            },
+          });
+        }
+        break;
 
-        case 'data-plan-progress':
-          if (typeof d.stepIndex === 'number' && typeof d.status === 'string') {
-            store.setState((prev) => {
-              const stepIndex = d.stepIndex as number;
-              const status = d.status as PlanStepUpdate['status'];
-              const existing = prev.planProgressUpdates.findIndex(
-                (u) => u.stepIndex === stepIndex,
-              );
-              if (existing >= 0) {
-                const updated = [...prev.planProgressUpdates];
-                updated[existing] = { stepIndex, status };
-                return { planProgressUpdates: updated };
-              }
-              return {
-                planProgressUpdates: [
-                  ...prev.planProgressUpdates,
-                  { stepIndex, status },
-                ],
-              };
-            });
-          }
-          break;
+      case 'data-plan-progress':
+        if (
+          typeof d.stepIndex === 'number' &&
+          typeof d.status === 'string' &&
+          isPlanStepStatus(d.status)
+        ) {
+          store.setState((prev) => {
+            const stepIndex = d.stepIndex;
+            const status: PlanStepUpdate['status'] = d.status;
+            const existing = prev.planProgressUpdates.findIndex(
+              (u) => u.stepIndex === stepIndex,
+            );
+            if (existing >= 0) {
+              const updated = [...prev.planProgressUpdates];
+              updated[existing] = { stepIndex, status };
+              return { planProgressUpdates: updated };
+            }
+            return {
+              planProgressUpdates: [
+                ...prev.planProgressUpdates,
+                { stepIndex, status },
+              ],
+            };
+          });
+        }
+        break;
 
-        case 'data-quick-replies':
-          if (Array.isArray(d.replies)) {
-            store.setState({ quickReplies: d.replies as string[] });
-          }
-          break;
+      case 'data-quick-replies':
+        if (isStringArray(d.replies)) {
+          store.setState({ quickReplies: d.replies });
+        }
+        break;
 
-        default:
-          if (DISPLAY_CARD_DATA_TYPES.has(dataPart.type)) {
-            store.setState({ displayCard: { type: dataPart.type, data: d } });
-          }
-          break;
-      }
-    });
+      default:
+        if (DISPLAY_CARD_DATA_TYPES.has(dataPart.type)) {
+          store.setState({ displayCard: { type: dataPart.type, data: d } });
+        }
+        break;
+    }
+  };
 
-  const updateSendStatus = ((next: SendStatus) => {
+  const updateSendStatus = (next: SendStatus) => {
     sendStatusRef.current = next;
     setSendStatus(next);
-  });
+  };
 
-  const reconcile = (
-    async (convId: string) => {
-      if (conversationIdRef.current !== convId) return;
-      const { data: result } = await tryCatch(() =>
-        chatApi.getMessages(convId),
-      );
-      if (result && conversationIdRef.current === convId) {
-        const mapped = chatUtils.mapHistoryToUIMessages(result.data);
-        setPersistedMessages(mapped);
-        const restoredReplies =
-          chatUtils.extractQuickRepliesFromHistory(mapped);
-        if (restoredReplies.length > 0) {
-          store.setState({ quickReplies: restoredReplies });
-        }
+  const reconcile = async (convId: string) => {
+    if (conversationIdRef.current !== convId) return;
+    const { data: result } = await tryCatch(() => chatApi.getMessages(convId));
+    if (result && conversationIdRef.current === convId) {
+      const mapped = chatUtils.mapHistoryToUIMessages(result.data);
+      setPersistedMessages(mapped);
+      const restoredReplies = chatUtils.extractQuickRepliesFromHistory(mapped);
+      if (restoredReplies.length > 0) {
+        store.setState({ quickReplies: restoredReplies });
       }
-      setOptimisticUserMessage(null);
-    });
+    }
+    setOptimisticUserMessage(null);
+  };
 
   const {
     streamingMessage,
@@ -259,210 +285,208 @@ export function useAgentChat({
     },
   });
 
-  const isStreamActive = streamPhase !== 'idle';
-  const isStreaming =
-    isStreamActive ||
-    sendStatusRef.current.type === 'submitting' ||
-    isPollingForAgentReply;
+  const isStreamActive = createMemo(() => streamPhase() !== 'idle');
+  const isStreaming = createMemo(
+    () =>
+      isStreamActive() ||
+      sendStatusRef.current.type === 'submitting' ||
+      isPollingForAgentReply(),
+  );
 
-  const messages: ChatUIMessage[] = createMemo(() => {
-    const base = [...persistedMessages];
-    if (optimisticUserMessage) base.push(optimisticUserMessage);
-    if (streamingMessage) base.push(streamingMessage);
+  const messages = createMemo<ChatUIMessage[]>(() => {
+    const base = [...persistedMessages()];
+    const optimistic = optimisticUserMessage();
+    if (optimistic) base.push(optimistic);
+    const streaming = streamingMessage();
+    if (streaming) base.push(streaming);
     return injectFilePartsIntoLastUserMessage({
       messages: base,
       fileNames: lastSentFileNamesRef.current,
     });
   });
 
-  const error =
-    sendStatus.type === 'error'
-      ? sendStatus.message
-      : streamError
-      ? streamError
-      : null;
+  const error = createMemo(() => {
+    const status = sendStatus();
+    if (status.type === 'error') return status.message;
+    const stream = streamError();
+    return typeof stream === 'string' ? stream : null;
+  });
 
-  const wasCancelled = sendStatus.type === 'cancelled';
+  const wasCancelled = createMemo(() => sendStatus().type === 'cancelled');
 
-  const cancelStream = (() => {
+  const cancelStream = () => {
     stopStream();
     updateSendStatus({ type: 'cancelled' });
     setOptimisticUserMessage(null);
-  });
+  };
 
-  const createConversation = (
-    async ({
-      title,
-      modelName,
-    }: { title?: string | null; modelName?: string | null } = {}) => {
-      const conv = await chatApi.createConversation({
-        title: title ?? null,
-        modelName: modelName ?? null,
-      });
-      conversationIdRef.current = conv.id;
-      setConversationIdState(conv.id);
-      return conv;
+  const createConversation = async ({
+    title,
+    modelName,
+  }: { title?: string | null; modelName?: string | null } = {}) => {
+    const conv = await chatApi.createConversation({
+      title: title ?? null,
+      modelName: modelName ?? null,
     });
+    conversationIdRef.current = conv.id;
+    setConversationIdState(conv.id);
+    return conv;
+  };
 
-  const sendMessage = (
-    async (content: string, files?: File[]) => {
-      updateSendStatus({ type: 'submitting' });
+  const sendMessage = async (content: string, files?: File[]) => {
+    updateSendStatus({ type: 'submitting' });
 
-      const fileNames = files?.map((f) => f.name) ?? [];
-      lastSentFileNamesRef.current = fileNames;
+    const fileNames = files?.map((f) => f.name) ?? [];
+    lastSentFileNamesRef.current = fileNames;
 
-      const optimisticUser: ChatUIMessage = {
-        id: `optimistic-${Date.now()}`,
-        role: 'user',
-        parts: [
-          { type: 'text', text: content },
-          ...fileNamesToFileParts(fileNames),
-        ],
-      };
+    const optimisticUser: ChatUIMessage = {
+      id: `optimistic-${Date.now()}`,
+      role: 'user',
+      parts: [
+        { type: 'text', text: content },
+        ...fileNamesToFileParts(fileNames),
+      ],
+    };
 
-      setOptimisticUserMessage(optimisticUser);
-      store.getState().resetInteractions();
+    setOptimisticUserMessage(optimisticUser);
+    store.getState().resetInteractions();
 
-      if (files && files.length > 0) {
-        const oversized = files.find((f) => f.size > MAX_FILE_SIZE);
-        if (oversized) {
-          setOptimisticUserMessage(null);
-          updateSendStatus({
-            type: 'error',
-            message: `File "${oversized.name}" exceeds 10 MB limit`,
-          });
-          return;
-        }
-        const { data: encodedFiles, error: fileError } = await tryCatch(
-          async () => Promise.all(files.map(fileToBase64)),
-        );
-        if (fileError) {
-          setOptimisticUserMessage(null);
-          updateSendStatus({
-            type: 'error',
-            message: fileError.message ?? 'Failed to read attached files',
-          });
-          return;
-        }
-        pendingFilesRef.current = encodedFiles;
-      } else {
-        pendingFilesRef.current = undefined;
-      }
-
-      if (!conversationIdRef.current) {
-        const { error: convError } = await tryCatch(async () => {
-          const conv = await createConversation({
-            title: content.slice(0, 100),
-            modelName: modelNameRef.current,
-          });
-          onConversationCreatedRef.current?.(conv.id);
-        });
-        if (convError) {
-          setOptimisticUserMessage(null);
-          updateSendStatus({
-            type: 'error',
-            message: convError.message ?? 'Failed to start conversation',
-          });
-          return;
-        }
-        if (sendStatusRef.current.type === 'cancelled') {
-          setOptimisticUserMessage(null);
-          return;
-        }
-      }
-
-      const convId = conversationIdRef.current;
-      if (!convId) {
+    if (files && files.length > 0) {
+      const oversized = files.find((f) => f.size > MAX_FILE_SIZE);
+      if (oversized) {
         setOptimisticUserMessage(null);
         updateSendStatus({
           type: 'error',
-          message: 'No conversation ID',
+          message: `File "${oversized.name}" exceeds 10 MB limit`,
         });
         return;
       }
-
-      startStream(convId);
-      updateSendStatus({ type: 'idle' });
-
-      const { error: sendError } = await tryCatch(async () =>
-        chatApi.sendMessage({
-          conversationId: convId,
-          content,
-          files: pendingFilesRef.current,
-        }),
+      const { data: encodedFiles, error: fileError } = await tryCatch(
+        async () => Promise.all(files.map(fileToBase64)),
       );
-      if (sendError) {
-        stopStream();
+      if (fileError) {
         setOptimisticUserMessage(null);
-        if (api.isApError(sendError, ErrorCode.AI_CREDIT_LIMIT_EXCEEDED)) {
-          onCreditsExhaustedRef.current?.();
-          updateSendStatus({ type: 'idle' });
-        } else {
-          updateSendStatus({
-            type: 'error',
-            message: sendError.message ?? 'Failed to send message',
-          });
-        }
-      }
-    });
-
-  const setConversationId = (
-    async (id: string) => {
-      stopStream();
-      setIsPollingForAgentReply(false);
-      updateSendStatus({ type: 'idle' });
-      conversationIdRef.current = id;
-      setConversationIdState(id);
-      store.getState().resetInteractions();
-
-      pendingFilesRef.current = undefined;
-      lastSentFileNamesRef.current = [];
-      setOptimisticUserMessage(null);
-
-      setIsLoadingHistory(true);
-      const [historyResult, convResult] = await Promise.all([
-        tryCatch(async () => chatApi.getMessages(id)),
-        tryCatch(async () => chatApi.getConversation(id)),
-      ]);
-      if (conversationIdRef.current !== id) return;
-      if (historyResult.error) {
         updateSendStatus({
           type: 'error',
-          message: 'Failed to load conversation history',
+          message: fileError.message,
         });
+        return;
+      }
+      pendingFilesRef.current = encodedFiles;
+    } else {
+      pendingFilesRef.current = undefined;
+    }
+
+    if (!conversationIdRef.current) {
+      const { error: convError } = await tryCatch(async () => {
+        const conv = await createConversation({
+          title: content.slice(0, 100),
+          modelName: modelNameRef.current,
+        });
+        onConversationCreatedRef.current?.(conv.id);
+      });
+      if (convError) {
+        setOptimisticUserMessage(null);
+        updateSendStatus({
+          type: 'error',
+          message: convError.message,
+        });
+        return;
+      }
+      if (sendStatusRef.current.type === 'cancelled') {
+        setOptimisticUserMessage(null);
+        return;
+      }
+    }
+
+    const convId = conversationIdRef.current;
+    if (!convId) {
+      setOptimisticUserMessage(null);
+      updateSendStatus({
+        type: 'error',
+        message: 'No conversation ID',
+      });
+      return;
+    }
+
+    startStream(convId);
+    updateSendStatus({ type: 'idle' });
+
+    const { error: sendError } = await tryCatch(async () =>
+      chatApi.sendMessage({
+        conversationId: convId,
+        content,
+        files: pendingFilesRef.current,
+      }),
+    );
+    if (sendError) {
+      stopStream();
+      setOptimisticUserMessage(null);
+      if (api.isApError(sendError, ErrorCode.AI_CREDIT_LIMIT_EXCEEDED)) {
+        onCreditsExhaustedRef.current?.();
+        updateSendStatus({ type: 'idle' });
       } else {
-        const mapped = chatUtils.mapHistoryToUIMessages(
-          historyResult.data.data,
-        );
-        setPersistedMessages(mapped);
-        const restoredReplies =
-          chatUtils.extractQuickRepliesFromHistory(mapped);
-        if (restoredReplies.length > 0) {
-          store.setState({ quickReplies: restoredReplies });
-        }
+        updateSendStatus({
+          type: 'error',
+          message: sendError.message,
+        });
       }
-      if (convResult.data) {
-        modelNameRef.current = convResult.data.modelName ?? null;
-        setModelNameState(convResult.data.modelName ?? null);
-        if (convResult.data.status === ChatConversationStatus.STREAMING) {
-          setIsPollingForAgentReply(true);
-        }
+    }
+  };
+
+  const setConversationId = async (id: string) => {
+    stopStream();
+    setIsPollingForAgentReply(false);
+    updateSendStatus({ type: 'idle' });
+    conversationIdRef.current = id;
+    setConversationIdState(id);
+    store.getState().resetInteractions();
+
+    pendingFilesRef.current = undefined;
+    lastSentFileNamesRef.current = [];
+    setOptimisticUserMessage(null);
+
+    setIsLoadingHistory(true);
+    const [historyResult, convResult] = await Promise.all([
+      tryCatch(async () => chatApi.getMessages(id)),
+      tryCatch(async () => chatApi.getConversation(id)),
+    ]);
+    if (conversationIdRef.current !== id) return;
+    if (historyResult.error) {
+      updateSendStatus({
+        type: 'error',
+        message: 'Failed to load conversation history',
+      });
+    } else {
+      const mapped = chatUtils.mapHistoryToUIMessages(historyResult.data.data);
+      setPersistedMessages(mapped);
+      const restoredReplies = chatUtils.extractQuickRepliesFromHistory(mapped);
+      if (restoredReplies.length > 0) {
+        store.setState({ quickReplies: restoredReplies });
       }
-      setIsLoadingHistory(false);
-    });
+    }
+    if (convResult.data) {
+      modelNameRef.current = convResult.data.modelName;
+      setModelNameState(convResult.data.modelName);
+      if (convResult.data.status === ChatConversationStatus.STREAMING) {
+        setIsPollingForAgentReply(true);
+      }
+    }
+    setIsLoadingHistory(false);
+  };
 
   createQuery(() => ({
     queryKey: ['chat-agent-poll', conversationId],
     queryFn: async () => {
-      if (!conversationId || conversationIdRef.current !== conversationId)
-        return null;
+      const id = conversationId();
+      if (!id || conversationIdRef.current !== id) return null;
       const [messagesResult, convResult] = await Promise.all([
-        chatApi.getMessages(conversationId),
-        chatApi.getConversation(conversationId),
+        chatApi.getMessages(id),
+        chatApi.getConversation(id),
       ]);
-      if (conversationIdRef.current !== conversationId) return null;
+      if (conversationIdRef.current !== id) return null;
       const mapped = chatUtils.mapHistoryToUIMessages(messagesResult.data);
-      const current = persistedMessagesRef.current;
+      const current = persistedMessages();
       const hasChanged =
         mapped.length !== current.length ||
         mapped.some((m, i) => m.parts.length !== current[i]?.parts.length);
@@ -479,11 +503,11 @@ export function useAgentChat({
       }
       return mapped;
     },
-    enabled: isPollingForAgentReply && !isStreamActive,
+    enabled: isPollingForAgentReply() && !isStreamActive(),
     refetchInterval: AGENT_POLL_INTERVAL_MS,
   }));
 
-  const setModelName = (async (newModelName: string) => {
+  const setModelName = async (newModelName: string) => {
     modelNameRef.current = newModelName;
     setModelNameState(newModelName);
     const convId = conversationIdRef.current;
@@ -492,7 +516,7 @@ export function useAgentChat({
         .updateConversation(convId, { modelName: newModelName })
         .catch(() => undefined);
     }
-  });
+  };
 
   return {
     conversationId,

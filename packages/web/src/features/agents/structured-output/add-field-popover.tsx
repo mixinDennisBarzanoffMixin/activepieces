@@ -29,10 +29,7 @@ interface AddFieldPopoverProps {
   disabled: boolean;
 }
 
-export const AddFieldPopover = ({
-  onAddField,
-  disabled,
-}: AddFieldPopoverProps) => {
+export const AddFieldPopover = (props: AddFieldPopoverProps) => {
   const [fieldType, setFieldType] = createSignal<
     AgentOutputFieldType | undefined
   >(undefined);
@@ -41,8 +38,10 @@ export const AddFieldPopover = ({
   const [open, setOpen] = createSignal(false);
 
   const handleAdd = () => {
-    if (fieldType && fieldName.trim() && fieldDescription.trim()) {
-      onAddField(fieldType, fieldName.trim(), fieldDescription.trim());
+    const name = fieldName().trim();
+    const desc = fieldDescription().trim();
+    if (fieldType() && name && desc) {
+      props.onAddField(fieldType()!, name, desc);
       setFieldType(undefined);
       setFieldName('');
       setFieldDescription('');
@@ -53,17 +52,17 @@ export const AddFieldPopover = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" class="w-full" disabled={disabled}>
+        <Button variant="outline" class="w-full" disabled={props.disabled}>
           <Plus class="h-4 w-4 mr-2" />
           {t('Add Field')}
         </Button>
       </PopoverTrigger>
       <PopoverContent class="w-80" side="bottom" align="center" sideOffset={10}>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Field Type</label>
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <label class="text-sm font-medium">Field Type</label>
             <Select
-              value={fieldType}
+              value={fieldType()}
               onValueChange={(value) =>
                 setFieldType(value as AgentOutputFieldType)
               }
@@ -73,7 +72,7 @@ export const AddFieldPopover = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={AgentOutputFieldType.TEXT}>
-                  <div className="flex items-center">
+                  <div class="flex items-center">
                     <FieldTypeIcon
                       type={AgentOutputFieldType.TEXT}
                       class="h-4 w-4 mr-2 text-muted-foreground"
@@ -82,7 +81,7 @@ export const AddFieldPopover = ({
                   </div>
                 </SelectItem>
                 <SelectItem value={AgentOutputFieldType.NUMBER}>
-                  <div className="flex items-center">
+                  <div class="flex items-center">
                     <FieldTypeIcon
                       type={AgentOutputFieldType.NUMBER}
                       class="h-4 w-4 mr-2 text-muted-foreground"
@@ -91,7 +90,7 @@ export const AddFieldPopover = ({
                   </div>
                 </SelectItem>
                 <SelectItem value={AgentOutputFieldType.BOOLEAN}>
-                  <div className="flex items-center">
+                  <div class="flex items-center">
                     <FieldTypeIcon
                       type={AgentOutputFieldType.BOOLEAN}
                       class="h-4 w-4 mr-2 text-muted-foreground"
@@ -102,22 +101,22 @@ export const AddFieldPopover = ({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Field Name</label>
+          <div class="space-y-2">
+            <label class="text-sm font-medium">Field Name</label>
             <Input
               id="field-name"
               placeholder="Enter field name"
-              value={fieldName}
-              onChange={(e) => setFieldName(e.target.value)}
+              value={fieldName()}
+              onInput={(e) => setFieldName(e.currentTarget.value)}
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Field Description</label>
+          <div class="space-y-2">
+            <label class="text-sm font-medium">Field Description</label>
             <Input
               id="field-description"
               placeholder="Enter field description"
-              value={fieldDescription}
-              onChange={(e) => setFieldDescription(e.target.value)}
+              value={fieldDescription()}
+              onInput={(e) => setFieldDescription(e.currentTarget.value)}
             />
           </div>
           <Button
@@ -125,7 +124,7 @@ export const AddFieldPopover = ({
             onClick={handleAdd}
             variant={'default'}
             disabled={
-              !fieldType || !fieldName.trim() || !fieldDescription.trim()
+              !fieldType() || !fieldName().trim() || !fieldDescription().trim()
             }
           >
             Add

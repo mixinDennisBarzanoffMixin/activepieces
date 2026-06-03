@@ -21,7 +21,7 @@ const formatError = (
           <strong>Respond on UI</strong> is in{' '}
           <a
             href={`/projects/${projectId}/flows/${flowId}`}
-            className="text-primary underline"
+            class="text-primary underline"
             target="_blank"
             rel="noreferrer"
           >
@@ -57,36 +57,29 @@ interface ErrorBubbleProps {
   sendMessage: (arg0: { isRetrying: boolean; message?: any }) => void;
 }
 
-export const ErrorBubble = ({
-  chatUI,
-  flowId,
-  sendingError,
-  sendMessage,
-}: ErrorBubbleProps) => (
+export const ErrorBubble = (props: ErrorBubbleProps) => (
   <ChatBubble variant="received" class="pb-8">
-    <div className="relative">
+    <div class="relative">
       <ChatBubbleAvatar
-        src={chatUI?.platformLogoUrl}
+        src={props.chatUI?.platformLogoUrl}
         fallback={<BotIcon class="size-5" />}
       />
-      <div className="absolute -bottom-[2px] -right-[2px]">
+      <div class="absolute -bottom-[2px] -right-[2px]">
         <CircleX class="size-4 text-destructive" strokeWidth={3} />
       </div>
     </div>
     <ChatBubbleMessage class="text-destructive">
-      {formatError(chatUI?.projectId, flowId, sendingError)}
+      {formatError(props.chatUI?.projectId, props.flowId, props.sendingError)}
     </ChatBubbleMessage>
-    <div className="flex gap-1">
+    <div class="flex gap-1">
       <ChatBubbleAction
         variant="outline"
         class="size-5 mt-2"
         icon={<RotateCcw class="size-3" />}
         onClick={() => {
-          sendMessage({ isRetrying: true });
+          props.sendMessage({ isRetrying: true });
         }}
       />
     </div>
   </ChatBubble>
 );
-
-ErrorBubble.displayName = 'ErrorBubble';

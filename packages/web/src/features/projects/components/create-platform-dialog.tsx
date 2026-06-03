@@ -1,10 +1,10 @@
 import { SAFE_STRING_PATTERN } from '@activepieces/shared';
-import { createMutation } from '@tanstack/solid-query';
+import { createMutation, useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { createForm, type SubmitHandler } from 'solid-hook-form';
+import { createSignal, Show } from 'solid-js';
 
 import { platformApi } from '@/api/platforms-api';
-import { queryClient } from '@/app/query-client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -20,40 +20,38 @@ type CreatePlatformSchema = {
   name: string;
 };
 
-function CreatePlatformDialogForm({
-  onOpenChange,
-}: {
+function CreatePlatformDialogForm(props: {
   onOpenChange: (open: boolean) => void;
 }) {
   const form = createForm<CreatePlatformSchema>({
     defaultValues: { name: '' },
-    mode: 'onChange',
+    mode: 'onInput',
   });
+  const queryClient = useQueryClient();
+  const [err, setErr] = createSignal('');
 
   const { mutate, isPending } = createMutation(
     () => ({
-      mutationFn: platformApi.createPlatform,
+      mutationFn: (request: CreatePlatformSchema) =>
+        platformApi.createPlatform(request),
       onSuccess: (data) => {
         authenticationSession.saveResponse(data, false);
         window.location.href = '/';
       },
       onError: () => {
-        form.setError('root.serverError', {
-          type: 'manual',
-          message: t('Something went wrong, please try again later'),
-        });
+        setErr(t('Something went wrong, please try again later'));
       },
     }),
     () => queryClient,
   );
 
   const onSubmit: SubmitHandler<CreatePlatformSchema> = (data) => {
-    form.clearErrors('root.serverError');
+    setErr('');
     mutate({ name: data.name.trim() });
   };
 
   return (
-    <form className="grid space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+    <form class="grid space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
       <div class="grid space-y-2">
         <Label for="createPlatformName">{t('Platform Name')}</Label>
         <Input
@@ -75,19 +73,21 @@ function CreatePlatformDialogForm({
           class="rounded-sm"
           autoFocus
         />
-        {form.formState.errors.name?.message && (
+        <Show when={form.formState.errors.name?.message}>
           <p class="text-sm font-medium text-destructive">
             {form.formState.errors.name.message}
           </p>
-        )}
+        </Show>
       </div>
-      {form.formState.errors.root?.serverError?.message && (
-        <p class="text-sm font-medium text-destructive">
-          {form.formState.errors.root.serverError.message}
-        </p>
-      )}
-      <div className="flex justify-end gap-2">
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+      <Show when={err()}>
+        <p class="text-sm font-medium text-destructive">{err()}</p>
+      </Show>
+      <div class="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => props.onOpenChange(false)}
+        >
           {t('Cancel')}
         </Button>
         <Button loading={isPending} type="submit">
@@ -98,22 +98,19 @@ function CreatePlatformDialogForm({
   );
 }
 
-export function CreatePlatformDialog({
-  open,
-  onOpenChange,
-}: {
+export function CreatePlatformDialog(props: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Create Platform')}</DialogTitle>
         </DialogHeader>
         <CreatePlatformDialogForm
-          key={open ? 'open' : 'closed'}
-          onOpenChange={onOpenChange}
+          key={props.open ? 'open' : 'closed'}
+          onOpenChange={props.onOpenChange}
         />
       </DialogContent>
     </Dialog>

@@ -19,17 +19,17 @@ interface StatusProgressBarProps {
   className?: string;
 }
 
-export function StatusProgressBar({ days, className }: StatusProgressBarProps) {
+export function StatusProgressBar(props: StatusProgressBarProps) {
   return (
-    <div className={cn('flex gap-1', className)}>
-      <For each={[...days].reverse()}>
+    <div class={cn('flex gap-1', props.className)}>
+      <For each={[...props.days].reverse()}>
         {(day, index) => {
           const totalRuns = day.success + day.failure;
           return (
             <Tooltip key={index}>
               <TooltipTrigger asChild>
                 <div
-                  className={cn(
+                  class={cn(
                     'w-3 h-6 rounded-sm cursor-pointer transition-colors',
                     'hover:scale-110 hover:shadow-xs',
                     {

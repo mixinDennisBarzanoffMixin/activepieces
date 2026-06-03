@@ -7,7 +7,14 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { ChevronDown, Sparkles } from 'lucide-solid';
-import { createMemo, createSignal, createUniqueId, For, Show } from 'solid-js';
+import {
+  createMemo,
+  createSignal,
+  createUniqueId,
+  For,
+  Show,
+  untrack,
+} from 'solid-js';
 import { toast } from 'solid-sonner';
 import { z } from 'zod';
 
@@ -36,19 +43,16 @@ import { eventDestinationsCollectionUtils } from '../lib/event-destinations-coll
 import { handlerFlowBuilder } from '../lib/handler-flow-builder';
 import { useEventLabels } from '../lib/use-event-labels';
 
-export const EventDestinationDialog = ({
-  children,
-  destination,
-}: EventDestinationDialogProps) => {
+export const EventDestinationDialog = (props: EventDestinationDialogProps) => {
   const [isOpen, setIsOpen] = createSignal(false);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent class="max-w-2xl gap-2">
         <EventDestinationForm
           key={isOpen() ? 'open' : 'closed'}
-          destination={destination}
+          destination={props.destination}
           onClose={() => setIsOpen(false)}
         />
       </DialogContent>
@@ -56,10 +60,7 @@ export const EventDestinationDialog = ({
   );
 };
 
-const EventDestinationForm = ({
-  destination,
-  onClose,
-}: EventDestinationFormProps) => {
+const EventDestinationForm = (props: EventDestinationFormProps) => {
   const eventLabels = useEventLabels();
   const { data: webhookPrefixUrl } = flagsHooks.useFlag<string>(
     ApFlagId.WEBHOOK_URL_PREFIX,
@@ -73,8 +74,12 @@ const EventDestinationForm = ({
       .min(1, t('Select at least one event')),
   });
 
-  const [url, setUrl] = createSignal(destination?.url ?? '');
-  const [events, setEvents] = createSignal(destination?.events ?? []);
+  const [url, setUrl] = createSignal(
+    untrack(() => props.destination?.url ?? ''),
+  );
+  const [events, setEvents] = createSignal(
+    untrack(() => props.destination?.events ?? []),
+  );
   const [errors, setErrors] = createSignal<FormErrors>({});
   const values = createMemo(() => ({ url: url(), events: events() }));
 
@@ -87,7 +92,7 @@ const EventDestinationForm = ({
         toast.success(t('Success'), {
           description: t('Destination created successfully'),
         });
-        onClose();
+        props.onClose();
       },
       (error: Error) => {
         toast.error(t('Error'), {
@@ -96,14 +101,19 @@ const EventDestinationForm = ({
       },
     );
 
-  const handleSubmit = (data: CreatePlatformEventDestinationRequestBody) => {
-    if (destination) {
+  const handleSubmit = async (
+    data: CreatePlatformEventDestinationRequestBody,
+  ) => {
+    if (props.destination) {
       try {
-        eventDestinationsCollectionUtils.update(destination.id, data);
+        await eventDestinationsCollectionUtils.update(
+          props.destination.id,
+          data,
+        );
         toast.success(t('Success'), {
           description: t('Destination updated successfully'),
         });
-        onClose();
+        props.onClose();
       } catch (error) {
         toast.error(t('Error'), {
           description: error instanceof Error ? error.message : 'Unknown error',
@@ -179,19 +189,20 @@ const EventDestinationForm = ({
 
   const availableEvents = Object.values(ApplicationEventName);
   const isSubmitDisabled = isCreating || isImporting;
-  const isTestingButtonDisabled =
-    isTesting || !url() || !isNil(errors().url) || events().length === 0;
+  const isTestingButtonDisabled = createMemo(
+    () => isTesting || !url() || !isNil(errors().url) || events().length === 0,
+  );
 
   return (
     <>
       <DialogTitle>
-        <Show when={destination} fallback={t('New Destination')}>
+        <Show when={props.destination} fallback={t('New Destination')}>
           {t('Edit Destination')}
         </Show>
       </DialogTitle>
       <DialogDescription>
         <Show
-          when={destination}
+          when={props.destination}
           fallback={t(
             'Send audit events to a webhook. Use an internal flow to route them to your notification channels — Slack, Gmail, Microsoft Teams, or any other channel.',
           )}
@@ -212,22 +223,22 @@ const EventDestinationForm = ({
             return;
           }
           setErrors({});
-          handleSubmit(result.data);
+          void handleSubmit(result.data);
         }}
-        className="space-y-4"
+        class="space-y-4"
       >
         <div>
           <Label class="text-base">
             {t('Events')} <span class="text-destructive">*</span>
           </Label>
           <ScrollArea class="h-48 rounded-md " viewPortClassName="px-0">
-            <div className="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-2 gap-2">
               <For each={availableEvents}>
                 {(event) => {
                   const checkboxId = `${checkboxIdPrefix}-${event}`;
                   const checked = createMemo(() => events().includes(event));
                   return (
-                    <div className="flex flex-row items-center gap-3">
+                    <div class="flex flex-row items-center gap-3">
                       <Checkbox
                         id={checkboxId}
                         checked={checked()}
@@ -247,7 +258,7 @@ const EventDestinationForm = ({
                         for={checkboxId}
                         class="cursor-pointer text-sm font-normal"
                       >
-                        {eventLabels[event]?.label ?? event}
+                        {eventLabels[event].label}
                       </Label>
                     </div>
                   );
@@ -280,10 +291,10 @@ const EventDestinationForm = ({
               {errors().url}
             </p>
           </Show>
-          <Show when={!destination}>
-            <div className="flex flex-col gap-1 pt-1">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs text-muted-foreground">
+          <Show when={!props.destination}>
+            <div class="flex flex-col gap-1 pt-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-xs text-muted-foreground">
                   {t(
                     'Or generate an internal flow to handle the selected events:',
                   )}
@@ -300,8 +311,10 @@ const EventDestinationForm = ({
                   {t('Generate handler flow')}
                 </Button>
               </div>
-              <span className="text-xs text-muted-foreground">
-                {t("Don't forget to publish your flow before creating the alert.")}
+              <span class="text-xs text-muted-foreground">
+                {t(
+                  "Don't forget to publish your flow before creating the alert.",
+                )}
               </span>
             </div>
           </Show>
@@ -311,7 +324,7 @@ const EventDestinationForm = ({
           <Button
             type="button"
             variant="outline"
-            onClick={onClose}
+            onClick={props.onClose}
             disabled={isSubmitDisabled}
           >
             {t('Cancel')}
@@ -321,7 +334,7 @@ const EventDestinationForm = ({
               <Button
                 type="button"
                 variant="outline"
-                disabled={isTestingButtonDisabled}
+                disabled={isTestingButtonDisabled()}
               >
                 <Show when={isTesting} fallback={t('Test webhook')}>
                   {t('Testing...')}
@@ -340,14 +353,18 @@ const EventDestinationForm = ({
                       })
                     }
                   >
-                    {eventLabels[event]?.label ?? event}
+                    {eventLabels[event].label}
                   </DropdownMenuItem>
                 )}
               </For>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button type="submit" disabled={isSubmitDisabled} loading={isCreating}>
-            <Show when={destination} fallback={t('Create alert')}>
+          <Button
+            type="submit"
+            disabled={isSubmitDisabled}
+            loading={isCreating}
+          >
+            <Show when={props.destination} fallback={t('Create alert')}>
               {t('Save changes')}
             </Show>
           </Button>

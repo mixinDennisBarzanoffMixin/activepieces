@@ -9,8 +9,8 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 
-export const WorkerConfigsPopover: any = ({ workerProps }) => {
-  const entries = Object.entries(workerProps ?? {});
+export const WorkerConfigsPopover = (props: Props) => {
+  const entries = Object.entries(props.workerProps ?? {});
 
   return (
     <Popover>
@@ -25,13 +25,13 @@ export const WorkerConfigsPopover: any = ({ workerProps }) => {
         </Button>
       </PopoverTrigger>
       <PopoverContent class="w-auto p-0" align="end">
-        <table className="text-xs">
+        <table class="text-xs">
           <thead>
-            <tr className="border-b">
-              <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+            <tr class="border-b">
+              <th class="px-3 py-2 text-left font-medium text-muted-foreground">
                 {t('Variable')}
               </th>
-              <th className="px-3 py-2 text-left font-medium text-muted-foreground">
+              <th class="px-3 py-2 text-left font-medium text-muted-foreground">
                 {t('Value')}
               </th>
             </tr>
@@ -39,9 +39,9 @@ export const WorkerConfigsPopover: any = ({ workerProps }) => {
           <tbody>
             <For each={entries}>
               {([key, value]) => (
-                <tr key={key} className="border-b last:border-b-0">
-                  <td className="px-3 py-2 font-mono font-medium">{key}</td>
-                  <td className="px-3 py-2 font-mono text-muted-foreground">
+                <tr class="border-b last:border-b-0">
+                  <td class="px-3 py-2 font-mono font-medium">{key}</td>
+                  <td class="px-3 py-2 font-mono text-muted-foreground">
                     {value}
                   </td>
                 </tr>

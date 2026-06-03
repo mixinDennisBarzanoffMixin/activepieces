@@ -1,7 +1,7 @@
 import { t } from 'i18next';
 import { GripVertical, Plus, TrashIcon } from 'lucide-solid';
 import { nanoid } from 'nanoid';
-import { createMemo, createSignal, For, Show } from 'solid-js';
+import { createMemo, createSignal, For, Show, type JSX } from 'solid-js';
 
 import { TextWithIcon } from '@/components/custom/text-with-icon';
 import { Button } from '@/components/ui/button';
@@ -23,7 +23,7 @@ type ArrayInputProps = {
     onChange: (value: string) => void,
     value: string,
     disabled: boolean,
-  ) => any;
+  ) => JSX.Element;
   thinInputs?: boolean;
 };
 
@@ -32,14 +32,8 @@ type ArrayField = {
   value: string;
 };
 
-const ArrayInput = ({
-  inputName,
-  disabled,
-  required,
-  customInputNode,
-  thinInputs,
-}: ArrayInputProps) => {
-  const initial = value ?? [];
+const ArrayInput = (props: ArrayInputProps) => {
+  const initial = props.value ?? [];
   const [fields, setFields] = createSignal<ArrayField[]>(
     initial.map((item) => ({
       id: nanoid(),
@@ -47,11 +41,11 @@ const ArrayInput = ({
     })),
   );
   const blocked = createMemo(() =>
-    typeof disabled === 'function' ? disabled() : disabled,
+    typeof props.disabled === 'function' ? props.disabled() : props.disabled,
   );
 
   const updateFormValue = (newFields: ArrayField[]) => {
-    onChange?.(newFields.map((f) => f.value));
+    props.onChange?.(newFields.map((f) => f.value));
   };
 
   const append = () => {
@@ -82,11 +76,13 @@ const ArrayInput = ({
     setFields(newFields);
     updateFormValue(newFields);
   };
-  const showRemoveButton = createMemo(() => !required || fields().length > 1);
+  const showRemoveButton = createMemo(
+    () => !props.required || fields().length > 1,
+  );
 
   return (
     <>
-      <div className="flex w-full flex-col gap-2.5 ">
+      <div class="flex w-full flex-col gap-2.5 ">
         <Sortable
           value={fields()}
           onMove={({ activeIndex, overIndex }) => {
@@ -95,36 +91,39 @@ const ArrayInput = ({
         >
           <For each={fields()}>
             {(field, index) => (
-              <SortableItem value={field.id} asChild>
-                <div className="flex items-center gap-3">
+              <SortableItem value={field.id}>
+                <div class="flex items-center gap-3">
                   <SortableDragHandle
                     variant="outline"
                     size="icon"
                     disabled={blocked()}
-                    class={cn('shrink-0 size-8', thinInputs && 'size-7')}
+                    class={cn('shrink-0 size-8', props.thinInputs && 'size-7')}
                   >
                     <GripVertical class="size-4" aria-hidden="true" />
                   </SortableDragHandle>
 
                   <div class="grow">
-                    {customInputNode ? (
-                      customInputNode(
+                    <Show
+                      when={props.customInputNode}
+                      fallback={
+                        <Input
+                          name={`${props.inputName}.${index()}`}
+                          thin={props.thinInputs}
+                          value={field.value}
+                          onChange={(e) =>
+                            updateFieldValue(index(), e.currentTarget.value)
+                          }
+                          disabled={blocked()}
+                          class="grow"
+                        />
+                      }
+                    >
+                      {props.customInputNode(
                         (value) => updateFieldValue(index(), value),
                         field.value,
                         blocked(),
-                      )
-                    ) : (
-                      <Input
-                        name={`${inputName}.${index()}`}
-                        thin={thinInputs}
-                        value={field.value}
-                        onChange={(e) =>
-                          updateFieldValue(index(), e.target.value)
-                        }
-                        disabled={blocked()}
-                        class="grow"
-                      />
-                    )}
+                      )}
+                    </Show>
                   </div>
 
                   <Show when={showRemoveButton()}>
@@ -133,7 +132,10 @@ const ArrayInput = ({
                       variant="outline"
                       size="icon"
                       disabled={blocked()}
-                      class={cn('shrink-0 size-8', thinInputs && 'size-7')}
+                      class={cn(
+                        'shrink-0 size-8',
+                        props.thinInputs && 'size-7',
+                      )}
                       onClick={() => {
                         remove(index());
                       }}
@@ -142,7 +144,7 @@ const ArrayInput = ({
                         class="size-4 text-destructive"
                         aria-hidden="true"
                       />
-                      <span className="sr-only">{t('Remove')}</span>
+                      <span class="sr-only">{t('Remove')}</span>
                     </Button>
                   </Show>
                 </div>
@@ -168,5 +170,4 @@ const ArrayInput = ({
   );
 };
 
-ArrayInput.displayName = 'ArrayInput';
 export { ArrayInput };

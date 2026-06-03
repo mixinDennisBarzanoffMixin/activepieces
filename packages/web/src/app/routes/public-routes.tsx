@@ -23,18 +23,18 @@ const TemplatesPage = lazy(() =>
   import('./templates').then((m) => ({ default: m.TemplatesPage })),
 );
 
-function SuspenseWrapper({ children }: { children: JSX.Element }) {
-  return <Suspense fallback={<RouteLoadingBar />}>{children}</Suspense>;
+function SuspenseWrapper(props: { children: JSX.Element }) {
+  return <Suspense fallback={<RouteLoadingBar />}>{props.children}</Suspense>;
 }
 
 export const publicRoutes = [
   {
     path: '/embed',
-    component: () => <EmbedPage></EmbedPage>,
+    component: () => <EmbedPage />,
   },
   {
     path: '/embed/connections',
-    component: () => <EmbeddedConnectionDialog></EmbeddedConnectionDialog>,
+    component: () => <EmbeddedConnectionDialog />,
   },
   {
     path: '/authenticate',
@@ -86,7 +86,7 @@ export const publicRoutes = [
   },
   {
     path: '/redirect',
-    component: () => <RedirectPage></RedirectPage>,
+    component: () => <RedirectPage />,
   },
   {
     path: '/404',

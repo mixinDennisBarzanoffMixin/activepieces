@@ -2,6 +2,7 @@ import {
   ApErrorParams,
   ErrorCode,
   isNil,
+  PopulatedFlow,
   Template,
 } from '@activepieces/shared';
 import { useLocation, useNavigate } from '@solidjs/router';
@@ -21,20 +22,24 @@ import { FROM_QUERY_PARAM } from '@/lib/navigation-utils';
 
 import { PieceIconList } from '../../pieces/components/piece-icon-list';
 
-const TemplateViewer = ({ template }: { template: Template }) => {
+const TemplateViewer = (props: { template: Template }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const token = authenticationSession.getToken();
 
-  const { mutate, isPending } = createMutation({
-    mutationFn: async () => {
+  const { mutate, isPending } = createMutation(() => ({
+    mutationFn: async (): Promise<PopulatedFlow | undefined> => {
       const flows = await flowHooks.importFlowsFromTemplates({
-        templates: [template],
+        templates: [props.template],
         projectId: authenticationSession.getProjectId()!,
       });
       return flows[0];
     },
-    onSuccess: (data) => {
+    onSuccess: (data: PopulatedFlow | undefined) => {
+      if (!data) {
+        internalErrorToast();
+        return;
+      }
       navigate(`/flows/${data.id}`);
     },
     onError: (error) => {
@@ -50,7 +55,7 @@ const TemplateViewer = ({ template }: { template: Template }) => {
       }
       internalErrorToast();
     },
-  });
+  }));
 
   const handleUseTemplate = () => {
     if (isNil(token)) {
@@ -66,39 +71,41 @@ const TemplateViewer = ({ template }: { template: Template }) => {
     <Card class="min-w-[500px] shadow-lg border-2">
       <>
         <CardHeader class="space-y-3 pb-4">
-          <h2 className="text-2xl font-bold tracking-tight">{template.name}</h2>
+          <h2 class="text-2xl font-bold tracking-tight">
+            {props.template.name}
+          </h2>
           <Separator />
         </CardHeader>
         <CardContent class="space-y-6">
-          <div className="space-y-4">
-            <div className="flex flex-row w-full justify-between items-center py-2">
-              <span className="text-sm font-medium text-muted-foreground">
+          <div class="space-y-4">
+            <div class="flex flex-row w-full justify-between items-center py-2">
+              <span class="text-sm font-medium text-muted-foreground">
                 {t('Steps in this flow')}
               </span>
-              <Show when={template.flows?.[0]?.trigger}>
+              <Show when={props.template.flows?.[0]?.trigger}>
                 (
                 <PieceIconList
-                  trigger={template.flows[0].trigger}
+                  trigger={props.template.flows[0].trigger}
                   maxNumberOfIconsToShow={5}
                 />
                 )
               </Show>
             </div>
-            <Show when={template.description}>
+            <Show when={props.template.description}>
               (
               <>
                 <Separator />
-                <div className="space-y-2 py-2">
-                  <h3 className="text-sm font-semibold">{t('Description')}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {template.description}
+                <div class="space-y-2 py-2">
+                  <h3 class="text-sm font-semibold">{t('Description')}</h3>
+                  <p class="text-sm text-muted-foreground leading-relaxed">
+                    {props.template.description}
                   </p>
                 </div>
               </>
               )
             </Show>
           </div>
-          <div className="flex items-center justify-end pt-2">
+          <div class="flex items-center justify-end pt-2">
             <Button loading={isPending} onClick={handleUseTemplate} size="lg">
               {t('Use Template')}
             </Button>
@@ -109,11 +116,11 @@ const TemplateViewer = ({ template }: { template: Template }) => {
   );
 };
 
-const ShareTemplate = ({ template }) => {
+const ShareTemplate = (props: { template: Template }) => {
   return (
-    <div className="flex items-center justify-center min-h-screen w-full bg-gradient-to-br from-background to-muted/20 p-6">
-      <div className="w-full max-w-2xl">
-        <TemplateViewer template={template} />
+    <div class="flex items-center justify-center min-h-screen w-full bg-gradient-to-br from-background to-muted/20 p-6">
+      <div class="w-full max-w-2xl">
+        <TemplateViewer template={props.template} />
       </div>
     </div>
   );

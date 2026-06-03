@@ -91,26 +91,26 @@ const GlobalConnectionsTable = () => {
     {
       accessorKey: 'displayName',
       size: 260,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Name')}
           icon={Puzzle}
         />
       ),
-      cell: ({ row }) => {
+      cell: (props) => {
         return (
           <CopyTextTooltip
             title={t('External ID')}
-            text={row.original.externalId || ''}
+            text={props.row.original.externalId || ''}
           >
-            <div className="flex items-center gap-2 w-fit">
+            <div class="flex items-center gap-2 w-fit">
               <PieceIconWithPieceName
-                pieceName={row.original.pieceName}
+                pieceName={props.row.original.pieceName}
                 showTooltip={false}
                 size="sm"
               />
-              <span>{row.original.displayName}</span>
+              <span>{props.row.original.displayName}</span>
             </div>
           </CopyTextTooltip>
         );
@@ -119,19 +119,19 @@ const GlobalConnectionsTable = () => {
     {
       accessorKey: 'status',
       size: 120,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Status')}
           icon={Activity}
         />
       ),
-      cell: ({ row }) => {
-        const status = row.original.status;
+      cell: (props) => {
+        const status = props.row.original.status;
         const { variant, icon: Icon } =
           appConnectionUtils.getStatusIcon(status);
         return (
-          <div className="text-left">
+          <div class="text-left">
             <StatusIconWithText
               icon={Icon}
               text={formatUtils.convertEnumToReadable(status)}
@@ -144,17 +144,17 @@ const GlobalConnectionsTable = () => {
     {
       accessorKey: 'updated',
       size: 150,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Connected At')}
           icon={Clock}
         />
       ),
-      cell: ({ row }) => {
+      cell: (props) => {
         return (
           <FormattedDate
-            date={new Date(row.original.updated)}
+            date={new Date(props.row.original.updated)}
             class="text-left"
           />
         );
@@ -163,43 +163,43 @@ const GlobalConnectionsTable = () => {
     {
       accessorKey: 'projectsCount',
       size: 100,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Projects')}
           icon={FolderOpen}
         />
       ),
-      cell: ({ row }) => {
+      cell: (props) => {
         return (
-          <div className="text-left">{row.original.projectIds.length}</div>
+          <div class="text-left">{props.row.original.projectIds.length}</div>
         );
       },
     },
     {
       id: 'actions',
-      cell: ({ row }) => {
+      cell: (props) => {
         return (
-          <div className="flex items-center gap-2 justify-end">
-            <Show when={row.original.preSelectForNewProjects}>
+          <div class="flex items-center gap-2 justify-end">
+            <Show when={props.row.original.preSelectForNewProjects}>
               <DefaultTag />
             </Show>
             <EditGlobalConnectionDialog
-              connectionId={row.original.id}
-              currentName={row.original.displayName}
-              projectIds={row.original.projectIds}
+              connectionId={props.row.original.id}
+              currentName={props.row.original.displayName}
+              projectIds={props.row.original.projectIds}
               preSelectForNewProjects={
-                row.original.preSelectForNewProjects ?? false
+                props.row.original.preSelectForNewProjects ?? false
               }
               userHasPermissionToEdit={true}
               onEdit={() => {
-                refetchGlobalConnections();
+                void refetchGlobalConnections();
               }}
             />
             <ReconnectButtonDialog
-              connection={row.original}
+              connection={props.row.original}
               onConnectionCreated={() => {
-                refetchGlobalConnections();
+                void refetchGlobalConnections();
               }}
               hasPermission={true}
             />
@@ -237,9 +237,9 @@ const GlobalConnectionsTable = () => {
   );
 
   const bulkDeleteGlobalConnections =
-    globalConnectionsMutations.useBulkDeleteGlobalConnections(
-      refetchGlobalConnections,
-    );
+    globalConnectionsMutations.useBulkDeleteGlobalConnections(() => {
+      void refetchGlobalConnections();
+    });
 
   const bulkActions: BulkAction<AppConnectionWithoutSensitiveData>[] =
     createMemo(() => [
@@ -252,8 +252,8 @@ const GlobalConnectionsTable = () => {
             <div onClick={(e) => e.stopPropagation()}>
               <ConfirmationDeleteDialog
                 title={t('Delete Connections')}
-                message={t(
-                  'The selected connections will be permanently deleted.',
+                message={String(
+                  t('The selected connections will be permanently deleted.'),
                 )}
                 warning={<DeleteConnectionWarning />}
                 entityName="connections"
@@ -261,7 +261,7 @@ const GlobalConnectionsTable = () => {
                 mutationFn={async () => {
                   try {
                     await bulkDeleteGlobalConnections.mutateAsync(
-                      selectedRows.map((row) => row.id),
+                      selectedRows().map((row) => row.id),
                     );
                     resetSelection();
                     setSelectedRows([]);
@@ -270,7 +270,7 @@ const GlobalConnectionsTable = () => {
                   }
                 }}
               >
-                <Show when={selectedRows.length > 0}>
+                <Show when={selectedRows().length > 0}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -278,7 +278,7 @@ const GlobalConnectionsTable = () => {
                     disabled={!userHasPermissionToWriteAppConnection}
                   >
                     <Trash class="mr-1 w-4" />
-                    {`${t('Delete')} (${selectedRows.length})`}
+                    {`${t('Delete')} (${selectedRows().length})`}
                   </Button>
                 </Show>
               </ConfirmationDeleteDialog>
@@ -293,8 +293,8 @@ const GlobalConnectionsTable = () => {
       key="new-connection"
       isGlobalConnection={true}
       onConnectionCreated={() => {
-        setRefresh(refresh + 1);
-        refetchGlobalConnections();
+        setRefresh(refresh() + 1);
+        void refetchGlobalConnections();
       }}
     >
       <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
@@ -304,21 +304,21 @@ const GlobalConnectionsTable = () => {
   ]);
 
   return (
-    <div className="flex-col w-full">
+    <div class="flex-col w-full">
       <LockedFeatureGuard
         featureKey="GLOBAL_CONNECTIONS"
         locked={!platform.plan.globalConnectionsEnabled}
         lockTitle={t('Enable Global Connections')}
-        lockDescription={t(
-          'Manage platform-wide connections to external systems.',
+        lockDescription={String(
+          t('Manage platform-wide connections to external systems.'),
         )}
         lockVideoUrl="https://cdn.activepieces.com/videos/showcase/global-connections.mp4"
       >
         <DashboardPageHeader
-          description={t(
-            'Manage platform-wide connections to external systems.',
+          description={String(
+            t('Manage platform-wide connections to external systems.'),
           )}
-          title={t('Global Connections')}
+          title={String(t('Global Connections'))}
         />
         <DataTable
           emptyStateTextTitle={t('No global connections found')}

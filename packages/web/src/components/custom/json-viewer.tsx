@@ -1,11 +1,10 @@
 import { isNil } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Copy, Download, Eye, EyeOff } from 'lucide-solid';
-import { createEffect, createMemo, Show } from 'solid-js';
+import { createEffect, createMemo, mergeProps, Show, type JSX } from 'solid-js';
 import { render } from 'solid-js/web';
 import { toast } from 'solid-sonner';
 
-import { useTheme } from '@/components/providers/theme-provider';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
@@ -15,11 +14,12 @@ import {
 } from '@/components/ui/tooltip';
 import { isStepFileUrl } from '@/lib/dom-utils';
 import { cn } from '@/lib/utils';
+
 import { SolidJsonViewer } from './solid-json-viewer';
 
 type JsonViewerProps = {
-  json: any;
-  title: any;
+  json: unknown;
+  title: JSX.Element;
   hideDownload?: boolean;
   hideHeader?: boolean;
   className?: string;
@@ -29,18 +29,18 @@ type FileButtonProps = {
   fileUrl: string;
   handleDownloadFile: (fileUrl: string) => void;
 };
-const FileButton = ({ fileUrl, handleDownloadFile }: FileButtonProps) => {
-  const readonly = fileUrl.includes('file://');
+const FileButton = (props: FileButtonProps) => {
+  const readonly = () => props.fileUrl.includes('file://');
   return (
-    <div className="flex items-center gap-0">
+    <div class="flex items-center gap-0">
       <Button
         variant="ghost"
         size="sm"
-        disabled={readonly}
-        onClick={() => handleDownloadFile(fileUrl)}
+        disabled={readonly()}
+        onClick={() => props.handleDownloadFile(props.fileUrl)}
         class="flex items-center gap-2 p-2 max-h-[20px] text-xs"
       >
-        <Show when={readonly} fallback={<Eye class="w-4 h-4" />}>
+        <Show when={readonly()} fallback={<Eye class="w-4 h-4" />}>
           <EyeOff class="w-4 h-4" />
         </Show>
         {t('Download File')}
@@ -52,12 +52,13 @@ const FileButton = ({ fileUrl, handleDownloadFile }: FileButtonProps) => {
 const removeDoubleQuotes = (str: string): string =>
   str.startsWith('"') && str.endsWith('"') ? str.slice(1, -1) : str;
 
-const removeUndefined = (obj: any): any => {
+const removeUndefined = (obj: unknown): unknown => {
   if (Array.isArray(obj)) {
     return obj.map(removeUndefined);
-  } else if (typeof obj === 'object' && obj !== null) {
+  }
+  if (typeof obj === 'object' && obj !== null) {
     return Object.fromEntries(
-      Object.entries(obj)
+      Object.entries(obj as Record<string, unknown>)
         .filter(([_, value]) => value !== undefined)
         .map(([key, value]) => [key, removeUndefined(value)]),
     );
@@ -65,21 +66,14 @@ const removeUndefined = (obj: any): any => {
   return obj;
 };
 
-const JsonViewer = ({
-  json: unclearJson,
-  title,
-  hideDownload = false,
-  hideHeader = false,
-  className,
-}: JsonViewerProps) => {
-  const { theme } = useTheme();
+const JsonViewer = (_props: JsonViewerProps) => {
+  const props = mergeProps({ hideDownload: false, hideHeader: false }, _props);
   const json = createMemo(() => {
-    return removeUndefined(unclearJson);
+    return removeUndefined(props.json);
   });
 
-  const viewerTheme = theme === 'dark' ? 'bright' : 'rjv-default';
   const handleCopy = () => {
-    navigator.clipboard.writeText(JSON.stringify(json(), null, 2));
+    void navigator.clipboard.writeText(JSON.stringify(json(), null, 2));
     toast.success(t('Copied to clipboard'), {
       duration: 1000,
     });
@@ -96,7 +90,9 @@ const JsonViewer = ({
   const handleDownloadFile = (fileUrl: string, ext = '') => {
     const link = document.createElement('a');
     link.href = fileUrl;
-    link.download = `${typeof title === 'string' ? title : 'data'}${ext}`;
+    link.download = `${
+      typeof props.title === 'string' ? props.title : 'data'
+    }${ext}`;
     link.click();
     URL.revokeObjectURL(fileUrl);
   };
@@ -112,7 +108,7 @@ const JsonViewer = ({
       const stepFileUrlsHTML = stringValuesHTML.filter(
         (el) =>
           isStepFileUrl(el.innerHTML) ||
-          isStepFileUrl(el.parentElement!.nextElementSibling?.innerHTML),
+          isStepFileUrl(el.parentElement?.nextElementSibling?.innerHTML),
       );
 
       stepFileUrlsHTML.forEach((el: Element) => {
@@ -123,124 +119,138 @@ const JsonViewer = ({
 
         const rootElem = document.createElement('div');
 
-        el.parentElement!.replaceChildren(el as Node, rootElem as Node);
+        el.parentElement?.replaceChildren(el, rootElem);
         const isProductionFile = fileUrl.includes('file://');
 
-        render(() => (
-          <div data-file-root="true">
-            <Show
-              when={isProductionFile}
-              fallback={
-                <FileButton
-                  fileUrl={fileUrl}
-                  handleDownloadFile={handleDownloadFile}
-                />
-              }
-            >
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <FileButton
-                      fileUrl={fileUrl}
-                      handleDownloadFile={handleDownloadFile}
-                    />
-                  </TooltipTrigger>
-                  <TooltipContent side="right">
-                    {t('File is not available after execution.')}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Show>
-          </div>
-        ), rootElem);
+        render(
+          () => (
+            <div data-file-root="true">
+              <Show
+                when={isProductionFile}
+                fallback={
+                  <FileButton
+                    fileUrl={fileUrl}
+                    handleDownloadFile={handleDownloadFile}
+                  />
+                }
+              >
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <FileButton
+                        fileUrl={fileUrl}
+                        handleDownloadFile={handleDownloadFile}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      {t('File is not available after execution.')}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </Show>
+            </div>
+          ),
+          rootElem,
+        );
       });
     }
   });
 
-  if (isStepFileUrl(json())) {
-    return (
-      <FileButton fileUrl={json()} handleDownloadFile={handleDownloadFile} />
-    );
-  }
-
   return (
-    <div
-      className={cn(
-        'rounded-lg border border-solid border-dividers overflow-hidden relative',
-        className,
-      )}
-    >
-      <Show when={!hideHeader}>
-        <div className="px-3 py-2 flex border-solid border-b border-dividers justify-center items-center">
-          <div className="grow justify-center items-center">
-            <span className="text-md">{title}</span>
-          </div>
-          <div className="flex items-center gap-0">
-            <Show when={!hideDownload}>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={'ghost'}
-                      size={'sm'}
-                      onClick={handleDownload}
-                    >
-                      <Download class="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom">
-                    {t('Download JSON')}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Show>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant={'ghost'} size={'sm'} onClick={handleCopy}>
-                    <Copy class="w-4 h-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  {t('Copy to clipboard')}
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
-        </div>
-      </Show>
-
-      <Show
-        when={isNil(json())}
-        fallback={
-          <div>
-            <Show when={typeof json() !== 'string' && typeof json() !== 'object'}>
-              <pre className="text-sm whitespace-pre-wrap  break-all overflow-x-auto p-2">
-                {JSON.stringify(json())}
-              </pre>
-            </Show>
-            <Show when={typeof json() === 'string'}>
-              <pre className="text-sm whitespace-pre-wrap break-all overflow-x-auto p-2">
-                {json()}
-              </pre>
-            </Show>
-            <Show when={typeof json() === 'object'}>
-              <div className="max-w-full">
-                <div class="overflow-x-auto break-words p-2">
-                  <SolidJsonViewer data={json()} />
-                </div>
+    <Show
+      when={isStepFileUrl(json()) && typeof json() === 'string'}
+      fallback={
+        <div
+          class={cn(
+            'rounded-lg border border-solid border-dividers overflow-hidden relative',
+            props.className,
+          )}
+        >
+          <Show when={!props.hideHeader}>
+            <div class="px-3 py-2 flex border-solid border-b border-dividers justify-center items-center">
+              <div class="grow justify-center items-center">
+                <span class="text-md">{props.title}</span>
               </div>
-            </Show>
-          </div>
-        }
-      >
-        <pre className="text-sm whitespace-pre-wrap overflow-x-auto p-2">
-          {json() === null ? 'null' : 'undefined'}
-        </pre>
-      </Show>
-    </div>
+              <div class="flex items-center gap-0">
+                <Show when={!props.hideDownload}>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={'ghost'}
+                          size={'sm'}
+                          onClick={handleDownload}
+                        >
+                          <Download class="w-4 h-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        {t('Download JSON')}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </Show>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant={'ghost'}
+                        size={'sm'}
+                        onClick={handleCopy}
+                      >
+                        <Copy class="w-4 h-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      {t('Copy to clipboard')}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            </div>
+          </Show>
+
+          <Show
+            when={isNil(json())}
+            fallback={
+              <div>
+                <Show
+                  when={
+                    typeof json() !== 'string' && typeof json() !== 'object'
+                  }
+                >
+                  <pre class="text-sm whitespace-pre-wrap  break-all overflow-x-auto p-2">
+                    {JSON.stringify(json())}
+                  </pre>
+                </Show>
+                <Show when={typeof json() === 'string'}>
+                  <pre class="text-sm whitespace-pre-wrap break-all overflow-x-auto p-2">
+                    {json()}
+                  </pre>
+                </Show>
+                <Show when={typeof json() === 'object'}>
+                  <div class="max-w-full">
+                    <div class="overflow-x-auto break-words p-2">
+                      <SolidJsonViewer data={json()} />
+                    </div>
+                  </div>
+                </Show>
+              </div>
+            }
+          >
+            <pre class="text-sm whitespace-pre-wrap overflow-x-auto p-2">
+              {json() === null ? 'null' : 'undefined'}
+            </pre>
+          </Show>
+        </div>
+      }
+    >
+      <FileButton
+        fileUrl={typeof json() === 'string' ? json() : ''}
+        handleDownloadFile={handleDownloadFile}
+      />
+    </Show>
   );
 };
 
-JsonViewer.displayName = 'JsonViewer';
 export { JsonViewer };

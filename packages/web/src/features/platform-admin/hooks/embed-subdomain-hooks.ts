@@ -8,6 +8,7 @@ import {
 import {
   createMutation,
   createQuery,
+  type Query,
   useQueryClient,
 } from '@tanstack/solid-query';
 
@@ -24,19 +25,20 @@ export const embedSubdomainQueries = {
   useEmbedSubdomain: () => {
     const { platform } = platformHooks.useCurrentPlatform();
     const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
-    return createQuery<EmbedSubdomain | null>({
+    return createQuery<EmbedSubdomain | null>(() => ({
       queryKey: embedSubdomainKeys.current,
       queryFn: () => embedSubdomainApi.get(),
-      enabled: platform.plan.embeddingEnabled && edition === ApEdition.CLOUD,
+      enabled:
+        platform?.plan.embeddingEnabled === true && edition === ApEdition.CLOUD,
       meta: { showErrorDialog: true, loadSubsetOptions: {} },
-      refetchInterval: (query) => {
+      refetchInterval: (query: Query<EmbedSubdomain | null>) => {
         const data = query.state.data;
         if (data?.status === EmbedSubdomainStatus.PENDING_VERIFICATION) {
           return 10000;
         }
         return false;
       },
-    });
+    }));
   },
   useCurrentEmbedSubdomain: () => {
     const { data, isLoading } = embedSubdomainQueries.useEmbedSubdomain();
@@ -51,7 +53,7 @@ export const embedSubdomainMutations = {
       mutationFn: (request: GenerateEmbedSubdomainRequest) =>
         embedSubdomainApi.upsert(request),
       onSuccess: () => {
-        queryClient.invalidateQueries({
+        void queryClient.invalidateQueries({
           queryKey: embedSubdomainKeys.current,
         });
       },

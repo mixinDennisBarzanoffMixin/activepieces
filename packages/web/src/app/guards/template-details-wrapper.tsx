@@ -11,7 +11,7 @@ import { FROM_QUERY_PARAM } from '@/lib/navigation-utils';
 
 const TemplateDetailsWrapper = () => {
   const { templateId } = useParams<{ templateId: string }>();
-  const { data: template, isLoading } = templatesHooks.useTemplate(templateId!);
+  const { data: template, isLoading } = templatesHooks.useTemplate(templateId);
 
   if (isLoading) {
     return <LoadingScreen />;

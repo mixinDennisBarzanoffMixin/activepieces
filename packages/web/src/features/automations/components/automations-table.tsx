@@ -7,6 +7,7 @@ import {
 import { Accordion } from '@kobalte/core/accordion';
 import { t } from 'i18next';
 import { Activity, Clock, Info, Type, User } from 'lucide-solid';
+import { createMemo, For, Show } from 'solid-js';
 
 import { useEmbedding } from '@/components/providers/embed-provider';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -53,216 +54,206 @@ type AutomationsTableProps = {
 const rowClassName =
   'group flex items-center min-h-[48px] py-2 text-sm cursor-pointer hover:bg-muted/50';
 
-export const AutomationsTable = ({
-  items,
-  isLoading,
-  selectedItems,
-  expandedFolders,
-  loadingFolders,
-  projectMembers,
-  folders,
-  selectableCount,
-  isPinned,
-  onTogglePin,
-  onToggleAllSelection,
-  onToggleItemSelection,
-  onRowClick,
-  onRenameItem,
-  onDeleteItem,
-  onDuplicateFlow,
-  onMoveItem,
-  onExportFlow,
-  onExportTable,
-  onCreateInFolder,
-  userHasPermissionToWriteFlow,
-  userHasPermissionToWriteTable,
-  isCreatingFlow,
-  isCreatingTable,
-  isMoving,
-  isDuplicating,
-  onLoadMoreInFolder,
-  isItemSelected,
-}: AutomationsTableProps) => {
+export const AutomationsTable = (props: AutomationsTableProps) => {
   const { embedState } = useEmbedding();
-  const groups = groupTreeItemsByFolder(items);
+  const groups = createMemo(() => groupTreeItemsByFolder(props.items));
 
   return (
-    <div className="overflow-x-auto">
-      <div className="min-w-[1000px]">
-        <div className="flex items-center h-8 text-xs border-b font-medium text-foreground bg-muted/50">
-          <div className="w-10 shrink-0 pl-4 pr-1">
+    <div class="overflow-x-auto">
+      <div class="min-w-[1000px]">
+        <div class="flex items-center h-8 text-xs border-b font-medium text-foreground bg-muted/50">
+          <div class="w-10 shrink-0 pl-4 pr-1">
             <Checkbox
               checked={
-                selectableCount > 0 && selectedItems.size === selectableCount
+                props.selectableCount > 0 &&
+                props.selectedItems.size === props.selectableCount
               }
-              onCheckedChange={onToggleAllSelection}
+              onCheckedChange={props.onToggleAllSelection}
             />
           </div>
-          <div className="w-8 shrink-0"></div>
-          <div className="flex-1 min-w-[200px] pl-2 flex items-center gap-1.5">
+          <div class="w-8 shrink-0" />
+          <div class="flex-1 min-w-[200px] pl-2 flex items-center gap-1.5">
             <Type class="h-3.5 w-3.5" />
             {t('Name')}
           </div>
 
-          <div className="w-[230px] shrink-0 px-2 flex items-center gap-1.5">
+          <div class="w-[230px] shrink-0 px-2 flex items-center gap-1.5">
             <Info class="h-3.5 w-3.5" />
             {t('Details')}
           </div>
 
-          <div className="w-[200px] shrink-0 px-2 flex items-center gap-1.5">
+          <div class="w-[200px] shrink-0 px-2 flex items-center gap-1.5">
             <Clock class="h-3.5 w-3.5" />
             {t('Last modified')}
           </div>
-          {!embedState.isEmbedded && (
-            <div className="w-[250px] shrink-0 px-2 flex items-center gap-1.5">
+          <Show when={!embedState.isEmbedded}>
+            <div class="w-[250px] shrink-0 px-2 flex items-center gap-1.5">
               <User class="h-3.5 w-3.5" />
               {t('Owner')}
             </div>
-          )}
-          <div className="w-[120px] shrink-0 px-2 flex items-center gap-1.5">
+          </Show>
+          <div class="w-[120px] shrink-0 px-2 flex items-center gap-1.5">
             <Activity class="h-3.5 w-3.5" />
             {t('Status')}
           </div>
-          <div className="w-[80px] shrink-0 px-2"></div>
+          <div class="w-[80px] shrink-0 px-2" />
         </div>
 
-        {isLoading ? (
-          <div className="p-2">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="w-full h-9 mb-3 rounded-sm">
-                <Skeleton class="w-full min-h-9" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <Accordion
-            multiple
-            value={Array.from(expandedFolders)}
-          >
-            {groups.map((group) => {
-              const isFolder = group.item.type === 'folder';
+        <Show
+          when={props.isLoading}
+          fallback={
+            <Accordion multiple value={Array.from(props.expandedFolders)}>
+              <For each={groups()}>
+                {(group) => {
+                  const isFolder = group.item.type === 'folder';
 
-              if (isFolder) {
-                return (
-                  <Accordion.Item
-                    key={`folder-${group.item.id}`}
-                    value={group.item.id}
-                    class="border-b"
-                  >
+                  if (isFolder) {
+                    return (
+                      <Accordion.Item
+                        key={`folder-${group.item.id}`}
+                        value={group.item.id}
+                        class="border-b"
+                      >
+                        <div
+                          class={cn(rowClassName)}
+                          onClick={(e) =>
+                            props.onRowClick(group.item, e.ctrlKey || e.metaKey)
+                          }
+                        >
+                          <AutomationsTableRow
+                            item={group.item}
+                            isSelected={props.isItemSelected(group.item)}
+                            isExpanded={props.expandedFolders.has(
+                              group.item.id,
+                            )}
+                            isPinned={props.isPinned(group.item.id)}
+                            isFolderLoading={props.loadingFolders.has(
+                              group.item.id,
+                            )}
+                            projectMembers={props.projectMembers}
+                            folders={props.folders}
+                            onRowClick={() => props.onRowClick(group.item)}
+                            onToggleSelection={() =>
+                              props.onToggleItemSelection(group.item)
+                            }
+                            onTogglePin={() => props.onTogglePin(group.item.id)}
+                            onRename={() => props.onRenameItem(group.item)}
+                            onDelete={() => props.onDeleteItem(group.item)}
+                            onDuplicate={props.onDuplicateFlow}
+                            onMoveTo={props.onMoveItem}
+                            onExportFlow={props.onExportFlow}
+                            onExportTable={props.onExportTable}
+                            onCreateInFolder={props.onCreateInFolder}
+                            userHasPermissionToWriteFlow={
+                              props.userHasPermissionToWriteFlow
+                            }
+                            userHasPermissionToWriteTable={
+                              props.userHasPermissionToWriteTable
+                            }
+                            isCreatingFlow={props.isCreatingFlow}
+                            isCreatingTable={props.isCreatingTable}
+                            isMoving={props.isMoving}
+                            isDuplicating={props.isDuplicating}
+                            onLoadMore={undefined}
+                          />
+                        </div>
+                        <Accordion.Content class="overflow-hidden data-[closed]:animate-accordion-up data-[expanded]:animate-accordion-down">
+                          <For each={group.children}>
+                            {(child) => (
+                              <div
+                                class={cn(rowClassName, 'border-t')}
+                                onClick={(e) =>
+                                  props.onRowClick(
+                                    child,
+                                    e.ctrlKey || e.metaKey,
+                                  )
+                                }
+                              >
+                                <AutomationsTableRow
+                                  item={child}
+                                  isSelected={props.isItemSelected(child)}
+                                  isExpanded={false}
+                                  isPinned={props.isPinned(child.id)}
+                                  projectMembers={props.projectMembers}
+                                  folders={props.folders}
+                                  onRowClick={() => props.onRowClick(child)}
+                                  onToggleSelection={() =>
+                                    props.onToggleItemSelection(child)
+                                  }
+                                  onTogglePin={() =>
+                                    props.onTogglePin(child.id)
+                                  }
+                                  onRename={() => props.onRenameItem(child)}
+                                  onDelete={() => props.onDeleteItem(child)}
+                                  onDuplicate={props.onDuplicateFlow}
+                                  onMoveTo={props.onMoveItem}
+                                  onExportFlow={props.onExportFlow}
+                                  onExportTable={props.onExportTable}
+                                  isMoving={props.isMoving}
+                                  isDuplicating={props.isDuplicating}
+                                  onLoadMore={
+                                    child.type === 'load-more-folder'
+                                      ? () =>
+                                          props.onLoadMoreInFolder(
+                                            child.folderId,
+                                          )
+                                      : undefined
+                                  }
+                                />
+                              </div>
+                            )}
+                          </For>
+                        </Accordion.Content>
+                      </Accordion.Item>
+                    );
+                  }
+
+                  return (
                     <div
-                      className={cn(rowClassName)}
+                      class={cn(rowClassName, 'border-b')}
                       onClick={(e) =>
-                        onRowClick(group.item, e.ctrlKey || e.metaKey)
+                        props.onRowClick(group.item, e.ctrlKey || e.metaKey)
                       }
                     >
                       <AutomationsTableRow
                         item={group.item}
-                        isSelected={isItemSelected(group.item)}
-                        isExpanded={expandedFolders.has(group.item.id)}
-                        isPinned={isPinned(group.item.id)}
-                        isFolderLoading={loadingFolders.has(group.item.id)}
-                        projectMembers={projectMembers}
-                        folders={folders}
-                        onRowClick={() => onRowClick(group.item)}
+                        isSelected={props.isItemSelected(group.item)}
+                        isExpanded={false}
+                        isPinned={props.isPinned(group.item.id)}
+                        projectMembers={props.projectMembers}
+                        folders={props.folders}
+                        onRowClick={() => props.onRowClick(group.item)}
                         onToggleSelection={() =>
-                          onToggleItemSelection(group.item)
+                          props.onToggleItemSelection(group.item)
                         }
-                        onTogglePin={() => onTogglePin(group.item.id)}
-                        onRename={() => onRenameItem(group.item)}
-                        onDelete={() => onDeleteItem(group.item)}
-                        onDuplicate={onDuplicateFlow}
-                        onMoveTo={onMoveItem}
-                        onExportFlow={onExportFlow}
-                        onExportTable={onExportTable}
-                        onCreateInFolder={onCreateInFolder}
-                        userHasPermissionToWriteFlow={
-                          userHasPermissionToWriteFlow
-                        }
-                        userHasPermissionToWriteTable={
-                          userHasPermissionToWriteTable
-                        }
-                        isCreatingFlow={isCreatingFlow}
-                        isCreatingTable={isCreatingTable}
-                        isMoving={isMoving}
-                        isDuplicating={isDuplicating}
+                        onTogglePin={() => props.onTogglePin(group.item.id)}
+                        onRename={() => props.onRenameItem(group.item)}
+                        onDelete={() => props.onDeleteItem(group.item)}
+                        onDuplicate={props.onDuplicateFlow}
+                        onMoveTo={props.onMoveItem}
+                        onExportFlow={props.onExportFlow}
+                        onExportTable={props.onExportTable}
+                        isMoving={props.isMoving}
+                        isDuplicating={props.isDuplicating}
                         onLoadMore={undefined}
                       />
                     </div>
-                    <Accordion.Content class="overflow-hidden data-[closed]:animate-accordion-up data-[expanded]:animate-accordion-down">
-                      {group.children.map((child) => (
-                        <div
-                          key={`${child.type}-${child.id}`}
-                          className={cn(rowClassName, 'border-t')}
-                          onClick={(e) =>
-                            onRowClick(child, e.ctrlKey || e.metaKey)
-                          }
-                        >
-                          <AutomationsTableRow
-                            item={child}
-                            isSelected={isItemSelected(child)}
-                            isExpanded={false}
-                            isPinned={isPinned(child.id)}
-                            projectMembers={projectMembers}
-                            folders={folders}
-                            onRowClick={() => onRowClick(child)}
-                            onToggleSelection={() =>
-                              onToggleItemSelection(child)
-                            }
-                            onTogglePin={() => onTogglePin(child.id)}
-                            onRename={() => onRenameItem(child)}
-                            onDelete={() => onDeleteItem(child)}
-                            onDuplicate={onDuplicateFlow}
-                            onMoveTo={onMoveItem}
-                            onExportFlow={onExportFlow}
-                            onExportTable={onExportTable}
-                            isMoving={isMoving}
-                            isDuplicating={isDuplicating}
-                            onLoadMore={
-                              child.type === 'load-more-folder'
-                                ? () => onLoadMoreInFolder(child.folderId!)
-                                : undefined
-                            }
-                          />
-                        </div>
-                      ))}
-                    </Accordion.Content>
-                  </Accordion.Item>
-                );
-              }
-
-              return (
-                <div
-                  key={`${group.item.type}-${group.item.id}`}
-                  className={cn(rowClassName, 'border-b')}
-                  onClick={(e) =>
-                    onRowClick(group.item, e.ctrlKey || e.metaKey)
-                  }
-                >
-                  <AutomationsTableRow
-                    item={group.item}
-                    isSelected={isItemSelected(group.item)}
-                    isExpanded={false}
-                    isPinned={isPinned(group.item.id)}
-                    projectMembers={projectMembers}
-                    folders={folders}
-                    onRowClick={() => onRowClick(group.item)}
-                    onToggleSelection={() => onToggleItemSelection(group.item)}
-                    onTogglePin={() => onTogglePin(group.item.id)}
-                    onRename={() => onRenameItem(group.item)}
-                    onDelete={() => onDeleteItem(group.item)}
-                    onDuplicate={onDuplicateFlow}
-                    onMoveTo={onMoveItem}
-                    onExportFlow={onExportFlow}
-                    onExportTable={onExportTable}
-                    isMoving={isMoving}
-                    isDuplicating={isDuplicating}
-                    onLoadMore={undefined}
-                  />
+                  );
+                }}
+              </For>
+            </Accordion>
+          }
+        >
+          <div class="p-2">
+            <For each={Array.from({ length: 10 })}>
+              {() => (
+                <div class="w-full h-9 mb-3 rounded-sm">
+                  <Skeleton class="w-full min-h-9" />
                 </div>
-              );
-            })}
-          </Accordion>
-        )}
+              )}
+            </For>
+          </div>
+        </Show>
       </div>
     </div>
   );

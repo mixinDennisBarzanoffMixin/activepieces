@@ -1,3 +1,4 @@
+import { ProjectRole, SeekPage } from '@activepieces/shared';
 import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { toast } from 'solid-sonner';
@@ -11,7 +12,7 @@ export const projectRoleKeys = {
 
 export const projectRoleQueries = {
   useProjectRoles: (enabled: boolean) =>
-    createQuery(() => ({
+    createQuery<SeekPage<ProjectRole>>(() => ({
       queryKey: projectRoleKeys.all,
       queryFn: () => projectRoleApi.list(),
       enabled,

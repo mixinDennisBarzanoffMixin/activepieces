@@ -3,6 +3,7 @@ import { createMutation } from '@tanstack/solid-query';
 import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
 import { createForm, type SubmitHandler } from 'solid-hook-form';
+import { createEffect, createSignal, Show } from 'solid-js';
 
 import { platformApi } from '@/api/platforms-api';
 import { queryClient } from '@/app/query-client';
@@ -20,6 +21,7 @@ type CreatePlatformSchema = {
 
 function CreatePlatformForm() {
   const redirectAfterLogin = useRedirectAfterLogin();
+  const [serverError, setServerError] = createSignal<string | null>(null);
   const form = createForm<CreatePlatformSchema>({
     defaultValues: {
       name: '',
@@ -29,7 +31,7 @@ function CreatePlatformForm() {
 
   const { mutate, isPending } = createMutation(
     () => ({
-      mutationFn: platformApi.createPlatform,
+      mutationFn: (request) => platformApi.createPlatform(request),
       onSuccess: (data) => {
         authenticationSession.saveResponse(data, false);
         redirectAfterLogin();
@@ -38,38 +40,38 @@ function CreatePlatformForm() {
         const isBadRequest =
           api.isError(error) &&
           error.response?.status === HttpStatusCode.BadRequest;
-        form.setError('root.serverError', {
-          type: 'manual',
-          message: isBadRequest
+        setServerError(
+          isBadRequest
             ? t('Platform name cannot contain "." or "/"')
             : t('Something went wrong, please try again later'),
-        });
+        );
       },
     }),
     () => queryClient,
   );
 
   const onSubmit: SubmitHandler<CreatePlatformSchema> = (data) => {
-    form.clearErrors('root.serverError');
+    setServerError(null);
     mutate({ name: data.name.trim() });
   };
+  const name = form.register('name', {
+    required: t('Platform name is required'),
+    maxLength: {
+      value: 100,
+      message: t('Platform name is too long'),
+    },
+    pattern: {
+      value: new RegExp(SAFE_STRING_PATTERN),
+      message: t('Platform name cannot contain "." or "/"'),
+    },
+  });
 
   return (
-    <form className="grid space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
+    <form class="grid space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
       <div class="grid space-y-2">
         <Label for="platformName">{t('Platform Name')}</Label>
         <Input
-          {...form.register('name', {
-            required: t('Platform name is required'),
-            maxLength: {
-              value: 100,
-              message: t('Platform name is too long'),
-            },
-            pattern: {
-              value: new RegExp(SAFE_STRING_PATTERN),
-              message: t('Platform name cannot contain "." or "/"'),
-            },
-          })}
+          {...name}
           required
           id="platformName"
           type="text"
@@ -77,17 +79,15 @@ function CreatePlatformForm() {
           class="rounded-sm"
           autoFocus
         />
-        {form.formState.errors.name?.message && (
+        <Show when={form.formState.errors.name?.message}>
           <p class="text-sm font-medium text-destructive">
             {form.formState.errors.name.message}
           </p>
-        )}
+        </Show>
       </div>
-      {form.formState.errors.root?.serverError?.message && (
-        <p class="text-sm font-medium text-destructive">
-          {form.formState.errors.root.serverError.message}
-        </p>
-      )}
+      <Show when={serverError()}>
+        <p class="text-sm font-medium text-destructive">{serverError()}</p>
+      </Show>
       <Button loading={isPending} type="submit">
         {t('Create Platform')}
       </Button>
@@ -97,32 +97,35 @@ function CreatePlatformForm() {
 
 function CreatePlatformPage() {
   const token = authenticationSession.getToken();
+  const ready = token && authenticationSession.isOnboarding();
 
-  if (!token) {
-    window.location.replace('/sign-in');
-    return null;
-  }
-
-  if (!authenticationSession.isOnboarding()) {
-    window.location.replace('/');
-    return null;
-  }
+  createEffect(() => {
+    if (!token) {
+      window.location.replace('/sign-in');
+      return;
+    }
+    if (!authenticationSession.isOnboarding()) {
+      window.location.replace('/');
+    }
+  });
 
   return (
-    <AuthLayout>
-      <div className="mb-6 text-center">
-        <h1
-          className="text-2xl font-bold tracking-tight"
-          style={{ fontFamily: "'Sentient', serif" }}
-        >
-          {t('Create your platform')}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t('Give your platform a name to get started.')}
-        </p>
-      </div>
-      <CreatePlatformForm />
-    </AuthLayout>
+    <Show when={ready}>
+      <AuthLayout>
+        <div class="mb-6 text-center">
+          <h1
+            class="text-2xl font-bold tracking-tight"
+            style={{ 'font-family': "'Sentient', serif" }}
+          >
+            {t('Create your platform')}
+          </h1>
+          <p class="mt-2 text-sm text-muted-foreground">
+            {t('Give your platform a name to get started.')}
+          </p>
+        </div>
+        <CreatePlatformForm />
+      </AuthLayout>
+    </Show>
   );
 }
 

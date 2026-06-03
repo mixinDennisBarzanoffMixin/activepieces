@@ -28,36 +28,30 @@ function computeStepStatuses({
   return statuses;
 }
 
-function StepIndicator({
-  status,
-  index,
-}: {
-  status: PlanStepStatus;
-  index: number;
-}) {
-  switch (status) {
+function StepIndicator(props: { status: PlanStepStatus; index: number }) {
+  switch (props.status) {
     case 'done':
       return (
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
+        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-green-100 dark:bg-green-500/20">
           <Check class="h-3 w-3 text-green-600 dark:text-green-400" />
         </span>
       );
     case 'executing':
       return (
-        <span className="flex h-5 w-5 items-center justify-center">
+        <span class="flex h-5 w-5 items-center justify-center">
           <Loader2 class="h-4 w-4 text-primary animate-spin" />
         </span>
       );
     case 'error':
       return (
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-destructive/10">
+        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-destructive/10">
           <X class="h-3 w-3 text-destructive" />
         </span>
       );
     default:
       return (
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground/50 text-[10px] font-medium">
-          {index + 1}
+        <span class="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground/50 text-[10px] font-medium">
+          {props.index + 1}
         </span>
       );
   }
@@ -77,12 +71,7 @@ function completedCount(statuses: PlanStepStatus[]): number {
   return statuses.filter((s) => s === 'done').length;
 }
 
-export function PlanProgressCard({
-  progress,
-  updates,
-  currentActivity,
-  isStreaming = false,
-}: {
+export function PlanProgressCard(props: {
   progress: PlanProgressData;
   updates: PlanStepUpdate[];
   currentActivity?: string | null;
@@ -90,15 +79,17 @@ export function PlanProgressCard({
 }) {
   const stepStatuses = createMemo(() =>
     computeStepStatuses({
-      stepCount: progress.steps.length,
-      updates,
+      stepCount: props.progress.steps.length,
+      updates: props.updates,
     }),
   );
 
-  const rawStatus = overallStatus(stepStatuses);
-  const status = isStreaming && rawStatus === 'done' ? 'executing' : rawStatus;
-  const done = completedCount(stepStatuses);
-  const total = progress.steps.length;
+  const rawStatus = createMemo(() => overallStatus(stepStatuses()));
+  const status = createMemo(() =>
+    props.isStreaming && rawStatus() === 'done' ? 'executing' : rawStatus(),
+  );
+  const done = createMemo(() => completedCount(stepStatuses()));
+  const total = createMemo(() => props.progress.steps.length);
 
   return (
     <motion.div
@@ -107,33 +98,33 @@ export function PlanProgressCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <div className="px-3.5 pt-3 pb-2">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="font-medium text-xs flex items-center gap-1.5 text-foreground">
+      <div class="px-3.5 pt-3 pb-2">
+        <div class="flex items-center justify-between gap-2">
+          <h3 class="font-medium text-xs flex items-center gap-1.5 text-foreground">
             <ListChecks class="h-3.5 w-3.5 text-muted-foreground" />
-            {progress.title}
+            {props.progress.title}
           </h3>
           <Show
-            when={status === 'done'}
+            when={status() === 'done'}
             fallback={
               <Show
-                when={status === 'error'}
+                when={status() === 'error'}
                 fallback={
-                  status === 'executing' ? (
-                    <span className="text-xs text-muted-foreground">
-                      {done}/{total}
+                  status() === 'executing' ? (
+                    <span class="text-xs text-muted-foreground">
+                      {done()}/{total()}
                     </span>
                   ) : null
                 }
               >
-                <span className="inline-flex items-center gap-1 text-destructive text-xs font-medium">
+                <span class="inline-flex items-center gap-1 text-destructive text-xs font-medium">
                   <X class="h-3 w-3" />
                   {t('Error')}
                 </span>
               </Show>
             }
           >
-            <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-medium">
+            <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400 text-xs font-medium">
               <Check class="h-3 w-3" />
               {t('Done')}
             </span>
@@ -141,41 +132,41 @@ export function PlanProgressCard({
         </div>
       </div>
 
-      <div className="px-3.5 pb-3">
-        <div className="flex flex-col gap-0.5">
-          <For each={progress.steps}>
+      <div class="px-3.5 pb-3">
+        <div class="flex flex-col gap-0.5">
+          <For each={props.progress.steps}>
             {(step, index) => {
-              const stepStatus = stepStatuses[index];
+              const stepStatus = () => stepStatuses()[index()] ?? 'pending';
               return (
-                <div key={index}>
+                <div>
                   <motion.div
                     class="flex items-center gap-2.5 py-1 px-1 rounded-md"
                     initial={false}
                     animate={{
                       backgroundColor:
-                        stepStatus === 'executing'
+                        stepStatus() === 'executing'
                           ? 'var(--color-primary-50, rgba(99,102,241,0.05))'
                           : 'transparent',
                     }}
                     transition={{ duration: 0.2 }}
                   >
-                    <StepIndicator status={stepStatus} index={index} />
-                    <div className="flex items-center gap-2 min-w-0">
+                    <StepIndicator status={stepStatus()} index={index()} />
+                    <div class="flex items-center gap-2 min-w-0">
                       <span
-                        className={cn(
+                        class={cn(
                           'text-xs transition-all duration-200',
-                          stepStatus === 'done' &&
+                          stepStatus() === 'done' &&
                             'line-through text-muted-foreground',
-                          stepStatus === 'executing' &&
+                          stepStatus() === 'executing' &&
                             'font-medium text-foreground',
-                          stepStatus === 'error' && 'text-destructive',
-                          stepStatus === 'pending' && 'text-muted-foreground',
+                          stepStatus() === 'error' && 'text-destructive',
+                          stepStatus() === 'pending' && 'text-muted-foreground',
                         )}
                       >
                         {step}
                       </span>
-                      <Show when={stepStatus === 'executing'}>
-                        <span className="text-[11px] text-primary font-medium shrink-0">
+                      <Show when={stepStatus() === 'executing'}>
+                        <span class="text-[11px] text-primary font-medium shrink-0">
                           {t('Running')}
                         </span>
                       </Show>
@@ -183,7 +174,11 @@ export function PlanProgressCard({
                   </motion.div>
 
                   <AnimatePresence>
-                    <Show when={stepStatus === 'executing' && currentActivity}>
+                    <Show
+                      when={
+                        stepStatus() === 'executing' && props.currentActivity
+                      }
+                    >
                       <motion.div
                         class="ml-8 mt-0.5 mb-1"
                         initial={{ opacity: 0, height: 0 }}
@@ -195,7 +190,7 @@ export function PlanProgressCard({
                           class="text-[11px] text-muted-foreground"
                           duration={3}
                         >
-                          {currentActivity}
+                          {props.currentActivity}
                         </TextShimmer>
                       </motion.div>
                     </Show>

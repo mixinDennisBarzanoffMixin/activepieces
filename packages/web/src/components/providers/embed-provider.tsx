@@ -1,7 +1,5 @@
 import { createContext, useContext, createSignal, JSX } from 'solid-js';
 
-import { cn } from '@/lib/utils';
-
 type EmbeddingState = {
   isEmbedded: boolean;
   hideSideNav: boolean;
@@ -56,7 +54,7 @@ type EmbeddingProviderProps = {
   children: JSX.Element;
 };
 
-const EmbeddingProvider = ({ children }: EmbeddingProviderProps) => {
+const EmbeddingProvider = (props: EmbeddingProviderProps) => {
   const [state, setState] = createSignal<EmbeddingState>(defaultState);
 
   return (
@@ -64,17 +62,15 @@ const EmbeddingProvider = ({ children }: EmbeddingProviderProps) => {
       value={{ embedState: state(), setEmbedState: setState }}
     >
       <div
-        className={cn({
+        classlist={{
           'bg-black/80 h-screen w-screen':
             state().useDarkBackground && state().isEmbedded,
-        })}
+        }}
       >
-        {children}
+        {props.children}
       </div>
     </EmbeddingContext.Provider>
   );
 };
-
-EmbeddingProvider.displayName = 'EmbeddingProvider';
 
 export { EmbeddingProvider };

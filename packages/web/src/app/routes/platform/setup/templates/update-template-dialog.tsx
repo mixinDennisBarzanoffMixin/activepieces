@@ -34,24 +34,20 @@ const UpdateFlowTemplateSchema = z.object({
   categories: z.array(z.string()).optional(),
 });
 
-export const UpdateTemplateDialog = ({
-  children,
-  onDone,
-  template,
-}: {
+export const UpdateTemplateDialog = (props: {
   children: JSX.Element;
   onDone: () => void;
   template: Template;
 }) => {
   const [open, setOpen] = createSignal(false);
   const initial = () => ({
-      displayName: template.name,
-      summary: template.summary || '',
-      blogUrl: template.blogUrl || '',
-      description: template.description,
-      tags: template.tags || [],
-      categories: template.categories || [],
-      template: undefined,
+    displayName: props.template.name,
+    summary: props.template.summary || '',
+    blogUrl: props.template.blogUrl || '',
+    description: props.template.description,
+    tags: props.template.tags || [],
+    categories: props.template.categories || [],
+    template: undefined,
   });
   const [displayName, setDisplayName] = createSignal(initial().displayName);
   const [blogUrl, setBlogUrl] = createSignal(initial().blogUrl);
@@ -79,19 +75,19 @@ export const UpdateTemplateDialog = ({
     setErrors({});
   };
 
-  const { mutate, isPending } = createMutation({
-    mutationKey: ['update-template', template.id],
+  const { mutate, isPending } = createMutation(() => ({
+    mutationKey: ['update-template', props.template.id],
     mutationFn: () => {
       const formValue = values();
       const next = formValue.template;
 
-      return templatesApi.update(template.id, {
+      return templatesApi.update(props.template.id, {
         name: formValue.displayName,
         summary: formValue.summary,
         description: formValue.description,
         tags: formValue.tags,
         blogUrl: formValue.blogUrl,
-        metadata: template.metadata,
+        metadata: props.template.metadata,
         categories: formValue.categories || [],
         flows: next
           ? [
@@ -105,7 +101,7 @@ export const UpdateTemplateDialog = ({
       });
     },
     onSuccess: () => {
-      onDone();
+      props.onDone();
       setOpen(false);
     },
     onError: (error) => {
@@ -113,7 +109,7 @@ export const UpdateTemplateDialog = ({
         setErrors({ template: error.message });
       }
     },
-  });
+  }));
 
   const onSubmit = () => {
     const parsed = UpdateFlowTemplateSchema.safeParse(values());
@@ -139,30 +135,59 @@ export const UpdateTemplateDialog = ({
         }
       }}
     >
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Update Template')}</DialogTitle>
         </DialogHeader>
-        <form className="grid space-y-4" onSubmit={(e) => e.preventDefault()}>
+        <form class="grid space-y-4" onSubmit={(e) => e.preventDefault()}>
           <div class="grid space-y-2">
-            <Label for="name" showRequiredIndicator>{t('Name')}</Label>
-            <Input required id="name" value={displayName()} onInput={(e) => setDisplayName(e.currentTarget.value)} placeholder={t('Template Name')} class="rounded-sm" />
+            <Label for="name" showRequiredIndicator>
+              {t('Name')}
+            </Label>
+            <Input
+              required
+              id="name"
+              value={displayName()}
+              onInput={(e) => setDisplayName(e.currentTarget.value)}
+              placeholder={t('Template Name')}
+              class="rounded-sm"
+            />
             <Error message={errors().displayName} />
           </div>
           <div class="grid space-y-2">
             <Label for="summary">{t('Summary')}</Label>
-            <Input id="summary" value={summary()} onInput={(e) => setSummary(e.currentTarget.value)} placeholder={t('Template Summary')} class="rounded-sm" />
+            <Input
+              id="summary"
+              value={summary()}
+              onInput={(e) => setSummary(e.currentTarget.value)}
+              placeholder={t('Template Summary')}
+              class="rounded-sm"
+            />
             <Error message={errors().summary} />
           </div>
           <div class="grid space-y-2">
             <Label for="description">{t('Description')}</Label>
-            <Textarea required id="description" value={description()} onInput={(e) => setDescription(e.currentTarget.value)} class="rounded-sm" placeholder={t('Template Description')} />
+            <Textarea
+              required
+              id="description"
+              value={description()}
+              onInput={(e) => setDescription(e.currentTarget.value)}
+              class="rounded-sm"
+              placeholder={t('Template Description')}
+            />
             <Error message={errors().description} />
           </div>
           <div class="grid space-y-2">
             <Label for="blogUrl">{t('Blog URL')}</Label>
-            <Input required id="blogUrl" value={blogUrl()} onInput={(e) => setBlogUrl(e.currentTarget.value)} placeholder={t('Template Blog URL')} class="rounded-sm" />
+            <Input
+              required
+              id="blogUrl"
+              value={blogUrl()}
+              onInput={(e) => setBlogUrl(e.currentTarget.value)}
+              placeholder={t('Template Blog URL')}
+              class="rounded-sm"
+            />
             <Error message={errors().blogUrl} />
           </div>
           <div class="grid space-y-2">
@@ -171,8 +196,9 @@ export const UpdateTemplateDialog = ({
               type="file"
               accept=".json"
               onChange={(e) => {
-                e.target.files &&
-                  e.target.files[0].text().then((text) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  void file.text().then((text) => {
                     const template = templateUtils.extractFlow(text);
                     if (template) {
                       setFlow(template);
@@ -181,6 +207,7 @@ export const UpdateTemplateDialog = ({
                       setErrors({ ...errors(), template: t('Invalid JSON') });
                     }
                   });
+                }
               }}
               id="template"
               placeholder={t('Template')}
@@ -217,10 +244,10 @@ export const UpdateTemplateDialog = ({
   );
 };
 
-const Error = ({ message }: { message: string | undefined }) => (
-  <Show when={message}>
+const Error = (props: { message: string | undefined }) => (
+  <Show when={props.message}>
     <p class="text-sm font-medium text-destructive wrap-break-word">
-      {message}
+      {props.message}
     </p>
   </Show>
 );

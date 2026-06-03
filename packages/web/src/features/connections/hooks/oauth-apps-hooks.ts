@@ -73,7 +73,7 @@ export const oauthAppsQueries = {
     const { platform } = platformHooks.useCurrentPlatform();
     const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
 
-    return createQuery<PiecesOAuth2AppsMap, Error>({
+    return createQuery<PiecesOAuth2AppsMap, Error>(() => ({
       queryKey: ['oauth-apps'],
       queryFn: async () => {
         const apps =
@@ -111,7 +111,7 @@ export const oauthAppsQueries = {
         return appsMap;
       },
       staleTime: 0,
-    });
+    }));
   },
 };
 

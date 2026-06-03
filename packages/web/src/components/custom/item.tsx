@@ -1,25 +1,30 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { mergeProps, splitProps, type JSX } from 'solid-js';
 
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-function ItemGroup({ className, ...props }: any) {
+function ItemGroup(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
       role="list"
       data-slot="item-group"
-      className={cn('group/item-group flex flex-col', className)}
+      class={cn('group/item-group flex flex-col', local.className)}
       {...props}
     />
   );
 }
 
-function ItemSeparator({ className, ...props }: any) {
+function ItemSeparator(
+  _props: ClassName<JSX.ComponentProps<typeof Separator>>,
+) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <Separator
       data-slot="item-separator"
       orientation="horizontal"
-      class={cn('my-0', className)}
+      class={cn('my-0', local.className)}
       {...props}
     />
   );
@@ -46,19 +51,29 @@ const itemVariants = cva(
   },
 );
 
-function Item({
-  className,
-  variant = 'default',
-  size = 'default',
-  asChild = false,
-  ...props
-}: any & VariantProps<typeof itemVariants> & { asChild?: boolean }) {
+function Item(
+  _props: ClassName<JSX.IntrinsicElements['div']> &
+    VariantProps<typeof itemVariants> & { asChild?: boolean },
+) {
+  const merged = mergeProps(
+    { variant: 'default', size: 'default', asChild: false },
+    _props,
+  );
+  const [local, props] = splitProps(merged, [
+    'className',
+    'variant',
+    'size',
+    'asChild',
+  ]);
   return (
     <div
       data-slot="item"
-      data-variant={variant}
-      data-size={size}
-      class={cn(itemVariants({ variant, size, className }))}
+      data-variant={local.variant}
+      data-size={local.size}
+      class={cn(
+        itemVariants({ variant: local.variant, size: local.size }),
+        local.className,
+      )}
       {...props}
     />
   );
@@ -81,91 +96,98 @@ const itemMediaVariants = cva(
   },
 );
 
-function ItemMedia({
-  className,
-  variant = 'default',
-  ...props
-}: any & VariantProps<typeof itemMediaVariants>) {
+function ItemMedia(
+  _props: ClassName<JSX.IntrinsicElements['div']> &
+    VariantProps<typeof itemMediaVariants>,
+) {
+  const merged = mergeProps({ variant: 'default' }, _props);
+  const [local, props] = splitProps(merged, ['className', 'variant']);
   return (
     <div
       data-slot="item-media"
-      data-variant={variant}
-      className={cn(itemMediaVariants({ variant, className }))}
+      data-variant={local.variant}
+      class={cn(itemMediaVariants({ variant: local.variant }), local.className)}
       {...props}
     />
   );
 }
 
-function ItemContent({ className, ...props }: any) {
+function ItemContent(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
       data-slot="item-content"
-      className={cn(
+      class={cn(
         'flex flex-1 flex-col gap-1 [&+[data-slot=item-content]]:flex-none',
-        className,
+        local.className,
       )}
       {...props}
     />
   );
 }
 
-function ItemTitle({ className, ...props }: any) {
+function ItemTitle(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
       data-slot="item-title"
-      className={cn(
+      class={cn(
         'flex w-fit items-center gap-2 text-sm leading-snug font-medium',
-        className,
+        local.className,
       )}
       {...props}
     />
   );
 }
 
-function ItemDescription({ className, ...props }: any) {
+function ItemDescription(_props: ClassName<JSX.IntrinsicElements['p']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <p
       data-slot="item-description"
-      className={cn(
+      class={cn(
         'text-muted-foreground line-clamp-2 text-sm leading-normal font-normal text-balance',
         '[&>a:hover]:text-primary [&>a]:underline [&>a]:underline-offset-4',
-        className,
+        local.className,
       )}
       {...props}
     />
   );
 }
 
-function ItemActions({ className, ...props }: any) {
+function ItemActions(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
       data-slot="item-actions"
-      className={cn('flex items-center gap-2', className)}
+      class={cn('flex items-center gap-2', local.className)}
       {...props}
     />
   );
 }
 
-function ItemHeader({ className, ...props }: any) {
+function ItemHeader(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
       data-slot="item-header"
-      className={cn(
+      class={cn(
         'flex basis-full items-center justify-between gap-2',
-        className,
+        local.className,
       )}
       {...props}
     />
   );
 }
 
-function ItemFooter({ className, ...props }: any) {
+function ItemFooter(_props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, props] = splitProps(_props, ['className']);
   return (
     <div
       data-slot="item-footer"
-      className={cn(
+      class={cn(
         'flex basis-full items-center justify-between gap-2',
-        className,
+        local.className,
       )}
       {...props}
     />
@@ -183,4 +205,8 @@ export {
   ItemDescription,
   ItemHeader,
   ItemFooter,
+};
+
+type ClassName<T> = Omit<T, 'className'> & {
+  className?: string;
 };

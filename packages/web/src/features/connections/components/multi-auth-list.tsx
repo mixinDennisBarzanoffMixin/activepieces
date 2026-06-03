@@ -25,27 +25,20 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  OAuth2App,
-  PiecesOAuth2AppsMap,
   oauth2Utils,
-} from '@/features/connections';
+  type OAuth2App,
+  type PiecesOAuth2AppsMap,
+} from '@/features/connections/utils/oauth2-utils';
 import { formatUtils } from '@/lib/format-utils';
 
-export function MutliAuthList({
-  pieceAuth,
-  setSelectedItem,
-  confirmSelectedItem,
-  piecesOAuth2AppsMap,
-  pieceName,
-  selectedItem,
-}: MutliAuthListProps) {
-  const authItems: RadioGroupListItem<AuthListItem>[] = pieceAuth.flatMap(
+export function MutliAuthList(props: MutliAuthListProps) {
+  const authItems: RadioGroupListItem<AuthListItem>[] = props.pieceAuth.flatMap(
     (auth) => {
       const displayName = getDisplayName(auth);
       if (auth.type === PropertyType.OAUTH2) {
         const predefinedOAuth2App = oauth2Utils.getPredefinedOAuth2App(
-          piecesOAuth2AppsMap,
-          pieceName,
+          props.piecesOAuth2AppsMap,
+          props.pieceName,
         );
         return createOAuth2Options(auth, predefinedOAuth2App);
       }
@@ -59,14 +52,14 @@ export function MutliAuthList({
   );
 
   const selectedOption = authItems.find((auth) =>
-    deepEqual(auth.value, selectedItem),
+    deepEqual(auth.value, props.selectedItem),
   );
 
   return (
     <>
       <DialogHeader class="mb-0">
         <DialogTitle class="px-5">
-          <div className="flex items-center gap-2">
+          <div class="flex items-center gap-2">
             {t('Select an Authentication Method')}
           </div>
         </DialogTitle>
@@ -74,15 +67,15 @@ export function MutliAuthList({
       <RadioGroupList
         class="px-5 mt-5"
         items={authItems}
-        onChange={setSelectedItem}
+        onInput={props.setSelectedItem}
         value={selectedOption?.value ?? null}
       />
       <DialogFooter class="mt-4">
-        <div className="mx-5 w-full flex justify-end gap-2">
+        <div class="mx-5 w-full flex justify-end gap-2">
           <DialogClose asChild>
             <Button variant="outline">{t('Cancel')}</Button>
           </DialogClose>
-          <Button variant="default" onClick={() => confirmSelectedItem()}>
+          <Button variant="default" onClick={() => props.confirmSelectedItem()}>
             {t('Next')}
           </Button>
         </div>
@@ -104,7 +97,7 @@ const getDisplayName = (auth: PieceAuthProperty): string => {
 };
 
 function createOAuth2Options(
-  auth: OAuth2Property<any>,
+  auth: OAuth2Property<OAuth2Props>,
   predefinedOAuth2App: OAuth2App | null,
 ): RadioGroupListItem<AuthListItem>[] {
   const options: RadioGroupListItem<AuthListItem>[] = [];
@@ -172,7 +165,7 @@ function createOAuth2Options(
 
 export type AuthListItem =
   | {
-      authProperty: Exclude<PieceAuthProperty, OAuth2Property<any>>;
+      authProperty: Exclude<PieceAuthProperty, OAuth2Property<OAuth2Props>>;
       grantType: null;
       oauth2App: null;
     }

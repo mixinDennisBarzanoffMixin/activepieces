@@ -1,5 +1,9 @@
-import { createSignal } from 'solid-js';
-import { FolderDto, PopulatedFlow, Table } from '@activepieces/shared';
+import {
+  FolderDto,
+  PopulatedFlow,
+  ProjectMemberWithUser,
+  Table,
+} from '@activepieces/shared';
 import { t } from 'i18next';
 import {
   ArrowDown,
@@ -20,6 +24,7 @@ import {
   Trash2,
   Workflow,
 } from 'lucide-solid';
+import { createSignal, mergeProps, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { ApAvatar } from '@/components/custom/ap-avatar';
@@ -58,7 +63,7 @@ type AutomationsTableRowProps = {
   isExpanded: boolean;
   isPinned: boolean;
   isFolderLoading?: boolean;
-  projectMembers: any;
+  projectMembers?: ProjectMemberWithUser[];
   folders: FolderDto[];
   onRowClick: () => void;
   onToggleSelection: () => void;
@@ -79,303 +84,335 @@ type AutomationsTableRowProps = {
   onLoadMore?: () => void;
 };
 
-export const AutomationsTableRow = ({
-  item,
-  isSelected,
-  isExpanded,
-  isPinned,
-  isFolderLoading,
-  folders,
-  onToggleSelection,
-  onTogglePin,
-  onRename,
-  onDelete,
-  onDuplicate,
-  onMoveTo,
-  onExportFlow,
-  onExportTable,
-  onCreateInFolder,
-  userHasPermissionToWriteFlow = true,
-  userHasPermissionToWriteTable = true,
-  isCreatingFlow,
-  isCreatingTable,
-  isMoving,
-  isDuplicating,
-  onLoadMore,
-}: AutomationsTableRowProps) => {
+export const AutomationsTableRow = (_props: AutomationsTableRowProps) => {
+  const props = mergeProps(
+    { userHasPermissionToWriteFlow: true, userHasPermissionToWriteTable: true },
+    _props,
+  );
   const { embedState } = useEmbedding();
   const [isMoveOpen, setIsMoveOpen] = createSignal(false);
   const [moveFolderId, setMoveFolderId] = createSignal('');
   const [isCreateTooltipOpen, setIsCreateTooltipOpen] = createSignal(false);
 
-  if (item.type === 'load-more-folder') {
-    return (
-      <div class="flex-1 flex items-center justify-center gap-2 text-primary font-medium py-2">
-        <div
-          class="flex items-center gap-2 cursor-pointer hover:underline"
-          onClick={(e) => {
-            e.stopPropagation();
-            onLoadMore?.();
-          }}
-        >
-          <ArrowDown class="h-4 w-4" />
-          <span>
-            {t('Load {count} more items...', { count: item.loadMoreCount })}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
-      <div
-        class="w-10 shrink-0 pl-4 pr-1 flex items-center"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <Checkbox checked={isSelected} onCheckedChange={onToggleSelection} />
-      </div>
-      <div
-        class={cn(
-          'w-8 shrink-0 flex items-center justify-center mr-2',
-          item.type === 'folder' && 'mr-3',
-        )}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {item.depth === 0 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={onTogglePin}
-                class="p-0.5 rounded hover:bg-muted transition-colors"
+      <Show
+        when={props.item.type === 'load-more-folder'}
+        fallback={
+          <>
+            <div
+              class="w-10 shrink-0 pl-4 pr-1 flex items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Checkbox
+                checked={props.isSelected}
+                onCheckedChange={props.onToggleSelection}
+              />
+            </div>
+            <div
+              class={cn(
+                'w-8 shrink-0 flex items-center justify-center mr-2',
+                props.item.type === 'folder' && 'mr-3',
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Show when={props.item.depth === 0}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={props.onTogglePin}
+                      class="p-0.5 rounded hover:bg-muted transition-colors"
+                    >
+                      <Star
+                        class={cn(
+                          'h-4 w-4',
+                          props.isPinned
+                            ? 'text-yellow-500 fill-yellow-500'
+                            : 'text-muted-foreground/40 hover:text-muted-foreground',
+                        )}
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    {props.isPinned
+                      ? t('Remove from favorites')
+                      : t('Add to favorites')}
+                  </TooltipContent>
+                </Tooltip>
+              </Show>
+            </div>
+            <div class="flex-1 min-w-[200px] pl-2 pr-2 flex items-center">
+              <div
+                class="relative flex items-center gap-2 min-w-0"
+                style={{ 'padding-left': props.item.depth * 24 }}
               >
-                <Star
-                  class={cn(
-                    'h-4 w-4',
-                    isPinned
-                      ? 'text-yellow-500 fill-yellow-500'
-                      : 'text-muted-foreground/40 hover:text-muted-foreground',
-                  )}
+                <Show when={props.item.type === 'folder'}>
+                  <span class="absolute -left-5 flex items-center justify-center w-5">
+                    <Show
+                      when={props.isFolderLoading}
+                      fallback={
+                        props.isExpanded ? (
+                          <ChevronDown class="h-4 w-4 shrink-0 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
+                        )
+                      }
+                    >
+                      <Loader2 class="h-4 w-4 shrink-0 text-muted-foreground animate-spin" />
+                    </Show>
+                  </span>
+                </Show>
+                <span class="shrink-0">{rowItemIcon(props.item)}</span>
+                <TextWithTooltip tooltipMessage={props.item.name}>
+                  <span>{props.item.name}</span>
+                </TextWithTooltip>
+              </div>
+            </div>
+            <div class="w-[230px] shrink-0 px-2 flex items-center">
+              {rowItemDetails(props.item)}
+            </div>
+            <div class="w-[200px] shrink-0 px-2 flex items-center">
+              <Show when={props.item.data}>
+                <FormattedDate
+                  date={new Date(props.item.data.updated)}
+                  class="text-left"
                 />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {isPinned ? t('Remove from favorites') : t('Add to favorites')}
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-      <div class="flex-1 min-w-[200px] pl-2 pr-2 flex items-center">
-        <div
-          class="relative flex items-center gap-2 min-w-0"
-          style={{ paddingLeft: item.depth * 24 }}
-        >
-          {item.type === 'folder' && (
-            <span class="absolute -left-5 flex items-center justify-center w-5">
-              {isFolderLoading ? (
-                <Loader2 class="h-4 w-4 shrink-0 text-muted-foreground animate-spin" />
-              ) : isExpanded ? (
-                <ChevronDown class="h-4 w-4 shrink-0 text-muted-foreground" />
-              ) : (
-                <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground" />
-              )}
-            </span>
-          )}
-          <span class="shrink-0">
-            <RowItemIcon item={item} />
-          </span>
-          <TextWithTooltip tooltipMessage={item.name}>
-            <span>{item.name}</span>
-          </TextWithTooltip>
-        </div>
-      </div>
-      <div class="w-[230px] shrink-0 px-2 flex items-center">
-        <RowItemDetails item={item} />
-      </div>
-      <div class="w-[200px] shrink-0 px-2 flex items-center">
-        {item.data && (
-          <FormattedDate
-            date={new Date(item.data.updated)}
-            class="text-left"
-          />
-        )}
-      </div>
-      {!embedState.isEmbedded && (
-        <div class="w-[250px] shrink-0 px-2 flex items-center overflow-hidden">
-          <RowItemOwner item={item} />
-        </div>
-      )}
-      <div
-        class="w-[120px] shrink-0 px-2 flex items-center"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {item.type === 'flow' && (
-          <FlowStatusToggle flow={item.data as PopulatedFlow} />
-        )}
-      </div>
-      <div
-        class="w-[80px] shrink-0 px-2 flex items-center justify-end gap-1"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {item.type === 'folder' && onCreateInFolder && (
-          <Tooltip
-            open={isCreateTooltipOpen}
-            onOpenChange={setIsCreateTooltipOpen}
-          >
-            <CreateNewMenu
-              scope="folder"
-              align="end"
-              userHasPermissionToWriteFlow={userHasPermissionToWriteFlow}
-              userHasPermissionToWriteTable={userHasPermissionToWriteTable}
-              userHasPermissionToWriteFolder={false}
-              isCreatingFlow={isCreatingFlow}
-              isCreatingTable={isCreatingTable}
-              onCreateFlow={() => onCreateInFolder(item.id, 'flow')}
-              onCreateTable={() => onCreateInFolder(item.id, 'table')}
-              onImportFlow={() => onCreateInFolder(item.id, 'import-flow')}
-              onImportTable={() => onCreateInFolder(item.id, 'import-table')}
-              onOpenChange={(open) => {
-                if (open) setIsCreateTooltipOpen(false);
-              }}
+              </Show>
+            </div>
+            <Show when={!embedState.isEmbedded}>
+              <div class="w-[250px] shrink-0 px-2 flex items-center overflow-hidden">
+                {rowItemOwner(props.item)}
+              </div>
+            </Show>
+            <div
+              class="w-[120px] shrink-0 px-2 flex items-center"
+              onClick={(e) => e.stopPropagation()}
             >
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="h-8 w-8 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
-                  aria-label={t('Create inside folder')}
+              <Show when={props.item.type === 'flow'}>
+                <FlowStatusToggle flow={props.item.data} />
+              </Show>
+            </div>
+            <div
+              class="w-[80px] shrink-0 px-2 flex items-center justify-end gap-1"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Show
+                when={props.item.type === 'folder' && props.onCreateInFolder}
+              >
+                <Tooltip
+                  open={isCreateTooltipOpen}
+                  onOpenChange={setIsCreateTooltipOpen}
                 >
-                  <Plus class="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-            </CreateNewMenu>
-            <TooltipContent side="top">
-              {t('Create inside folder')}
-            </TooltipContent>
-          </Tooltip>
-        )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" class="h-8 w-8">
-              <MoreHorizontal class="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {item.type === 'folder' && (
-              <DropdownMenuItem
-                onClick={() => {
-                  const url = new URL(window.location.href);
-                  url.searchParams.set('folder', item.id);
-                  navigator.clipboard.writeText(url.toString());
-                  toast.success(t('URL copied to clipboard'));
+                  <CreateNewMenu
+                    scope="folder"
+                    align="end"
+                    userHasPermissionToWriteFlow={
+                      props.userHasPermissionToWriteFlow
+                    }
+                    userHasPermissionToWriteTable={
+                      props.userHasPermissionToWriteTable
+                    }
+                    userHasPermissionToWriteFolder={false}
+                    isCreatingFlow={props.isCreatingFlow}
+                    isCreatingTable={props.isCreatingTable}
+                    onCreateFlow={() =>
+                      props.onCreateInFolder(props.item.id, 'flow')
+                    }
+                    onCreateTable={() =>
+                      props.onCreateInFolder(props.item.id, 'table')
+                    }
+                    onImportFlow={() =>
+                      props.onCreateInFolder(props.item.id, 'import-flow')
+                    }
+                    onImportTable={() =>
+                      props.onCreateInFolder(props.item.id, 'import-table')
+                    }
+                    onOpenChange={(open) => {
+                      if (open) setIsCreateTooltipOpen(false);
+                    }}
+                  >
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-8 w-8 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100 transition-opacity"
+                        aria-label={t('Create inside folder')}
+                      >
+                        <Plus class="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                  </CreateNewMenu>
+                  <TooltipContent side="top">
+                    {t('Create inside folder')}
+                  </TooltipContent>
+                </Tooltip>
+              </Show>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" class="h-8 w-8">
+                    <MoreHorizontal class="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <Show when={props.item.type === 'folder'}>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('folder', props.item.id);
+                        void navigator.clipboard.writeText(url.toString());
+                        toast.success(t('URL copied to clipboard'));
+                      }}
+                    >
+                      <Link class="h-4 w-4 mr-2" />
+                      {t('Copy URL')}
+                    </DropdownMenuItem>
+                  </Show>
+
+                  <DropdownMenuItem onClick={props.onRename}>
+                    <Pencil class="h-4 w-4 mr-2" />
+                    {t('Rename')}
+                  </DropdownMenuItem>
+
+                  <Show
+                    when={
+                      props.item.type === 'flow' &&
+                      !embedState.hideDuplicateFlow
+                    }
+                  >
+                    <DropdownMenuItem
+                      onClick={() => props.onDuplicate(props.item.data)}
+                      disabled={props.isDuplicating}
+                    >
+                      <Show
+                        when={props.isDuplicating}
+                        fallback={<Copy class="h-4 w-4 mr-2" />}
+                      >
+                        <LoadingSpinner class="mr-2" />
+                      </Show>
+                      {props.isDuplicating
+                        ? t('Duplicating...')
+                        : t('Duplicate')}
+                    </DropdownMenuItem>
+                  </Show>
+
+                  <Show
+                    when={
+                      (props.item.type === 'flow' ||
+                        props.item.type === 'table') &&
+                      !embedState.hideFolders
+                    }
+                  >
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setMoveFolderId('');
+                        setIsMoveOpen(true);
+                      }}
+                    >
+                      <CornerUpLeft class="h-4 w-4 mr-2" />
+                      {t('Move To')}
+                    </DropdownMenuItem>
+                  </Show>
+
+                  <Show
+                    when={
+                      props.item.type === 'flow' &&
+                      !embedState.hideExportAndImportFlow
+                    }
+                  >
+                    <DropdownMenuItem
+                      onClick={() => props.onExportFlow(props.item.data)}
+                    >
+                      <Download class="h-4 w-4 mr-2" />
+                      {t('Export')}
+                    </DropdownMenuItem>
+                  </Show>
+
+                  <Show when={props.item.type === 'table'}>
+                    <DropdownMenuItem
+                      onClick={() => props.onExportTable(props.item.data)}
+                    >
+                      <Download class="h-4 w-4 mr-2" />
+                      {t('Export')}
+                    </DropdownMenuItem>
+                  </Show>
+
+                  <Show
+                    when={props.item.type === 'flow' && !embedState.isEmbedded}
+                  >
+                    <ShareTemplateDialog
+                      flowId={props.item.id}
+                      flowVersionId={props.item.data.version.id}
+                    >
+                      <DropdownMenuItem
+                        onSelect={(e: Event) => e.preventDefault()}
+                      >
+                        <Share2 class="h-4 w-4 mr-2" />
+                        {t('Share')}
+                      </DropdownMenuItem>
+                    </ShareTemplateDialog>
+                  </Show>
+
+                  <DropdownMenuSeparator />
+                  <ConfirmationDeleteDialog
+                    title={t('Delete {type}', { type: props.item.type })}
+                    message={String(
+                      t('Deleting "{name}" cannot be undone.', {
+                        name: props.item.name,
+                      }),
+                    )}
+                    mutationFn={() => Promise.resolve(props.onDelete())}
+                    entityName={props.item.type}
+                    buttonText={t('Delete')}
+                  >
+                    <DropdownMenuItem
+                      onSelect={(e: Event) => e.preventDefault()}
+                      class="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 class="h-4 w-4 mr-2" />
+                      {t('Delete')}
+                    </DropdownMenuItem>
+                  </ConfirmationDeleteDialog>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <MoveToFolderDialog
+                open={isMoveOpen}
+                onOpenChange={setIsMoveOpen}
+                folders={props.folders}
+                selectedFolderId={moveFolderId}
+                onFolderChange={setMoveFolderId}
+                onConfirm={() => {
+                  props.onMoveTo(props.item, moveFolderId);
+                  setIsMoveOpen(false);
                 }}
-              >
-                <Link class="h-4 w-4 mr-2" />
-                {t('Copy URL')}
-              </DropdownMenuItem>
-            )}
-
-            <DropdownMenuItem onClick={onRename}>
-              <Pencil class="h-4 w-4 mr-2" />
-              {t('Rename')}
-            </DropdownMenuItem>
-
-            {item.type === 'flow' && !embedState.hideDuplicateFlow && (
-              <DropdownMenuItem
-                onClick={() => onDuplicate(item.data as PopulatedFlow)}
-                disabled={isDuplicating}
-              >
-                {isDuplicating ? (
-                  <LoadingSpinner class="mr-2" />
-                ) : (
-                  <Copy class="h-4 w-4 mr-2" />
-                )}
-                {isDuplicating ? t('Duplicating...') : t('Duplicate')}
-              </DropdownMenuItem>
-            )}
-
-            {(item.type === 'flow' || item.type === 'table') &&
-              !embedState.hideFolders && (
-                <DropdownMenuItem
-                  onClick={() => {
-                    setMoveFolderId('');
-                    setIsMoveOpen(true);
-                  }}
-                >
-                  <CornerUpLeft class="h-4 w-4 mr-2" />
-                  {t('Move To')}
-                </DropdownMenuItem>
-              )}
-
-            {item.type === 'flow' && !embedState.hideExportAndImportFlow && (
-              <DropdownMenuItem
-                onClick={() => onExportFlow(item.data as PopulatedFlow)}
-              >
-                <Download class="h-4 w-4 mr-2" />
-                {t('Export')}
-              </DropdownMenuItem>
-            )}
-
-            {item.type === 'table' && (
-              <DropdownMenuItem
-                onClick={() => onExportTable(item.data as Table)}
-              >
-                <Download class="h-4 w-4 mr-2" />
-                {t('Export')}
-              </DropdownMenuItem>
-            )}
-
-            {item.type === 'flow' && !embedState.isEmbedded && (
-              <ShareTemplateDialog
-                flowId={item.id}
-                flowVersionId={(item.data as PopulatedFlow).version.id}
-              >
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                  <Share2 class="h-4 w-4 mr-2" />
-                  {t('Share')}
-                </DropdownMenuItem>
-              </ShareTemplateDialog>
-            )}
-
-            <DropdownMenuSeparator />
-            <ConfirmationDeleteDialog
-              title={t('Delete {type}', { type: item.type })}
-              message={t('Deleting "{name}" cannot be undone.', {
-                name: item.name,
+                isMoving={props.isMoving}
+              />
+            </div>
+          </>
+        }
+      >
+        <div class="flex-1 flex items-center justify-center gap-2 text-primary font-medium py-2">
+          <div
+            class="flex items-center gap-2 cursor-pointer hover:underline"
+            onClick={(e) => {
+              e.stopPropagation();
+              props.onLoadMore?.();
+            }}
+          >
+            <ArrowDown class="h-4 w-4" />
+            <span>
+              {t('Load {count} more items...', {
+                count: props.item.loadMoreCount,
               })}
-              mutationFn={async () => onDelete()}
-              entityName={item.type}
-              buttonText={t('Delete')}
-            >
-              <DropdownMenuItem
-                onSelect={(e) => e.preventDefault()}
-                class="text-destructive focus:text-destructive"
-              >
-                <Trash2 class="h-4 w-4 mr-2" />
-                {t('Delete')}
-              </DropdownMenuItem>
-            </ConfirmationDeleteDialog>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <MoveToFolderDialog
-          open={isMoveOpen}
-          onOpenChange={setIsMoveOpen}
-          folders={folders}
-          selectedFolderId={moveFolderId}
-          onFolderChange={setMoveFolderId}
-          onConfirm={() => {
-            onMoveTo(item, moveFolderId);
-            setIsMoveOpen(false);
-          }}
-          isMoving={isMoving}
-        />
-      </div>
+            </span>
+          </div>
+        </div>
+      </Show>
     </>
   );
 };
 
-const RowItemIcon = ({ item }: { item: TreeItem }) => {
+function rowItemIcon(item: TreeItem) {
   switch (item.type) {
     case 'folder':
       return <Folder class="h-4 w-4 text-gray-400 fill-gray-400" />;
@@ -384,9 +421,9 @@ const RowItemIcon = ({ item }: { item: TreeItem }) => {
     default:
       return <Table2 class="h-4 w-4 text-emerald-500" />;
   }
-};
+}
 
-const RowItemDetails = ({ item }: { item: TreeItem }) => {
+function rowItemDetails(item: TreeItem) {
   switch (item.type) {
     case 'folder':
       return (
@@ -395,10 +432,9 @@ const RowItemDetails = ({ item }: { item: TreeItem }) => {
         </span>
       );
     case 'flow': {
-      const flow = item.data as PopulatedFlow;
       return (
         <PieceIconList
-          trigger={flow.version.trigger}
+          trigger={item.data.version.trigger}
           maxNumberOfIconsToShow={3}
           size="xs"
         />
@@ -407,15 +443,14 @@ const RowItemDetails = ({ item }: { item: TreeItem }) => {
     default:
       return <span class="text-muted-foreground">-</span>;
   }
-};
+}
 
-const RowItemOwner = ({ item }: { item: TreeItem }) => {
+function rowItemOwner(item: TreeItem) {
   if (item.type === 'flow') {
-    const flow = item.data as PopulatedFlow;
-    if (flow.ownerId) {
+    if (item.data.ownerId) {
       return (
         <ApAvatar
-          id={flow.ownerId}
+          id={item.data.ownerId}
           includeAvatar={true}
           includeName={true}
           size="small"
@@ -424,4 +459,4 @@ const RowItemOwner = ({ item }: { item: TreeItem }) => {
     }
   }
   return <span class="text-muted-foreground">-</span>;
-};
+}

@@ -15,21 +15,14 @@ type RenameDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   value: string;
-  onChange: (value: string) => void;
+  onInput: (value: string) => void;
   onConfirm: () => void;
   isRenaming: boolean;
 };
 
-export const RenameDialog = ({
-  open,
-  onOpenChange,
-  value,
-  onChange,
-  onConfirm,
-  isRenaming,
-}: RenameDialogProps) => {
+export const RenameDialog = (props: RenameDialogProps) => {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Rename')}</DialogTitle>
@@ -38,18 +31,18 @@ export const RenameDialog = ({
           </DialogDescription>
         </DialogHeader>
         <Input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={props.value}
+          onInput={(e) => props.onInput(e.currentTarget.value)}
           placeholder={t('Enter new name')}
         />
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => props.onOpenChange(false)}>
             {t('Cancel')}
           </Button>
           <Button
-            onClick={onConfirm}
-            disabled={!value.trim() || isRenaming}
-            loading={isRenaming}
+            onClick={props.onConfirm}
+            disabled={!props.value.trim() || props.isRenaming}
+            loading={props.isRenaming}
           >
             {t('Rename')}
           </Button>

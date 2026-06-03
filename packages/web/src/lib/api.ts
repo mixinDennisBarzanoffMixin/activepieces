@@ -11,9 +11,14 @@ import qs from 'qs';
 import { authenticationSession } from '@/lib/authentication-session';
 export const isRunningCloudInDevMode = import.meta.env.MODE === 'cloud';
 
+const apiBaseUrl: unknown = import.meta.env.VITE_ACTIVEPIECES_API_URL;
+const localApiBaseUrl =
+  typeof apiBaseUrl === 'string' && apiBaseUrl
+    ? apiBaseUrl
+    : window.location.origin;
 export const API_BASE_URL = isRunningCloudInDevMode
   ? 'https://cloud.activepieces.com'
-  : import.meta.env.VITE_ACTIVEPIECES_API_URL || window.location.origin;
+  : localApiBaseUrl;
 export const API_URL = `${API_BASE_URL}/api`;
 
 const disallowedRoutes = [
@@ -31,15 +36,16 @@ const disallowedRoutes = [
 ];
 //This is important to avoid redirecting to sign-in page when the user is deleted for embedding scenarios
 const ignroedGlobalErrorHandlerRoutes = ['/v1/users/me'];
+let veritlyProjectId: string | undefined;
 function isUrlRelative(url: string) {
   return !url.startsWith('http') && !url.startsWith('https');
 }
 
 function globalErrorHandler(error: AxiosError) {
   if (api.isError(error)) {
-    const errorCode: ErrorCode | undefined = (
-      error.response?.data as { code: ErrorCode }
-    )?.code;
+    const errorCode: ErrorCode | undefined = error.response
+      ? (error.response.data as { code: ErrorCode }).code
+      : undefined;
     if (
       errorCode === ErrorCode.SESSION_EXPIRED ||
       errorCode === ErrorCode.INVALID_BEARER_TOKEN
@@ -61,11 +67,13 @@ function request<TResponse>(
     resolvedUrl.replace(API_URL, '').startsWith(route),
   );
 
-  return axios({
+  return axios<unknown>({
     url: resolvedUrl,
     ...config,
+    withCredentials: veritlyProjectId ? true : config.withCredentials,
     headers: {
       ...config.headers,
+      ...(veritlyProjectId ? { 'x-veritly-project-id': veritlyProjectId } : {}),
       Authorization: getToken(
         unAuthenticated,
         isApWebsite,
@@ -73,11 +81,7 @@ function request<TResponse>(
       ),
     },
   })
-    .then((response) =>
-      config.responseType === 'blob'
-        ? response.data
-        : (response.data as TResponse),
-    )
+    .then((response) => response.data as TResponse)
     .catch((error) => {
       if (
         isAxiosError(error) &&
@@ -87,6 +91,10 @@ function request<TResponse>(
       }
       throw error;
     });
+}
+
+export function setVeritlyProjectId(id: string) {
+  veritlyProjectId = id;
 }
 
 function getToken(

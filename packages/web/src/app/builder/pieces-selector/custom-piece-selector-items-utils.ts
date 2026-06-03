@@ -1,4 +1,4 @@
-import { FlowOperationType } from '@activepieces/shared';
+import { FlowOperationType, StepSettings } from '@activepieces/shared';
 
 import {
   PieceSelectorOperation,
@@ -29,6 +29,6 @@ export const handleAddingOrUpdatingCustomAgentPieceSelectorItem = (
       stepName,
     },
     selectStepAfter: false,
-    overrideSettings: defaultValues.settings,
+    overrideSettings: defaultValues.settings as StepSettings,
   });
 };

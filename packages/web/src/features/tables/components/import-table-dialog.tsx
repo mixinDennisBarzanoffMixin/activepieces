@@ -1,10 +1,16 @@
-import { ApFlagId, SharedTemplate, TableTemplate } from '@activepieces/shared';
+import {
+  ApFlagId,
+  SharedTemplate,
+  TableTemplate,
+  TemplateStatus,
+  TemplateType,
+} from '@activepieces/shared';
 import { useNavigate } from '@solidjs/router';
 import { createMutation } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { Import } from 'lucide-solid';
 import { parse } from 'papaparse';
-import { createSignal, Show } from 'solid-js';
+import { createSignal, mergeProps, Show } from 'solid-js';
 
 import { CopyButton } from '@/components/custom/clipboard/copy-button';
 import { ApMarkdown } from '@/components/custom/markdown';
@@ -42,15 +48,12 @@ type ImportTableDialogProps = {
   allowedFileTypes?: SupportedFileType[];
 };
 
-const ImportTableDialog = ({
-  open,
-  setIsOpen,
-  showTrigger = true,
-  tableId,
-  folderId,
-  onImportSuccess,
-  allowedFileTypes = ['json'],
-}: ImportTableDialogProps) => {
+const ImportTableDialog = (_props: ImportTableDialogProps) => {
+  const defaults: Pick<
+    ImportTableDialogProps,
+    'showTrigger' | 'allowedFileTypes'
+  > = { showTrigger: true, allowedFileTypes: ['json'] };
+  const props = mergeProps(defaults, _props);
   const navigate = useNavigate();
   const projectId = authenticationSession.getProjectId() ?? '';
   const [serverError, setServerError] = createSignal<string | null>(null);
@@ -99,7 +102,10 @@ const ImportTableDialog = ({
       return false;
     }
 
-    const validation = fileUtils.validateFile(selected, maxFileSize ?? undefined);
+    const validation = fileUtils.validateFile(
+      selected,
+      maxFileSize ?? undefined,
+    );
     if (!validation.valid) {
       setFileError(t(validation.error!));
       return false;
@@ -111,13 +117,13 @@ const ImportTableDialog = ({
 
   const handleCsvImport = async (data: { fieldsMapping: FieldsMapping }) => {
     const tableState = getTableState();
-    if (!tableId || !tableState) {
+    if (!props.tableId || !tableState) {
       throw new Error(t('CSV import is only available for existing tables'));
     }
 
     const records = await recordsApi.importCsv({
       csvRecords: csvRecords(),
-      tableId,
+      tableId: props.tableId,
       fieldsMapping: data.fieldsMapping,
       maxRecordsLimit: (maxRecords ?? 1000) - tableState.recordsCount,
     });
@@ -128,51 +134,56 @@ const ImportTableDialog = ({
 
   const handleJsonImport = async (data: { file: File }) => {
     const fileContent = await data.file.text();
-    const parsedContent = JSON.parse(fileContent);
+    const parsedContent: unknown = JSON.parse(fileContent);
+    const parsedTemplate = SharedTemplate.safeParse(parsedContent);
 
-    let template: SharedTemplate;
-    if ('tables' in parsedContent && Array.isArray(parsedContent.tables)) {
-      template = parsedContent as SharedTemplate;
-    } else {
-      const singleTableTemplate = parsedContent as TableTemplate;
-      template = {
-        name: singleTableTemplate.name,
-        type: parsedContent.type,
-        summary: '',
-        description: '',
-        tags: [],
-        blogUrl: null,
-        metadata: null,
-        author: '',
-        categories: [],
-        pieces: [],
-        tables: [singleTableTemplate],
-        status: parsedContent.status,
-      };
-    }
+    const template = parsedTemplate.success
+      ? parsedTemplate.data
+      : (() => {
+          const parsedTable = TableTemplate.parse(parsedContent);
+          const status =
+            parsedTable.status === TemplateStatus.ARCHIVED
+              ? TemplateStatus.ARCHIVED
+              : TemplateStatus.PUBLISHED;
+
+          return {
+            name: parsedTable.name,
+            type: TemplateType.CUSTOM,
+            summary: '',
+            description: '',
+            tags: [],
+            blogUrl: null,
+            metadata: null,
+            author: '',
+            categories: [],
+            pieces: [],
+            tables: [parsedTable],
+            status,
+          };
+        })();
 
     if (!template.tables || template.tables.length === 0) {
       throw new Error(t('No tables found in template'));
     }
 
-    if (tableId) {
+    if (props.tableId) {
       return await tableHooks.importTableIntoExisting({
         template,
-        existingTableId: tableId,
+        existingTableId: props.tableId,
         maxRecords: maxRecords ?? 1000,
       });
-    } else {
-      const tables = await tableHooks.importTablesFromTemplates({
-        templates: [template],
-        projectId,
-        maxRecords: maxRecords ?? 1000,
-        folderId,
-      });
-      return tables[0];
     }
+
+    const tables = await tableHooks.importTablesFromTemplates({
+      templates: [template],
+      projectId,
+      maxRecords: maxRecords ?? 1000,
+      folderId: props.folderId,
+    });
+    return tables[0];
   };
 
-  const { mutate: importFile, isPending: isLoading } = createMutation({
+  const { mutate: importFile, isPending: isLoading } = createMutation(() => ({
     mutationFn: async (data: { file: File; fieldsMapping: FieldsMapping }) => {
       setServerError(null);
 
@@ -181,21 +192,23 @@ const ImportTableDialog = ({
       }
       return await handleJsonImport(data);
     },
-    onSuccess: async (table) => {
-      setIsOpen?.(false);
-      onImportSuccess?.();
-      if (!tableId && table) {
-        navigate(`/projects/${projectId}/tables/${table.id}`);
+    onSuccess: (table: { id: string } | null | undefined) => {
+      props.setIsOpen?.(false);
+      props.onImportSuccess?.();
+      if (!props.tableId && table) {
+        void navigate(`/projects/${projectId}/tables/${table.id}`);
       }
     },
     onError: (error) => {
       const errorMessage =
         api.isError(error) && error.response?.data
           ? JSON.stringify(error.response.data)
-          : error.message;
+          : error instanceof Error
+          ? error.message
+          : t('Unknown error');
       setServerError(errorMessage);
     },
-  });
+  }));
 
   const submit = (event: SubmitEvent) => {
     event.preventDefault();
@@ -210,80 +223,33 @@ const ImportTableDialog = ({
 
   return (
     <Dialog
-      open={open}
-      onOpenChange={(value) => {
-        setIsOpen?.(value);
+      open={props.open}
+      onOpenChange={(value: boolean) => {
+        props.setIsOpen?.(value);
         if (!value) resetState();
       }}
     >
-      {showTrigger && (
+      <Show when={props.showTrigger}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm" class="flex gap-2 items-center">
             <Import class="w-4 h-4 shrink-0" />
             {t('Import')}
           </Button>
         </DialogTrigger>
-      )}
+      </Show>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Import Table')}</DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={submit} className="space-y-4">
+        <form onSubmit={submit} class="space-y-4">
           <ApMarkdown
-              class="text-left"
-              markdown={(() => {
-                if (fileType() === 'csv') {
-                  return [
-                    t('Import records from a CSV file'),
-                    t('Records will be added to the bottom of the table'),
-                    t(
-                      'Any records after the limit ({maxRecords} records) will be ignored',
-                      {
-                        maxRecords: maxRecords ?? 0,
-                      },
-                    ),
-                  ].join('\n\n');
-                }
-
-                if (fileType() === 'json' && tableId) {
-                  return [
-                    t(
-                      '⚠️ **Warning:** This will completely replace the current table',
-                    ),
-                    t('All existing fields and records will be deleted'),
-                    t(
-                      'Any records after the limit ({maxRecords} records) will be ignored',
-                      {
-                        maxRecords: maxRecords ?? 0,
-                      },
-                    ),
-                  ].join('\n\n');
-                }
-
-                if (!allowedFileTypes.includes('csv')) {
-                  return [
-                    t('Import a table from JSON template'),
-                    tableId
-                      ? t(
-                          '⚠️ This will completely replace the current table with the template structure and data',
-                        )
-                      : t(
-                          'The table will be created with all its fields and data',
-                        ),
-                    t(
-                      'Any records after the limit ({maxRecords} records) will be ignored',
-                      {
-                        maxRecords: maxRecords ?? 0,
-                      },
-                    ),
-                  ].join('\n\n');
-                }
-
+            class="text-left"
+            markdown={(() => {
+              if (fileType() === 'csv') {
                 return [
-                  t('Import a table from JSON or add records from CSV'),
-                  t('**JSON:** Creates a new table with fields and data'),
-                  t('**CSV:** Adds records to an existing table'),
+                  t('Import records from a CSV file'),
+                  t('Records will be added to the bottom of the table'),
                   t(
                     'Any records after the limit ({maxRecords} records) will be ignored',
                     {
@@ -291,20 +257,71 @@ const ImportTableDialog = ({
                     },
                   ),
                 ].join('\n\n');
-              })()}
+              }
+
+              if (fileType() === 'json' && props.tableId) {
+                return [
+                  t(
+                    '⚠️ **Warning:** This will completely replace the current table',
+                  ),
+                  t('All existing fields and records will be deleted'),
+                  t(
+                    'Any records after the limit ({maxRecords} records) will be ignored',
+                    {
+                      maxRecords: maxRecords ?? 0,
+                    },
+                  ),
+                ].join('\n\n');
+              }
+
+              if (!props.allowedFileTypes.includes('csv')) {
+                return [
+                  t('Import a table from JSON template'),
+                  props.tableId
+                    ? t(
+                        '⚠️ This will completely replace the current table with the template structure and data',
+                      )
+                    : t(
+                        'The table will be created with all its fields and data',
+                      ),
+                  t(
+                    'Any records after the limit ({maxRecords} records) will be ignored',
+                    {
+                      maxRecords: maxRecords ?? 0,
+                    },
+                  ),
+                ].join('\n\n');
+              }
+
+              return [
+                t('Import a table from JSON or add records from CSV'),
+                t('**JSON:** Creates a new table with fields and data'),
+                t('**CSV:** Adds records to an existing table'),
+                t(
+                  'Any records after the limit ({maxRecords} records) will be ignored',
+                  {
+                    maxRecords: maxRecords ?? 0,
+                  },
+                ),
+              ].join('\n\n');
+            })()}
           />
           <div class="space-y-1">
-              <Label>
-                {t(
-                  allowedFileTypes.map((item) => item.toUpperCase()).join(' or ') +
-                    ' file',
-                )}
-              </Label>
-              <Input
-                key={fileKey()}
-                type="file"
-                accept={allowedFileTypes.map((item) => `.${item}`).join(',')}
-                onChange={async (event) => {
+            <Label>
+              {t(
+                props.allowedFileTypes
+                  .map((item) => item.toUpperCase())
+                  .join(' or ') + ' file',
+              )}
+            </Label>
+            <Input
+              key={fileKey()}
+              type="file"
+              accept={props.allowedFileTypes
+                .map((item) => `.${item}`)
+                .join(',')}
+              onInput={(event) => {
+                void (async () => {
                   const selected = event.currentTarget.files?.[0];
                   if (!selected) return;
 
@@ -327,10 +344,10 @@ const ImportTableDialog = ({
                     return;
                   }
 
-                  if (!allowedFileTypes.includes(extension)) {
+                  if (!props.allowedFileTypes.includes(extension)) {
                     setServerError(
                       t('Only {types} files are allowed', {
-                        types: allowedFileTypes
+                        types: props.allowedFileTypes
                           .map((item) => item.toUpperCase())
                           .join(', '),
                       }),
@@ -341,7 +358,7 @@ const ImportTableDialog = ({
                   setFileType(extension);
 
                   if (extension === 'csv') {
-                    if (!tableId) {
+                    if (!props.tableId) {
                       setServerError(
                         t('CSV import is only available for existing tables'),
                       );
@@ -381,50 +398,53 @@ const ImportTableDialog = ({
                   setCsvColumns([]);
                   setCsvRecords([]);
                   setMapping([]);
-                }}
-              />
-              <Show when={fileError()}>
-                <p class="text-sm font-medium text-destructive wrap-break-word">
-                  {fileError()}
-                </p>
-              </Show>
+                })();
+              }}
+            />
+            <Show when={fileError()}>
+              <p class="text-sm font-medium text-destructive wrap-break-word">
+                {fileError()}
+              </p>
+            </Show>
           </div>
 
-          {fileType() === 'csv' && csvColumns().length > 0 && tableStore && (
+          <Show
+            when={fileType() === 'csv' && csvColumns().length > 0 && tableStore}
+          >
             <ScrollArea class="max-h-[calc(100vh-500px)] overflow-y-auto flex-1">
               <FieldsMappingControl
                 fields={tableStore.getState().serverFields}
                 csvColumns={csvColumns()}
-                onChange={setMapping}
+                onInput={setMapping}
               />
             </ScrollArea>
-          )}
+          </Show>
 
           <Show when={serverError()}>
-              <div className=" flex items-center justify-between">
-                <div className="text-destructive">
-                  {t(
-                    'An unexpected error occurred while importing the file, please hit the copy error and send it to support',
-                  )}
-                </div>
-                <div className="min-w-4">
-                  <CopyButton
-                    variant="ghost"
-                    withoutTooltip={true}
-                    textToCopy={serverError() ?? ''}
-                  />
-                </div>
+            <div class=" flex items-center justify-between">
+              <div class="text-destructive">
+                {t(
+                  'An unexpected error occurred while importing the file, please hit the copy error and send it to support',
+                )}
               </div>
+              <div class="min-w-4">
+                <CopyButton
+                  variant="ghost"
+                  withoutTooltip={true}
+                  textToCopy={serverError() ?? ''}
+                />
+              </div>
+            </div>
           </Show>
           <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="outline" size="sm" disabled={isLoading}>
-                  {t('Cancel')}
-                </Button>
-              </DialogClose>
-              <Button type="submit" size="sm" loading={isLoading}>
-                {t('Import')}
+            <DialogClose asChild>
+              <Button variant="outline" size="sm" disabled={isLoading}>
+                {t('Cancel')}
               </Button>
+            </DialogClose>
+            <Button type="submit" size="sm" loading={isLoading}>
+              {t('Import')}
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>
@@ -432,5 +452,4 @@ const ImportTableDialog = ({
   );
 };
 
-ImportTableDialog.displayName = 'ImportTableDialog';
 export { ImportTableDialog };

@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -64,7 +64,7 @@ function ServerIcon(props: ServerIconProps & { ref?: ServerIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -102,6 +102,5 @@ function ServerIcon(props: ServerIconProps & { ref?: ServerIconHandle }) {
     </div>
   );
 }
-ServerIcon.displayName = 'ServerIcon';
 
 export { ServerIcon };

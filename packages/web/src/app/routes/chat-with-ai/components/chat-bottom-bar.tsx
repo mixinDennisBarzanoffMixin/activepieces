@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { chatStoreSelectors } from '@/features/chat/lib/chat-store';
 import { useChatStoreContext } from '@/features/chat/lib/chat-store-context';
@@ -10,15 +11,7 @@ import { MultiQuestionForm } from './multi-question-form';
 import { PlanApprovalForm } from './plan-approval-form';
 import { ToolApprovalForm } from './tool-approval-form';
 
-export function ChatBottomBar({
-  isStreaming,
-  onSend,
-  onStop,
-  selectedModel,
-  onModelChange,
-  lastAssistantMessage,
-  lastMessageId,
-}: ChatBottomBarProps) {
+export function ChatBottomBar(props: ChatBottomBarProps) {
   const hasPlanApproval = useChatStoreContext(
     chatStoreSelectors.hasPlanApproval,
   );
@@ -41,15 +34,68 @@ export function ChatBottomBar({
   const dismissApproval = useChatStoreContext((s) => s.dismissApproval);
 
   const activeQuestions = useChatStoreContext((s) =>
-    chatStoreSelectors.activeQuestions({ state: s, lastAssistantMessage }),
+    chatStoreSelectors.activeQuestions({
+      state: s,
+      lastAssistantMessage: props.lastAssistantMessage,
+    }),
   );
   const hasActiveForm = useChatStoreContext((s) =>
-    chatStoreSelectors.hasActiveForm({ state: s, lastAssistantMessage }),
+    chatStoreSelectors.hasActiveForm({
+      state: s,
+      lastAssistantMessage: props.lastAssistantMessage,
+    }),
   );
   const dismissForm = useChatStoreContext((s) => s.dismissForm);
 
-  if (hasPlanApproval && pendingPlanApproval) {
-    return (
+  return (
+    <Show
+      when={hasPlanApproval && pendingPlanApproval}
+      fallback={
+        <Show
+          when={hasActiveApproval}
+          fallback={
+            <Show
+              when={hasActiveForm && !props.isStreaming}
+              fallback={
+                <ChatInput
+                  isStreaming={props.isStreaming}
+                  onSend={props.onSend}
+                  onStop={props.onStop}
+                  placeholder={t('Reply...')}
+                  rightActions={
+                    <ChatModelSelector
+                      selectedModel={props.selectedModel}
+                      onModelChange={props.onModelChange}
+                    />
+                  }
+                />
+              }
+            >
+              <MultiQuestionForm
+                key={props.lastMessageId}
+                questions={activeQuestions}
+                onSubmit={(text) => {
+                  if (props.lastMessageId) dismissForm(props.lastMessageId);
+                  void props.onSend(text);
+                }}
+                onDismiss={() => {
+                  if (props.lastMessageId) dismissForm(props.lastMessageId);
+                  void props.onSend(t('Skip these questions'));
+                }}
+              />
+            </Show>
+          }
+        >
+          <ToolApprovalForm
+            key={pendingApprovalRequest?.gateId}
+            displayName={approvalDisplayName ?? ''}
+            onApprove={approveToolCall}
+            onReject={rejectToolCall}
+            onDismiss={dismissApproval}
+          />
+        </Show>
+      }
+    >
       <PlanApprovalForm
         key={pendingPlanApproval.gateId}
         planSummary={pendingPlanApproval.planSummary}
@@ -58,51 +104,7 @@ export function ChatBottomBar({
         onReject={rejectPlan}
         onDismiss={dismissPlan}
       />
-    );
-  }
-
-  if (hasActiveApproval) {
-    return (
-      <ToolApprovalForm
-        key={pendingApprovalRequest?.gateId}
-        displayName={approvalDisplayName ?? ''}
-        onApprove={approveToolCall}
-        onReject={rejectToolCall}
-        onDismiss={dismissApproval}
-      />
-    );
-  }
-
-  if (hasActiveForm && !isStreaming) {
-    return (
-      <MultiQuestionForm
-        key={lastMessageId}
-        questions={activeQuestions}
-        onSubmit={(text) => {
-          if (lastMessageId) dismissForm(lastMessageId);
-          void onSend(text);
-        }}
-        onDismiss={() => {
-          if (lastMessageId) dismissForm(lastMessageId);
-          void onSend(t('Skip these questions'));
-        }}
-      />
-    );
-  }
-
-  return (
-    <ChatInput
-      isStreaming={isStreaming}
-      onSend={onSend}
-      onStop={onStop}
-      placeholder={t('Reply...')}
-      rightActions={
-        <ChatModelSelector
-          selectedModel={selectedModel}
-          onModelChange={onModelChange}
-        />
-      }
-    />
+    </Show>
   );
 }
 

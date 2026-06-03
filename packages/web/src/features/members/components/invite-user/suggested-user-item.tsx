@@ -1,4 +1,5 @@
 import { t } from 'i18next';
+import { Show } from 'solid-js';
 
 import { UserAvatar } from '@/components/custom/user-avatar';
 import { Badge } from '@/components/ui/badge';
@@ -16,55 +17,54 @@ export function SuggestedUserItem(props: SuggestedUserItemProps) {
   return <EmailStatusSuggestionItem {...props} />;
 }
 
-function PlatformUserItem({
-  user,
-  onSelect,
-}: {
+function PlatformUserItem(props: {
   user: SuggestedUser;
   onSelect: (email: string) => void;
 }) {
-  const isDisabled = user.memberStatus !== 'available';
+  const isDisabled = props.user.memberStatus !== 'available';
 
   const getBadge = () => {
-    if (user.memberStatus === 'has-access') {
+    if (props.user.memberStatus === 'has-access') {
       return {
         label: t('Has Access'),
         className: 'text-primary bg-primary/15',
       };
     }
-    if (user.memberStatus === 'already-invited') {
+    if (props.user.memberStatus === 'already-invited') {
       return {
         label: t('Invited'),
         className: 'text-muted-foreground bg-muted-foreground/15',
       };
     }
-    return { label: formatUtils.convertEnumToHumanReadable(user.platformRole) };
+    return {
+      label: formatUtils.convertEnumToHumanReadable(props.user.platformRole),
+    };
   };
 
   const badge = getBadge();
 
   return (
     <CommandItem
-      key={user.id}
-      value={user.email}
-      onSelect={() => !isDisabled && onSelect(user.email)}
+      key={props.user.id}
+      value={props.user.email}
+      onSelect={() => !isDisabled && props.onSelect(props.user.email)}
       disabled={isDisabled}
       class={cn('cursor-pointer', isDisabled && 'opacity-60')}
     >
-      <div className="flex items-center gap-2 w-full">
+      <div class="flex items-center gap-2 w-full">
         <UserAvatar
-          name={`${user.firstName} ${user.lastName}`}
-          email={user.email}
+          name={`${props.user.firstName} ${props.user.lastName}`}
+          email={props.user.email}
           size={32}
           disableTooltip={true}
-          imageUrl={user.imageUrl}
+          imageUrl={props.user.imageUrl}
         />
-        <div className="flex flex-col flex-1 min-w-0">
-          <span className="text-sm font-medium truncate">
-            {user.firstName} {user.lastName}
+        <div class="flex flex-col flex-1 min-w-0">
+          <span class="text-sm font-medium truncate">
+            {props.user.firstName} {props.user.lastName}
           </span>
-          <span className="text-xs text-muted-foreground truncate">
-            {user.email}
+          <span class="text-xs text-muted-foreground truncate">
+            {props.user.email}
           </span>
         </div>
         <Badge
@@ -78,20 +78,16 @@ function PlatformUserItem({
   );
 }
 
-function EmailStatusSuggestionItem({
-  emailStatus,
-  onSelect,
-  isPlatformInvite,
-}: {
+function EmailStatusSuggestionItem(props: {
   emailStatus: EmailStatusType;
   onSelect: (email: string) => void;
   isPlatformInvite?: boolean;
 }) {
   const getBadgeAndState = () => {
-    switch (emailStatus.type) {
+    switch (props.emailStatus.type) {
       case 'new-user':
         return {
-          label: isPlatformInvite ? t('New User') : t('New Member'),
+          label: props.isPlatformInvite ? t('New User') : t('New Member'),
           className:
             'text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-950 dark:border-blue-900',
           disabled: false,
@@ -118,17 +114,17 @@ function EmailStatusSuggestionItem({
   };
 
   const { label, className, disabled } = getBadgeAndState();
-  const user = emailStatus.user;
+  const user = props.emailStatus.user;
 
   return (
     <CommandItem
-      value={emailStatus.email}
-      onSelect={() => !disabled && onSelect(emailStatus.email)}
+      value={props.emailStatus.email}
+      onSelect={() => !disabled && props.onSelect(props.emailStatus.email)}
       disabled={disabled}
       class={cn('cursor-pointer', disabled && 'opacity-60')}
     >
-      <div className="flex items-center gap-2 w-full">
-        {user && (
+      <div class="flex items-center gap-2 w-full">
+        <Show when={user}>
           <UserAvatar
             name={`${user.firstName} ${user.lastName}`}
             email={user.email}
@@ -136,16 +132,18 @@ function EmailStatusSuggestionItem({
             disableTooltip={true}
             imageUrl={user.imageUrl}
           />
-        )}
-        <div className="flex flex-col flex-1 min-w-0">
-          <span className="text-sm font-medium truncate">
-            {user ? `${user.firstName} ${user.lastName}` : emailStatus.email}
+        </Show>
+        <div class="flex flex-col flex-1 min-w-0">
+          <span class="text-sm font-medium truncate">
+            {user
+              ? `${user.firstName} ${user.lastName}`
+              : props.emailStatus.email}
           </span>
-          {user && (
-            <span className="text-xs text-muted-foreground truncate">
+          <Show when={user}>
+            <span class="text-xs text-muted-foreground truncate">
               {user.email}
             </span>
-          )}
+          </Show>
         </div>
         <Badge
           variant="ghost"

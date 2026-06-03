@@ -291,7 +291,7 @@ type ConnectionFormError = {
 
 type UseConnectionsProps = {
   request: ListAppConnectionsRequestQuery;
-  extraKeys: any[];
+  extraKeys: string[];
   enabled?: boolean;
   staleTime?: number;
   pieceAuth?: PieceAuthProperty | PieceAuthProperty[] | undefined;
@@ -348,7 +348,7 @@ export const appConnectionsQueries = {
         status: sp.getAll('status') as AppConnectionStatus[],
         pieceName: sp.get('pieceName') ?? undefined,
       };
-    }, [search]);
+    });
   },
 
   useConnectionsOwners: () => {

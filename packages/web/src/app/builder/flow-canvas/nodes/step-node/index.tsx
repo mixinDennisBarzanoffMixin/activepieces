@@ -4,17 +4,17 @@ import {
   FlowTriggerType,
   flowStructureUtil,
 } from '@activepieces/shared';
-import { useDraggable } from '@/lib/solid-dnd-kit';
-import { Handle, NodeProps, Position } from '../../solid-flow-adapter';
-import { Show, createMemo } from 'solid-js';
+import { Show, createMemo, untrack } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { PieceSelector } from '@/app/builder/pieces-selector';
 import { LoopIterationInput } from '@/app/builder/run-details/loop-iteration-input';
 import { RightSideBarType } from '@/app/builder/types';
 import { stepsHooks } from '@/features/pieces';
+import { useDraggable } from '@/lib/solid-dnd-kit';
 import { cn } from '@/lib/utils';
 
+import { Handle, NodeProps, Position } from '../../solid-flow-adapter';
 import { flowCanvasConsts } from '../../utils/consts';
 import { flowCanvasUtils } from '../../utils/flow-canvas-utils';
 import { ApStepNode } from '../../utils/types';
@@ -28,9 +28,9 @@ import { ApStepNodeStatusInDraft } from './step-node-status-in-draft';
 import { ApStepNodeStatusInRun } from './step-node-status-in-run';
 import { TriggerWidget } from './trigger-widget';
 
-const ApStepCanvasNode = ({
-  data: { step },
-}: NodeProps & Omit<ApStepNode, 'position'>) => {
+const ApStepCanvasNode = (props: NodeProps & Omit<ApStepNode, 'position'>) => {
+  const step = createMemo(() => props.data.step);
+  const name = createMemo(() => step().name);
   const [
     selectStepByName,
     isSelected,
@@ -43,37 +43,41 @@ const ApStepCanvasNode = ({
     isRightSidebarOpen,
   ] = useBuilderStateContext((state) => [
     state.selectStepByName,
-    state.selectedStep === step.name,
-    state.activeDraggingStep === step.name,
+    state.selectedStep === name(),
+    state.activeDraggingStep === name(),
     state.readonly,
     state.flowVersion,
     state.setSelectedBranchIndex,
-    state.openedPieceSelectorStepNameOrAddButtonId === step.name,
+    state.openedPieceSelectorStepNameOrAddButtonId === name(),
     state.setOpenedPieceSelectorStepNameOrAddButtonId,
     state.rightSidebar !== RightSideBarType.NONE,
   ]);
   const { stepMetadata } = stepsHooks.useStepMetadata({
-    step,
+    step: untrack(step),
   });
   const stepIndex = createMemo(() =>
-    flowStructureUtil.getStepNumber(flowVersion.trigger, step.name),
+    flowStructureUtil.getStepNumber(flowVersion.trigger, name()),
   );
-  const isTrigger = flowStructureUtil.isTrigger(step.type);
-  const isSkipped = flowCanvasUtils.isSkipped(step.name, flowVersion.trigger);
+  const trigger = createMemo(() => flowStructureUtil.isTrigger(step().type));
+  const skipped = createMemo(() =>
+    flowCanvasUtils.isSkipped(name(), flowVersion.trigger),
+  );
+  const display = createMemo(() => String(stepMetadata?.displayName ?? ''));
+  const logo = createMemo(() => String(stepMetadata?.logoUrl ?? ''));
 
   const { attributes, listeners, setNodeRef } = useDraggable({
-    id: step.name,
-    disabled: isTrigger || readonly,
+    id: untrack(name),
+    disabled: untrack(trigger) || readonly,
     data: {
       type: flowCanvasConsts.DRAGGED_STEP_TAG,
     },
   });
 
   const handleStepClick = (e: MouseEvent, preventDefault = true) => {
-    selectStepByName(step.name);
+    selectStepByName(name());
     setSelectedBranchIndex(null);
-    if (step.type === FlowTriggerType.EMPTY) {
-      setOpenedPieceSelectorStepNameOrAddButtonId(step.name);
+    if (step().type === FlowTriggerType.EMPTY) {
+      setOpenedPieceSelectorStepNameOrAddButtonId(name());
     }
     if (preventDefault) {
       e.stopPropagation();
@@ -88,6 +92,7 @@ const ApStepCanvasNode = ({
     e.preventDefault();
     e.stopPropagation();
     const target = e.currentTarget;
+    if (!(target instanceof HTMLElement)) return;
     const rect = target.getBoundingClientRect();
 
     // we need to delay the context menu to ensure the right sidebar is opened first
@@ -110,59 +115,53 @@ const ApStepCanvasNode = ({
     }, flowCanvasConsts.SIDEBAR_ANIMATION_DURATION + 50);
   };
 
-  const stepNodeDivAttributes = isPieceSelectorOpened ? {} : attributes;
-  const stepNodeDivListeners = isPieceSelectorOpened ? {} : listeners;
-
   return (
     <div
-      {...{
-        [`data-${flowCanvasConsts.STEP_CONTEXT_MENU_ATTRIBUTE}`]: step.name,
-      }}
+      data-step-context-menu={name()}
       style={{
         height: `${flowCanvasConsts.AP_NODE_SIZE.STEP.height}px`,
         width: `${flowCanvasConsts.AP_NODE_SIZE.STEP.width}px`,
-        maxWidth: `${flowCanvasConsts.AP_NODE_SIZE.STEP.width}px`,
+        'max-width': `${flowCanvasConsts.AP_NODE_SIZE.STEP.width}px`,
       }}
       onContextMenu={(e) => handleContextMenu(e)}
-      className={cn(
+      class={cn(
         'transition-all border-box rounded-md border border-solid border-border relative overflow-visible  group',
         {
           'border-primary': isSelected,
           'bg-background': !isDragging,
           'border-none': isDragging,
           'shadow-none': isDragging,
-          'bg-accent': isSkipped,
-          'rounded-tl-none': isTrigger,
+          'bg-accent': skipped(),
+          'rounded-tl-none': trigger(),
           'hover:border-ring': !isSelected,
         },
       )}
       onClick={(e) => handleStepClick(e)}
-      key={step.name}
       ref={isPieceSelectorOpened ? null : setNodeRef}
-      {...stepNodeDivAttributes}
-      {...stepNodeDivListeners}
+      role={isPieceSelectorOpened ? undefined : attributes.role}
+      {...listeners}
     >
-      <Show when={isTrigger()}>
+      <Show when={trigger()}>
         <TriggerWidget isSelected={isSelected} />
       </Show>
-      <LoopIterationInput stepName={step.name} />
-      <ApStepNodeStatusInRun stepName={step.name} />
-      <ApStepNodeSkippedStatus stepName={step.name} />
-      <ApStepNodeStatusInDraft stepName={step.name} />
-      <StepNodeName stepName={step.name} />
-      <div className="px-3 h-full w-full overflow-hidden">
-        <Show when={!isDragging()}>
+      <LoopIterationInput stepName={name()} />
+      <ApStepNodeStatusInRun stepName={name()} />
+      <ApStepNodeSkippedStatus stepName={name()} />
+      <ApStepNodeStatusInDraft stepName={name()} />
+      <StepNodeName stepName={name()} />
+      <div class="px-3 h-full w-full overflow-hidden">
+        <Show when={!isDragging}>
           <PieceSelector
             operation={{
-              type: getPieceSelectorOperationType(step),
-              stepName: step.name,
+              type: getPieceSelectorOperationType(step()),
+              stepName: name(),
             }}
-            id={step.name}
+            id={name()}
             openSelectorOnClick={false}
-            stepToReplacePieceDisplayName={stepMetadata?.displayName}
+            stepToReplacePieceDisplayName={display()}
           >
             <div
-              className="flex items-center justify-center h-full w-full gap-[10px]"
+              class="flex items-center justify-center h-full w-full gap-[10px]"
               onClick={(e) => {
                 if (!isPieceSelectorOpened) {
                   handleStepClick(e);
@@ -170,18 +169,18 @@ const ApStepCanvasNode = ({
               }}
             >
               <StepNodeLogo
-                isSkipped={isSkipped}
-                logoUrl={stepMetadata?.logoUrl ?? ''}
-                displayName={stepMetadata?.displayName ?? ''}
+                isSkipped={skipped()}
+                logoUrl={logo()}
+                displayName={display()}
               />
               <StepNodeDisplayName
-                stepDisplayName={step.displayName}
-                stepIndex={stepIndex}
-                isSkipped={isSkipped}
-                pieceDisplayName={stepMetadata?.displayName ?? ''}
-                stepName={step.name}
+                stepDisplayName={step().displayName}
+                stepIndex={stepIndex()}
+                isSkipped={skipped()}
+                pieceDisplayName={display()}
+                stepName={name()}
               />
-              <Show when={!readonly()}>
+              <Show when={!readonly}>
                 <StepNodeChevron />
               </Show>
             </div>
@@ -203,7 +202,6 @@ const ApStepCanvasNode = ({
   );
 };
 
-ApStepCanvasNode.displayName = 'ApStepCanvasNode';
 export { ApStepCanvasNode };
 
 function getPieceSelectorOperationType(step: Step) {

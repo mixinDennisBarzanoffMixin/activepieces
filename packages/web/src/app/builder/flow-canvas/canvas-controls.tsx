@@ -1,4 +1,3 @@
-import { Node, useKeyPress, useReactFlow } from './solid-flow-adapter';
 import { t } from 'i18next';
 import {
   Fullscreen,
@@ -10,6 +9,7 @@ import {
   StickyNote,
 } from 'lucide-solid';
 import { Show, createEffect } from 'solid-js';
+import type { JSX } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -23,9 +23,10 @@ import { isMac } from '@/lib/dom-utils';
 import { useBuilderStateContext } from '../builder-hooks';
 import { NoteDragOverlayMode } from '../state/notes-state';
 
+import { Node, useKeyPress, useReactFlow } from './solid-flow-adapter';
 import { flowCanvasConsts } from './utils/consts';
 import { flowCanvasUtils } from './utils/flow-canvas-utils';
-import { ApNode } from './utils/types';
+import { ApNode, ApNodeType } from './utils/types';
 const verticalPaddingOnFitView = 100;
 const calculateNodePositionInCanvas = (
   canvasWidth: number,
@@ -72,12 +73,7 @@ const calculateViewportDelta = (
       : 0,
 });
 
-const CanvasControls = ({
-  canvasWidth,
-  canvasHeight,
-  hasCanvasBeenInitialised,
-  selectedStep,
-}: {
+const CanvasControls = (props: {
   canvasWidth: number;
   canvasHeight: number;
   hasCanvasBeenInitialised: boolean;
@@ -86,30 +82,33 @@ const CanvasControls = ({
   const { zoomIn, zoomOut, setViewport, getNodes, getNode, getViewport } =
     useReactFlow();
   const handleZoomIn = () => {
-    zoomIn({
+    void zoomIn({
       duration: 0,
     });
   };
 
   const handleZoomOut = () => {
-    zoomOut({
+    void zoomOut({
       duration: 0,
     });
   };
 
   const handleFitToView = (isInitialRenderCall: boolean) => {
-    const nodes = getNodes();
+    const nodes = getNodes().filter(isApNode);
     if (nodes.length === 0) return;
     const graphHeight = flowCanvasUtils.calculateGraphBoundingBox({
-      nodes: nodes as ApNode[],
+      nodes,
       edges: [],
     }).height;
-    const zoomRatio = Math.min(Math.max(canvasHeight / graphHeight, 0.9), 1.25);
+    const zoomRatio = Math.min(
+      Math.max(props.canvasHeight / graphHeight, 0.9),
+      1.25,
+    );
 
-    setViewport(
+    void setViewport(
       {
         x:
-          canvasWidth / 2 -
+          props.canvasWidth / 2 -
           (flowCanvasConsts.AP_NODE_SIZE.STEP.width * zoomRatio) / 2,
         y:
           nodes[0].position.y +
@@ -124,12 +123,12 @@ const CanvasControls = ({
   };
 
   createEffect(() => {
-    if (!hasCanvasBeenInitialised) return;
+    if (!props.hasCanvasBeenInitialised) return;
 
     handleFitToView(true);
 
-    if (selectedStep) {
-      adjustViewportForSelectedStep(selectedStep);
+    if (props.selectedStep) {
+      adjustViewportForSelectedStep(props.selectedStep);
     }
   });
 
@@ -141,12 +140,12 @@ const CanvasControls = ({
     const viewport = getViewport();
 
     const canvas = {
-      height: canvasHeight / viewport.zoom,
-      width: canvasWidth / viewport.zoom,
+      height: props.canvasHeight / viewport.zoom,
+      width: props.canvasWidth / viewport.zoom,
     };
 
     const nodePositionInRelationToCanvas = calculateNodePositionInCanvas(
-      canvasWidth,
+      props.canvasWidth,
       node,
       viewport.zoom,
     );
@@ -157,7 +156,7 @@ const CanvasControls = ({
         canvas,
       );
 
-      setViewport({
+      void setViewport({
         x: viewport.x + delta.x,
         y: viewport.y - delta.y - flowCanvasConsts.AP_NODE_SIZE.STEP.height,
         zoom: viewport.zoom,
@@ -184,9 +183,9 @@ const CanvasControls = ({
   return (
     <div
       id="canvas-controls"
-      className="z-50 absolute bottom-2 left-0 flex items-center  w-full pointer-events-none "
+      class="z-50 absolute bottom-2 left-0 flex items-center  w-full pointer-events-none "
     >
-      <div className=" absolute flex ml-2 items-center justify-center p-1.5 pointer-events-auto rounded-lg bg-background border border-sidebar-border">
+      <div class=" absolute flex ml-2 items-center justify-center p-1.5 pointer-events-auto rounded-lg bg-background border border-sidebar-border">
         <CanvasButtonWrapper
           tooltip={t('Minimap' + (isMac() ? ' (⌘ + M)' : ' (Ctrl + M)'))}
         >
@@ -201,9 +200,9 @@ const CanvasControls = ({
           </Button>
         </CanvasButtonWrapper>
       </div>
-      <div className="grow"></div>
+      <div class="grow" />
 
-      <div className="bg-background gap-2 flex items-center shadow-2xl justify-center border border-sidebar-border p-1.5 rounded-lg pointer-events-auto">
+      <div class="bg-background gap-2 flex items-center shadow-2xl justify-center border border-sidebar-border p-1.5 rounded-lg pointer-events-auto">
         <CanvasButtonWrapper tooltip={t('Zoom in')}>
           <Button variant="ghost" size="icon" onClick={handleZoomIn}>
             <Plus class="size-4" />
@@ -224,7 +223,7 @@ const CanvasControls = ({
           </Button>
         </CanvasButtonWrapper>
         <div>
-          <Separator orientation="vertical" class="h-5"></Separator>
+          <Separator orientation="vertical" class="h-5" />
         </div>
         <CanvasButtonWrapper tooltip={t('Grab mode')}>
           <Button
@@ -244,7 +243,7 @@ const CanvasControls = ({
             <MousePointer class="size-4" />
           </Button>
         </CanvasButtonWrapper>
-        <Show when={!readonly()}>
+        <Show when={!readonly}>
           <CanvasButtonWrapper tooltip={t('Add note')}>
             <Button
               variant={
@@ -276,24 +275,24 @@ const CanvasControls = ({
           </CanvasButtonWrapper>
         </Show>
       </div>
-      <div className="grow"></div>
+      <div class="grow" />
     </div>
   );
 };
 
 export { CanvasControls };
 
-const CanvasButtonWrapper = ({
-  children,
-  tooltip,
-}: {
-  children: any;
-  tooltip: string;
-}) => {
+const CanvasButtonWrapper = (props: CanvasButtonWrapperProps) => {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
+      <TooltipTrigger asChild>{props.children}</TooltipTrigger>
+      <TooltipContent>{props.tooltip}</TooltipContent>
     </Tooltip>
   );
 };
+
+const isApNode = (node: Node): node is ApNode => {
+  return Object.values(ApNodeType).some((type) => type === node.type);
+};
+
+type CanvasButtonWrapperProps = { children: JSX.Element; tooltip: string };

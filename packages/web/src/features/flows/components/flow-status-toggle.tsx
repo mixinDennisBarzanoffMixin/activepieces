@@ -5,7 +5,7 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { createSignal, createEffect } from 'solid-js';
+import { createSignal, createEffect, Show } from 'solid-js';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { useAuthorization } from '@/hooks/authorization-hooks';
@@ -23,14 +23,14 @@ type FlowStatusToggleProps = {
   flow: PopulatedFlow;
 };
 
-const FlowStatusToggle = ({ flow }: FlowStatusToggleProps) => {
+const FlowStatusToggle = (props: FlowStatusToggleProps) => {
   const [isFlowPublished, setIsFlowPublished] = createSignal(
-    flow.status === FlowStatus.ENABLED,
+    props.flow.status === FlowStatus.ENABLED,
   );
 
   createEffect(() => {
-    setIsFlowPublished(flow.status === FlowStatus.ENABLED);
-  }, [flow]);
+    setIsFlowPublished(props.flow.status === FlowStatus.ENABLED);
+  });
 
   const { checkAccess } = useAuthorization();
   const userHasPermissionToToggleFlowStatus = checkAccess(
@@ -39,7 +39,7 @@ const FlowStatusToggle = ({ flow }: FlowStatusToggleProps) => {
 
   const { mutate: changeStatus, isPending: isLoading } =
     flowHooks.useChangeFlowStatus({
-      flowId: flow.id,
+      flowId: props.flow.id,
       change: isFlowPublished ? FlowStatus.DISABLED : FlowStatus.ENABLED,
       onSuccess: (updatedFlow: PopulatedFlow) => {
         setIsFlowPublished(updatedFlow.status === FlowStatus.ENABLED);
@@ -47,24 +47,24 @@ const FlowStatusToggle = ({ flow }: FlowStatusToggleProps) => {
     });
 
   return (
-    <div className="flex items-center justify-start">
+    <div class="flex items-center justify-start">
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className="flex items-center justify-center">
+          <div class="flex items-center justify-center">
             <Switch
               checked={isFlowPublished}
               onCheckedChange={() => changeStatus()}
               disabled={
                 isLoading ||
                 !userHasPermissionToToggleFlowStatus ||
-                isNil(flow.publishedVersionId)
+                isNil(props.flow.publishedVersionId)
               }
             />
           </div>
         </TooltipTrigger>
         <TooltipContent side="bottom">
           {userHasPermissionToToggleFlowStatus
-            ? isNil(flow.publishedVersionId)
+            ? isNil(props.flow.publishedVersionId)
               ? t('Please publish flow first')
               : isFlowPublished
               ? t('Flow is on')
@@ -72,25 +72,27 @@ const FlowStatusToggle = ({ flow }: FlowStatusToggleProps) => {
             : t('Permission Needed')}
         </TooltipContent>
       </Tooltip>
-      {isLoading ? (
+      <Show
+        when={isLoading}
+        fallback={
+          isFlowPublished && (
+            <Tooltip>
+              <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <div class="p-2 rounded-full ">
+                  {flowsUtils.flowStatusIconRenderer(props.flow)}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                {flowsUtils.flowStatusToolTipRenderer(props.flow)}
+              </TooltipContent>
+            </Tooltip>
+          )
+        }
+      >
         <LoadingSpinner />
-      ) : (
-        isFlowPublished && (
-          <Tooltip>
-            <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-              <div className="p-2 rounded-full ">
-                {flowsUtils.flowStatusIconRenderer(flow)}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {flowsUtils.flowStatusToolTipRenderer(flow)}
-            </TooltipContent>
-          </Tooltip>
-        )
-      )}
+      </Show>
     </div>
   );
 };
 
-FlowStatusToggle.displayName = 'FlowStatusToggle';
 export { FlowStatusToggle };

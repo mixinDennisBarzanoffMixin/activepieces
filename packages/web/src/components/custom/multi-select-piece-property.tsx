@@ -1,6 +1,6 @@
 import deepEqual from 'deep-equal';
 import { t } from 'i18next';
-import { createSignal } from 'solid-js';
+import { createMemo, createSignal, Show, For, mergeProps } from 'solid-js';
 
 import {
   MultiSelect,
@@ -35,103 +35,94 @@ type MultiSelectPiecePropertyProps = {
   itemExtraContent?: (index: number) => any;
 };
 
-const MultiSelectPieceProperty = ({
-  placeholder,
-  options,
-  onChange,
-  disabled,
-  initialValues,
-  showDeselect,
-  showRefresh,
-  onRefresh,
-  loading,
-  refreshOnSearch,
-  cachedOptions = [],
-  itemExtraContent,
-}: MultiSelectPiecePropertyProps) => {
+const MultiSelectPieceProperty = (_props: MultiSelectPiecePropertyProps) => {
+  const props = mergeProps({ cachedOptions: [] }, _props);
   const [searchTerm, setSearchTerm] = createSignal('');
-  const filteredOptions = options
-    .map((option, index) => ({
-      ...option,
-      originalIndex: index,
-    }))
-    .filter((option) => {
-      if (refreshOnSearch) {
-        return true;
-      }
-      return option.label?.toLowerCase()?.includes(searchTerm()?.toLowerCase());
-    });
+  const filtered = createMemo(() =>
+    props.options
+      .map((option, index) => ({
+        ...option,
+        originalIndex: index,
+      }))
+      .filter((option) => {
+        if (props.refreshOnSearch) {
+          return true;
+        }
+        return option.label.toLowerCase().includes(searchTerm().toLowerCase());
+      }),
+  );
 
-  const selectedIndicies =
-    initialValues && Array.isArray(initialValues)
-      ? initialValues
+  const selected = createMemo(() =>
+    props.initialValues && Array.isArray(props.initialValues)
+      ? props.initialValues
           .map((value) =>
-            [...cachedOptions, ...options].findIndex((option) =>
+            [...props.cachedOptions, ...props.options].findIndex((option) =>
               deepEqual(option.value, value),
             ),
           )
           .filter((index) => index > -1)
           .map((index) => String(index))
-      : [];
-  const sendChanges = (indicides: string[]) => {
-    const newSelectedIndicies = indicides.filter(
-      (index) => index !== undefined,
-    );
-    if (newSelectedIndicies.length === 0) {
-      onChange([]);
-    } else {
-      onChange(
-        newSelectedIndicies.map((index) => options[Number(index)].value),
-      );
+      : [],
+  );
+  const items = createMemo(() =>
+    props.options.map((opt, index) => ({
+      value: String(index),
+      label: opt.label,
+    })),
+  );
+  const sendChanges = (indices: string[]) => {
+    if (indices.length === 0) {
+      props.onChange([]);
+      return;
     }
+
+    props.onChange(indices.map((index) => props.options[Number(index)].value));
   };
 
   return (
     <MultiSelect
       modal={true}
-      value={selectedIndicies}
+      value={selected()}
       onValueChange={sendChanges}
-      disabled={disabled}
-      items={options.map((opt, index) => ({
-        value: String(index),
-        label: opt.label,
-      }))}
-      onSearch={(searchTerm) => {
-        setSearchTerm(searchTerm ?? '');
-        if (refreshOnSearch) {
-          refreshOnSearch(searchTerm ?? '');
+      disabled={props.disabled}
+      items={items()}
+      onSearch={(searchTerm: string | undefined) => {
+        const term = searchTerm ? searchTerm : '';
+        setSearchTerm(term);
+        if (props.refreshOnSearch) {
+          props.refreshOnSearch(term);
         }
       }}
       onOpenChange={(open) => {
         if (!open) {
           setSearchTerm('');
-          if (refreshOnSearch && searchTerm().length > 0) {
-            refreshOnSearch('');
+          if (props.refreshOnSearch && searchTerm().length > 0) {
+            props.refreshOnSearch('');
           }
         }
       }}
     >
       <MultiSelectTrigger
-        showDeselect={showDeselect && !disabled}
-        onDeselect={() => onChange([])}
-        showRefresh={showRefresh && !disabled}
-        onRefresh={onRefresh}
-        loading={loading}
+        showDeselect={props.showDeselect && !props.disabled}
+        onDeselect={() => props.onChange([])}
+        showRefresh={props.showRefresh && !props.disabled}
+        onRefresh={props.onRefresh}
+        loading={props.loading}
       >
         <Show
-          when={selectedIndicies.length < 10}
+          when={selected().length < 10}
           fallback={t('{number} items selected', {
-            number: selectedIndicies.length,
+            number: selected().length,
           })}
         >
-          <MultiSelectValue placeholder={placeholder} />
+          <MultiSelectValue placeholder={props.placeholder} />
         </Show>
       </MultiSelectTrigger>
       <MultiSelectContent>
-        <MultiSelectSearch placeholder={placeholder} />
+        <MultiSelectSearch placeholder={props.placeholder} />
         <MultiSelectList>
           <Show
-            when={!loading}
+            when={!props.loading}
             fallback={
               <MultiSelectItem disabled>{t('Loading...')}</MultiSelectItem>
             }
@@ -141,30 +132,30 @@ const MultiSelectPieceProperty = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
-                  onChange(filteredOptions.map((opt) => opt.value));
+                  props.onChange(filtered().map((opt) => opt.value));
                 }}
               >
-                <Show when={filteredOptions.length > 1}>
+                <Show when={filtered().length > 1}>
                   <MultiSelectItem>{t('Select All')}</MultiSelectItem>
                 </Show>
               </div>
 
-              <For each={filteredOptions}>
+              <For each={filtered()}>
                 {(opt) => (
                   <MultiSelectItem
                     key={opt.originalIndex}
                     value={String(opt.originalIndex)}
                   >
-                    <div className="flex items-center justify-between  w-full min-w-0">
-                      <span className="truncate min-w-0">{opt.label}</span>
-                      <div className="mr-2">
-                        {itemExtraContent?.(opt.originalIndex)}
+                    <div class="flex items-center justify-between  w-full min-w-0">
+                      <span class="truncate min-w-0">{opt.label}</span>
+                      <div class="mr-2">
+                        {props.itemExtraContent?.(opt.originalIndex)}
                       </div>
                     </div>
                   </MultiSelectItem>
                 )}
               </For>
-              <Show when={filteredOptions.length === 0}>
+              <Show when={filtered().length === 0}>
                 <CommandEmpty>{t('No results found.')}</CommandEmpty>
               </Show>
             </>
@@ -175,5 +166,4 @@ const MultiSelectPieceProperty = ({
   );
 };
 
-MultiSelectPieceProperty.displayName = 'MultiSelectPieceProperty';
 export { MultiSelectPieceProperty };

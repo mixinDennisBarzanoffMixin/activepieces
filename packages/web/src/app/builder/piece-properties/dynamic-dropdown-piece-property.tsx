@@ -1,13 +1,22 @@
-import { DropdownState, PropertyType } from '@activepieces/pieces-framework';
-import { AUTHENTICATION_PROPERTY_NAME, isNil } from '@activepieces/shared';
+import {
+  DropdownState,
+  ExecutePropsResult,
+  PropertyType,
+} from '@activepieces/pieces-framework';
+import {
+  AUTHENTICATION_PROPERTY_NAME,
+  isNil,
+  PieceOptionRequest,
+} from '@activepieces/shared';
+import { createMutation } from '@tanstack/solid-query';
 import deepEqual from 'deep-equal';
 import { t } from 'i18next';
-import { createEffect, createSignal, useContext } from 'solid-js';
+import { createEffect, createSignal, useContext, Show } from 'solid-js';
 
 import { BuilderForm } from '@/app/builder/builder-form';
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import { SearchableSelect } from '@/components/custom/searchable-select';
-import { piecesHooks } from '@/features/pieces';
+import { piecesApi } from '@/features/pieces/api/pieces-api';
 import { authenticationSession } from '@/lib/authentication-session';
 
 import { MultiSelectPieceProperty } from '../../../components/custom/multi-select-piece-property';
@@ -23,10 +32,10 @@ const DynamicDropdownPiecePropertyImplementation = (
     state.readonly,
   ]);
 
-  let isFirstRender: any | undefined;
-  let previousValues: undefined | unknown[] | undefined;
-  let firstDropdownState: DropdownState<unknown> | undefined | undefined;
-  const refreshersWithAuth = [
+  let isFirstRender = true;
+  let previousValues: undefined | unknown[];
+  let firstDropdownState: DropdownState<unknown> | undefined;
+  const refreshersWithAuth = () => [
     ...props.refreshers,
     AUTHENTICATION_PROPERTY_NAME,
   ];
@@ -40,9 +49,13 @@ const DynamicDropdownPiecePropertyImplementation = (
   const { propertyLoadingFinished, propertyLoadingStarted } = useContext(
     DynamicPropertiesContext,
   );
-  const { mutate, isPending, error } = piecesHooks.usePieceOptions<
-    PropertyType.DROPDOWN | PropertyType.MULTI_SELECT_DROPDOWN
-  >({
+  const { mutate, isPending, error } = createMutation<
+    ExecutePropsResult<PropertyType.DROPDOWN>,
+    Error,
+    { request: PieceOptionRequest; propertyType: PropertyType.DROPDOWN }
+  >(() => ({
+    mutationFn: async ({ request, propertyType }) =>
+      piecesApi.options(request, propertyType),
     onMutate: () => {
       propertyLoadingStarted(props.propertyName);
     },
@@ -53,23 +66,23 @@ const DynamicDropdownPiecePropertyImplementation = (
     onSuccess: () => {
       propertyLoadingFinished(props.propertyName);
     },
-  });
-  if (error) {
-    throw error;
-  }
+  }));
 
-  const refresherValues = refreshersWithAuth.map((refresher) =>
-    props.form.watch(
-      props.placedInside === 'stepSettings'
-        ? `settings.input.${refresher}`
-        : refresher,
-    ),
-  );
+  const getRefresherValues = () =>
+    refreshersWithAuth().map((refresher) => {
+      const value: unknown = props.form.watch(
+        props.placedInside === 'stepSettings'
+          ? `settings.input.${refresher}`
+          : refresher,
+      );
+      return value;
+    });
 
   const refresh = (term?: string) => {
     const input: Record<string, unknown> = {};
-    refreshersWithAuth.forEach((refresher, index) => {
-      input[refresher] = refresherValues[index];
+    const values = getRefresherValues();
+    refreshersWithAuth().forEach((refresher, index) => {
+      input[refresher] = values[index];
     });
     mutate(
       {
@@ -98,56 +111,68 @@ const DynamicDropdownPiecePropertyImplementation = (
   };
 
   createEffect(() => {
-    if (!isFirstRender && !deepEqual(previousValues, refresherValues)) {
+    const values = getRefresherValues();
+    if (!isFirstRender && !deepEqual(previousValues, values)) {
       props.onChange(null);
     }
 
-    previousValues = refresherValues;
+    previousValues = values;
     isFirstRender = false;
     refresh();
   });
 
-  const selectOptions = dropdownState.options.map((option) => ({
-    label: option.label,
-    value: option.value,
-  }));
-  const isDisabled = dropdownState.disabled || props.disabled;
-  return props.multiple ? (
-    <MultiSelectPieceProperty
-      placeholder={dropdownState.placeholder ?? t('Select an option')}
-      options={selectOptions}
-      loading={isPending}
-      onChange={(value) => props.onChange(value)}
-      disabled={isDisabled}
-      initialValues={props.value as unknown[]}
-      showDeselect={
-        props.showDeselect &&
-        !isNil(props.value) &&
-        Array.isArray(props.value) &&
-        props.value.length > 0 &&
-        !isDisabled
-      }
-      showRefresh={!isPending && !readonly}
-      onRefresh={refresh}
-      refreshOnSearch={props.shouldRefreshOnSearch ? refresh : undefined}
-      cachedOptions={firstDropdownState?.options ?? []}
-    />
-  ) : (
-    <SearchableSelect
-      options={selectOptions}
-      disabled={dropdownState.disabled || props.disabled}
-      loading={isPending}
-      placeholder={dropdownState.placeholder ?? t('Select an option')}
-      value={props.value}
-      onChange={(value) => props.onChange(value)}
-      showDeselect={
-        props.showDeselect && !isNil(props.value) && !props.disabled
-      }
-      onRefresh={refresh}
-      showRefresh={!isPending && !readonly}
-      refreshOnSearch={props.shouldRefreshOnSearch ? refresh : undefined}
-      cachedOptions={firstDropdownState?.options ?? []}
-    />
+  const selectOptions = () =>
+    dropdownState().options.map((option) => ({
+      label: option.label,
+      value: option.value,
+    }));
+  const isDisabled = () => dropdownState().disabled || props.disabled;
+  if (error) {
+    throw error;
+  }
+  return (
+    <>
+      <Show
+        when={props.multiple}
+        fallback={
+          <SearchableSelect
+            options={selectOptions()}
+            disabled={dropdownState().disabled || props.disabled}
+            loading={isPending}
+            placeholder={dropdownState().placeholder ?? t('Select an option')}
+            value={props.value}
+            onChange={(value) => props.onChange(value)}
+            showDeselect={
+              props.showDeselect && !isNil(props.value) && !props.disabled
+            }
+            onRefresh={refresh}
+            showRefresh={!isPending && !readonly}
+            refreshOnSearch={props.shouldRefreshOnSearch ? refresh : undefined}
+            cachedOptions={firstDropdownState?.options ?? []}
+          />
+        }
+      >
+        <MultiSelectPieceProperty
+          placeholder={dropdownState().placeholder ?? t('Select an option')}
+          options={selectOptions()}
+          loading={isPending}
+          onChange={(value) => props.onChange(value)}
+          disabled={isDisabled()}
+          initialValues={props.value}
+          showDeselect={
+            props.showDeselect &&
+            !isNil(props.value) &&
+            Array.isArray(props.value) &&
+            props.value.length > 0 &&
+            !isDisabled()
+          }
+          showRefresh={!isPending && !readonly}
+          onRefresh={refresh}
+          refreshOnSearch={props.shouldRefreshOnSearch ? refresh : undefined}
+          cachedOptions={firstDropdownState?.options ?? []}
+        />
+      </Show>
+    </>
   );
 };
 
@@ -158,9 +183,7 @@ const DynamicDropdownPieceProperty = (props: DynamicDropdownProps) => {
     </DynamicPropertiesErrorBoundary>
   );
 };
-DynamicDropdownPieceProperty.displayName = 'DynamicDropdownPieceProperty';
-DynamicDropdownPiecePropertyImplementation.displayName =
-  'DynamicDropdownPiecePropertyImplementation';
+
 export { DynamicDropdownPieceProperty };
 type DynamicDropdownProps = {
   refreshers: string[];
@@ -168,12 +191,12 @@ type DynamicDropdownProps = {
   value?: unknown;
   multiple?: boolean;
   disabled: boolean;
-  onChange: (value: unknown | undefined) => void;
+  onChange: (value: unknown) => void;
   showDeselect?: boolean;
   shouldRefreshOnSearch?: boolean;
   actionOrTriggerName: string;
   pieceName: string;
   pieceVersion: string;
-  form: BuilderForm;
+  form: BuilderForm & { watch: (name?: string) => unknown };
   placedInside: 'stepSettings' | 'predefinedAgentInputs';
 };

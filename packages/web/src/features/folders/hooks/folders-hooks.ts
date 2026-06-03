@@ -7,7 +7,7 @@ import { foldersApi } from '../api/folders-api';
 
 export const foldersHooks = {
   useFolders: () => {
-    const folderQuery = createQuery(() => ({
+    const folderQuery = createQuery<FolderDto[]>(() => ({
       queryKey: ['folders', authenticationSession.getProjectId()],
       queryFn: () => foldersApi.list(),
     }));
@@ -55,15 +55,15 @@ export const foldersMutations = {
     onSuccess: (folder: FolderDto) => void;
     onError?: (error: unknown) => void;
   }) => {
-    return createMutation<FolderDto, Error, { displayName: string }>({
-      mutationFn: async (data) => {
-        return await foldersApi.create({
+    return createMutation(() => ({
+      mutationFn: (data: { displayName: string }) => {
+        return foldersApi.create({
           displayName: data.displayName.trim(),
           projectId: authenticationSession.getProjectId()!,
         });
       },
       onSuccess,
       onError,
-    });
+    }));
   },
 };

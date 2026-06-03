@@ -1,8 +1,15 @@
-import { emptyCondition } from '@activepieces/shared';
+import {
+  BranchCondition,
+  emptyCondition,
+  RouterAction,
+} from '@activepieces/shared';
 import { t } from 'i18next';
-import { For } from 'solid-js';
+import { For, untrack } from 'solid-js';
 
-import { createBuilderFieldArray, useFormContext } from '@/app/builder/builder-form';
+import {
+  createBuilderFieldArray,
+  useFormContext,
+} from '@/app/builder/builder-form';
 import { BranchConditionGroup } from '@/app/builder/step-settings/branch-settings/branch-condition-group';
 
 type BranchSettingsProps = {
@@ -10,17 +17,21 @@ type BranchSettingsProps = {
   branchIndex: number;
 };
 
-const BranchSettings = ({ readonly, branchIndex }: BranchSettingsProps) => {
-  const form = useFormContext();
-  const { fields, append, remove, update } = createBuilderFieldArray({
+const BranchSettings = (props: BranchSettingsProps) => {
+  const form = useFormContext<RouterAction>();
+  const { fields, append, remove, update } = createBuilderFieldArray<
+    BranchCondition[]
+  >({
     form,
-    name: `settings.branches.${branchIndex}.conditions`,
+    name: `settings.branches.${untrack(() => props.branchIndex)}.conditions`,
   });
 
   const handleDelete = (groupIndex: number, conditionIndex: number) => {
-    const conditions = form.getValues(
-      `settings.branches.${branchIndex}.conditions`,
-    );
+    const conditions = BranchCondition.array()
+      .array()
+      .parse(
+        form.getValues(`settings.branches.${props.branchIndex}.conditions`),
+      );
     const newConditionsGroup = [...conditions[groupIndex]];
     const isSingleGroup = conditions.length === 1;
     const isSingleConditionInGroup = newConditionsGroup.length === 1;
@@ -36,9 +47,11 @@ const BranchSettings = ({ readonly, branchIndex }: BranchSettingsProps) => {
   };
 
   const handleAnd = (groupIndex: number) => {
-    const conditions = form.getValues(
-      `settings.branches.${branchIndex}.conditions`,
-    );
+    const conditions = BranchCondition.array()
+      .array()
+      .parse(
+        form.getValues(`settings.branches.${props.branchIndex}.conditions`),
+      );
     conditions[groupIndex] = [...conditions[groupIndex], emptyCondition];
     update(groupIndex, conditions[groupIndex]);
   };
@@ -48,14 +61,14 @@ const BranchSettings = ({ readonly, branchIndex }: BranchSettingsProps) => {
   };
 
   return (
-    <div className="flex flex-col gap-4" onSubmit={(e) => e.preventDefault()}>
-      <div className="text-md ">{t('Execute If')}</div>
+    <div class="flex flex-col gap-4" onSubmit={(e) => e.preventDefault()}>
+      <div class="text-md ">{t('Execute If')}</div>
       <For each={fields()}>
         {(fieldGroup, groupIndex) => (
           <BranchConditionGroup
             key={fieldGroup.id}
-            readonly={readonly}
-            branchIndex={branchIndex}
+            readonly={props.readonly}
+            branchIndex={props.branchIndex}
             numberOfGroups={fields().length}
             groupIndex={groupIndex}
             onAnd={() => handleAnd(groupIndex)}
@@ -70,5 +83,4 @@ const BranchSettings = ({ readonly, branchIndex }: BranchSettingsProps) => {
   );
 };
 
-BranchSettings.displayName = 'BranchSettings';
 export { BranchSettings };

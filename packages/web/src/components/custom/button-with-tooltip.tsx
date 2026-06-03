@@ -1,3 +1,5 @@
+import { mergeProps, type JSX } from 'solid-js';
+
 import { PermissionNeededTooltip } from '@/components/custom/permission-needed-tooltip';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,39 +19,42 @@ type ButtonWithTooltipProps = {
     | 'destructive'
     | 'secondary'
     | 'link';
-  icon: any;
+  icon: JSX.Element;
   className?: string;
   disabled?: boolean;
   hasPermission?: boolean;
 };
 
-export const ButtonWithTooltip = ({
-  tooltip,
-  onClick,
-  variant = 'ghost',
-  icon,
-  className = 'h-7 w-7',
-  disabled = false,
-  hasPermission = true,
-}: ButtonWithTooltipProps) => (
-  <PermissionNeededTooltip hasPermission={hasPermission}>
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={variant}
-            size="icon"
-            class={className}
-            onClick={onClick}
-            disabled={disabled || !hasPermission}
-          >
-            {icon}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{tooltip}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  </PermissionNeededTooltip>
-);
+export const ButtonWithTooltip = (_props: ButtonWithTooltipProps) => {
+  const props = mergeProps(
+    {
+      variant: 'ghost',
+      className: 'h-7 w-7',
+      disabled: false,
+      hasPermission: true,
+    },
+    _props,
+  );
+  return (
+    <PermissionNeededTooltip hasPermission={props.hasPermission}>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={props.variant}
+              size="icon"
+              class={props.className}
+              onClick={(e) => props.onClick(e)}
+              disabled={props.disabled || !props.hasPermission}
+            >
+              {props.icon}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{props.tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    </PermissionNeededTooltip>
+  );
+};

@@ -1,3 +1,4 @@
+import { For } from 'solid-js';
 const CLIENTS = [
   {
     name: 'MoneyGram',
@@ -27,19 +28,20 @@ const CLIENTS = [
 
 export const IntegrationLogosOverlay = () => {
   return (
-    <div className="grid grid-cols-3 gap-x-10 gap-y-8 items-center">
-      {CLIENTS.map(({ name, src }) => (
-        <img
-          key={name}
-          src={src}
-          alt={name}
-          className="h-7 w-auto object-contain"
-          style={{ filter: 'brightness(0) invert(1)', opacity: 0.85 }}
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).style.display = 'none';
-          }}
-        />
-      ))}
+    <div class="grid grid-cols-3 gap-x-10 gap-y-8 items-center">
+      <For each={CLIENTS}>
+        {({ name, src }) => (
+          <img
+            src={src}
+            alt={name}
+            class="h-7 w-auto object-contain"
+            style={{ filter: 'brightness(0) invert(1)', opacity: 0.85 }}
+            onError={(e) => {
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        )}
+      </For>
     </div>
   );
 };

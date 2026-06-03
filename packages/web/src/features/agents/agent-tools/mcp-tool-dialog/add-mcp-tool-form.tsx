@@ -59,7 +59,13 @@ export const AddMcpToolForm = (props: AddMcpToolFormProps) => {
       next.toolName = t('Tool name is required');
     }
 
-    if (!isToolNameUnique({ value: data.toolName, tools: props.tools, editingMcpTool })) {
+    if (
+      !isToolNameUnique({
+        value: data.toolName,
+        tools: props.tools,
+        editingMcpTool,
+      })
+    ) {
       next.toolName = t('An MCP server with this name already exists');
     }
 
@@ -67,7 +73,10 @@ export const AddMcpToolForm = (props: AddMcpToolFormProps) => {
       next.serverUrl = t('Must be a valid URL');
     }
 
-    if (data.authType === McpAuthType.ACCESS_TOKEN && !data.accessToken.trim()) {
+    if (
+      data.authType === McpAuthType.ACCESS_TOKEN &&
+      !data.accessToken.trim()
+    ) {
       next.accessToken = t('Access Token is required');
     }
 
@@ -144,7 +153,7 @@ export const AddMcpToolForm = (props: AddMcpToolFormProps) => {
         <Label showRequiredIndicator>{t('Protocol')}</Label>
         <Select
           value={data.protocol}
-          onValueChange={(value) => setData('protocol', value)}
+          onValueChange={(value) => setData('protocol', value as McpProtocol)}
         >
           <SelectTrigger>
             <SelectValue />
@@ -165,7 +174,7 @@ export const AddMcpToolForm = (props: AddMcpToolFormProps) => {
         <Label showRequiredIndicator>{t('Authentication Type')}</Label>
         <Select
           value={data.authType}
-          onValueChange={(value) => setData('authType', value)}
+          onValueChange={(value) => setData('authType', value as McpAuthType)}
         >
           <SelectTrigger>
             <SelectValue />
@@ -191,7 +200,9 @@ export const AddMcpToolForm = (props: AddMcpToolFormProps) => {
               id="access-token"
               placeholder="Enter access token"
               value={data.accessToken}
-              onInput={(event) => setData('accessToken', event.currentTarget.value)}
+              onInput={(event) =>
+                setData('accessToken', event.currentTarget.value)
+              }
             />
             <FieldError error={errors.accessToken} />
           </div>
@@ -208,7 +219,9 @@ export const AddMcpToolForm = (props: AddMcpToolFormProps) => {
               id="api-key-header"
               placeholder="X-API-KEY"
               value={data.apiKeyHeader}
-              onInput={(event) => setData('apiKeyHeader', event.currentTarget.value)}
+              onInput={(event) =>
+                setData('apiKeyHeader', event.currentTarget.value)
+              }
             />
             <FieldError error={errors.apiKeyHeader} />
           </div>
@@ -238,7 +251,12 @@ export const AddMcpToolForm = (props: AddMcpToolFormProps) => {
                     placeholder="Authorization"
                     value={header.key}
                     onInput={(event) =>
-                      setData('headers', index(), 'key', event.currentTarget.value)
+                      setData(
+                        'headers',
+                        index(),
+                        'key',
+                        event.currentTarget.value,
+                      )
                     }
                   />
                 </div>
@@ -248,7 +266,12 @@ export const AddMcpToolForm = (props: AddMcpToolFormProps) => {
                     placeholder="Bearer token..."
                     value={header.value}
                     onInput={(event) =>
-                      setData('headers', index(), 'value', event.currentTarget.value)
+                      setData(
+                        'headers',
+                        index(),
+                        'value',
+                        event.currentTarget.value,
+                      )
                     }
                   />
                 </div>
@@ -339,7 +362,8 @@ function isToolNameUnique({
   editingMcpTool: AgentMcpTool | null;
 }) {
   return !tools.some(
-    (tool) => tool.toolName === value && tool.toolName !== editingMcpTool?.toolName,
+    (tool) =>
+      tool.toolName === value && tool.toolName !== editingMcpTool?.toolName,
   );
 }
 

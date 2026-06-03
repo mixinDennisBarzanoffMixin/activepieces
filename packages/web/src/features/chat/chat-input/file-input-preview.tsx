@@ -1,4 +1,5 @@
 import { FileIcon, X } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 
@@ -8,47 +9,43 @@ type FileInputPreviewProps = {
   onRemove: (index: number) => void;
 };
 
-export const FileInputPreview = ({
-  file,
-  index,
-  onRemove,
-}: FileInputPreviewProps) => {
-  const isImage = file.type.startsWith('image/');
-  const isVideo = file.type.startsWith('video/');
+export const FileInputPreview = (props: FileInputPreviewProps) => {
+  const isImage = props.file.type.startsWith('image/');
+  const isVideo = props.file.type.startsWith('video/');
 
   return (
-    <div key={index} className="relative inline-block mr-2 mt-2 mb-3">
-      {isImage && (
+    <div class="relative inline-block mr-2 mt-2 mb-3">
+      <Show when={isImage}>
         <img
-          src={URL.createObjectURL(file)}
-          alt={file.name}
-          className="w-20 h-20 object-cover rounded-lg"
+          src={URL.createObjectURL(props.file)}
+          alt={props.file.name}
+          class="w-20 h-20 object-cover rounded-lg"
         />
-      )}
-      {isVideo && (
+      </Show>
+      <Show when={isVideo}>
         <video
-          src={URL.createObjectURL(file)}
-          className="w-20 h-20 object-cover rounded-lg"
+          src={URL.createObjectURL(props.file)}
+          class="w-20 h-20 object-cover rounded-lg"
         />
-      )}
-      {!isImage && !isVideo && (
-        <div className="w-20 h-20 bg-foreground text-background rounded-lg flex items-center justify-center">
+      </Show>
+      <Show when={!isImage && !isVideo}>
+        <div class="w-20 h-20 bg-foreground text-background rounded-lg flex items-center justify-center">
           <FileIcon class="w-8 h-8" />
         </div>
-      )}
+      </Show>
       <Button
         variant="destructive"
         size="icon"
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          onRemove(index);
+          props.onRemove(props.index);
         }}
         class="absolute -top-2 -right-2 rounded-full p-1 size-6"
       >
         <X class="w-3 h-3" />
       </Button>
-      <p className="text-xs mt-1 truncate w-20">{file.name}</p>
+      <p class="text-xs mt-1 truncate w-20">{props.file.name}</p>
     </div>
   );
 };

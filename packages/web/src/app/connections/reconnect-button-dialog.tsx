@@ -4,15 +4,15 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { RefreshCw } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
-import { CreateOrEditConnectionDialog } from '@/app/connections/create-edit-connection-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { CreateOrEditConnectionDialog } from '@/features/connections';
 import { piecesHooks } from '@/features/pieces';
 
 type ReconnectButtonDialogProps = {
@@ -21,15 +21,11 @@ type ReconnectButtonDialogProps = {
   hasPermission: boolean;
 };
 
-const ReconnectButtonDialog = ({
-  connection,
-  onConnectionCreated,
-  hasPermission,
-}: ReconnectButtonDialogProps) => {
+const ReconnectButtonDialog = (props: ReconnectButtonDialogProps) => {
   const [open, setOpen] = createSignal(false);
   const { pieceModel, isLoading } = piecesHooks.usePiece({
-    name: connection.pieceName,
-    version: connection.pieceVersion,
+    name: props.connection.pieceName,
+    version: props.connection.pieceVersion,
     enabled: open,
   });
 
@@ -39,35 +35,35 @@ const ReconnectButtonDialog = ({
         <TooltipTrigger asChild>
           <Button
             onClick={() => setOpen(true)}
-            disabled={!hasPermission}
+            disabled={!props.hasPermission}
             variant={'ghost'}
           >
             <RefreshCw class="h-4 w-4" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          {!hasPermission ? (
+          <Show when={!props.hasPermission} fallback={<p>{t('Reconnect')}</p>}>
             <p>{t('Permission needed')}</p>
-          ) : (
-            <p>{t('Reconnect')}</p>
-          )}
+          </Show>
         </TooltipContent>
       </Tooltip>
-      {open && !isLoading && pieceModel && (
+      <Show when={open && !isLoading && pieceModel}>
         <CreateOrEditConnectionDialog
-          reconnectConnection={connection}
-          isGlobalConnection={connection.scope === AppConnectionScope.PLATFORM}
+          reconnectConnection={props.connection}
+          isGlobalConnection={
+            props.connection.scope === AppConnectionScope.PLATFORM
+          }
           piece={pieceModel}
           open={open}
-          key={`CreateOrEditConnectionDialog-open-${open}`}
+          key={`CreateOrEditConnectionDialog-open-${open()}`}
           setOpen={(open, connection) => {
             setOpen(open);
             if (connection) {
-              onConnectionCreated();
+              props.onConnectionCreated();
             }
           }}
         />
-      )}
+      </Show>
     </>
   );
 };

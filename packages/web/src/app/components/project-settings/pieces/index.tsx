@@ -3,7 +3,7 @@ import { PieceType } from '@activepieces/shared';
 import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import { Package, Trash, Puzzle, Tag, Hash, GitBranch } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { createMemo, createSignal, Show } from 'solid-js';
 
 import { RequestTrial } from '@/app/components/request-trial';
 import { DataTable, RowDataWithActions } from '@/components/custom/data-table';
@@ -20,17 +20,21 @@ import { ManagePiecesDialog } from './manage-pieces-dialog';
 const columns: ColumnDef<RowDataWithActions<PieceMetadataModelSummary>>[] = [
   {
     accessorKey: 'name',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Piece')} icon={Puzzle} />
+    header: (props) => (
+      <DataTableColumnHeader
+        column={props.column}
+        title={t('Piece')}
+        icon={Puzzle}
+      />
     ),
-    cell: ({ row }) => {
+    cell: (props) => {
       return (
-        <div className="text-left">
+        <div class="text-left">
           <PieceIcon
             size={'sm'}
             border={true}
-            displayName={row.original.displayName}
-            logoUrl={row.original.logoUrl}
+            displayName={props.row.original.displayName}
+            logoUrl={props.row.original.logoUrl}
             showTooltip={false}
           />
         </div>
@@ -39,63 +43,65 @@ const columns: ColumnDef<RowDataWithActions<PieceMetadataModelSummary>>[] = [
   },
   {
     accessorKey: 'displayName',
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Display Name')}
         icon={Tag}
       />
     ),
-    cell: ({ row }) => {
-      return <div className="text-left">{row.original.displayName}</div>;
+    cell: (props) => {
+      return <div class="text-left">{props.row.original.displayName}</div>;
     },
   },
   {
     accessorKey: 'packageName',
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Package Name')}
         icon={Hash}
       />
     ),
-    cell: ({ row }) => {
-      return <div className="text-left">{row.original.name}</div>;
+    cell: (props) => {
+      return <div class="text-left">{props.row.original.name}</div>;
     },
   },
   {
     accessorKey: 'version',
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Version')}
         icon={GitBranch}
       />
     ),
-    cell: ({ row }) => {
-      return <div className="text-left">{row.original.version}</div>;
+    cell: (props) => {
+      return <div class="text-left">{props.row.original.version}</div>;
     },
   },
   {
     accessorKey: 'actions',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="" />,
-    cell: ({ row }) => {
-      if (row.original.pieceType !== PieceType.CUSTOM) {
+    header: (props) => <DataTableColumnHeader column={props.column} title="" />,
+    cell: (props) => {
+      if (props.row.original.pieceType !== PieceType.CUSTOM) {
         return null;
       }
       return (
         <ConfirmationDeleteDialog
-          title={t('Delete {name}', { name: row.original.name })}
+          title={t('Delete {name}', { name: String(props.row.original.name) })}
           entityName={t('Piece')}
-          message={t(
-            'This will permanently delete this piece, all steps using it will fail.',
+          message={String(
+            t(
+              'This will permanently delete this piece, all steps using it will fail.',
+            ),
           )}
           mutationFn={async () => {
-            row.original.delete();
-            await piecesApi.delete(row.original.id!);
+            props.row.original.delete();
+            await piecesApi.delete(props.row.original.id!);
           }}
         >
-          <div className="flex items-end justify-end">
+          <div class="flex items-end justify-end">
             <Button variant="ghost" class="size-8 p-0">
               <Trash class="size-4 text-destructive" />
             </Button>
@@ -107,15 +113,15 @@ const columns: ColumnDef<RowDataWithActions<PieceMetadataModelSummary>>[] = [
 ];
 
 const PiecesSettings = () => {
-  const { platform } = platformHooks.useCurrentPlatform();
+  const current = platformHooks.useCurrentPlatform();
   const [searchQuery, setSearchQuery] = createSignal('');
-  const { pieces, isLoading, refetch } = piecesHooks.usePieces({
+  const result = piecesHooks.usePieces({
     searchQuery,
     isTableQuery: true,
   });
 
   const toolbarButtons = createMemo(() => [
-    <ManagePiecesDialog key="manage" onSuccess={() => refetch()} />,
+    <ManagePiecesDialog key="manage" onSuccess={() => void result.refetch()} />,
   ]);
 
   const customFilters = createMemo(() => [
@@ -128,9 +134,9 @@ const PiecesSettings = () => {
   ]);
 
   return (
-    <div className="space-y-6">
+    <div class="space-y-6">
       {
-        <Show when={!platform.plan.managePiecesEnabled}>
+        <Show when={!current.platform.plan.managePiecesEnabled}>
           <LockedAlert
             title={t('Control Pieces')}
             description={t(
@@ -154,13 +160,15 @@ const PiecesSettings = () => {
         columns={columns}
         customFilters={customFilters}
         page={{
-          data: pieces ?? [],
+          data: result.pieces ?? [],
           next: null,
           previous: null,
         }}
-        isLoading={isLoading}
+        isLoading={result.isLoading}
         hidePagination={true}
-        toolbarButtons={platform.plan.managePiecesEnabled ? toolbarButtons : []}
+        toolbarButtons={
+          current.platform.plan.managePiecesEnabled ? toolbarButtons : []
+        }
       />
     </div>
   );

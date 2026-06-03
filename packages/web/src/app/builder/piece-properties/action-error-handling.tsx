@@ -2,7 +2,7 @@ import { FlowAction, FlowTrigger } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Show } from 'solid-js';
 
-import { useFormContext } from '@/app/builder/builder-form';
+import { BuilderField, useFormContext } from '@/app/builder/builder-form';
 import { ReadMoreDescription } from '@/components/custom/read-more-description';
 import {
   FormField,
@@ -19,20 +19,16 @@ type ActionErrorHandlingFormProps = {
   disabled: boolean;
 };
 
-const ActionErrorHandlingForm = ({
-  hideContinueOnFailure,
-  hideRetryOnFailure,
-  disabled,
-}: ActionErrorHandlingFormProps) => {
+const ActionErrorHandlingForm = (props: ActionErrorHandlingFormProps) => {
   const form = useFormContext<FlowAction | FlowTrigger>();
 
   return (
-    <div className={cn('grid', GAP_SIZE_FOR_STEP_SETTINGS)}>
-      <Show when={hideContinueOnFailure !== true()}>
+    <div class={cn('grid', GAP_SIZE_FOR_STEP_SETTINGS)}>
+      <Show when={props.hideContinueOnFailure !== true}>
         <FormField
           name="settings.errorHandlingOptions.continueOnFailure.value"
           control={form.control}
-          render={({ field }) => (
+          render={({ field }: { field: BuilderField<boolean> }) => (
             <FormItem>
               <FormLabel
                 for="continueOnFailure"
@@ -40,13 +36,13 @@ const ActionErrorHandlingForm = ({
               >
                 <FormControl>
                   <Switch
-                    disabled={disabled}
+                    disabled={props.disabled}
                     id="continueOnFailure"
                     checked={field.value}
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <span className="ml-2">{t('Continue on Failure')}</span>
+                <span class="ml-2">{t('Continue on Failure')}</span>
               </FormLabel>
               <ReadMoreDescription
                 text={t(
@@ -57,11 +53,11 @@ const ActionErrorHandlingForm = ({
           )}
         />
       </Show>
-      <Show when={hideRetryOnFailure !== true()}>
+      <Show when={props.hideRetryOnFailure !== true}>
         <FormField
           name="settings.errorHandlingOptions.retryOnFailure.value"
           control={form.control}
-          render={({ field }) => (
+          render={({ field }: { field: BuilderField<boolean> }) => (
             <FormItem>
               <FormLabel
                 for="retryOnFailure"
@@ -69,13 +65,13 @@ const ActionErrorHandlingForm = ({
               >
                 <FormControl>
                   <Switch
-                    disabled={disabled}
+                    disabled={props.disabled}
                     id="retryOnFailure"
                     checked={field.value}
                     onCheckedChange={field.onChange}
                   />
                 </FormControl>
-                <span className="ml-2">{t('Retry on Failure')}</span>
+                <span class="ml-2">{t('Retry on Failure')}</span>
               </FormLabel>
               <ReadMoreDescription
                 text={t('Automatically retry up to four attempts when failed.')}
@@ -88,5 +84,4 @@ const ActionErrorHandlingForm = ({
   );
 };
 
-ActionErrorHandlingForm.displayName = 'ActionErrorHandlingForm';
 export { ActionErrorHandlingForm };

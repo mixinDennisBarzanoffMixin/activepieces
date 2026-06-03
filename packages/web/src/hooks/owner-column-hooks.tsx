@@ -6,6 +6,7 @@ import {
 import { ColumnDef } from '@tanstack/solid-table';
 import { t } from 'i18next';
 import { User } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import {
   DataTableFilters,
@@ -31,17 +32,14 @@ function useOwnerColumn<T extends HasOwner | HasOwnerId>(
   const ownerColumn: ColumnDef<RowDataWithActions<T>, unknown> = {
     accessorKey: 'owner',
     size: 180,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Owner')} icon={User} />
+    header: (props) => (
+      <DataTableColumnHeader
+        column={props.column}
+        title={t('Owner')}
+        icon={User}
+      />
     ),
-    cell: ({ row }) => {
-      if ('ownerId' in row.original) {
-        return <OwnerColumn ownerId={row.original.ownerId} />;
-      } else if ('owner' in row.original) {
-        return <OwnerColumn ownerId={row.original.owner?.id} />;
-      }
-      return <div className="text-left">-</div>;
-    },
+    cell: (props) => <OwnerColumn ownerId={owner(props.row.original)} />,
   };
   const safeIndex = validateIndexBound({ index, limit: columns.length });
   return [
@@ -65,16 +63,18 @@ function useOwnerColumnFilter<
     return filters;
   }
 
-  const ownersOptions = owners?.map((owner) => ({
-    label: `${owner.firstName} ${owner.lastName} (${owner.email})`,
-    value: owner.email,
-  }));
+  const opts = owners
+    ? owners.map((owner) => ({
+        label: `${owner.firstName} ${owner.lastName} (${owner.email})`,
+        value: owner.email,
+      }))
+    : [];
   const ownerColumnFilter: DataTableFilters<keyof T & string> = {
     type: 'select',
     title: t('Owner'),
     accessorKey: 'owner',
-    icon: User,
-    options: ownersOptions ?? [],
+    icon: <User />,
+    options: opts,
   };
   const safeIndex = validateIndexBound({ index, limit: filters.length });
   return [
@@ -92,21 +92,31 @@ export const ownerColumnHooks = {
 type HasOwner = {
   owner?: UserWithMetaInformation | null | undefined;
 } & DataWithId;
-type HasOwnerId = { ownerId?: string | null | undefined } & DataWithId &
-  DataWithId;
+type HasOwnerId = { ownerId?: string | null | undefined } & DataWithId;
 
-const OwnerColumn = ({ ownerId }: { ownerId: string | null | undefined }) => {
+function owner(row: HasOwner | HasOwnerId) {
+  if ('ownerId' in row) {
+    return row.ownerId;
+  }
+  if ('owner' in row) {
+    return row.owner?.id;
+  }
+  return undefined;
+}
+
+const OwnerColumn = (props: { ownerId: string | null | undefined }) => {
   return (
-    <div className="text-left">
-      {ownerId && (
-        <ApAvatar
-          id={ownerId}
-          includeAvatar={true}
-          includeName={true}
-          size="small"
-        />
-      )}
-      {!ownerId && <div className="text-left">-</div>}
+    <div class="text-left">
+      <Show when={props.ownerId} fallback={<div class="text-left">-</div>}>
+        {(id) => (
+          <ApAvatar
+            id={id()}
+            includeAvatar={true}
+            includeName={true}
+            size="small"
+          />
+        )}
+      </Show>
     </div>
   );
 };

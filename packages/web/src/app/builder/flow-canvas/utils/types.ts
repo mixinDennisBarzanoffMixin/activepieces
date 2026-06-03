@@ -4,6 +4,7 @@ import {
   FlowTrigger,
   Note,
 } from '@activepieces/shared';
+
 import type { Edge } from '../solid-flow-adapter';
 
 export enum ApNodeType {

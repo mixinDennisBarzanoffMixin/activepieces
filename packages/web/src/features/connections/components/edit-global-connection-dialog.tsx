@@ -1,6 +1,6 @@
 import { t } from 'i18next';
 import { Pencil } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 import { z } from 'zod';
 
 import { GlobalConnectionWarning } from '@/components/custom/global-connection-utils';
@@ -42,31 +42,26 @@ type EditGlobalConnectionDialogProps = {
   userHasPermissionToEdit: boolean;
 };
 
-const EditGlobalConnectionDialog = ({
-  connectionId,
-  currentName,
-  projectIds,
-  preSelectForNewProjects,
-  onEdit,
-  userHasPermissionToEdit,
-}: EditGlobalConnectionDialogProps) => {
+const EditGlobalConnectionDialog = (props: EditGlobalConnectionDialogProps) => {
   const [isOpen, setIsOpen] = createSignal(false);
   const [values, setValues] = createSignal<EditGlobalConnectionSchema>({
-    displayName: currentName,
-    projectIds,
-    preSelectForNewProjects,
+    displayName: props.currentName,
+    projectIds: props.projectIds,
+    preSelectForNewProjects: props.preSelectForNewProjects,
   });
   const [errors, setErrors] = createSignal<Record<string, string>>({});
   const editConnectionForm = {
-    setError: (name: 'displayName' | 'projectIds', error: { message: string }) =>
-      setErrors((prev) => ({ ...prev, [name]: error.message })),
+    setError: (
+      name: 'displayName' | 'projectIds',
+      error: { message: string },
+    ) => setErrors((prev) => ({ ...prev, [name]: error.message })),
   };
 
   const {
     mutate: updateGlobalConnection,
     isPending: isUpdatingGlobalConnection,
   } = globalConnectionsMutations.useUpdateGlobalConnection(
-    onEdit,
+    props.onEdit,
     setIsOpen,
     editConnectionForm,
   );
@@ -80,7 +75,7 @@ const EditGlobalConnectionDialog = ({
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={!userHasPermissionToEdit}
+                disabled={!props.userHasPermissionToEdit}
                 onClick={(e) => {
                   e.stopPropagation();
                   e.preventDefault();
@@ -91,105 +86,107 @@ const EditGlobalConnectionDialog = ({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {!userHasPermissionToEdit ? t('Permission needed') : t('Edit')}
+              {!props.userHasPermissionToEdit
+                ? t('Permission needed')
+                : t('Edit')}
             </TooltipContent>
           </>
         </DialogTrigger>
-        <DialogContent onInteractOutside={(event) => event.preventDefault()}>
+        <DialogContent
+          onInteractOutside={(event: Event) => event.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{t('Edit Global Connection')}</DialogTitle>
           </DialogHeader>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                const result = EditGlobalConnectionSchema.safeParse(values());
-                if (!result.success) {
-                  setErrors(
-                    Object.fromEntries(
-                      result.error.issues.map((issue) => [
-                        issue.path.join('.'),
-                        issue.message,
-                      ]),
-                    ),
-                  );
-                  return;
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const result = EditGlobalConnectionSchema.safeParse(values());
+              if (!result.success) {
+                setErrors(
+                  Object.fromEntries(
+                    result.error.issues.map((issue) => [
+                      issue.path.join('.'),
+                      issue.message,
+                    ]),
+                  ),
+                );
+                return;
+              }
+              updateGlobalConnection({
+                connectionId: props.connectionId,
+                displayName: result.data.displayName,
+                projectIds: result.data.projectIds,
+                preSelectForNewProjects: result.data.preSelectForNewProjects,
+                currentName: props.currentName,
+              });
+            }}
+          >
+            <div class="grid space-y-4">
+              <GlobalConnectionWarning />
+              <div class="grid space-y-2">
+                <Label for="displayName">{t('Name')}</Label>
+                <Input
+                  value={values().displayName}
+                  onInput={(e) =>
+                    setValues((prev) => ({
+                      ...prev,
+                      displayName: e.currentTarget.value,
+                    }))
+                  }
+                  id="displayName"
+                  placeholder={t('Connection Name')}
+                  class="rounded-sm"
+                />
+                <Show when={errors().displayName}>
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {t(errors().displayName)}
+                  </p>
+                </Show>
+              </div>
+              <ProjectSelector
+                value={values().projectIds}
+                onInput={(ids) =>
+                  setValues((prev) => ({ ...prev, projectIds: ids }))
                 }
-                updateGlobalConnection({
-                  connectionId,
-                  displayName: result.data.displayName,
-                  projectIds: result.data.projectIds,
-                  preSelectForNewProjects: result.data.preSelectForNewProjects,
-                  currentName: currentName,
-                });
-              }}
-            >
-              <div className="grid space-y-4">
-                <GlobalConnectionWarning />
-                <div class="grid space-y-2">
-                  <Label for="displayName">{t('Name')}</Label>
-                  <Input
-                    value={values().displayName}
-                    onInput={(e) =>
-                      setValues((prev) => ({
-                        ...prev,
-                        displayName: e.currentTarget.value,
-                      }))
-                    }
-                    id="displayName"
-                    placeholder={t('Connection Name')}
-                    class="rounded-sm"
-                  />
-                  {errors().displayName && (
-                    <p class="text-sm font-medium text-destructive wrap-break-word">
-                      {t(errors().displayName)}
-                    </p>
-                  )}
-                </div>
-                <ProjectSelector
-                  value={values().projectIds}
-                  onChange={(ids) =>
-                    setValues((prev) => ({ ...prev, projectIds: ids }))
+              />
+              <Show when={errors().projectIds}>
+                <p class="text-sm font-medium text-destructive wrap-break-word">
+                  {t(errors().projectIds)}
+                </p>
+              </Show>
+              <div class="flex flex-row items-center gap-3">
+                <Checkbox
+                  id="preSelectForNewProjects"
+                  checked={values().preSelectForNewProjects}
+                  onCheckedChange={(checked) =>
+                    setValues((prev) => ({
+                      ...prev,
+                      preSelectForNewProjects: checked === true,
+                    }))
                   }
                 />
-                {errors().projectIds && (
-                  <p class="text-sm font-medium text-destructive wrap-break-word">
-                    {t(errors().projectIds)}
-                  </p>
-                )}
-                <div class="flex flex-row items-center gap-3">
-                  <Checkbox
-                    id="preSelectForNewProjects"
-                    checked={values().preSelectForNewProjects}
-                    onCheckedChange={(checked) =>
-                      setValues((prev) => ({
-                        ...prev,
-                        preSelectForNewProjects: checked,
-                      }))
-                    }
-                  />
-                  <Label for="preSelectForNewProjects" class="cursor-pointer">
-                    {t('Include by default in new projects')}
-                  </Label>
-                </div>
+                <Label for="preSelectForNewProjects" class="cursor-pointer">
+                  {t('Include by default in new projects')}
+                </Label>
               </div>
-              <DialogFooter class="mt-8">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isUpdatingGlobalConnection}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    setIsOpen(false);
-                  }}
-                >
-                  {t('Cancel')}
-                </Button>
-                <Button loading={isUpdatingGlobalConnection}>
-                  {t('Save')}
-                </Button>
-              </DialogFooter>
-            </form>
+            </div>
+            <DialogFooter class="mt-8">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isUpdatingGlobalConnection}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  setIsOpen(false);
+                }}
+              >
+                {t('Cancel')}
+              </Button>
+              <Button loading={isUpdatingGlobalConnection}>{t('Save')}</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </Tooltip>

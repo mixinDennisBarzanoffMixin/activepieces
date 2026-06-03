@@ -5,11 +5,20 @@ import {
 } from '@activepieces/pieces-framework';
 import {
   FlowAction,
+  FlowActionType,
   setAtPath,
   FlowTrigger,
+  FlowTriggerType,
   PropertyExecutionType,
 } from '@activepieces/shared';
-import { createContext, createSignal, useContext } from 'solid-js';
+import {
+  JSX,
+  createContext,
+  createEffect,
+  createSignal,
+  untrack,
+  useContext,
+} from 'solid-js';
 import { z, ZodObject } from 'zod';
 
 import { BuilderForm } from '@/app/builder/builder-form';
@@ -34,7 +43,7 @@ const createUpdatedSchemaKey = (propertyKey: string) => {
 export type StepSettingsContextState = {
   selectedStep: FlowAction | FlowTrigger;
   pieceModel: PieceMetadataModel | undefined;
-  formSchema: ZodObject<any>;
+  formSchema: ZodObject<z.ZodRawShape>;
   updateFormSchema: (key: string, newFieldSchema: PiecePropertyMap) => void;
   updatePropertySettingsSchema: (
     schema: PiecePropertyMap,
@@ -46,32 +55,31 @@ export type StepSettingsContextState = {
 export type StepSettingsProviderProps = {
   selectedStep: FlowAction | FlowTrigger;
   pieceModel: PieceMetadataModel | undefined;
-  children: any;
+  children: JSX.Element;
 };
 
 const StepSettingsContext = createContext<StepSettingsContextState | undefined>(
   undefined,
 );
 
-export const StepSettingsProvider = ({
-  selectedStep,
-  pieceModel,
-  children,
-}: StepSettingsProviderProps) => {
-  const [formSchema, setFormSchema] = createSignal<ZodObject<any>>(
-    z.object({}) as ZodObject<any>,
+export const StepSettingsProvider = (props: StepSettingsProviderProps) => {
+  const [formSchema, setFormSchema] = createSignal<ZodObject<z.ZodRawShape>>(
+    z.object({}),
   );
   let formSchemaInitializedRef: boolean | undefined;
 
-  if (!formSchemaInitializedRef && selectedStep) {
+  createEffect(() => {
+    if (formSchemaInitializedRef) {
+      return;
+    }
     const schema = formUtils.buildPieceSchema(
-      selectedStep.type,
-      selectedStep.settings.actionName ?? selectedStep.settings.triggerName,
-      pieceModel ?? null,
+      props.selectedStep.type,
+      getActionOrTriggerName(props.selectedStep),
+      props.pieceModel ?? null,
     );
     formSchemaInitializedRef = true;
-    setFormSchema(schema as ZodObject<any>);
-  }
+    setFormSchema(schema);
+  });
 
   const updateFormSchema = (
     key: string,
@@ -82,13 +90,9 @@ export const StepSettingsProvider = ({
         newFieldPropertyMap,
         undefined,
       );
-      const currentSchema = Object.create(
-        Object.getPrototypeOf(prevSchema),
-        Object.getOwnPropertyDescriptors(prevSchema),
-      );
       const keyUpdated = createUpdatedSchemaKey(key);
-      setAtPath(currentSchema, keyUpdated, newFieldSchema);
-      return currentSchema;
+      setAtPath(prevSchema, keyUpdated, newFieldSchema);
+      return prevSchema;
     });
   };
   const updatePropertySettingsSchema = (
@@ -99,7 +103,8 @@ export const StepSettingsProvider = ({
     // previously step settings schema didn't have this property, so we need to set it
     // we can't always set it to MANUAL, because some sub properties might be dynamic and have the same name as the dynamic (parent) property i.e values property in insert row (Google Sheets)
     // which will override the sub property exectuion type
-    if (!selectedStep.settings?.propertySettings?.[propertyName]) {
+    const settings = getPropertySettings(props.selectedStep);
+    if (!settings?.[propertyName]) {
       form.setValue(
         `settings.propertySettings.${propertyName}.type`,
         PropertyExecutionType.MANUAL,
@@ -110,17 +115,37 @@ export const StepSettingsProvider = ({
   return (
     <StepSettingsContext.Provider
       value={{
-        selectedStep,
-        pieceModel,
+        selectedStep: untrack(() => props.selectedStep),
+        pieceModel: untrack(() => props.pieceModel),
         formSchema,
         updateFormSchema,
         updatePropertySettingsSchema,
       }}
     >
-      {children}
+      {props.children}
     </StepSettingsContext.Provider>
   );
 };
+
+function getActionOrTriggerName(step: FlowAction | FlowTrigger) {
+  if (step.type === FlowActionType.PIECE) {
+    return step.settings.actionName;
+  }
+  if (step.type === FlowTriggerType.PIECE) {
+    return step.settings.triggerName;
+  }
+  return undefined;
+}
+
+function getPropertySettings(step: FlowAction | FlowTrigger) {
+  if (
+    step.type === FlowActionType.PIECE ||
+    step.type === FlowTriggerType.PIECE
+  ) {
+    return step.settings.propertySettings;
+  }
+  return undefined;
+}
 
 export const useStepSettingsContext = () => {
   const context = useContext(StepSettingsContext);

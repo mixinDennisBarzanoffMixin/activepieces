@@ -1,3 +1,4 @@
+import { PiecePropertyMap } from '@activepieces/pieces-framework';
 import {
   ApFlagId,
   isNil,
@@ -6,7 +7,7 @@ import {
   PieceTrigger,
   PieceTriggerSettings,
 } from '@activepieces/shared';
-import { For, Show } from 'solid-js';
+import { createMemo, For, Show } from 'solid-js';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { flagsHooks } from '@/hooks/flags-hooks';
@@ -22,35 +23,35 @@ type PieceSettingsProps = {
   readonly: boolean;
 };
 
-const removeAuthFromProps = (
-  props: Record<string, any>,
-): Record<string, any> => {
-  const { auth: _, ...rest } = props;
+const removeAuthFromProps = (map: PiecePropertyMap): PiecePropertyMap => {
+  const { auth: _, ...rest } = map;
   return rest;
 };
 
 const PieceSettings = (props: PieceSettingsProps) => {
-  const {
-    pieceModel,
-    selectedStep,
-    updateFormSchema,
-    updatePropertySettingsSchema,
-  } = useStepSettingsContext();
+  const { pieceModel, updateFormSchema, updatePropertySettingsSchema } =
+    useStepSettingsContext();
 
-  const actionName = (props.step.settings as PieceActionSettings).actionName;
-  const selectedAction = actionName
-    ? pieceModel?.actions[actionName]
-    : undefined;
-  const triggerName = (props.step.settings as PieceTriggerSettings).triggerName;
-  const selectedTrigger = triggerName
-    ? pieceModel?.triggers[triggerName]
-    : undefined;
-
-  const actionPropsWithoutAuth = removeAuthFromProps(
-    selectedAction?.props ?? {},
+  const actionName = createMemo(
+    () => (props.step.settings as PieceActionSettings).actionName,
   );
-  const triggerPropsWithoutAuth = removeAuthFromProps(
-    selectedTrigger?.props ?? {},
+  const selectedAction = createMemo(() => {
+    const name = actionName();
+    return name ? pieceModel?.actions[name] : undefined;
+  });
+  const triggerName = createMemo(
+    () => (props.step.settings as PieceTriggerSettings).triggerName,
+  );
+  const selectedTrigger = createMemo(() => {
+    const name = triggerName();
+    return name ? pieceModel?.triggers[name] : undefined;
+  });
+
+  const actionPropsWithoutAuth = createMemo(() =>
+    removeAuthFromProps(selectedAction()?.props ?? {}),
+  );
+  const triggerPropsWithoutAuth = createMemo(() =>
+    removeAuthFromProps(selectedTrigger()?.props ?? {}),
   );
 
   const { data: webhookPrefixUrl } = flagsHooks.useFlag<string>(
@@ -66,26 +67,28 @@ const PieceSettings = (props: PieceSettingsProps) => {
   );
 
   const { data: frontendUrl } = flagsHooks.useFlag<string>(ApFlagId.PUBLIC_URL);
-  const markdownVariables = {
+  const markdownVariables = createMemo(() => ({
     webhookUrl: `${webhookPrefixUrl}/${props.flowId}`,
     formUrl: `${frontendUrl}forms/${props.flowId}`,
     chatUrl: `${frontendUrl}chats/${props.flowId}`,
     pausedFlowTimeoutDays: pausedFlowTimeoutDays?.toString() ?? '',
     webhookTimeoutSeconds: webhookTimeoutSeconds?.toString() ?? '',
-  };
+  }));
 
-  const showAuthForAction =
-    !isNil(selectedAction) && (selectedAction.requireAuth ?? true);
-  const showAuthForTrigger =
-    !isNil(selectedTrigger) && (selectedTrigger.requireAuth ?? true);
+  const showAuthForAction = createMemo(
+    () => !isNil(selectedAction()) && (selectedAction()?.requireAuth ?? true),
+  );
+  const showAuthForTrigger = createMemo(
+    () => !isNil(selectedTrigger()) && (selectedTrigger()?.requireAuth ?? true),
+  );
   return (
-    <div className="flex flex-col gap-4 w-full">
-      <Show when={!pieceModel()}>
-        <div className="space-y-3">
+    <div class="flex flex-col gap-4 w-full">
+      <Show when={!pieceModel}>
+        <div class="space-y-3">
           <For each={Array.from({ length: 5 })}>
-            {(_, index) => (
-              <div className="space-y-2" key={index}>
-                <div className="flex justify-between items-center">
+            {() => (
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
                   <Skeleton class="w-40 h-4" />
                   <Skeleton class="size-8" />
                 </div>
@@ -96,62 +99,67 @@ const PieceSettings = (props: PieceSettingsProps) => {
         </div>
       </Show>
 
-      <Show when={pieceModel()}>
-        <>
-          <Show
-            when={
-              pieceModel.auth && (showAuthForAction || showAuthForTrigger)()
-            }
-          >
-            <ConnectionSelect
-              isTrigger={!isNil(selectedTrigger)}
-              piece={pieceModel}
-              disabled={props.readonly}
-            ></ConnectionSelect>
-          </Show>
-          <Show when={selectedAction()}>
-            <GenericPropertiesForm
-              key={selectedAction.name}
-              prefixValue={'settings.input'}
-              props={actionPropsWithoutAuth}
-              propertySettings={selectedStep.settings.propertySettings}
-              disabled={props.readonly}
-              useMentionTextInput={true}
-              markdownVariables={markdownVariables}
-              dynamicPropsInfo={{
-                pieceName: pieceModel.name,
-                pieceVersion: pieceModel.version,
-                actionOrTriggerName: selectedAction.name,
-                placedInside: 'stepSettings',
-                updateFormSchema,
-                updatePropertySettingsSchema,
-              }}
-            ></GenericPropertiesForm>
-          </Show>
-          <Show when={selectedTrigger()}>
-            <GenericPropertiesForm
-              dynamicPropsInfo={{
-                pieceName: pieceModel.name,
-                pieceVersion: pieceModel.version,
-                actionOrTriggerName: selectedTrigger.name,
-                placedInside: 'stepSettings',
-                updateFormSchema,
-                updatePropertySettingsSchema,
-              }}
-              key={selectedTrigger.name}
-              prefixValue={'settings.input'}
-              props={triggerPropsWithoutAuth}
-              useMentionTextInput={false}
-              propertySettings={selectedStep.settings.propertySettings}
-              disabled={props.readonly}
-              markdownVariables={markdownVariables}
-            ></GenericPropertiesForm>
-          </Show>
-        </>
+      <Show when={pieceModel}>
+        {(piece) => (
+          <>
+            <Show
+              when={
+                piece().auth && (showAuthForAction() || showAuthForTrigger())
+              }
+            >
+              <ConnectionSelect
+                isTrigger={!isNil(selectedTrigger())}
+                piece={piece()}
+                disabled={props.readonly}
+              />
+            </Show>
+            <Show when={selectedAction()}>
+              {(action) => (
+                <GenericPropertiesForm
+                  key={action().name}
+                  prefixValue={'settings.input'}
+                  props={actionPropsWithoutAuth()}
+                  propertySettings={props.step.settings.propertySettings}
+                  disabled={props.readonly}
+                  useMentionTextInput={true}
+                  markdownVariables={markdownVariables()}
+                  dynamicPropsInfo={{
+                    pieceName: piece().name,
+                    pieceVersion: piece().version,
+                    actionOrTriggerName: action().name,
+                    placedInside: 'stepSettings',
+                    updateFormSchema,
+                    updatePropertySettingsSchema,
+                  }}
+                />
+              )}
+            </Show>
+            <Show when={selectedTrigger()}>
+              {(trigger) => (
+                <GenericPropertiesForm
+                  dynamicPropsInfo={{
+                    pieceName: piece().name,
+                    pieceVersion: piece().version,
+                    actionOrTriggerName: trigger().name,
+                    placedInside: 'stepSettings',
+                    updateFormSchema,
+                    updatePropertySettingsSchema,
+                  }}
+                  key={trigger().name}
+                  prefixValue={'settings.input'}
+                  props={triggerPropsWithoutAuth()}
+                  useMentionTextInput={false}
+                  propertySettings={props.step.settings.propertySettings}
+                  disabled={props.readonly}
+                  markdownVariables={markdownVariables()}
+                />
+              )}
+            </Show>
+          </>
+        )}
       </Show>
     </div>
   );
 };
 
-PieceSettings.displayName = 'PieceSettings';
 export { PieceSettings };

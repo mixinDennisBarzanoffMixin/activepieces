@@ -11,7 +11,7 @@ import { ViewingOldVersionWidget } from './viewing-old-version-widget';
 
 const BuilderBanner = () => {
   const { lockedBy, takeOver } = useFlowLock();
-  const run = useBuilderStateContext((state) => state.run);
+  const run = useBuilderStateContext((state) => ({ value: state.run })).value;
 
   if (lockedBy) {
     return (
@@ -33,5 +33,4 @@ const BuilderBanner = () => {
   );
 };
 
-BuilderBanner.displayName = 'BuilderBanner';
 export { BuilderBanner };

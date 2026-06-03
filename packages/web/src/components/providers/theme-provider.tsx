@@ -3,6 +3,9 @@ import {
   useContext,
   createSignal,
   createEffect,
+  mergeProps,
+  splitProps,
+  type JSX,
 } from 'solid-js';
 
 import { flagsHooks } from '@/hooks/flags-hooks';
@@ -11,7 +14,7 @@ import { colorsUtils } from '@/lib/color-utils';
 type Theme = 'dark' | 'light' | 'system';
 
 type ThemeProviderProps = {
-  children: any;
+  children: JSX.Element;
   defaultTheme?: Theme;
   storageKey?: string;
 };
@@ -40,14 +43,13 @@ const setFavicon = (url: string) => {
   document.head.appendChild(link);
 };
 
-export function ThemeProvider({
-  children,
-  defaultTheme = 'system',
-  storageKey = 'ap-ui-theme',
-  ...props
-}: ThemeProviderProps) {
+export function ThemeProvider(_props: ThemeProviderProps) {
+  const [local, rest] = splitProps(
+    mergeProps({ defaultTheme: 'system', storageKey: 'ap-ui-theme' }, _props),
+    ['children', 'defaultTheme', 'storageKey'],
+  );
   const [theme, setTheme] = createSignal<Theme>(
-    (localStorage.getItem(storageKey) as Theme) || defaultTheme,
+    (localStorage.getItem(local.storageKey) as Theme) || local.defaultTheme,
   );
   const [forceLightMode, setForceLightMode] = createSignal(false);
   const branding = flagsHooks.useWebsiteBranding();
@@ -106,7 +108,7 @@ export function ThemeProvider({
       return theme();
     },
     setTheme: (t: Theme) => {
-      localStorage.setItem(storageKey, t);
+      localStorage.setItem(local.storageKey, t);
       setTheme(t);
     },
     get forceLightMode() {
@@ -116,8 +118,8 @@ export function ThemeProvider({
   };
 
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
-      {children}
+    <ThemeProviderContext.Provider {...rest} value={value}>
+      {local.children}
     </ThemeProviderContext.Provider>
   );
 }
@@ -148,7 +150,9 @@ export const useApRipple = () => {
     circle.style.left = `${e.clientX - box.left - radius}px`;
     circle.style.top = `${e.clientY - box.top - radius}px`;
     circle.style.background =
-      ctx.theme === 'dark' ? 'rgba(233, 233, 233, 0.2)' : 'rgba(155, 155, 155, 0.2)';
+      ctx.theme === 'dark'
+        ? 'rgba(233, 233, 233, 0.2)'
+        : 'rgba(155, 155, 155, 0.2)';
     circle.className = 'pointer-events-none absolute rounded-full animate-ping';
     el.querySelector('[data-ripple-effect]')?.remove();
     circle.dataset.rippleEffect = 'true';

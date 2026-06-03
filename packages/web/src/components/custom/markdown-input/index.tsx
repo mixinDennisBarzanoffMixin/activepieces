@@ -3,7 +3,10 @@ import { cn } from '@/lib/utils';
 export const MarkdownInput = (props: MarkdownInputProps) => {
   return (
     <textarea
-      class={cn('h-full w-full resize-none bg-transparent outline-none', props.className)}
+      class={cn(
+        'h-full w-full resize-none bg-transparent outline-none',
+        props.className,
+      )}
       value={props.initialValue}
       disabled={props.disabled}
       placeholder={props.placeholder}
@@ -21,5 +24,3 @@ type MarkdownInputProps = {
   onlyEditableOnDoubleClick?: boolean;
   placeholderClassName?: string;
 };
-
-MarkdownInput.displayName = 'MarkdownInput';

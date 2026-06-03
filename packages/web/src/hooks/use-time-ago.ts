@@ -29,7 +29,7 @@ export const useTimeAgo = (date: Date) => {
     }, updateInterval());
 
     return () => clearInterval(intervalId);
-  }, [date]);
+  });
 
   return timeAgo;
 };

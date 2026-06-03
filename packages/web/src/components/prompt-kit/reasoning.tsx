@@ -1,11 +1,15 @@
 import { ChevronDownIcon } from 'lucide-solid';
 import {
+  Accessor,
   createSignal,
   createEffect,
   createContext,
   useContext,
   JSX,
+  Show,
+  mergeProps,
   onCleanup,
+  splitProps,
 } from 'solid-js';
 
 import { cn } from '@/lib/utils';
@@ -13,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { Markdown } from './markdown';
 
 type ReasoningContextType = {
-  isOpen: boolean;
+  open: Accessor<boolean>;
   onOpenChange: (open: boolean) => void;
 };
 
@@ -38,46 +42,41 @@ export type ReasoningProps = {
   onOpenChange?: (open: boolean) => void;
   isStreaming?: boolean;
 };
-function Reasoning({
-  children,
-  className,
-  open,
-  onOpenChange,
-  isStreaming,
-}: ReasoningProps) {
+function Reasoning(props: ReasoningProps) {
   const [internalOpen, setInternalOpen] = createSignal(false);
   const [wasAutoOpened, setWasAutoOpened] = createSignal(false);
 
-  const isControlled = open !== undefined;
-  const isOpen = isControlled ? open : internalOpen;
+  const controlled = () => props.open !== undefined;
+  const open = () => (controlled() ? props.open! : internalOpen());
 
-  const handleOpenChange = (newOpen: boolean) => {
-    if (!isControlled) {
-      setInternalOpen(newOpen);
+  const change = (value: boolean) => {
+    if (!controlled()) {
+      setInternalOpen(value);
     }
-    onOpenChange?.(newOpen);
+    props.onOpenChange?.(value);
   };
 
   createEffect(() => {
-    if (isStreaming && !wasAutoOpened) {
-      if (!isControlled) setInternalOpen(true);
+    if (props.isStreaming && !wasAutoOpened()) {
+      if (!controlled()) setInternalOpen(true);
       setWasAutoOpened(true);
+      return;
     }
 
-    if (!isStreaming && wasAutoOpened) {
-      if (!isControlled) setInternalOpen(false);
+    if (!props.isStreaming && wasAutoOpened()) {
+      if (!controlled()) setInternalOpen(false);
       setWasAutoOpened(false);
     }
-  }, [isStreaming, wasAutoOpened, isControlled]);
+  });
 
   return (
     <ReasoningContext.Provider
       value={{
-        isOpen,
-        onOpenChange: handleOpenChange,
+        open,
+        onOpenChange: change,
       }}
     >
-      <div className={className}>{children}</div>
+      <div class={props.className}>{props.children}</div>
     </ReasoningContext.Provider>
   );
 }
@@ -88,22 +87,30 @@ export type ReasoningTriggerProps = {
 } & JSX.HTMLAttributes<HTMLButtonElement>;
 
 function ReasoningTrigger(props: ReasoningTriggerProps) {
-  const { children, className, onClick, ref, ...rest } = props;
-  const { isOpen, onOpenChange } = useReasoningContext();
+  const [local, rest] = splitProps(props, [
+    'children',
+    'className',
+    'onClick',
+    'ref',
+  ]);
+  const context = useReasoningContext();
 
   return (
     <button
-      ref={ref}
-      className={cn('flex cursor-pointer items-center gap-2', className)}
+      ref={local.ref}
+      class={cn('flex cursor-pointer items-center gap-2', local.className)}
       onClick={(event) => {
-        onClick?.(event);
-        if (!event.defaultPrevented) onOpenChange(!isOpen);
+        local.onClick?.(event);
+        if (!event.defaultPrevented) context.onOpenChange(!context.open());
       }}
       {...rest}
     >
-      <span className="text-primary">{children}</span>
+      <span class="text-primary">{local.children}</span>
       <div
-        className={cn('transform transition-transform', isOpen ? 'rotate-180' : '')}
+        class={cn(
+          'transform transition-transform',
+          context.open() ? 'rotate-180' : '',
+        )}
       >
         <ChevronDownIcon class="size-4" />
       </div>
@@ -118,61 +125,59 @@ export type ReasoningContentProps = {
   contentClassName?: string;
 } & JSX.HTMLAttributes<HTMLDivElement>;
 
-function ReasoningContent({
-  children,
-  className,
-  contentClassName,
-  markdown = false,
-  ...props
-}: ReasoningContentProps) {
+function ReasoningContent(_props: ReasoningContentProps) {
+  const merged = mergeProps({ markdown: false }, _props);
+  const [local, props] = splitProps(merged, [
+    'children',
+    'className',
+    'contentClassName',
+    'markdown',
+  ]);
   let contentRef: HTMLDivElement | undefined;
   let innerRef: HTMLDivElement | undefined;
-  const { isOpen } = useReasoningContext();
+  const context = useReasoningContext();
 
   createEffect(() => {
     if (!contentRef || !innerRef) return;
 
     const observer = new ResizeObserver(() => {
-      if (contentRef && innerRef && isOpen) {
+      if (contentRef && innerRef && context.open()) {
         contentRef.style.maxHeight = `${innerRef.scrollHeight}px`;
       }
     });
 
     observer.observe(innerRef);
 
-    if (isOpen) {
+    if (context.open()) {
       contentRef.style.maxHeight = `${innerRef.scrollHeight}px`;
     }
 
     onCleanup(() => observer.disconnect());
-  }, [isOpen]);
-
-  const content = markdown ? (
-    <Markdown>{children as string}</Markdown>
-  ) : (
-    children
-  );
+  });
 
   return (
     <div
       ref={(el) => (contentRef = el)}
-      className={cn(
+      class={cn(
         'overflow-hidden transition-[max-height] duration-150 ease-out',
-        className,
+        local.className,
       )}
       style={{
-        maxHeight: isOpen && contentRef ? `${contentRef.scrollHeight}px` : '0px',
+        'max-height':
+          context.open() && contentRef ? `${contentRef.scrollHeight}px` : '0px',
       }}
       {...props}
     >
       <div
         ref={(el) => (innerRef = el)}
-        className={cn(
+        class={cn(
           'text-muted-foreground prose prose-sm dark:prose-invert',
-          contentClassName,
+          local.contentClassName,
         )}
       >
-        {content}
+        <Show when={local.markdown} fallback={local.children}>
+          <Markdown>{local.children as string}</Markdown>
+        </Show>
       </div>
     </div>
   );

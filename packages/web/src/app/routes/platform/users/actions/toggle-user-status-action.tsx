@@ -18,29 +18,25 @@ type ToggleUserStatusActionProps = {
   onToggleStatus: (userId: string, currentStatus: UserStatus) => void;
 };
 
-export const ToggleUserStatusAction = ({
-  row,
-  isUpdatingStatus,
-  onToggleStatus,
-}: ToggleUserStatusActionProps) => {
-  if (row.type === 'invitation') {
+export const ToggleUserStatusAction = (props: ToggleUserStatusActionProps) => {
+  if (props.row.type === 'invitation') {
     return null;
   }
 
-  const isAdmin = row.data.platformRole === PlatformRole.ADMIN;
-  const isActive = row.data.status === UserStatus.ACTIVE;
+  const isAdmin = props.row.data.platformRole === PlatformRole.ADMIN;
+  const isActive = props.row.data.status === UserStatus.ACTIVE;
 
   return (
-    <div className="flex items-end justify-end">
+    <div class="flex items-end justify-end">
       <Tooltip>
         <TooltipTrigger>
           <Button
-            disabled={isUpdatingStatus || isAdmin}
+            disabled={props.isUpdatingStatus || isAdmin}
             variant="ghost"
             class="size-8 p-0"
-            loading={isUpdatingStatus}
+            loading={props.isUpdatingStatus}
             onClick={() => {
-              onToggleStatus(row.data.id, row.data.status);
+              props.onToggleStatus(props.row.data.id, props.row.data.status);
             }}
           >
             <Show when={isActive} fallback={<RotateCcw class="size-4" />}>

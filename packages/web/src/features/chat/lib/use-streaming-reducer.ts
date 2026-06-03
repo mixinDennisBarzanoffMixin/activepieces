@@ -31,8 +31,9 @@ export function useStreamingReducer({
   const [streamError, setStreamError] = createSignal<string | null>(null);
 
   let streamPhaseRef: StreamPhase = 'idle';
-  let reducerStateRef: ReturnType<typeof chunkReducer.createStreamingState> | null =
-    null;
+  let reducerStateRef: ReturnType<
+    typeof chunkReducer.createStreamingState
+  > | null = null;
   let chunkBufferRef: UIMessageChunk[] = [];
   let throttleTimerRef: ReturnType<typeof setTimeout> | null = null;
   let streamTimeoutRef: ReturnType<typeof setTimeout> | null = null;
@@ -122,7 +123,7 @@ export function useStreamingReducer({
     const handler = (event: SocketEvent) => {
       if (event.conversationId !== conversationId) return;
 
-      if (event.type === ChatAgentEventType.CHUNK) {
+      if (event.type === String(ChatAgentEventType.CHUNK)) {
         updatePhase('streaming');
         const chunks = Array.isArray(event.data) ? event.data : [event.data];
         for (const chunk of chunks) {
@@ -136,13 +137,13 @@ export function useStreamingReducer({
         streamTimeoutRef = setTimeout(() => {
           handleError({ errorMessage: 'Stream timed out' });
         }, STREAM_TIMEOUT_MS);
-      } else if (event.type === ChatAgentEventType.ERROR) {
+      } else if (event.type === String(ChatAgentEventType.ERROR)) {
         const errorData = event.data as { message?: string; code?: string };
         handleError({
-          errorMessage: errorData?.message ?? 'An error occurred',
-          errorCode: errorData?.code,
+          errorMessage: errorData.message ?? 'An error occurred',
+          errorCode: errorData.code,
         });
-      } else if (event.type === ChatAgentEventType.FINISHED) {
+      } else if (event.type === String(ChatAgentEventType.FINISHED)) {
         handleFinish();
       }
     };

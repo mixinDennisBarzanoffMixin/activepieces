@@ -28,10 +28,7 @@ import { useRedirectAfterLogin } from '@/lib/navigation-utils';
 import { authMutations } from '../hooks/auth-hooks';
 import { passwordValidation } from '../utils/password-validation-utils';
 
-const SignUpForm = ({
-  showCheckYourEmailNote,
-  setShowCheckYourEmailNote,
-}: {
+const SignUpForm = (props: {
   showCheckYourEmailNote: boolean;
   setShowCheckYourEmailNote: (value: boolean) => void;
 }) => {
@@ -49,6 +46,33 @@ const SignUpForm = ({
       lastName: '',
     },
   });
+  const first = form.register('firstName', {
+    required: t('First name is required'),
+  });
+  const last = form.register('lastName', {
+    required: t('Last name is required'),
+  });
+  const email = form.register('email', {
+    required: t('Email is required'),
+    validate: (value) =>
+      formatUtils.emailRegex.test(value) || t('Email is invalid'),
+  });
+  const pass = form.register('password', {
+    required: t('Password is required'),
+    validate: (value) => {
+      if (typeof value !== 'string') {
+        return t('Password is required');
+      }
+      return Object.values(passwordValidation)
+        .map((rule) => rule(value))
+        .find((error) => error !== true);
+    },
+  });
+  const errors = createMemo(() => form.formState.errors);
+  const firstError = createMemo(() => errors().firstName?.message);
+  const lastError = createMemo(() => errors().lastName?.message);
+  const emailError = createMemo(() => errors().email?.message);
+  const passError = createMemo(() => errors().password?.message);
 
   const branding = flagsHooks.useWebsiteBranding();
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
@@ -86,7 +110,7 @@ const SignUpForm = ({
         redirectAfterLogin();
         return;
       }
-      setShowCheckYourEmailNote(true);
+      props.setShowCheckYourEmailNote(true);
     },
     onError: (error) => {
       if (!api.isError(error)) {
@@ -99,7 +123,7 @@ const SignUpForm = ({
         return;
       }
       if (code === ErrorCode.EMAIL_IS_NOT_VERIFIED) {
-        setShowCheckYourEmailNote(true);
+        props.setShowCheckYourEmailNote(true);
         return;
       }
       if (code === ErrorCode.INVITATION_ONLY_SIGN_UP) {
@@ -135,168 +159,150 @@ const SignUpForm = ({
     });
   };
 
-  if (showCheckYourEmailNote) {
-    return (
-      <div className="pt-6">
-        <CheckEmailNote
-          email={form.getValues('email').trim().toLowerCase()}
-          type={OtpType.EMAIL_VERIFICATION}
-        />
-      </div>
-    );
-  }
-
   return (
-    <form onSubmit={form.handleSubmit(submit)} class="flex flex-col space-y-4">
-      <div className="flex flex-row gap-2">
-        <div class="w-full">
-          <Label for="firstName">{t('First Name')}</Label>
-          <Input
-            {...form.register('firstName', { required: t('First name is required') })}
-            required
-            id="firstName"
-            type="text"
-            placeholder="John"
-            class="rounded-sm"
-            data-testid="sign-up-first-name"
+    <Show
+      when={!props.showCheckYourEmailNote}
+      fallback={
+        <div class="pt-6">
+          <CheckEmailNote
+            email={form.getValues('email').trim().toLowerCase()}
+            type={OtpType.EMAIL_VERIFICATION}
           />
-          {form.formState.errors.firstName?.message && (
-            <p class="text-sm font-medium text-destructive">
-              {form.formState.errors.firstName.message}
-            </p>
-          )}
         </div>
-        <div class="w-full">
-          <Label for="lastName">{t('Last Name')}</Label>
-          <Input
-            {...form.register('lastName', { required: t('Last name is required') })}
-            required
-            id="lastName"
-            type="text"
-            placeholder="Doe"
-            class="rounded-sm"
-            data-testid="sign-up-last-name"
-          />
-          {form.formState.errors.lastName?.message && (
-            <p class="text-sm font-medium text-destructive">
-              {form.formState.errors.lastName.message}
-            </p>
-          )}
-        </div>
-      </div>
-      <div class="grid space-y-1">
-        <Label for="email">{t('Email')}</Label>
-        <Input
-          {...form.register('email', {
-            required: t('Email is required'),
-            validate: (value) =>
-              formatUtils.emailRegex.test(value) || t('Email is invalid'),
-          })}
-          required
-          id="email"
-          type="email"
-          placeholder="email@example.com"
-          class="rounded-sm"
-          data-testid="sign-up-email"
-        />
-        {form.formState.errors.email?.message && (
-          <p class="text-sm font-medium text-destructive">
-            {form.formState.errors.email.message}
-          </p>
-        )}
-      </div>
-      <div class="grid space-y-1">
-        <Label for="password">{t('Password')}</Label>
-        <div className="relative flex items-center">
-          <Input
-            {...form.register('password', {
-              required: t('Password is required'),
-              validate: (value) => {
-                if (typeof value !== 'string') {
-                  return t('Password is required');
-                }
-                return Object.values(passwordValidation)
-                  .map((rule) => rule(value))
-                  .find((error) => error !== true);
-              },
-            })}
-            required
-            id="password"
-            type={showPassword() ? 'text' : 'password'}
-            placeholder="********"
-            class="rounded-sm pr-16"
-            data-testid="sign-up-password"
-            onInput={(event) => {
-              form.setValue('password', event.currentTarget.value, {
-                shouldValidate: true,
-                shouldDirty: true,
-                shouldTouch: true,
-              });
-              setPassword(event.currentTarget.value);
-            }}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
-          />
-          <div className="absolute right-1 flex items-center gap-0.5">
-            <PasswordStrengthBolt password={password()} />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              tabIndex={-1}
-              onClick={() => setShowPassword((v) => !v)}
-              class="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
-            >
-              {showPassword() ? (
-                <EyeOff class="w-4 h-4" />
-              ) : (
-                <Eye class="w-4 h-4" />
-              )}
-            </Button>
+      }
+    >
+      <form
+        onSubmit={form.handleSubmit(submit)}
+        class="flex flex-col space-y-4"
+      >
+        <div class="flex flex-row gap-2">
+          <div class="w-full">
+            <Label for="firstName">{t('First Name')}</Label>
+            <Input
+              {...first}
+              required
+              id="firstName"
+              type="text"
+              placeholder="John"
+              class="rounded-sm"
+              data-testid="sign-up-first-name"
+            />
+            <Show when={firstError()}>
+              <p class="text-sm font-medium text-destructive">{firstError()}</p>
+            </Show>
           </div>
-          <Show when={focused()}>
-            <div class="absolute left-[calc(100%+0.375rem)] top-1/2 z-50 w-max -translate-y-1/2 rounded-md border bg-popover p-4 text-popover-foreground shadow-md">
-              <div className="absolute -left-[4.5px] top-1/2 -translate-y-1/2">
-                <div className="w-2.5 h-2.5 rotate-45 bg-popover border-l border-b border-border" />
-              </div>
-              <div class="mb-2 flex flex-col gap-1 text-sm">
-                <div class="text-xs font-medium">
-                  {t('Password Requirements')}
-                </div>
-              </div>
-              <PasswordRequirementsList
-                password={password()}
-                isSubmitted={form.formState.submitCount() > 0}
-              />
-            </div>
+          <div class="w-full">
+            <Label for="lastName">{t('Last Name')}</Label>
+            <Input
+              {...last}
+              required
+              id="lastName"
+              type="text"
+              placeholder="Doe"
+              class="rounded-sm"
+              data-testid="sign-up-last-name"
+            />
+            <Show when={lastError()}>
+              <p class="text-sm font-medium text-destructive">{lastError()}</p>
+            </Show>
+          </div>
+        </div>
+        <div class="grid space-y-1">
+          <Label for="email">{t('Email')}</Label>
+          <Input
+            {...email}
+            required
+            id="email"
+            type="email"
+            placeholder="email@example.com"
+            class="rounded-sm"
+            data-testid="sign-up-email"
+          />
+          <Show when={emailError()}>
+            <p class="text-sm font-medium text-destructive">{emailError()}</p>
           </Show>
         </div>
-        {form.formState.errors.password?.message && (
-          <p class="text-sm font-medium text-destructive">
-            {form.formState.errors.password.message}
-          </p>
-        )}
-      </div>
-      {showNewsLetterCheckbox() && (
-        <div class="flex items-center gap-2">
-          <Checkbox
-            id="newsLetter"
-            class="m-0!"
-            checked={form.values().newsLetter}
-            onCheckedChange={(value) => form.setValue('newsLetter', value)}
-          />
-          <Label for="newsLetter" class="text-xs">
-            {t('Get emails about updates and newsletters')}
-          </Label>
+        <div class="grid space-y-1">
+          <Label for="password">{t('Password')}</Label>
+          <div class="relative flex items-center">
+            <Input
+              {...pass}
+              required
+              id="password"
+              type={showPassword() ? 'text' : 'password'}
+              placeholder="********"
+              class="rounded-sm pr-16"
+              data-testid="sign-up-password"
+              onInput={(event) => {
+                form.setValue('password', event.currentTarget.value, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                  shouldTouch: true,
+                });
+                setPassword(event.currentTarget.value);
+              }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
+            />
+            <div class="absolute right-1 flex items-center gap-0.5">
+              <PasswordStrengthBolt password={password()} />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                tabIndex={-1}
+                onClick={() => setShowPassword((v) => !v)}
+                class="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+              >
+                <Show when={showPassword()} fallback={<Eye class="w-4 h-4" />}>
+                  <EyeOff class="w-4 h-4" />
+                </Show>
+              </Button>
+            </div>
+            <Show when={focused()}>
+              <div class="absolute left-[calc(100%+0.375rem)] top-1/2 z-50 w-max -translate-y-1/2 rounded-md border bg-popover p-4 text-popover-foreground shadow-md">
+                <div class="absolute -left-[4.5px] top-1/2 -translate-y-1/2">
+                  <div class="w-2.5 h-2.5 rotate-45 bg-popover border-l border-b border-border" />
+                </div>
+                <div class="mb-2 flex flex-col gap-1 text-sm">
+                  <div class="text-xs font-medium">
+                    {t('Password Requirements')}
+                  </div>
+                </div>
+                <PasswordRequirementsList
+                  password={password()}
+                  isSubmitted={form.formState.submitCount() > 0}
+                />
+              </div>
+            </Show>
+          </div>
+          <Show when={passError()}>
+            <p class="text-sm font-medium text-destructive">{passError()}</p>
+          </Show>
         </div>
-      )}
-      {serverError() && (
-        <p class="text-sm font-medium text-destructive">{serverError()}</p>
-      )}
-      <Button loading={isPending} type="submit" data-testid="sign-up-button">
-        {t('Sign up')}
-      </Button>
-    </form>
+        <Show when={showNewsLetterCheckbox()}>
+          <div class="flex items-center gap-2">
+            <Checkbox
+              id="newsLetter"
+              class="m-0!"
+              checked={form.values().newsLetter}
+              onCheckedChange={(value) =>
+                form.setValue('newsLetter', value === true)
+              }
+            />
+            <Label for="newsLetter" class="text-xs">
+              {t('Get emails about updates and newsletters')}
+            </Label>
+          </div>
+        </Show>
+        <Show when={serverError()}>
+          <p class="text-sm font-medium text-destructive">{serverError()}</p>
+        </Show>
+        <Button loading={isPending} type="submit" data-testid="sign-up-button">
+          {t('Sign up')}
+        </Button>
+      </form>
+    </Show>
   );
 };
 

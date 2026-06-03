@@ -102,21 +102,21 @@ function useVoiceInput({
   onError: (message: string) => void;
 }) {
   const [isRecording, setIsRecording] = createSignal(false);
-  const recognitionRef = null;
-  const accumulatedTranscriptRef = '';
-  const isCancellingRef = false;
+  let recognitionRef: SpeechRecognitionInstance | null = null;
+  let accumulatedTranscriptRef = '';
+  let isCancellingRef = false;
 
   const stopRecording = () => {
-    if (recognitionRef.current) {
-      isCancellingRef.current = false;
-      recognitionRef.current.stop();
+    if (recognitionRef) {
+      isCancellingRef = false;
+      recognitionRef.stop();
     }
   };
 
   const cancelRecording = () => {
-    if (recognitionRef.current) {
-      isCancellingRef.current = true;
-      recognitionRef.current.stop();
+    if (recognitionRef) {
+      isCancellingRef = true;
+      recognitionRef.stop();
     }
   };
 
@@ -126,8 +126,8 @@ function useVoiceInput({
       return;
     }
 
-    accumulatedTranscriptRef.current = '';
-    isCancellingRef.current = false;
+    accumulatedTranscriptRef = '';
+    isCancellingRef = false;
 
     const recognition = new speechRecognitionConstructor();
     recognition.continuous = true;
@@ -139,12 +139,12 @@ function useVoiceInput({
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
-          accumulatedTranscriptRef.current += result[0].transcript;
+          accumulatedTranscriptRef += result[0].transcript;
         } else {
           interim += result[0].transcript;
         }
       }
-      onInterim(accumulatedTranscriptRef.current + interim);
+      onInterim(accumulatedTranscriptRef + interim);
     };
 
     recognition.onerror = (event) => {
@@ -152,23 +152,23 @@ function useVoiceInput({
         onError('Could not access microphone. Check browser permissions.');
       }
       setIsRecording(false);
-      recognitionRef.current = null;
+      recognitionRef = null;
     };
 
     recognition.onend = () => {
-      if (!isCancellingRef.current) {
+      if (!isCancellingRef) {
         playStopSound();
-        const finalText = accumulatedTranscriptRef.current.trim();
+        const finalText = accumulatedTranscriptRef.trim();
         if (finalText) {
           onTranscript(finalText);
         }
       }
       setIsRecording(false);
-      recognitionRef.current = null;
-      isCancellingRef.current = false;
+      recognitionRef = null;
+      isCancellingRef = false;
     };
 
-    recognitionRef.current = recognition;
+    recognitionRef = recognition;
     recognition.start();
     playStartSound();
     setIsRecording(true);
@@ -176,9 +176,9 @@ function useVoiceInput({
 
   createEffect(() => {
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
+      if (recognitionRef) {
+        recognitionRef.stop();
+        recognitionRef = null;
       }
     };
   });

@@ -1,6 +1,6 @@
 import { t } from 'i18next';
 import { CheckCircle, ExternalLink, XCircle } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { Show, type JSXElement } from 'solid-js';
 
 import {
   Item,
@@ -15,56 +15,48 @@ import { LoadingSpinner } from '@/components/custom/spinner';
 type CheckItemProps = {
   id: string;
   title: string;
-  icon: JSX.Element;
+  icon: JSXElement;
   isChecked: boolean;
-  message: string | JSX.Element;
+  message: string | JSXElement;
   loading: boolean;
   link?: string;
 };
 
-const CheckItem = ({
-  id,
-  title,
-  icon,
-  isChecked,
-  message,
-  loading,
-  link,
-}: CheckItemProps) => {
+const CheckItem = (props: CheckItemProps) => {
   return (
-    <Item variant="outline" key={id}>
+    <Item variant="outline" key={props.id}>
       <ItemMedia variant="icon">
-        <Show when={loading} fallback={icon}>
+        <Show when={props.loading} fallback={props.icon}>
           <LoadingSpinner />
         </Show>
       </ItemMedia>
       <ItemContent>
         <ItemTitle>
-          {title}
-          <Show when={link}>
-            <a href={link} target="_blank" rel="noreferrer">
+          {props.title}
+          <Show when={props.link}>
+            <a href={props.link} target="_blank" rel="noreferrer">
               <ExternalLink size={18} />
             </a>
           </Show>
         </ItemTitle>
         <ItemDescription class="text-xs text-muted-foreground">
-          <Show when={loading} fallback={message}>
+          <Show when={props.loading} fallback={props.message}>
             '...'
           </Show>
         </ItemDescription>
       </ItemContent>
-      <Show when={!loading}>
+      <Show when={!props.loading}>
         <ItemActions>
           <Show
-            when={isChecked}
+            when={props.isChecked}
             fallback={
-              <div className="text-destructive-700 flex items-center gap-2">
+              <div class="text-destructive-700 flex items-center gap-2">
                 <XCircle size={18} />
                 {t('Needs Attention')}
               </div>
             }
           >
-            <div className="text-success-700 flex items-center gap-2">
+            <div class="text-success-700 flex items-center gap-2">
               <CheckCircle size={18} />
               {t('Passed')}
             </div>

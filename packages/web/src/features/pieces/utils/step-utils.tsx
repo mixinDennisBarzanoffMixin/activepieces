@@ -173,11 +173,7 @@ export function extractPieceNamesAndCoreMetadata(
     ) {
       pieceNamesSet.add(step.settings.pieceName);
     } else if (!excludeCore) {
-      const coreMeta =
-        CORE_STEP_METADATA[step.type as keyof typeof CORE_STEP_METADATA];
-      if (coreMeta) {
-        coreMetadata.push(coreMeta);
-      }
+      coreMetadata.push(CORE_STEP_METADATA[step.type]);
     }
   }
 

@@ -4,7 +4,7 @@ import { Show } from 'solid-js';
 import { ApAvatar } from '@/components/custom/ap-avatar';
 import { useEmbedding } from '@/components/providers/embed-provider';
 
-export const NoteFooter = ({ creatorId, isDragging }: NoteFooterProps) => {
+export const NoteFooter = (props: NoteFooterProps) => {
   const {
     embedState: { isEmbedded },
   } = useEmbedding();
@@ -12,21 +12,20 @@ export const NoteFooter = ({ creatorId, isDragging }: NoteFooterProps) => {
     return null;
   }
   return (
-    <div className="flex items-center justify-between gap-2 cursor-grabbing overflow-hidden">
-      <div className="grow">
-        <Show when={!isNil(creatorId)()}>
+    <div class="flex items-center justify-between gap-2 cursor-grabbing overflow-hidden">
+      <div class="grow">
+        <Show when={!isNil(props.creatorId)}>
           <ApAvatar
             size="xsmall"
-            id={creatorId}
+            id={props.creatorId}
             includeName={true}
-            hideHover={isDragging}
+            hideHover={props.isDragging}
           />
         </Show>
       </div>
     </div>
   );
 };
-NoteFooter.displayName = 'NoteFooter';
 
 type NoteFooterProps = {
   id: string;

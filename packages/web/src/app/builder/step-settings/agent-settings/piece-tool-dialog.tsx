@@ -1,5 +1,4 @@
 import { AgentTool, isNil, mcpToolNameUtils } from '@activepieces/shared';
-import { useDebounce } from '@/lib/debounce';
 import { t } from 'i18next';
 import { ChevronLeft } from 'lucide-solid';
 import { Show, createEffect, createMemo } from 'solid-js';
@@ -27,7 +26,9 @@ import {
 import {
   stepsHooks,
   PieceStepMetadataWithSuggestions,
+  StepMetadataWithSuggestions,
 } from '@/features/pieces';
+import { useDebounce } from '@/lib/debounce';
 
 import { PredefinedInputsForm } from './predefined-inputs-form';
 
@@ -45,10 +46,7 @@ const excludedPieces = [
   '@activepieces/piece-grok-xai',
 ];
 
-export function AgentPieceDialog({
-  tools,
-  onToolsUpdate,
-}: AgentToolsDialogProps) {
+export function AgentPieceDialog(props: AgentToolsDialogProps) {
   const {
     showAddPieceDialog,
     selectedPage,
@@ -71,7 +69,10 @@ export function AgentPieceDialog({
     stepsHooks.useAllStepsMetadata({
       searchQuery: debouncedQuery,
       type: 'action',
-    });
+    }) as {
+      metadata: StepMetadataWithSuggestions[] | undefined;
+      isLoading: boolean;
+    };
 
   const pieceMetadata = createMemo(() => {
     return (
@@ -86,8 +87,8 @@ export function AgentPieceDialog({
 
   createEffect(() => {
     if (!showAddPieceDialog) return;
-    if (!isNil(editingPieceTool) && pieceMetadata.length > 0) {
-      const piece = pieceMetadata.find(
+    if (!isNil(editingPieceTool) && pieceMetadata().length > 0) {
+      const piece = pieceMetadata().find(
         (p) => p.pieceName === editingPieceTool.pieceMetadata.pieceName,
       );
 
@@ -113,13 +114,13 @@ export function AgentPieceDialog({
     if (isNil(newTool)) return;
 
     if (!isNil(editingPieceTool)) {
-      const updatedTools = tools.map((tool) =>
+      const updatedTools = props.tools.map((tool) =>
         tool.toolName === editingPieceTool.toolName ? newTool : tool,
       );
-      onToolsUpdate(updatedTools);
+      props.onToolsUpdate(updatedTools);
       toast('Piece tool updated');
     } else {
-      onToolsUpdate([...tools, newTool]);
+      props.onToolsUpdate([...props.tools, newTool]);
       toast('Piece tool added');
     }
 
@@ -138,12 +139,12 @@ export function AgentPieceDialog({
         return (
           <PiecesList
             isPiecesLoading={isPiecesLoading}
-            pieceMetadata={pieceMetadata}
+            pieceMetadata={pieceMetadata()}
           />
         );
       }
       case 'actions-list': {
-        return <PieceActionsList tools={tools} />;
+        return <PieceActionsList tools={props.tools} />;
       }
       case 'action-inputs': {
         return <PredefinedInputsForm />;
@@ -159,7 +160,7 @@ export function AgentPieceDialog({
       case 'actions-list': {
         return (
           selectedPiece && (
-            <div className="flex items-center justify-start gap-2">
+            <div class="flex items-center justify-start gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -180,7 +181,7 @@ export function AgentPieceDialog({
       case 'action-inputs': {
         return (
           selectedAction && (
-            <div className="flex items-center justify-start gap-2">
+            <div class="flex items-center justify-start gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -210,7 +211,7 @@ export function AgentPieceDialog({
 
         {renderDialogMainContent()}
 
-        <Show when={selectedPage === 'action-inputs'()}>
+        <Show when={selectedPage === 'action-inputs'}>
           <DialogFooter class="border-t p-4 mt-auto">
             <DialogClose asChild>
               <Button type="button" variant="outline">
@@ -223,7 +224,7 @@ export function AgentPieceDialog({
               type="button"
               onClick={handleSave}
             >
-              <Show when={editingPieceTool()} fallback={t('Add Tool')}>
+              <Show when={editingPieceTool} fallback={t('Add Tool')}>
                 {t('Update Tool')}
               </Show>
             </Button>

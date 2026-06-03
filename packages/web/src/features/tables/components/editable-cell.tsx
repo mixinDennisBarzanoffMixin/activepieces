@@ -1,5 +1,13 @@
 import { FieldType } from '@activepieces/shared';
-import { createEffect, createSignal, ErrorBoundary } from 'solid-js';
+import {
+  ErrorBoundary,
+  Match,
+  Switch,
+  createEffect,
+  createMemo,
+  createSignal,
+  mergeProps,
+} from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -24,40 +32,36 @@ type EditableCellProps = {
   locked?: boolean;
 };
 
-const EditorSelector = ({ fieldType }: { fieldType: FieldType }) => {
-  switch (fieldType) {
-    case FieldType.DATE:
-      return <DateEditor />;
-    case FieldType.NUMBER:
-      return <NumberEditor />;
-    case FieldType.STATIC_DROPDOWN:
-      return <DropdownEditor></DropdownEditor>;
-    default:
-      return <TextEditor />;
-  }
+const EditorSelector = (props: { fieldType: FieldType }) => {
+  return (
+    <Switch fallback={<TextEditor />}>
+      <Match when={props.fieldType === FieldType.DATE}>
+        <DateEditor />
+      </Match>
+      <Match when={props.fieldType === FieldType.NUMBER}>
+        <NumberEditor />
+      </Match>
+      <Match when={props.fieldType === FieldType.STATIC_DROPDOWN}>
+        <DropdownEditor />
+      </Match>
+    </Switch>
+  );
 };
 
-const useSetInitialFocus = (isSelected: boolean) => {
-  const containerRef = null;
+const useSetInitialFocus = (selected: () => boolean) => {
+  const ref: { current?: HTMLDivElement } = {};
   createEffect(() => {
     requestAnimationFrame(() => {
-      if (isSelected) {
-        containerRef.current?.focus();
+      if (selected()) {
+        ref.current?.focus();
       }
     });
   });
-  return containerRef;
+  return ref;
 };
 
-export function EditableCell({
-  field,
-  column,
-  rowIdx,
-  onClick,
-  locked = false,
-  value,
-  disabled = false,
-}: EditableCellProps) {
+export function EditableCell(_props: EditableCellProps) {
+  const props = mergeProps({ locked: false, disabled: false }, _props);
   const [selectedCell, setSelectedCell, records, fields] = useTableState(
     (state) => [
       state.selectedCell,
@@ -67,14 +71,16 @@ export function EditableCell({
     ],
   );
   const [isEditing, setIsEditing] = createSignal(false);
-  const isSelected =
-    selectedCell?.rowIdx === rowIdx && selectedCell?.columnIdx === column.idx;
+  const value = createMemo(() => props.value || '');
+  const isSelected = () =>
+    selectedCell?.rowIdx === props.rowIdx &&
+    selectedCell.columnIdx === props.column.idx;
   const containerRef = useSetInitialFocus(isSelected);
   const handleKeyDown = (e: KeyboardEvent) => {
     const isTypingKey = e.key.length === 1 || e.key === 'Enter';
-    if (isTypingKey && !disabled && !isEditing) {
+    if (isTypingKey && !props.disabled && !isEditing) {
       setIsEditing(true);
-      setSelectedCell({ rowIdx, columnIdx: column.idx });
+      setSelectedCell({ rowIdx: props.rowIdx, columnIdx: props.column.idx });
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         e.stopPropagation();
@@ -85,59 +91,62 @@ export function EditableCell({
     // so we need to prevent the default behavior of the arrow keys
     switch (e.key) {
       case 'ArrowUp': {
-        if (rowIdx === 0) {
+        if (props.rowIdx === 0) {
           e.preventDefault();
           e.stopPropagation();
         }
         break;
       }
       case 'ArrowDown': {
-        if (rowIdx === records.length - 1) {
+        if (props.rowIdx === records.length - 1) {
           e.preventDefault();
           e.stopPropagation();
         }
         break;
       }
       case 'ArrowLeft':
-        if (column.idx === 1) {
+        if (props.column.idx === 1) {
           e.preventDefault();
           e.stopPropagation();
         }
         break;
       case 'ArrowRight': {
-        if (column.idx === fields.length) {
+        if (props.column.idx === fields.length) {
           e.preventDefault();
           e.stopPropagation();
         }
       }
     }
   };
-  const isDropdown = field.type === FieldType.STATIC_DROPDOWN;
   return (
     <div
-      ref={containerRef}
-      id={`editable-cell-${rowIdx}-${column.idx}`}
-      className={
+      ref={(el) => {
+        containerRef.current = el;
+      }}
+      id={`editable-cell-${props.rowIdx}-${props.column.idx}`}
+      class={
         isEditing
           ? 'h-full w-full'
           : cn(
               'h-full flex items-center justify-between gap-2  focus:outline-hidden  ',
               'group cursor-pointer border',
-              isSelected && !locked ? 'border-primary' : 'border-transparent',
-              locked && 'locked-row',
-              !isDropdown && 'pl-2 py-2',
+              isSelected() && !props.locked
+                ? 'border-primary'
+                : 'border-transparent',
+              props.locked && 'locked-row',
+              props.field.type !== FieldType.STATIC_DROPDOWN && 'pl-2 py-2',
             )
       }
       tabIndex={0}
       onClick={() => {
-        onClick?.();
-        setSelectedCell({ rowIdx, columnIdx: column.idx });
+        props.onClick?.();
+        setSelectedCell({ rowIdx: props.rowIdx, columnIdx: props.column.idx });
       }}
       onFocus={() => {
-        setSelectedCell({ rowIdx, columnIdx: column.idx });
+        setSelectedCell({ rowIdx: props.rowIdx, columnIdx: props.column.idx });
       }}
-      onDoubleClick={() => {
-        if (!disabled) {
+      onDblClick={() => {
+        if (!props.disabled) {
           setIsEditing(true);
         }
       }}
@@ -145,17 +154,17 @@ export function EditableCell({
     >
       <ErrorBoundary fallback={<div>Error</div>}>
         <CellProvider
-          rowIdx={rowIdx}
-          columnIdx={column.idx - 1}
-          fieldType={field.type}
-          value={value ?? ''}
+          rowIdx={props.rowIdx}
+          columnIdx={props.column.idx - 1}
+          fieldType={props.field.type}
+          value={value}
           handleCellChange={() => {}}
-          containerRef={containerRef}
-          isEditing={isEditing}
+          containerRef={containerRef.current}
+          isEditing={isEditing()}
           setIsEditing={setIsEditing}
-          disabled={disabled}
+          disabled={props.disabled}
         >
-          <EditorSelector fieldType={field.type} />
+          <EditorSelector fieldType={props.field.type} />
         </CellProvider>
       </ErrorBoundary>
     </div>

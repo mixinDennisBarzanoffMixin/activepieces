@@ -1,6 +1,7 @@
 import { PlatformRole } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Loader2 } from 'lucide-solid';
+import { createMemo, For, Show } from 'solid-js';
 
 import {
   Select,
@@ -11,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 type RoleConfig<T = string> = {
   value: T;
@@ -61,69 +63,74 @@ interface RoleSelectorProps {
   isAssigningRole?: boolean;
 }
 
-export const RoleSelector = ({
-  type,
-  value,
-  onValueChange,
-  disabled = false,
-  placeholder,
-  roles = [],
-  isLoading = false,
-  isAssigningRole = false,
-}: RoleSelectorProps) => {
-  const isPlatform = type === 'platform';
-  const projectRolesLoading = !isPlatform && isLoading;
-  const projectRoleAssigning = !isPlatform && isAssigningRole;
-  const showProjectSpinner = projectRolesLoading || projectRoleAssigning;
-  const selectDisabled = disabled || showProjectSpinner;
+export const RoleSelector = (_props: RoleSelectorProps) => {
+  const isPlatform = () => _props.type === 'platform';
+  const projectRolesLoading = () => !isPlatform() && !!_props.isLoading;
+  const projectRoleAssigning = () => !isPlatform() && !!_props.isAssigningRole;
+  const showProjectSpinner = () =>
+    projectRolesLoading() || projectRoleAssigning();
+  const selectDisabled = () => !!_props.disabled || showProjectSpinner();
 
-  const label = isPlatform ? t('Platform Roles') : t('Project Roles');
+  const label = () => (isPlatform() ? t('Platform Roles') : t('Project Roles'));
 
-  const options = isPlatform
-    ? PLATFORM_ROLES.map((role) => ({
-        value: role.value,
-        label: role.label,
-        description: role.description,
-      }))
-    : roles.map((role) => ({
-        value: role.name,
-        label: role.name,
-        description: getProjectRoleDescription(role.name),
-      }));
+  const options = createMemo<RoleConfig[]>(() =>
+    isPlatform()
+      ? PLATFORM_ROLES.map((role) => ({
+          value: role.value,
+          label: role.label,
+          description: role.description,
+        }))
+      : (_props.roles ?? []).map((role) => ({
+          value: role.name,
+          label: role.name,
+          description: getProjectRoleDescription(role.name),
+        })),
+  );
 
-  const selectedRole = options.find((r) => r.value === value);
+  const selectedRole = createMemo(() =>
+    options().find((r) => r.value === _props.value),
+  );
 
   return (
     <Select
-      value={value}
-      onValueChange={onValueChange}
-      disabled={selectDisabled}
+      value={_props.value}
+      onValueChange={_props.onValueChange}
+      disabled={selectDisabled()}
     >
       <SelectTrigger class="w-full">
-        {showProjectSpinner ? (
-          <span className="flex items-center gap-2 font-normal text-muted-foreground">
+        <Show
+          when={showProjectSpinner()}
+          fallback={
+            selectedRole() ? (
+              <span class="font-normal">{selectedRole()?.label}</span>
+            ) : (
+              <SelectValue
+                placeholder={_props.placeholder || String(t('Select Role'))}
+              />
+            )
+          }
+        >
+          <span class="flex items-center gap-2 font-normal text-muted-foreground">
             <Loader2 class="size-4 animate-spin" />
-            {projectRoleAssigning ? t('Saving...') : t('Loading...')}
+            {projectRoleAssigning() ? t('Saving...') : t('Loading...')}
           </span>
-        ) : selectedRole ? (
-          <span className="font-normal">{selectedRole.label}</span>
-        ) : (
-          <SelectValue placeholder={placeholder || t('Select Role')} />
-        )}
+        </Show>
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
-          <SelectLabel>{label}</SelectLabel>
-          {options.map((option) => (
-            <SelectItem key={option.value} value={option.value} class="py-3">
-              <div className="flex flex-col gap-1">
-                <span className="font-medium">{t(option.label)}</span>
-                <span className="text-xs text-muted-foreground">
-                  {t(option.description)}
-                </span>
-              </div>
-            </SelectItem>
-          ))}
+          <SelectLabel>{label()}</SelectLabel>
+          <For each={options()}>
+            {(option) => (
+              <SelectItem key={option.value} value={option.value} class="py-3">
+                <div class="flex flex-col gap-1">
+                  <span class="font-medium">{t(option.label)}</span>
+                  <span class="text-xs text-muted-foreground">
+                    {t(option.description)}
+                  </span>
+                </div>
+              </SelectItem>
+            )}
+          </For>
         </SelectGroup>
       </SelectContent>
     </Select>
@@ -138,31 +145,31 @@ interface RoleDropdownProps {
   className?: string;
 }
 
-export const RoleDropdown = ({
-  value,
-  onValueChange,
-  disabled = false,
-  roles,
-  className = '',
-}: RoleDropdownProps) => {
+export const RoleDropdown = (_props: RoleDropdownProps) => {
   return (
-    <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger class={`w-[150px] justify-between ${className}`}>
+    <Select
+      value={_props.value}
+      onValueChange={_props.onValueChange}
+      disabled={!!_props.disabled}
+    >
+      <SelectTrigger class={cn('w-[150px] justify-between', _props.className)}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         <SelectGroup>
           <SelectLabel>{t('Roles')}</SelectLabel>
-          {roles.map((role) => (
-            <SelectItem key={role.name} value={role.name} class="py-3">
-              <div className="flex flex-col gap-1">
-                <span className="font-medium">{role.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  {t(getProjectRoleDescription(role.name))}
-                </span>
-              </div>
-            </SelectItem>
-          ))}
+          <For each={_props.roles}>
+            {(role) => (
+              <SelectItem key={role.name} value={role.name} class="py-3">
+                <div class="flex flex-col gap-1">
+                  <span class="font-medium">{role.name}</span>
+                  <span class="text-xs text-muted-foreground">
+                    {t(getProjectRoleDescription(role.name))}
+                  </span>
+                </div>
+              </SelectItem>
+            )}
+          </For>
         </SelectGroup>
       </SelectContent>
     </Select>

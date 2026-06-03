@@ -28,16 +28,14 @@ const AllowedOriginsForm = z.object({
 
 type AllowedOriginsForm = z.infer<typeof AllowedOriginsForm>;
 
-export const AllowedDomainsStep = ({
-  allowedEmbedOrigins,
-}: {
+export const AllowedDomainsStep = (props: {
   allowedEmbedOrigins: string[];
 }) => {
   const { platform, refetch } = platformHooks.useCurrentPlatform();
   const { data: envAllowedOrigins } = flagsHooks.useFlag<string[]>(
     ApFlagId.ALLOWED_EMBED_ORIGINS,
   );
-  const [origins, setOrigins] = createSignal(allowedEmbedOrigins);
+  const [origins, setOrigins] = createSignal(props.allowedEmbedOrigins);
   const [error, setError] = createSignal('');
 
   const { mutate, isPending } = createMutation(() => ({
@@ -72,53 +70,53 @@ export const AllowedDomainsStep = ({
         'List the websites that can load your embed in an iframe. All other origins are blocked.',
       )}
     >
-      <form onSubmit={submit} className="flex flex-col gap-2">
-          <div className="space-y-1">
-            <Label>{t('Allowed websites')}</Label>
-            <p className="text-xs text-muted-foreground">
+      <form onSubmit={submit} class="flex flex-col gap-2">
+        <div class="space-y-1">
+          <Label>{t('Allowed websites')}</Label>
+          <p class="text-xs text-muted-foreground">
+            {t(
+              'Press Enter or use a comma to add another, e.g. https://app.acme.com',
+            )}
+          </p>
+          <TagInput
+            value={origins()}
+            onChange={(next) => setOrigins([...next])}
+            validateItem={isValidOrigin}
+            placeholder="https://app.acme.com"
+          />
+          <Show when={error()}>
+            <p class="text-sm font-medium text-destructive wrap-break-word">
+              {t(error())}
+            </p>
+          </Show>
+        </div>
+        <Show when={envAllowedOrigins && envAllowedOrigins.length > 0}>
+          <div class="mt-2 flex flex-col gap-1.5">
+            <p class="text-xs text-muted-foreground">
               {t(
-                'Press Enter or use a comma to add another, e.g. https://app.acme.com',
+                'These origins are also allowed automatically (configured via AP_ALLOWED_EMBED_ORIGINS):',
               )}
             </p>
-            <TagInput
-              value={origins()}
-              onChange={(next) => setOrigins([...next])}
-              validateItem={isValidOrigin}
-              placeholder="https://app.acme.com"
-            />
-            <Show when={error()}>
-              <p className="text-sm font-medium text-destructive wrap-break-word">
-                {t(error())}
-              </p>
-            </Show>
-          </div>
-          <Show when={envAllowedOrigins && envAllowedOrigins.length > 0}>
-            <div className="mt-2 flex flex-col gap-1.5">
-              <p className="text-xs text-muted-foreground">
-                {t(
-                  'These origins are also allowed automatically (configured via AP_ALLOWED_EMBED_ORIGINS):',
+            <div class="flex flex-wrap gap-1.5">
+              <For each={envAllowedOrigins}>
+                {(d) => (
+                  <Badge key={d} variant="outline" class="font-mono text-xs">
+                    {d}
+                  </Badge>
                 )}
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                <For each={envAllowedOrigins}>
-                  {(d) => (
-                    <Badge key={d} variant="outline" class="font-mono text-xs">
-                      {d}
-                    </Badge>
-                  )}
-                </For>
-              </div>
+              </For>
             </div>
-          </Show>
-          <div className="flex justify-end mt-6">
-            <Button size="sm" type="submit" disabled={isPending}>
-              <Show when={isPending}>
-                <Loader2 class="size-4 animate-spin mr-2" />
-              </Show>
-              {t('Save')}
-            </Button>
           </div>
-        </form>
+        </Show>
+        <div class="flex justify-end mt-6">
+          <Button size="sm" type="submit" disabled={isPending}>
+            <Show when={isPending}>
+              <Loader2 class="size-4 animate-spin mr-2" />
+            </Show>
+            {t('Save')}
+          </Button>
+        </div>
+      </form>
     </StepShell>
   );
 };

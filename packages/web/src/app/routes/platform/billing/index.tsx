@@ -53,13 +53,13 @@ function BillingPageDetails() {
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
   const isCommunity = edition === ApEdition.COMMUNITY;
   const { mutate: redirectToPortalSession } = billingMutations.usePortalLink();
-  const status = platformPlanInfo?.plan?.stripeSubscriptionStatus;
+  const status = platformPlanInfo?.plan.stripeSubscriptionStatus;
   const isSubscriptionActive =
     ApSubscriptionStatus.ACTIVE === (status as ApSubscriptionStatus);
 
   if (isPlatformSubscriptionLoading || isNil(platformPlanInfo)) {
     return (
-      <article className="h-full flex items-center justify-center w-full">
+      <article class="h-full flex items-center justify-center w-full">
         <LoadingSpinner />
       </article>
     );
@@ -67,7 +67,7 @@ function BillingPageDetails() {
 
   if (isError) {
     return (
-      <article className="h-full flex items-center justify-center w-full">
+      <article class="h-full flex items-center justify-center w-full">
         {t('Failed to load billing information')}
       </article>
     );
@@ -80,7 +80,7 @@ function BillingPageDetails() {
         'For questions about billing contact us at support@activepieces.com',
       )}
     >
-      <div className="flex flex-col gap-6">
+      <div class="flex flex-col gap-6">
         <Show when={isSubscriptionActive}>
           <SubscriptionInfo info={platformPlanInfo} />
         </Show>
@@ -88,7 +88,7 @@ function BillingPageDetails() {
         <Show
           when={
             isSubscriptionActive ||
-            platformPlanInfo?.plan.aiCreditsAutoTopUpState ===
+            platformPlanInfo.plan.aiCreditsAutoTopUpState ===
               AiCreditsAutoTopUpState.ENABLED
           }
         >

@@ -16,8 +16,6 @@ import {
   useSolidFlow,
   ViewportPortal,
 } from '@dschz/solid-flow';
-import { useKeyDownList } from '@solid-primitives/keyboard';
-import { createMemo } from 'solid-js';
 import type {
   CoordinateExtent,
   Edge,
@@ -28,6 +26,8 @@ import type {
   OnSelectionChange,
   Viewport,
 } from '@dschz/solid-flow';
+import { useKeyDownList } from '@solid-primitives/keyboard';
+import { createMemo } from 'solid-js';
 
 function ReactFlow(props: Parameters<typeof SolidFlow>[0]) {
   return <SolidFlow {...props} />;
@@ -71,15 +71,25 @@ function useKeyPress(key: string | string[]) {
   const list = useKeyDownList();
   return createMemo(() => {
     const keys = list();
-    const match = (value: string) => value.split('+').every((part) => keys.includes(part));
+    const match = (value: string) =>
+      value.split('+').every((part) => keys.includes(part));
     return Array.isArray(key) ? key.some(match) : match(key);
   });
 }
 
-const BackgroundVariant = { Dots: 'dots', Lines: 'lines', Cross: 'cross' } as const;
+const BackgroundVariant = {
+  Dots: 'dots',
+  Lines: 'lines',
+  Cross: 'cross',
+} as const;
 
 type ReactFlowInstance = ReturnType<typeof useReactFlow>;
-type MiniMapNodeProps = Node & { x: number; y: number; width: number; height: number };
+type MiniMapNodeProps = Node & {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 type OnSelectionChangeParams = Parameters<OnSelectionChange>[0];
 
 export {

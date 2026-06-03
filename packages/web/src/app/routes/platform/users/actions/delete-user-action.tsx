@@ -17,17 +17,13 @@ type DeleteUserActionProps = {
   onDelete: (id: string, isInvitation: boolean) => void;
 };
 
-export const DeleteUserAction = ({
-  row,
-  isDeleting,
-  onDelete,
-}: DeleteUserActionProps) => {
-  const isInvitation = row.type === 'invitation';
-  const email = row.data.email;
+export const DeleteUserAction = (props: DeleteUserActionProps) => {
+  const isInvitation = props.row.type === 'invitation';
+  const email = props.row.data.email;
   const entityType = isInvitation ? t('Invitation') : t('User');
 
   return (
-    <div className="flex items-end justify-end">
+    <div class="flex items-end justify-end">
       <Tooltip>
         <TooltipTrigger>
           <ConfirmationDeleteDialog
@@ -39,11 +35,19 @@ export const DeleteUserAction = ({
             }
             entityName={`${entityType} ${email}`}
             buttonText={t('Delete')}
-            mutationFn={async () => {
-              onDelete(isInvitation ? row.id : row.data.id, isInvitation);
+            mutationFn={() => {
+              props.onDelete(
+                isInvitation ? props.row.id : props.row.data.id,
+                isInvitation,
+              );
+              return Promise.resolve();
             }}
           >
-            <Button loading={isDeleting} variant="ghost" class="size-8 p-0">
+            <Button
+              loading={props.isDeleting}
+              variant="ghost"
+              class="size-8 p-0"
+            >
               <Trash class="size-4 text-destructive" />
             </Button>
           </ConfirmationDeleteDialog>

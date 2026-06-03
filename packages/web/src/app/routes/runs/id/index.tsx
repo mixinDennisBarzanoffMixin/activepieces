@@ -1,7 +1,7 @@
 import { FlowRun, PopulatedFlow } from '@activepieces/shared';
 import { useParams } from '@solidjs/router';
 import { createQuery } from '@tanstack/solid-query';
-import { ReactFlowProvider } from '../../../builder/flow-canvas/solid-flow-adapter';
+import { Show } from 'solid-js';
 
 import { BuilderPage } from '@/app/builder';
 import { BuilderStateProvider } from '@/app/builder/state/builder-state-provider';
@@ -9,18 +9,20 @@ import { LoadingSpinner } from '@/components/custom/spinner';
 import { flowRunsApi } from '@/features/flow-runs';
 import { flowsApi, sampleDataHooks } from '@/features/flows';
 
+import { ReactFlowProvider } from '../../../builder/flow-canvas/solid-flow-adapter';
+
 const FlowRunPage = () => {
-  const { runId, projectId } = useParams();
+  const params = useParams();
   const { data, isLoading } = createQuery<
     {
       run: FlowRun;
       flow: PopulatedFlow;
     },
     Error
-  >({
-    queryKey: ['run', runId],
+  >(() => ({
+    queryKey: ['run', params.runId],
     queryFn: async () => {
-      const flowRun = await flowRunsApi.getPopulated(runId!);
+      const flowRun = await flowRunsApi.getPopulated(params.runId!);
       const flow = await flowsApi.get(flowRun.flowId, {
         versionId: flowRun.flowVersionId,
       });
@@ -29,26 +31,29 @@ const FlowRunPage = () => {
         flow: flow,
       };
     },
-    enabled: runId !== undefined,
+    enabled: params.runId !== undefined,
     refetchInterval: 15000,
-  });
+  }));
 
   const { data: sampleData, isLoading: isSampleDataLoading } =
-    sampleDataHooks.useSampleDataForFlow(data?.flow?.version, projectId);
+    sampleDataHooks.useSampleDataForFlow(data?.flow.version, params.projectId);
 
   const { data: sampleDataInput, isLoading: isSampleDataInputLoading } =
-    sampleDataHooks.useSampleDataInputForFlow(data?.flow?.version, projectId);
+    sampleDataHooks.useSampleDataInputForFlow(
+      data?.flow.version,
+      params.projectId,
+    );
 
   if (isLoading || isSampleDataLoading || isSampleDataInputLoading) {
     return (
-      <div className="bg-background flex h-full w-full items-center justify-center ">
-        <LoadingSpinner isLarge={true}></LoadingSpinner>
+      <div class="bg-background flex h-full w-full items-center justify-center ">
+        <LoadingSpinner isLarge={true} />
       </div>
     );
   }
 
   return (
-    data && (
+    <Show when={data}>
       <ReactFlowProvider>
         <BuilderStateProvider
           flow={data.flow}
@@ -62,7 +67,7 @@ const FlowRunPage = () => {
           <BuilderPage />
         </BuilderStateProvider>
       </ReactFlowProvider>
-    )
+    </Show>
   );
 };
 

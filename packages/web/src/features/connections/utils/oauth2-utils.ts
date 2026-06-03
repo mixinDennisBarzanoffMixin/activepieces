@@ -18,7 +18,9 @@ let currentPopup: Window | null = null;
 
 function useThirdPartyLogin() {
   return (loginUrl: string, providerName: ThirdPartyAuthnProviderEnum) => {
-    const from = new URLSearchParams(window.location.search).get(FROM_QUERY_PARAM) || '/flows';
+    const from =
+      new URLSearchParams(window.location.search).get(FROM_QUERY_PARAM) ||
+      '/flows';
     const state = {
       [PROVIDER_NAME_QUERY_PARAM]: providerName,
       [FROM_QUERY_PARAM]: from,
@@ -68,10 +70,13 @@ function closeOAuth2Popup() {
 function getCode(redirectUrl: string): Promise<string> {
   return new Promise<string>((resolve) => {
     window.addEventListener('message', function handler(event) {
+      if (!isCodeMessage(event.data)) {
+        return;
+      }
       if (
         redirectUrl &&
         redirectUrl.startsWith(event.origin) &&
-        event.data['code']
+        event.data.code
       ) {
         resolve(decodeURIComponent(event.data.code));
         closeOAuth2Popup();
@@ -79,6 +84,15 @@ function getCode(redirectUrl: string): Promise<string> {
       }
     });
   });
+}
+
+function isCodeMessage(data: unknown): data is { code: string } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'code' in data &&
+    typeof data.code === 'string'
+  );
 }
 
 function getGrantType(property: OAuth2Property<OAuth2Props>) {

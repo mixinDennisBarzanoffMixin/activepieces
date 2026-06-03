@@ -8,21 +8,21 @@ type BuilderJsonEditorWrapperProps = {
   disabled?: boolean;
 };
 
-const BuilderJsonEditorWrapper = ({
-  field,
-  disabled,
-}: BuilderJsonEditorWrapperProps) => {
+const BuilderJsonEditorWrapper = (props: BuilderJsonEditorWrapperProps) => {
   const [setInsertStateHandler] = useBuilderStateContext((state) => [
     state.setInsertMentionHandler,
   ]);
 
   return (
     <JsonEditor
-      field={field}
-      readonly={disabled ?? false}
+      field={props.field}
+      readonly={props.disabled ?? false}
       onFocus={(ref) => {
         setInsertStateHandler((propertyPath) => {
-          ref.current?.view?.dispatch({
+          if (!isEditorRef(ref)) {
+            return;
+          }
+          ref.current.view.dispatch({
             changes: {
               from: ref.current.view.state.selection.main.head,
               insert: `{{${propertyPath}}}`,
@@ -35,5 +35,21 @@ const BuilderJsonEditorWrapper = ({
   );
 };
 
-BuilderJsonEditorWrapper.displayName = 'BuilderJsonEditorWrapper';
 export { BuilderJsonEditorWrapper };
+
+function isEditorRef(ref: unknown): ref is EditorRef {
+  if (typeof ref !== 'object' || ref === null || !('current' in ref)) {
+    return false;
+  }
+  const current = ref.current;
+  return typeof current === 'object' && current !== null && 'view' in current;
+}
+
+type EditorRef = {
+  current: {
+    view: {
+      dispatch: (spec: { changes: { from: number; insert: string } }) => void;
+      state: { selection: { main: { head: number } } };
+    };
+  };
+};

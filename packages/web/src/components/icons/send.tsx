@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -81,13 +81,13 @@ function SendIcon(props: SendIconProps & { ref?: SendIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
     >
       <svg
-        className="overflow-visible"
+        class="overflow-visible"
         fill="none"
         height={size}
         stroke="currentColor"
@@ -121,6 +121,5 @@ function SendIcon(props: SendIconProps & { ref?: SendIconHandle }) {
     </div>
   );
 }
-SendIcon.displayName = 'SendIcon';
 
 export { SendIcon };

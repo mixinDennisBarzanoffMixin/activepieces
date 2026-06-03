@@ -5,7 +5,7 @@ import {
 } from '@activepieces/shared';
 import { useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
-import { For } from 'solid-js';
+import { For, createMemo } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { useTelemetry } from '@/components/providers/telemetry-provider';
@@ -38,11 +38,7 @@ const ACTION_ICON_MAP: Record<string, string> = {
     'https://cdn.activepieces.com/pieces/new-core/utility-ai.svg',
 };
 
-export const AIPieceActionsList: any = ({
-  stepMetadataWithSuggestions,
-  hidePieceIconAndDescription,
-  operation,
-}) => {
+export const AIPieceActionsList = (props: AIPieceActionsListProps) => {
   const { capture } = useTelemetry();
   const { searchQuery } = usePieceSearchContext();
   const [handleAddingOrUpdatingStep] = useBuilderStateContext((state) => [
@@ -53,14 +49,14 @@ export const AIPieceActionsList: any = ({
   );
   const navigate = useNavigate();
 
-  const aiActions = convertStepMetadataToPieceSelectorItems(
-    stepMetadataWithSuggestions,
+  const aiActions = createMemo(() =>
+    convertStepMetadataToPieceSelectorItems(props.stepMetadataWithSuggestions),
   );
 
   return (
     <ScrollArea class="h-full" viewPortClassName="h-full">
-      <div className="grid grid-cols-3 p-2 gap-3 min-w-[350px]">
-        <For each={aiActions}>
+      <div class="grid grid-cols-3 p-2 gap-3 min-w-[350px]">
+        <For each={aiActions()}>
           {(item, index) => {
             const actionIcon =
               item.type === FlowActionType.PIECE
@@ -68,11 +64,11 @@ export const AIPieceActionsList: any = ({
                 : 'https://cdn.activepieces.com/pieces/new-core/image-ai.svg';
             return (
               <AIActionItem
-                key={index}
+                key={index()}
                 item={item}
-                hidePieceIconAndDescription={hidePieceIconAndDescription}
+                hidePieceIconAndDescription={props.hidePieceIconAndDescription}
                 stepMetadataWithSuggestions={{
-                  ...stepMetadataWithSuggestions,
+                  ...props.stepMetadataWithSuggestions,
                   logoUrl: actionIcon,
                 }}
                 onClick={() => {
@@ -103,7 +99,7 @@ export const AIPieceActionsList: any = ({
                   }
                   handleAddingOrUpdatingStep({
                     pieceSelectorItem: item,
-                    operation,
+                    operation: props.operation,
                     selectStepAfter: true,
                   });
                 }}

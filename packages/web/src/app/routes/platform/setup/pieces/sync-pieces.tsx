@@ -29,5 +29,4 @@ const SyncPiecesButton = () => {
   );
 };
 
-SyncPiecesButton.displayName = 'SyncPiecesButton';
 export { SyncPiecesButton };

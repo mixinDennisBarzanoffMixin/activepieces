@@ -13,15 +13,15 @@ import {
 } from '../global-search/global-search-context';
 import { ProjectDashboardSidebar } from '../sidebar/dashboard';
 
-export function BuilderLayout({ children }: { children: JSX.Element }) {
+export function BuilderLayout(props: { children: JSX.Element }) {
   return (
     <GlobalSearchProvider>
-      <BuilderLayoutInner>{children}</BuilderLayoutInner>
+      <BuilderLayoutInner>{props.children}</BuilderLayoutInner>
     </GlobalSearchProvider>
   );
 }
 
-function BuilderLayoutInner({ children }: { children: JSX.Element }) {
+function BuilderLayoutInner(props: { children: JSX.Element }) {
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
   const { embedState } = useEmbedding();
   const { open: searchOpen } = useGlobalSearch();
@@ -35,20 +35,20 @@ function BuilderLayoutInner({ children }: { children: JSX.Element }) {
       }
       <SidebarInset class="flex flex-col h-full overflow-hidden bg-sidebar">
         <div
-          className={cn(
+          class={cn(
             'flex-1 flex flex-col overflow-hidden',
             !embedState.isEmbedded && 'p-1.5',
           )}
         >
           <div
-            className={cn(
+            class={cn(
               'flex flex-col h-full bg-background overflow-hidden',
               embedState.isEmbedded
                 ? 'border-l'
                 : 'rounded-xl shadow-[2px_0px_4px_-2px_rgba(0,0,0,0.05),0px_2px_4px_-2px_rgba(0,0,0,0.05)] border',
             )}
           >
-            {children}
+            {props.children}
           </div>
         </div>
         {

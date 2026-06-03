@@ -1,4 +1,3 @@
-import { useDebouncedCallback } from '@/lib/debounce';
 import { t } from 'i18next';
 import { Lock } from 'lucide-solid';
 import { createEffect, createSignal, Show, For } from 'solid-js';
@@ -15,6 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useDebouncedCallback } from '@/lib/debounce';
 import { cn } from '@/lib/utils';
 
 import { TOOL_CATEGORIES } from './utils/mcp-tools-metadata';
@@ -25,23 +25,19 @@ type McpToolsProps = {
   onUpdateDisabledTools: (tools: string[]) => void;
 };
 
-export function McpTools({
-  disabledTools: externalDisabledTools,
-  isPending,
-  onUpdateDisabledTools,
-}: McpToolsProps) {
+export function McpTools(props: McpToolsProps) {
   const [disabledTools, setDisabledTools] = createSignal<string[]>(
-    externalDisabledTools ?? [],
+    props.disabledTools ?? [],
   );
 
   createEffect(() => {
-    if (!isPending) {
-      setDisabledTools(externalDisabledTools ?? []);
+    if (!props.isPending) {
+      setDisabledTools(props.disabledTools ?? []);
     }
   });
 
   const saveDisabledTools = useDebouncedCallback((tools: string[]) => {
-    onUpdateDisabledTools(tools);
+    props.onUpdateDisabledTools(tools);
   }, 300);
 
   const toggleTool = (name: string, checked: boolean) => {
@@ -71,7 +67,7 @@ export function McpTools({
             const toolNames = category.tools.map((tool) => tool.name);
             const enabledInCategory = category.locked
               ? toolNames
-              : toolNames.filter((n) => !disabledTools.includes(n));
+              : toolNames.filter((n) => !disabledTools().includes(n));
             const allChecked = enabledInCategory.length === toolNames.length;
             const someChecked =
               enabledInCategory.length > 0 &&
@@ -80,7 +76,7 @@ export function McpTools({
             return (
               <AccordionItem value={category.label}>
                 <AccordionTrigger class="bg-muted/40 hover:no-underline">
-                  <div className="flex items-center gap-3">
+                  <div class="flex items-center gap-3">
                     {
                       <Show
                         when={category.locked}
@@ -96,10 +92,14 @@ export function McpTools({
                             onCheckedChange={(v) =>
                               toggleCategory(toolNames, v === true)
                             }
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label={t('Select all in {{category}}', {
-                              category: category.label,
-                            })}
+                            onClick={(event: MouseEvent) =>
+                              event.stopPropagation()
+                            }
+                            aria-label={String(
+                              t('Select all in {{category}}', {
+                                category: String(category.label),
+                              }),
+                            )}
                           />
                         }
                       >
@@ -113,31 +113,31 @@ export function McpTools({
                         </Tooltip>
                       </Show>
                     }
-                    <span className="text-sm font-semibold">
+                    <span class="text-sm font-semibold">
                       {t(category.label)}
                     </span>
                     {
                       <Show when={category.locked}>
-                        <span className="text-xs text-muted-foreground ml-1">
+                        <span class="text-xs text-muted-foreground ml-1">
                           ({t('always enabled')})
                         </span>
                       </Show>
                     }
-                    <span className="text-xs text-muted-foreground">
+                    <span class="text-xs text-muted-foreground">
                       {enabledInCategory.length}/{toolNames.length}
                     </span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent class="p-0 pl-6">
-                  <div className="divide-y">
+                  <div class="divide-y">
                     {
                       <For each={category.tools}>
                         {(tool) => {
                           const isChecked =
                             category.locked ||
-                            !disabledTools.includes(tool.name);
+                            !disabledTools().includes(tool.name);
                           return (
-                            <div className="flex items-start gap-3 px-4 py-3">
+                            <div class="flex items-start gap-3 px-4 py-3">
                               {
                                 <Show
                                   when={category.locked}
@@ -152,22 +152,20 @@ export function McpTools({
                                     />
                                   }
                                 >
-                                  <div className="h-4 w-4 shrink-0 mt-0.5" />
+                                  <div class="h-4 w-4 shrink-0 mt-0.5" />
                                 </Show>
                               }
                               <label
-                                htmlFor={
-                                  category.locked ? undefined : tool.name
-                                }
-                                className={cn(
+                                for={category.locked ? undefined : tool.name}
+                                class={cn(
                                   'flex flex-col gap-0.5',
                                   !category.locked && 'cursor-pointer',
                                 )}
                               >
-                                <span className="text-sm font-mono font-medium">
+                                <span class="text-sm font-mono font-medium">
                                   {tool.name}
                                 </span>
-                                <span className="text-xs text-muted-foreground">
+                                <span class="text-xs text-muted-foreground">
                                   {tool.description}
                                 </span>
                               </label>

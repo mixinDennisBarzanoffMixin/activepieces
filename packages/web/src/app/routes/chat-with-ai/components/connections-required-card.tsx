@@ -1,3 +1,4 @@
+import type { PieceMetadataModel } from '@activepieces/pieces-framework';
 import {
   AppConnectionStatus,
   AppConnectionWithoutSensitiveData,
@@ -6,10 +7,18 @@ import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { Check } from 'lucide-solid';
 import { motion } from 'motion/react';
-import { createEffect, createMemo, createSignal, For, Show } from 'solid-js';
+import {
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  Show,
+  type Accessor,
+  untrack,
+} from 'solid-js';
 
-import { CreateOrEditConnectionDialog } from '@/app/connections/create-edit-connection-dialog';
 import { Button } from '@/components/ui/button';
+import { CreateOrEditConnectionDialog } from '@/features/connections';
 import { appConnectionsApi } from '@/features/connections/api/app-connections';
 import { piecesHooks } from '@/features/pieces';
 import { PieceIconWithPieceName } from '@/features/pieces/components/piece-icon-from-name';
@@ -17,11 +26,7 @@ import { authenticationSession } from '@/lib/authentication-session';
 
 import { normalizePieceName } from '../lib/message-parsers';
 
-export function ConnectionsRequiredCard({
-  connections,
-  onSend,
-  projectId: selectedProjectId,
-}: {
+export function ConnectionsRequiredCard(props: {
   connections: ConnectionRequiredData[];
   onSend?: (text: string) => void;
   projectId?: string | null;
@@ -35,21 +40,10 @@ export function ConnectionsRequiredCard({
     createSignal<ConnectionRequiredData | null>(null);
   const [continued, setContinued] = createSignal(false);
 
-  const activePieceName = activeConnection
-    ? normalizePieceName(activeConnection.piece)
-    : null;
-  const { pieceModel } = piecesHooks.usePiece({
-    name: activePieceName ?? '',
-    enabled: !!activePieceName,
-  });
-
-  const connectionsKey = createMemo(() =>
-    connections.map((c) => c.piece).join(','),
-  );
-
   createEffect(() => {
-    const projectId = selectedProjectId ?? authenticationSession.getProjectId();
+    const projectId = props.projectId ?? authenticationSession.getProjectId();
     if (!projectId) return;
+    const connections = props.connections;
     let cancelled = false;
 
     void Promise.all(
@@ -60,26 +54,30 @@ export function ConnectionsRequiredCard({
           pieceName,
           limit: 1,
         });
-        return { piece: conn.piece, connection: result.data[0] ?? null };
+        const connection = result.data.at(0);
+        if (!connection) return;
+        return { piece: conn.piece, connection };
       }),
     ).then((results) => {
       if (cancelled) return;
-      const map: Record<string, AppConnectionWithoutSensitiveData> = {};
-      const alreadyActive = new Set<string>();
       const aiErrorPieces = new Set(
-        connections.filter((c) => c.status === 'error').map((c) => c.piece),
+        connections
+          .filter((conn) => conn.status === 'error')
+          .map((conn) => conn.piece),
       );
-      for (const { piece, connection } of results) {
-        if (connection) {
-          map[piece] = connection;
-          if (
-            connection.status === AppConnectionStatus.ACTIVE &&
-            !aiErrorPieces.has(piece)
-          ) {
-            alreadyActive.add(piece);
-          }
-        }
-      }
+      const found = results.filter((conn) => conn !== undefined);
+      const map = Object.fromEntries(
+        found.map((conn) => [conn.piece, conn.connection]),
+      );
+      const alreadyActive = new Set(
+        found
+          .filter(
+            (conn) =>
+              conn.connection.status === AppConnectionStatus.ACTIVE &&
+              !aiErrorPieces.has(conn.piece),
+          )
+          .map((conn) => conn.piece),
+      );
       setExistingConns(map);
       if (alreadyActive.size > 0) {
         setConnectedSet(alreadyActive);
@@ -94,7 +92,9 @@ export function ConnectionsRequiredCard({
     };
   });
 
-  const allConnected = connections.every((c) => connectedSet.has(c.piece));
+  const allConnected = createMemo(() =>
+    props.connections.every((c) => connectedSet().has(c.piece)),
+  );
 
   function handleConnect(connection: ConnectionRequiredData) {
     setActiveConnection(connection);
@@ -113,30 +113,30 @@ export function ConnectionsRequiredCard({
           damping: 25,
         }}
       >
-        <For each={connections}>
+        <For each={props.connections}>
           {(conn) => (
             <ConnectionRow
               key={conn.piece}
               connection={conn}
-              isConnected={connectedSet.has(conn.piece)}
-              existingConn={existingConns[conn.piece] ?? null}
+              isConnected={connectedSet().has(conn.piece)}
+              existingConn={existingConns()[conn.piece] ?? null}
               onConnect={() => handleConnect(conn)}
             />
           )}
         </For>
 
-        <Show when={allConnected}>
-          <div className="border-t px-4 py-3 bg-muted/30">
+        <Show when={allConnected()}>
+          <div class="border-t px-4 py-3 bg-muted/30">
             <Show
               when={continued}
               fallback={
-                onSend && (
+                props.onSend && (
                   <Button
                     size="sm"
                     class="gap-1.5"
                     onClick={() => {
                       setContinued(true);
-                      onSend(
+                      props.onSend(
                         t('All connections are ready, continue building.'),
                       );
                     }}
@@ -147,7 +147,7 @@ export function ConnectionsRequiredCard({
                 )
               }
             >
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div class="flex items-center gap-2 text-sm text-muted-foreground">
                 <Check class="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                 {t('All connected')}
               </div>
@@ -156,18 +156,17 @@ export function ConnectionsRequiredCard({
         </Show>
       </motion.div>
 
-      <Show when={pieceModel && activeConnection}>
-        <CreateOrEditConnectionDialog
-          key={activeConnection.piece}
-          piece={pieceModel}
-          open={true}
-          projectId={selectedProjectId}
-          setOpen={(open, createdConnection) => {
-            if (!open) {
-              if (createdConnection) {
+      <Show when={activeConnection()}>
+        {(connection) => (
+          <ConnectionDialog
+            connection={connection()}
+            existingConn={existingConns()[connection().piece]}
+            projectId={props.projectId}
+            onClose={(created) => {
+              if (created) {
                 setConnectedSet((prev) => {
                   const next = new Set(prev);
-                  next.add(activeConnection.piece);
+                  next.add(connection().piece);
                   return next;
                 });
                 void queryClient.invalidateQueries({
@@ -175,63 +174,92 @@ export function ConnectionsRequiredCard({
                 });
               }
               setActiveConnection(null);
-            }
-          }}
-          reconnectConnection={existingConns[activeConnection.piece] ?? null}
-          isGlobalConnection={false}
-        />
+            }}
+          />
+        )}
       </Show>
     </>
   );
 }
 
-function ConnectionRow({
-  connection,
-  isConnected,
-  existingConn,
-  onConnect,
-}: {
+function ConnectionDialog(props: {
+  connection: ConnectionRequiredData;
+  existingConn?: AppConnectionWithoutSensitiveData;
+  projectId?: string | null;
+  onClose: (created: boolean) => void;
+}) {
+  const piece = piecesHooks.usePiece({
+    name: untrack(() => normalizePieceName(props.connection.piece)),
+  });
+  const model: Accessor<PieceMetadataModel | undefined> = piece.pieceModel;
+
+  return (
+    <Show when={model()}>
+      {() => (
+        <CreateOrEditConnectionDialog
+          key={props.connection.piece}
+          piece={model() as PieceMetadataModel}
+          open={true}
+          projectId={props.projectId}
+          setOpen={(open, conn) => {
+            if (open) return;
+            props.onClose(Boolean(conn));
+          }}
+          reconnectConnection={props.existingConn ? props.existingConn : null}
+          isGlobalConnection={false}
+        />
+      )}
+    </Show>
+  );
+}
+
+function ConnectionRow(props: {
   connection: ConnectionRequiredData;
   isConnected: boolean;
   existingConn: AppConnectionWithoutSensitiveData | null;
   onConnect: () => void;
 }) {
-  const pieceName = normalizePieceName(connection.piece);
-  const { isLoading } = piecesHooks.usePiece({ name: pieceName });
-  const isReconnect =
-    existingConn !== null && existingConn.status !== AppConnectionStatus.ACTIVE;
+  const pieceName = createMemo(() =>
+    normalizePieceName(props.connection.piece),
+  );
+  const piece = piecesHooks.usePiece({ name: untrack(pieceName) });
+  const isReconnect = createMemo(
+    () =>
+      props.existingConn !== null &&
+      props.existingConn.status !== AppConnectionStatus.ACTIVE,
+  );
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 border-t first:border-t-0">
+    <div class="flex items-center gap-3 px-4 py-3 border-t first:border-t-0">
       <PieceIconWithPieceName
-        pieceName={pieceName}
+        pieceName={pieceName()}
         size="sm"
         border={false}
         showTooltip={false}
       />
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium">{connection.displayName}</div>
-        <div className="text-xs text-muted-foreground">
-          {isConnected
+      <div class="flex-1 min-w-0">
+        <div class="text-sm font-medium">{props.connection.displayName}</div>
+        <div class="text-xs text-muted-foreground">
+          {props.isConnected
             ? t('Ready to use')
-            : isReconnect
+            : isReconnect()
             ? t('Your {name} connection is expired', {
-                name: connection.displayName,
+                name: props.connection.displayName,
               })
             : t('Not connected')}
         </div>
       </div>
       <Show
-        when={isConnected}
+        when={props.isConnected}
         fallback={
           <Button
             size="sm"
             variant="outline"
             class="gap-1.5 shrink-0"
-            disabled={isLoading}
-            onClick={onConnect}
+            disabled={piece.isLoading}
+            onClick={props.onConnect}
           >
-            {isReconnect ? t('Reconnect') : t('Connect')}
+            {isReconnect() ? t('Reconnect') : t('Connect')}
           </Button>
         }
       >

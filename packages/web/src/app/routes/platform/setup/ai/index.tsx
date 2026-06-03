@@ -36,18 +36,30 @@ export default function AIProvidersPage() {
   const { platform } = platformHooks.useCurrentPlatform();
   const allowWrite = platform.plan.aiProvidersEnabled;
 
-  const { mutateAsync: deleteProvider } =
-    aiProviderMutations.useDeleteAiProvider({
-      onSuccess: () => refetch(),
-    });
+  const { mutate: deleteProvider } = aiProviderMutations.useDeleteAiProvider({
+    onSuccess: () => {
+      void refetch();
+    },
+  });
 
-  const { mutateAsync: toggleChatProvider } =
+  const { mutate: toggleChatProvider } =
     aiProviderMutations.useToggleChatProvider({
-      onSuccess: () => refetch(),
+      onSuccess: () => {
+        void refetch();
+      },
     });
 
   const configuredProviders = providers ?? [];
   const chatProvider = providers?.find((p) => p.enabledForChat);
+  const desc = String(
+    allowWrite
+      ? t(
+          'Set provider credentials that will be used by universal AI pieces, i.e Text AI.',
+        )
+      : t(
+          'Available AI providers that will be used by universal AI pieces, i.e Text AI.',
+        ),
+  );
 
   return (
     <LockedFeatureGuard
@@ -58,18 +70,7 @@ export default function AIProvidersPage() {
         'Set your AI providers so your users enjoy a seamless building experience with our universal AI pieces',
       )}
     >
-      <CenteredPage
-        title={t('AI Providers')}
-        description={
-          allowWrite
-            ? t(
-                'Set provider credentials that will be used by universal AI pieces, i.e Text AI.',
-              )
-            : t(
-                'Available AI providers that will be used by universal AI pieces, i.e Text AI.',
-              )
-        }
-      >
+      <CenteredPage title={t('AI Providers')} description={desc}>
         <Show when={allowWrite && configuredProviders.length > 0}>
           <ChatProviderSelector
             providers={configuredProviders}
@@ -81,7 +82,7 @@ export default function AIProvidersPage() {
           />
         </Show>
 
-        <div className="flex flex-col gap-4">
+        <div class="flex flex-col gap-4">
           <For each={SUPPORTED_AI_PROVIDERS}>
             {(providerDef) => {
               const config = providers?.find(
@@ -94,7 +95,9 @@ export default function AIProvidersPage() {
                   providerInfo={providerDef}
                   providerConfig={config}
                   onDelete={(id) => deleteProvider(id)}
-                  onSave={() => refetch()}
+                  onSave={() => {
+                    void refetch();
+                  }}
                   allowWrite={allowWrite}
                 />
               );
@@ -106,56 +109,51 @@ export default function AIProvidersPage() {
   );
 }
 
-function ChatProviderSelector({
-  providers,
-  providerInfos,
-  selectedProviderId,
-  onSelect,
-}: {
+function ChatProviderSelector(props: {
   providers: AIProviderWithoutSensitiveData[];
   providerInfos: AiProviderInfo[];
   selectedProviderId: string | null;
   onSelect: (providerId: string, displayName: string) => void;
 }) {
-  const getLogoUrl = (providerName: string) =>
-    providerInfos.find((p) => p.provider === providerName)?.logoUrl ??
+  const getLogoUrl = (providerName: AIProviderName) =>
+    props.providerInfos.find((p) => p.provider === providerName)?.logoUrl ??
     (providerName === AIProviderName.ACTIVEPIECES
       ? ACTIVEPIECES_LOGO_URL
       : undefined);
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-card p-4 mb-6">
-      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shrink-0">
+    <div class="flex items-center gap-3 rounded-lg border bg-card p-4 mb-6">
+      <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shrink-0">
         <MessageSquare class="size-4 text-muted-foreground" />
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium leading-none">{t('Chat Provider')}</p>
-        <p className="text-xs text-muted-foreground mt-1">
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium leading-none">{t('Chat Provider')}</p>
+        <p class="text-xs text-muted-foreground mt-1">
           {t('Select which AI provider powers the chat feature')}
         </p>
       </div>
       <Select
-        value={selectedProviderId ?? undefined}
+        value={props.selectedProviderId ?? undefined}
         onValueChange={(value) => {
-          const provider = providers.find((p) => p.id === value);
-          if (provider) onSelect(provider.id, provider.name);
+          const provider = props.providers.find((p) => p.id === value);
+          if (provider) props.onSelect(provider.id, provider.name);
         }}
       >
         <SelectTrigger class="w-52">
-          <SelectValue placeholder={t('Select provider')} />
+          <SelectValue placeholder={String(t('Select provider'))} />
         </SelectTrigger>
         <SelectContent>
-          <For each={providers}>
+          <For each={props.providers}>
             {(provider) => {
               const logoUrl = getLogoUrl(provider.provider);
               return (
                 <SelectItem key={provider.id} value={provider.id}>
-                  <div className="flex items-center gap-2">
+                  <div class="flex items-center gap-2">
                     <Show when={logoUrl}>
                       <img
                         src={logoUrl}
                         alt={provider.provider}
-                        className="size-4 object-contain"
+                        class="size-4 object-contain"
                       />
                     </Show>
                     <span>{provider.name}</span>

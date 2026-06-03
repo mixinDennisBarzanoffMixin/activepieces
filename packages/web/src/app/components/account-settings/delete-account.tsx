@@ -31,7 +31,7 @@ export const DeleteAccount = () => {
     <>
       <Separator />
       <form
-        className="w-full"
+        class="w-full"
         onSubmit={(event) => {
           event.preventDefault();
           if (!isDeleteButtonDisabled()) deleteAccount();
@@ -41,7 +41,7 @@ export const DeleteAccount = () => {
           <Label class="flex items-center gap-2 mb-2">
             <Trash class="w-4 h-4" /> {t('Delete Your Account')}
           </Label>
-          <div className="flex items-center gap-4 w-full">
+          <div class="flex items-center gap-4 w-full">
             <Input
               value={email()}
               onInput={(event) => setEmail(event.currentTarget.value)}
@@ -69,11 +69,11 @@ export const DeleteAccount = () => {
               </Show>
             </Tooltip>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p class="mt-2 text-sm text-muted-foreground">
             {t(
               'Enter your email to delete your account, including your flows, connections, agents, tables and projects.',
             )}{' '}
-            <span className="text-foreground font-semibold">
+            <span class="text-foreground font-semibold">
               {t('This action is irreversible.')}
             </span>
           </p>

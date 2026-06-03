@@ -230,77 +230,77 @@ export function useGlobalSearchResults(
         const suggestedItems: SearchResultItem[] = [];
 
         if (needsSupplement) {
-        const remaining = SUPPLEMENT_THRESHOLD - accessHistory.length;
-        const fillCandidates: PoolItem[] = [
-          ...flowResults.map((r) => ({
-            item: r,
-            timestamp: r.updated ? new Date(r.updated).getTime() : 0,
-          })),
-          ...tableResults.map((r) => ({
-            item: r,
-            timestamp: r.updated ? new Date(r.updated).getTime() : 0,
-          })),
-          ...projectResults.map((r) => ({ item: r, timestamp: 0 })),
-          ...pageResults.map((r) => ({ item: r, timestamp: 0 })),
-        ].filter((p) => !historyIds.has(p.item.id));
+          const remaining = SUPPLEMENT_THRESHOLD - accessHistory.length;
+          const fillCandidates: PoolItem[] = [
+            ...flowResults.map((r) => ({
+              item: r,
+              timestamp: r.updated ? new Date(r.updated).getTime() : 0,
+            })),
+            ...tableResults.map((r) => ({
+              item: r,
+              timestamp: r.updated ? new Date(r.updated).getTime() : 0,
+            })),
+            ...projectResults.map((r) => ({ item: r, timestamp: 0 })),
+            ...pageResults.map((r) => ({ item: r, timestamp: 0 })),
+          ].filter((p) => !historyIds.has(p.item.id));
 
-        suggestedItems.push(
-          ...fillCandidates.slice(0, remaining).map((p) => p.item),
-        );
-      }
+          suggestedItems.push(
+            ...fillCandidates.slice(0, remaining).map((p) => p.item),
+          );
+        }
 
         const buckets: Record<string, SearchResultItem[]> = {
-        today: [],
-        yesterday: [],
-        'last-week': [],
-        'last-30-days': [],
-      };
+          today: [],
+          yesterday: [],
+          'last-week': [],
+          'last-30-days': [],
+        };
 
         for (const { item, timestamp } of historyPool) {
           buckets[getTimePeriod(timestamp)].push(item);
         }
 
         const periodDefs = [
-        { key: 'today', label: t('Today') },
-        { key: 'yesterday', label: t('Yesterday') },
-        { key: 'last-week', label: t('Last Week') },
-        { key: 'last-30-days', label: t('Last 30 Days') },
-      ];
+          { key: 'today', label: t('Today') },
+          { key: 'yesterday', label: t('Yesterday') },
+          { key: 'last-week', label: t('Last Week') },
+          { key: 'last-30-days', label: t('Last 30 Days') },
+        ];
 
         const isFillLoading =
-        needsSupplement &&
-        (flowsQuery.isLoading || tablesQuery.isLoading) &&
-        suggestionsEnabled();
+          needsSupplement &&
+          (flowsQuery.isLoading || tablesQuery.isLoading) &&
+          suggestionsEnabled();
 
         const groups: SearchResultGroup[] = periodDefs
-        .filter((p) => buckets[p.key].length > 0)
-        .map((p) => ({
-          type: `history-${p.key}`,
-          heading: p.label,
-          items: buckets[p.key],
-          isLoading: false,
-        }));
+          .filter((p) => buckets[p.key].length > 0)
+          .map((p) => ({
+            type: `history-${p.key}`,
+            heading: p.label,
+            items: buckets[p.key],
+            isLoading: false,
+          }));
 
         if (suggestedItems.length > 0) {
-        groups.push({
-          type: 'suggestions',
-          heading: t('Suggested'),
-          items: suggestedItems,
-          isLoading: false,
-        });
-      }
+          groups.push({
+            type: 'suggestions',
+            heading: t('Suggested'),
+            items: suggestedItems,
+            isLoading: false,
+          });
+        }
 
         if (
-        isFillLoading &&
-        historyPool.length + suggestedItems.length < SUPPLEMENT_THRESHOLD
-      ) {
-        groups.push({
-          type: 'suggestions-loading',
-          heading: '',
-          items: [],
-          isLoading: true,
-        });
-      }
+          isFillLoading &&
+          historyPool.length + suggestedItems.length < SUPPLEMENT_THRESHOLD
+        ) {
+          groups.push({
+            type: 'suggestions-loading',
+            heading: '',
+            items: [],
+            isLoading: true,
+          });
+        }
 
         return groups;
       }
@@ -313,18 +313,16 @@ export function useGlobalSearchResults(
         ...projectResults.slice(0, 5),
         ...pageResults.slice(0, 5),
       ];
-      return (
-        isFallbackLoading || flatItems.length > 0
-          ? ([
-              {
-                type: 'suggestions',
-                heading: '',
-                items: flatItems,
-                isLoading: isFallbackLoading,
-              },
-            ] as SearchResultGroup[])
-          : []
-      );
+      return isFallbackLoading || flatItems.length > 0
+        ? ([
+            {
+              type: 'suggestions',
+              heading: '',
+              items: flatItems,
+              isLoading: isFallbackLoading,
+            },
+          ] as SearchResultGroup[])
+        : [];
     }
 
     return [

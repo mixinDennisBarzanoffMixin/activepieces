@@ -20,11 +20,7 @@ type AddAgentToolDropdownProps = {
   align?: 'start' | 'end' | 'center';
 };
 
-export const AddToolDropdown = ({
-  disabled,
-  children,
-  align,
-}: AddAgentToolDropdownProps) => {
+export const AddToolDropdown = (props: AddAgentToolDropdownProps) => {
   const [openDropdown, setOpenDropdown] = createSignal(false);
 
   const { setShowAddFlowDialog } = useFlowToolDialogStore();
@@ -37,11 +33,11 @@ export const AddToolDropdown = ({
       open={openDropdown}
       onOpenChange={setOpenDropdown}
     >
-      <DropdownMenuTrigger disabled={disabled} asChild>
-        {children}
+      <DropdownMenuTrigger disabled={props.disabled} asChild>
+        {props.children}
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align={align}>
+      <DropdownMenuContent align={props.align}>
         <DropdownMenuItem
           onSelect={() => openAddPieceToolDialog({ page: 'pieces-list' })}
         >

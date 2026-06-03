@@ -26,7 +26,7 @@ const EnvironmentSettings = () => {
 
   const { mutate } = gitSyncMutations.useDisconnectGitSync({
     onSuccess: () => {
-      refetch();
+      void refetch();
       toast.success(t('Git Connection Removed'), {
         duration: 3000,
       });
@@ -42,13 +42,13 @@ const EnvironmentSettings = () => {
         'Deploy flows across development, staging and production environments with version control and team collaboration',
       )}
     >
-      <div className="flex w-full flex-col items-start justify-center gap-4">
+      <div class="flex w-full flex-col items-start justify-center gap-4">
         <Card class="w-full p-4">
-          <div className="flex w-full">
+          <div class="flex w-full">
             {
               <Show when={!isLoading}>
                 <>
-                  <div className="flex grow flex-col gap-2">
+                  <div class="flex grow flex-col gap-2">
                     <p>
                       {t('Repository URL')}:{' '}
                       {gitSync?.remoteUrl ?? t('Not connected')}
@@ -61,15 +61,15 @@ const EnvironmentSettings = () => {
                       {gitSync?.slug ?? t('Not connected')}
                     </p>
                   </div>
-                  <div className="flex flex-col justify-center items-center gap-2">
+                  <div class="flex flex-col justify-center items-center gap-2">
                     {
                       <Show when={!gitSync}>
-                        <ConnectGitDialog showButton={true}></ConnectGitDialog>
+                        <ConnectGitDialog showButton={true} />
                       </Show>
                     }
                     {
                       <Show when={gitSync}>
-                        <div className="flex flex-col gap-2">
+                        <div class="flex flex-col gap-2">
                           <Button
                             size={'sm'}
                             onClick={() => gitSync && mutate(gitSync.id)}
@@ -87,8 +87,8 @@ const EnvironmentSettings = () => {
             }
             {
               <Show when={isLoading}>
-                <div className="flex grow justify-center items-center">
-                  <LoadingSpinner class="size-5"></LoadingSpinner>
+                <div class="flex grow justify-center items-center">
+                  <LoadingSpinner class="size-5" />
                 </div>
               </Show>
             }

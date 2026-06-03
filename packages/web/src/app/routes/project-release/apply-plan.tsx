@@ -2,8 +2,9 @@ import {
   DiffReleaseRequest,
   isNil,
   ProjectReleaseType,
+  ProjectSyncPlan,
 } from '@activepieces/shared';
-import { createSignal, Show } from 'solid-js';
+import { createSignal, ParentProps, Show, splitProps } from 'solid-js';
 
 import { Button, ButtonProps } from '@/components/ui/button';
 import {
@@ -15,25 +16,26 @@ import { authenticationSession } from '@/lib/authentication-session';
 
 import { CreateReleaseDialog } from './create-release-dialog';
 
-type ApplyButtonProps = ButtonProps & {
-  request: DiffReleaseRequest;
-  children: JSX.Element;
-  onSuccess: () => void;
-  defaultName?: string;
-};
+type ApplyButtonProps = ParentProps<
+  ButtonProps & {
+    request: DiffReleaseRequest;
+    onSuccess: () => void;
+    defaultName?: string;
+  }
+>;
 
-export const ApplyButton = ({
-  request,
-  children,
-  onSuccess,
-  defaultName,
-  ...props
-}: ApplyButtonProps) => {
+export const ApplyButton = (_props: ApplyButtonProps) => {
+  const [local, props] = splitProps(_props, [
+    'request',
+    'children',
+    'onSuccess',
+    'defaultName',
+  ]);
   const projectId = authenticationSession.getProjectId()!;
   const { gitSync } = gitSyncHooks.useGitSync(projectId, !isNil(projectId));
   const [isCreateReleaseDialogOpen, setIsCreateReleaseDialogOpen] =
     createSignal(false);
-  const [syncPlan, setSyncPlan] = createSignal<any>(null);
+  const [syncPlan, setSyncPlan] = createSignal<ProjectSyncPlan | null>(null);
   const [loadingRequestId, setLoadingRequestId] = createSignal<string | null>(
     null,
   );
@@ -59,8 +61,8 @@ export const ApplyButton = ({
 
   const [isConnectGitDialogOpen, setGitDialogOpen] = createSignal(false);
   const showGitDialog =
-    isNil(gitSync) && request.type === ProjectReleaseType.GIT;
-  const requestId = JSON.stringify(request);
+    isNil(gitSync) && local.request.type === ProjectReleaseType.GIT;
+  const requestId = JSON.stringify(local.request);
   const isLoading = loadingRequestId === requestId;
 
   return (
@@ -75,11 +77,11 @@ export const ApplyButton = ({
           } else {
             setLoadingRequestId(requestId);
             setIsCreateReleaseDialogOpen(true);
-            loadSyncPlan(request);
+            loadSyncPlan(local.request);
           }
         }}
       >
-        {children}
+        {local.children}
       </Button>
 
       <Show
@@ -90,10 +92,10 @@ export const ApplyButton = ({
               open={isCreateReleaseDialogOpen}
               loading={isLoading}
               setOpen={setIsCreateReleaseDialogOpen}
-              refetch={onSuccess}
-              plan={syncPlan}
-              defaultName={defaultName}
-              diffRequest={request}
+              refetch={local.onSuccess}
+              plan={syncPlan()!}
+              defaultName={local.defaultName}
+              diffRequest={local.request}
             />
           </Show>
         }

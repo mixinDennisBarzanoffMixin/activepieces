@@ -20,12 +20,7 @@ import { useAuthorization } from '@/hooks/authorization-hooks';
 
 import { useBuilderStateContext } from '../builder-hooks';
 
-const OverwriteDraftDialog = ({
-  onConfirm,
-  children,
-  versionId,
-  versionNumber,
-}: OverwriteDraftDialogProps) => {
+const OverwriteDraftDialog = (props: OverwriteDraftDialogProps) => {
   const { checkAccess } = useAuthorization();
   const [setVersion, setRightSidebar, flow] = useBuilderStateContext(
     (state) => [state.setVersion, state.setRightSidebar, state.flow],
@@ -43,7 +38,7 @@ const OverwriteDraftDialog = ({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger disabled={!userHasPermissionToWriteFlow} class="w-full">
         <PermissionNeededTooltip hasPermission={userHasPermissionToWriteFlow}>
-          {children}
+          {props.children}
         </PermissionNeededTooltip>
       </DialogTrigger>
       <DialogContent>
@@ -51,8 +46,10 @@ const OverwriteDraftDialog = ({
           <DialogTitle>{t('Overwrite Draft')}</DialogTitle>
           <DialogDescription>
             {t('Your current draft will be replaced with')}{' '}
-            <span className="font-semibold">
-              {t('version #{versionNumber}', { versionNumber })}
+            <span class="font-semibold">
+              {t('version #{versionNumber}', {
+                versionNumber: props.versionNumber,
+              })}
             </span>
             {'. '}
             {t('This cannot be undone.')}
@@ -68,9 +65,9 @@ const OverwriteDraftDialog = ({
               onClick={() => {
                 overWriteDraftWithVersion({
                   flowId: flow.id,
-                  versionId: versionId,
+                  versionId: props.versionId,
                 });
-                onConfirm?.();
+                props.onConfirm?.();
               }}
             >
               {t('Overwrite')}

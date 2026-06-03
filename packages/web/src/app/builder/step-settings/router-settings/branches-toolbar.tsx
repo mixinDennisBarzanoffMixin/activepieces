@@ -3,19 +3,19 @@ import { Plus } from 'lucide-solid';
 
 import { Button } from '@/components/ui/button';
 
-interface BranchesToolbarProps {
+type BranchesToolbarProps = {
   addButtonClicked: () => void;
-}
+};
 
-const BranchesToolbar: any = ({ addButtonClicked }) => {
+const BranchesToolbar = (props: BranchesToolbarProps) => {
   return (
-    <div className="flex items-center gap-2 justify-end mb-2">
+    <div class="flex items-center gap-2 justify-end mb-2">
       <Button
         variant={'basic'}
         class="gap-1 items-center"
-        onClick={addButtonClicked}
+        onClick={() => props.addButtonClicked()}
       >
-        <Plus class="w-4 h-4"></Plus>
+        <Plus class="w-4 h-4" />
         {t('Add Branch')}
       </Button>
     </div>

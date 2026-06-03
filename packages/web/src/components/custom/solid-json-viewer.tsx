@@ -7,7 +7,10 @@ type Props = {
 
 export function SolidJsonViewer(props: Props) {
   return (
-    <span class="block font-mono text-sm" style={{ 'font-size': props.fontSize }}>
+    <span
+      class="block font-mono text-sm"
+      style={{ 'font-size': props.fontSize }}
+    >
       <JsonNode data={props.data} />
     </span>
   );
@@ -26,7 +29,9 @@ function JsonNode(props: { data: unknown }) {
             {(item, index) => (
               <div>
                 <JsonNode data={item} />
-                <Show when={index() < (props.data as unknown[]).length - 1}>,</Show>
+                <Show when={index() < (props.data as unknown[]).length - 1}>
+                  ,
+                </Show>
               </div>
             )}
           </For>
@@ -42,7 +47,15 @@ function JsonNode(props: { data: unknown }) {
                 <span class="text-purple-500">"{key}"</span>
                 <span class="text-muted-foreground">: </span>
                 <JsonNode data={value} />
-                <Show when={index() < Object.keys(props.data as Record<string, unknown>).length - 1}>,</Show>
+                <Show
+                  when={
+                    index() <
+                    Object.keys(props.data as Record<string, unknown>).length -
+                      1
+                  }
+                >
+                  ,
+                </Show>
               </div>
             )}
           </For>
@@ -50,7 +63,9 @@ function JsonNode(props: { data: unknown }) {
         <span class="text-muted-foreground">{'}'}</span>
       </Match>
       <Match when={typeof props.data === 'string'}>
-        <span class="string-value text-green-600">"{props.data as string}"</span>
+        <span class="string-value text-green-600">
+          "{props.data as string}"
+        </span>
       </Match>
       <Match when={typeof props.data === 'number'}>
         <span class="text-blue-500">{String(props.data)}</span>

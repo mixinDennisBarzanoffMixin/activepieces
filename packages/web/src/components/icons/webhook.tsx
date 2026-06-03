@@ -1,6 +1,6 @@
 import type { Transition, Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -76,7 +76,7 @@ function WebhookIcon(props: WebhookIconProps & { ref?: WebhookIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -111,6 +111,5 @@ function WebhookIcon(props: WebhookIconProps & { ref?: WebhookIconHandle }) {
     </div>
   );
 }
-WebhookIcon.displayName = 'WebhookIcon';
 
 export { WebhookIcon };

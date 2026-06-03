@@ -7,7 +7,7 @@ export class PromiseQueue {
 
   add(promise: () => Promise<unknown>) {
     this.queue.push(promise);
-    this.run();
+    void this.run();
   }
 
   halt() {
@@ -17,8 +17,8 @@ export class PromiseQueue {
     return this.queue.length;
   }
 
-  private run() {
-    this.lock.runExclusive(async () => {
+  private async run() {
+    await this.lock.runExclusive(async () => {
       const promise = this.queue.shift()!;
       if (this.halted) {
         return;

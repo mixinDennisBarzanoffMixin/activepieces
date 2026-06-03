@@ -1,7 +1,7 @@
 import { ApEdition, ApFlagId } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Check, Plus } from 'lucide-solid';
-import { createSignal, createMemo, JSX } from 'solid-js';
+import { createSignal, createMemo, JSX, For, Show } from 'solid-js';
 
 import {
   DropdownMenu,
@@ -20,20 +20,24 @@ import { platformHooks } from '../../../hooks/platform-hooks';
 
 import { CreatePlatformDialog } from './create-platform-dialog';
 
-export function PlatformSwitcher({ children }: { children: JSX.Element }) {
+export function PlatformSwitcher(props: { children: JSX.Element }) {
   const { data: allProjects } = projectHooks.useProjectsForPlatforms();
   const { platform: currentPlatform } = platformHooks.useCurrentPlatform();
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
   const [createDialogOpen, setCreateDialogOpen] = createSignal(false);
-  const isCloud = edition === ApEdition.CLOUD;
+  const isCloud = () => edition === ApEdition.CLOUD;
 
   const platforms = createMemo(() => {
     if (!allProjects) return [];
-    return allProjects.map((platform) => ({
-      name: platform.platformName,
-      id: platform.projects[0]?.platformId,
-    }));
-  }, [allProjects]);
+    return allProjects
+      .map((platform) => ({
+        name: platform.platformName,
+        id: platform.projects[0]?.platformId,
+      }))
+      .filter((platform): platform is { name: string; id: string } =>
+        Boolean(platform.id),
+      );
+  });
 
   const handlePlatformSwitch = async (platformId: string) => {
     await authenticationSession.switchToPlatform(platformId);
@@ -46,29 +50,31 @@ export function PlatformSwitcher({ children }: { children: JSX.Element }) {
       side="right"
       sideOffset={4}
     >
-      <div className="px-2 py-1.5">
-        <p className="text-xs text-muted-foreground">{t('Platforms')}</p>
+      <div class="px-2 py-1.5">
+        <p class="text-xs text-muted-foreground">{t('Platforms')}</p>
       </div>
       <ScrollArea viewPortClassName="max-h-[400px]">
-        {platforms.map((platform) => (
-          <DropdownMenuItem
-            key={platform.id}
-            onClick={() => handlePlatformSwitch(platform.id)}
-            class="text-sm p-2 break-all cursor-pointer"
-          >
-            {platform.name}
-            <Check
-              class={cn(
-                'ml-auto h-4 w-4 shrink-0',
-                currentPlatform?.id === platform.id
-                  ? 'opacity-100'
-                  : 'opacity-0',
-              )}
-            />
-          </DropdownMenuItem>
-        ))}
+        <For each={platforms()}>
+          {(platform) => (
+            <DropdownMenuItem
+              key={platform.id}
+              onClick={() => void handlePlatformSwitch(platform.id)}
+              class="text-sm p-2 break-all cursor-pointer"
+            >
+              {platform.name}
+              <Check
+                class={cn(
+                  'ml-auto h-4 w-4 shrink-0',
+                  currentPlatform?.id === platform.id
+                    ? 'opacity-100'
+                    : 'opacity-0',
+                )}
+              />
+            </DropdownMenuItem>
+          )}
+        </For>
       </ScrollArea>
-      {isCloud && (
+      <Show when={isCloud()}>
         <>
           <DropdownMenuSeparator />
           <DropdownMenuItem
@@ -79,7 +85,7 @@ export function PlatformSwitcher({ children }: { children: JSX.Element }) {
             {t('Create Platform')}
           </DropdownMenuItem>
         </>
-      )}
+      </Show>
     </DropdownMenuContent>
   );
 
@@ -87,16 +93,16 @@ export function PlatformSwitcher({ children }: { children: JSX.Element }) {
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild class="w-full">
-          {children}
+          {props.children}
         </DropdownMenuTrigger>
         {dropdownContent}
       </DropdownMenu>
-      {isCloud && (
+      <Show when={isCloud()}>
         <CreatePlatformDialog
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
         />
-      )}
+      </Show>
     </>
   );
 }

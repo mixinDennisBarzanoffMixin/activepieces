@@ -1,47 +1,44 @@
 import { ChevronDown, ChevronRight } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createMemo, createSignal, mergeProps, Show, type JSX } from 'solid-js';
 
 import { CopyButton } from '@/components/custom/clipboard/copy-button';
+import { cn } from '@/lib/utils';
 
-export function CollapsibleJson({
-  json,
-  label,
-  description,
-  defaultOpen = false,
-  className = '',
-}: CollapsibleJsonProps) {
-  const [isOpen, setIsOpen] = createSignal(defaultOpen);
+export function CollapsibleJson(_props: CollapsibleJsonProps) {
+  const props = mergeProps({ defaultOpen: false, className: '' }, _props);
+  const [isOpen, setIsOpen] = createSignal(props.defaultOpen);
   const toggleVisibility = () => setIsOpen(!isOpen());
 
-  const jsonString =
-    typeof json === 'string' ? json : JSON.stringify(json, null, 2);
+  const json = createMemo(() =>
+    typeof props.json === 'string'
+      ? props.json
+      : JSON.stringify(props.json, null, 2),
+  );
 
   return (
-    <div className={`flex flex-col gap-2 ${className}`}>
+    <div class={cn('flex flex-col gap-2', props.className)}>
       <button
         onClick={toggleVisibility}
-        className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+        class="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
-        {isOpen() ? (
+        <Show when={isOpen()} fallback={<ChevronRight class="h-4 w-4" />}>
           <ChevronDown class="h-4 w-4" />
-        ) : (
-          <ChevronRight class="h-4 w-4" />
-        )}
-        {label}
+        </Show>
+        {props.label}
       </button>
 
       <Show when={isOpen()}>
-        <div className="flex flex-col gap-2 min-w-0">
-          <div className="relative min-w-0">
-            <pre className="bg-muted/50 whitespace-pre-wrap break-all rounded-md px-4 py-4 text-xs overflow-x-auto max-w-full">
-              <code>{jsonString}</code>
+        <div class="flex flex-col gap-2 min-w-0">
+          <div class="relative min-w-0">
+            <pre class="bg-muted/50 whitespace-pre-wrap break-all rounded-md px-4 py-4 text-xs overflow-x-auto max-w-full">
+              <code>{json()}</code>
             </pre>
-            <div className="absolute top-2 right-2">
-              <CopyButton textToCopy={jsonString} />
+            <div class="absolute top-2 right-2">
+              <CopyButton textToCopy={json()} />
             </div>
           </div>
-          <Show when={description}>
-            <p className="text-xs text-muted-foreground">{description}</p>
+          <Show when={props.description}>
+            <p class="text-xs text-muted-foreground">{props.description}</p>
           </Show>
         </div>
       </Show>
@@ -51,7 +48,7 @@ export function CollapsibleJson({
 
 type CollapsibleJsonProps = {
   json: unknown;
-  label: any;
+  label: JSX.Element;
   description?: string;
   defaultOpen?: boolean;
   className?: string;

@@ -1,6 +1,7 @@
 import {
   AppConnectionWithoutSensitiveData,
   ListGlobalConnectionsRequestQuery,
+  SeekPage,
 } from '@activepieces/shared';
 import { createMutation, createQuery } from '@tanstack/solid-query';
 import { t } from 'i18next';
@@ -18,7 +19,7 @@ import {
 
 type UseGlobalConnectionsProps = {
   request: ListGlobalConnectionsRequestQuery;
-  extraKeys: any[];
+  extraKeys: string[];
   staleTime?: number;
   gcTime?: number;
   showErrorDialog?: boolean;
@@ -38,7 +39,7 @@ export const globalConnectionsQueries = {
     showErrorDialog,
   }: UseGlobalConnectionsProps) => {
     const { platform } = platformHooks.useCurrentPlatform();
-    return createQuery(() => ({
+    return createQuery<SeekPage<AppConnectionWithoutSensitiveData>>(() => ({
       queryKey: [GLOBAL_CONNECTIONS_QUERY_KEY, ...extraKeys],
       staleTime,
       gcTime,
@@ -82,13 +83,14 @@ export const globalConnectionsMutations = {
         currentName: string;
       }
     >({
-      mutationFn: async ({
-        connectionId,
-        displayName,
-        projectIds,
-        preSelectForNewProjects,
-        currentName,
-      }) => {
+      mutationFn: async (params: UpdateGlobalConnectionParams) => {
+        const {
+          connectionId,
+          displayName,
+          projectIds,
+          preSelectForNewProjects,
+          currentName,
+        } = params;
         if (
           !(await isConnectionNameUnique({
             isGlobalConnection: true,
@@ -135,4 +137,12 @@ type EditConnectionForm = {
     name: 'displayName' | 'projectIds',
     error: { message: string },
   ) => void;
+};
+
+type UpdateGlobalConnectionParams = {
+  connectionId: string;
+  displayName: string;
+  projectIds: string[];
+  preSelectForNewProjects: boolean;
+  currentName: string;
 };

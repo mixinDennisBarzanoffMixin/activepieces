@@ -9,7 +9,8 @@ import {
 import { useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
 import { Eye, Repeat, Timer } from 'lucide-solid';
-import { Show, createSignal } from 'solid-js';
+import { Show, createMemo, createSignal } from 'solid-js';
+import { Dynamic } from 'solid-js/web';
 
 import { CardListItem } from '@/components/custom/card-list';
 import { FormattedDate } from '@/components/custom/formatted-date';
@@ -41,8 +42,8 @@ type FlowRunCardProps = {
 };
 
 export const FLOW_CARD_HEIGHT = 70;
-const FlowRunCard = ({ run, viewedRunId, refetchRuns }: FlowRunCardProps) => {
-  const { Icon, variant } = flowRunUtils.getStatusIcon(run.status);
+const FlowRunCard = (props: FlowRunCardProps) => {
+  const icon = createMemo(() => flowRunUtils.getStatusIcon(props.run.status));
   const userHasPermissionToRetryRun = useAuthorization().checkAccess(
     Permission.WRITE_RUN,
   );
@@ -54,40 +55,42 @@ const FlowRunCard = ({ run, viewedRunId, refetchRuns }: FlowRunCardProps) => {
   const { mutate: retryRun, isPending: isRetryingRun } =
     flowRunMutations.useRetryRun({
       onSuccess: ({ run }) => {
-        refetchRuns();
+        props.refetchRuns();
         navigate(`/runs/${run.id}`);
       },
     });
   return (
     <CardListItem
       class={cn('px-3 group', {
-        'bg-accent text-accent-foreground': run.id === viewedRunId,
+        'bg-accent text-accent-foreground': props.run.id === props.viewedRunId,
       })}
       style={{ height: `${FLOW_CARD_HEIGHT}px` }}
       onClick={() => {
-        navigate(`/runs/${run.id}`);
+        navigate(`/runs/${props.run.id}`);
       }}
-      key={run.id}
+      key={props.run.id}
     >
       <div>
         <span>
           <Show
-            when={run.status === FlowRunStatus.CANCELED()}
+            when={props.run.status === FlowRunStatus.CANCELED}
             fallback={
-              <Icon
+              <Dynamic
+                component={icon().Icon}
                 class={cn('w-5 h-5', {
-                  'text-success': variant === 'success',
-                  'text-destructive': variant === 'error',
+                  'text-success': icon().variant === 'success',
+                  'text-destructive': icon().variant === 'error',
                 })}
               />
             }
           >
             <Tooltip>
               <TooltipTrigger>
-                <Icon
+                <Dynamic
+                  component={icon().Icon}
                   class={cn('w-5 h-5', {
-                    'text-success': variant === 'success',
-                    'text-destructive': variant === 'error',
+                    'text-success': icon().variant === 'success',
+                    'text-destructive': icon().variant === 'error',
                   })}
                 />
               </TooltipTrigger>
@@ -96,56 +99,56 @@ const FlowRunCard = ({ run, viewedRunId, refetchRuns }: FlowRunCardProps) => {
           </Show>
         </span>
       </div>
-      <div className="grid gap-2">
-        <div className="text-sm font-medium leading-none flex gap-2 items-center">
+      <div class="grid gap-2">
+        <div class="text-sm font-medium leading-none flex gap-2 items-center">
           <FormattedDate
-            date={new Date(run.created ?? new Date())}
+            date={new Date(props.run.created ?? new Date())}
             includeTime={true}
             class="text-sm font-medium leading-none select-none cursor-default"
-          ></FormattedDate>
-          <Show when={run.id === viewedRunId()}>
-            <Eye class="w-3.5 h-3.5"></Eye>
+          />
+          <Show when={props.run.id === props.viewedRunId}>
+            <Eye class="w-3.5 h-3.5" />
           </Show>
         </div>
         <Show
           when={isFlowRunStateTerminal({
-            status: run.status,
+            status: props.run.status,
             ignoreInternalError: false,
-          })()}
+          })}
         >
-          <p className="flex gap-1 text-xs text-muted-foreground">
+          <p class="flex gap-1 text-xs text-muted-foreground">
             <Timer class="h-3.5 w-3.5" />
             {t('Took')}{' '}
             {formatUtils.formatDuration(
-              run.startTime && run.finishTime
-                ? new Date(run.finishTime).getTime() -
-                    new Date(run.startTime).getTime()
+              props.run.startTime && props.run.finishTime
+                ? new Date(props.run.finishTime).getTime() -
+                    new Date(props.run.startTime).getTime()
                 : undefined,
               false,
             )}
           </p>
         </Show>
-        <Show when={run.status === FlowRunStatus.RUNNING()}>
-          <p className="flex gap-1 text-xs text-muted-foreground">
+        <Show when={props.run.status === FlowRunStatus.RUNNING}>
+          <p class="flex gap-1 text-xs text-muted-foreground">
             {t('Running')}...
           </p>
         </Show>
-        <Show when={run.status === FlowRunStatus.QUEUED()}>
-          <p className="flex gap-1 text-xs text-muted-foreground">
+        <Show when={props.run.status === FlowRunStatus.QUEUED}>
+          <p class="flex gap-1 text-xs text-muted-foreground">
             {t('Queued')}...
           </p>
         </Show>
       </div>
-      <div className="ml-auto font-medium">
-        <Show when={isRetryingRun()}>
-          <LoadingSpinner class="size-4"></LoadingSpinner>
+      <div class="ml-auto font-medium">
+        <Show when={isRetryingRun}>
+          <LoadingSpinner class="size-4" />
         </Show>
 
-        <Show when={!isRetryingRun()}>
+        <Show when={!isRetryingRun}>
           <PermissionNeededTooltip hasPermission={userHasPermissionToRetryRun}>
             <DropdownMenu
               modal={false}
-              open={isRetryDropdownOpen}
+              open={isRetryDropdownOpen()}
               onOpenChange={setIsRetryDropdownOpen}
             >
               <Tooltip>
@@ -157,7 +160,7 @@ const FlowRunCard = ({ run, viewedRunId, refetchRuns }: FlowRunCardProps) => {
                       class={cn(
                         'group-hover:opacity-100 opacity-0 rounded-full bg-accent drop-shadow-md',
                         {
-                          'opacity-100': isRetryDropdownOpen,
+                          'opacity-100': isRetryDropdownOpen(),
                         },
                       )}
                       onClick={(e) => {
@@ -165,7 +168,7 @@ const FlowRunCard = ({ run, viewedRunId, refetchRuns }: FlowRunCardProps) => {
                         e.stopPropagation();
                       }}
                     >
-                      <Repeat class="w-4 h-4"></Repeat>
+                      <Repeat class="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
                 </TooltipTrigger>
@@ -174,32 +177,32 @@ const FlowRunCard = ({ run, viewedRunId, refetchRuns }: FlowRunCardProps) => {
               <DropdownMenuContent>
                 <DropdownMenuItem
                   disabled={!userHasPermissionToRetryRun}
-                  onClick={(e) => {
+                  onClick={(e: MouseEvent) => {
                     e.preventDefault();
                     e.stopPropagation();
                     retryRun({
-                      runId: run.id,
-                      flowId: run.flowId,
+                      runId: props.run.id,
+                      flowId: props.run.flowId,
                       projectId: projectId!,
                       retryStrategy: FlowRetryStrategy.ON_LATEST_VERSION,
                     });
                   }}
                   class="cursor-pointer"
                 >
-                  <div className="flex flex-row gap-2 items-center">
+                  <div class="flex flex-row gap-2 items-center">
                     <span>{t('On latest version')}</span>
                   </div>
                 </DropdownMenuItem>
 
-                <Show when={isFailedState(run.status)()}>
+                <Show when={isFailedState(props.run.status)}>
                   <DropdownMenuItem
-                    onClick={(e) => {
+                    onClick={(e: MouseEvent) => {
                       e.preventDefault();
                       e.stopPropagation();
                       if (!isRetryingRun) {
                         retryRun({
-                          runId: run.id,
-                          flowId: run.flowId,
+                          runId: props.run.id,
+                          flowId: props.run.flowId,
                           projectId: projectId!,
                           retryStrategy: FlowRetryStrategy.FROM_FAILED_STEP,
                         });
@@ -207,7 +210,7 @@ const FlowRunCard = ({ run, viewedRunId, refetchRuns }: FlowRunCardProps) => {
                     }}
                     class="cursor-pointer"
                   >
-                    <div className="flex flex-row gap-2 items-center">
+                    <div class="flex flex-row gap-2 items-center">
                       <span>{t('From failed step')}</span>
                     </div>
                   </DropdownMenuItem>
@@ -221,5 +224,4 @@ const FlowRunCard = ({ run, viewedRunId, refetchRuns }: FlowRunCardProps) => {
   );
 };
 
-FlowRunCard.displayName = 'FlowRunCard';
 export { FlowRunCard };

@@ -8,7 +8,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, For, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { Button } from '@/components/ui/button';
@@ -24,10 +24,7 @@ import { useMcpToolDialogStore } from '../stores/mcp-tools';
 
 import { AddMcpToolForm } from './add-mcp-tool-form';
 
-export function AgentMcpDialog({
-  tools,
-  onToolsUpdate,
-}: AgentToolsDialogProps) {
+export function AgentMcpDialog(props: AgentToolsDialogProps) {
   const { showAddMcpDialog, editingMcpTool, closeMcpDialog } =
     useMcpToolDialogStore();
   const [step, setStep] = createSignal<ValidationStep>('form');
@@ -36,19 +33,20 @@ export function AgentMcpDialog({
   const [pendingTool, setPendingTool] = createSignal<AgentMcpTool | null>(null);
 
   const handleAddTool = () => {
-    if (!pendingTool) return;
+    const tool = pendingTool();
+    if (!tool) return;
 
     if (editingMcpTool) {
-      const updatedTools = tools.map((tool) =>
+      const updatedTools = props.tools.map((tool) =>
         tool.type === AgentToolType.MCP &&
         tool.toolName === editingMcpTool.toolName
-          ? pendingTool
+          ? tool
           : tool,
       );
-      onToolsUpdate(updatedTools);
+      props.onToolsUpdate(updatedTools);
       toast(t('MCP server updated successfully'));
     } else {
-      onToolsUpdate([...tools, pendingTool]);
+      props.onToolsUpdate([...props.tools, tool]);
       toast(t('MCP server added successfully'));
     }
 
@@ -70,85 +68,91 @@ export function AgentMcpDialog({
   return (
     <Dialog open={showAddMcpDialog} onOpenChange={handleClose}>
       <DialogContent class="sm:max-w-xl max-h-[90vh] overflow-y-auto">
-        {step === 'form' && (
+        <Show when={step() === 'form'}>
           <DialogHeader>
             <DialogTitle>
               {editingMcpTool ? t('Edit MCP Server') : t('Add MCP Server')}
             </DialogTitle>
           </DialogHeader>
-        )}
+        </Show>
 
-        {step === 'form' && (
+        <Show when={step() === 'form'}>
           <AddMcpToolForm
-            tools={tools}
+            tools={props.tools}
             initialData={getFormData(editingMcpTool)}
             handleClose={handleClose}
             setPendingTool={setPendingTool}
             setStep={setStep}
             setValidationResult={setValidationResult}
           />
-        )}
+        </Show>
 
-        {step === 'validating' && (
-          <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <Show when={step() === 'validating'}>
+          <div class="flex flex-col items-center justify-center py-12 space-y-4">
             <Loader2 class="w-12 h-12 animate-spin text-primary" />
-            <div className="text-center space-y-2">
-              <h3 className="text-lg font-semibold">
+            <div class="text-center space-y-2">
+              <h3 class="text-lg font-semibold">
                 {t('Connecting to MCP Server')}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p class="text-sm text-muted-foreground">
                 {t('Validating server configuration...')}
               </p>
             </div>
           </div>
-        )}
+        </Show>
 
-        {step === 'validated' && validationResult && (
-          <div className="space-y-6">
-            {validationResult.error ? (
-              <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                <div className="rounded-full bg-destructive/10 p-3">
+        <Show when={step() === 'validated' && validationResult()}>
+          <div class="space-y-6">
+            <Show
+              when={validationResult()?.error}
+              fallback={
+                <div class="flex flex-col items-center justify-center py-8 space-y-4">
+                  <div class="rounded-full bg-success-100 p-3">
+                    <CheckCircle2 class="w-8 h-8 text-success" />
+                  </div>
+                  <div class="text-center space-y-2">
+                    <h3 class="text-lg font-semibold">
+                      {t('Connection Successful')}
+                    </h3>
+                    <p class="text-sm text-muted-foreground">
+                      {t('Available tools from MCP server:')}
+                    </p>
+                  </div>
+
+                  <Show
+                    when={
+                      validationResult()?.toolNames &&
+                      validationResult()!.toolNames!.length > 0
+                    }
+                  >
+                    <div class="w-full max-w-md border rounded-lg p-4 space-y-2">
+                      <For each={validationResult()!.toolNames}>
+                        {(tool) => (
+                          <div class="flex items-center gap-2 p-2 rounded bg-muted/50">
+                            <CheckCircle2 class="w-4 h-4 text-success shrink-0" />
+                            <span class="text-sm font-medium">{tool}</span>
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  </Show>
+                </div>
+              }
+            >
+              <div class="flex flex-col items-center justify-center py-8 space-y-4">
+                <div class="rounded-full bg-destructive/10 p-3">
                   <AlertCircle class="w-8 h-8 text-destructive" />
                 </div>
-                <div className="text-center space-y-2">
-                  <h3 className="text-lg font-semibold">
+                <div class="text-center space-y-2">
+                  <h3 class="text-lg font-semibold">
                     {t('Connection Failed')}
                   </h3>
-                  <p className="text-sm text-muted-foreground max-w-md">
-                    {validationResult.error}
+                  <p class="text-sm text-muted-foreground max-w-md">
+                    {validationResult()?.error}
                   </p>
                 </div>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                <div className="rounded-full bg-success-100 p-3">
-                  <CheckCircle2 class="w-8 h-8 text-success" />
-                </div>
-                <div className="text-center space-y-2">
-                  <h3 className="text-lg font-semibold">
-                    {t('Connection Successful')}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {t('Available tools from MCP server:')}
-                  </p>
-                </div>
-
-                {validationResult.toolNames &&
-                  validationResult.toolNames.length > 0 && (
-                    <div className="w-full max-w-md border rounded-lg p-4 space-y-2">
-                      {validationResult.toolNames.map((tool, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center gap-2 p-2 rounded bg-muted/50"
-                        >
-                          <CheckCircle2 class="w-4 h-4 text-success shrink-0" />
-                          <span className="text-sm font-medium">{tool}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-              </div>
-            )}
+            </Show>
 
             <DialogFooter>
               <Button
@@ -158,14 +162,14 @@ export function AgentMcpDialog({
               >
                 {t('Back')}
               </Button>
-              {!validationResult.error && (
+              <Show when={!validationResult()?.error}>
                 <Button onClick={handleAddTool}>
                   {editingMcpTool ? t('Update Server') : t('Add Server')}
                 </Button>
-              )}
+              </Show>
             </DialogFooter>
           </div>
-        )}
+        </Show>
       </DialogContent>
     </Dialog>
   );
@@ -199,7 +203,10 @@ function getFormData(tool: AgentMcpTool | null): McpToolFormData {
         : 'X-API-Key',
     headers:
       tool.auth.type === McpAuthType.HEADERS
-        ? Object.entries(tool.auth.headers).map(([key, value]) => ({ key, value }))
+        ? Object.entries(tool.auth.headers).map(([key, value]) => ({
+            key,
+            value,
+          }))
         : [{ key: '', value: '' }],
   };
 }

@@ -49,8 +49,8 @@ const SettingsRerouter = () => {
   return null;
 };
 
-function SuspenseWrapper({ children }: { children: JSX.Element }) {
-  return <Suspense fallback={<RouteLoadingBar />}>{children}</Suspense>;
+function SuspenseWrapper(props: { children: JSX.Element }) {
+  return <Suspense fallback={<RouteLoadingBar />}>{props.children}</Suspense>;
 }
 
 function Redirect({ to }: { to: string }) {
@@ -58,12 +58,12 @@ function Redirect({ to }: { to: string }) {
   return null;
 }
 
-function HideTablesGuard({ children }: { children: JSX.Element }) {
+function HideTablesGuard(props: { children: JSX.Element }) {
   const { embedState } = useEmbedding();
   if (embedState.hideTables) {
     return <Redirect to={routesThatRequireProjectId.automations} />;
   }
-  return <>{children}</>;
+  return <>{props.children}</>;
 }
 
 const automationsPagePermissions = [
@@ -107,7 +107,7 @@ export const projectRoutes = [
   }),
   ...ProjectRouterWrapper({
     path: '/flow-import-redirect/:flowId',
-    component: () => <AfterImportFlowRedirect></AfterImportFlowRedirect>,
+    component: () => <AfterImportFlowRedirect />,
   }),
   ...ProjectRouterWrapper({
     path: routesThatRequireProjectId.singleRun,
@@ -217,7 +217,7 @@ export const projectRoutes = [
     path: routesThatRequireProjectId.settings,
     component: () => (
       <ProjectDashboardLayout>
-        <SettingsRerouter></SettingsRerouter>
+        <SettingsRerouter />
       </ProjectDashboardLayout>
     ),
   }),

@@ -1,3 +1,5 @@
+import { Show } from 'solid-js';
+
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -14,33 +16,32 @@ type CopyToClipboardInputProps = {
 
 const noBorderInputClass = `border-none w-full rfocus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0`;
 
-const CopyToClipboardInput = ({
-  textToCopy,
-  fileName,
-  useInput,
-}: CopyToClipboardInputProps) => {
+const CopyToClipboardInput = (props: CopyToClipboardInputProps) => {
   return (
-    <div className="flex gap-2 items-center bg-background border border-solid text-sm rounded block w-full select-none pr-3">
-      {useInput ? (
-        <Input value={textToCopy} class={noBorderInputClass} readOnly />
-      ) : (
-        <Textarea
-          value={textToCopy}
-          rows={6}
-          class={noBorderInputClass}
-          readOnly
-        />
-      )}
+    <div class="flex gap-2 items-center bg-background border border-solid text-sm rounded block w-full select-none pr-3">
+      <Show
+        when={props.useInput}
+        fallback={
+          <Textarea
+            value={props.textToCopy}
+            rows={6}
+            class={noBorderInputClass}
+            readOnly
+          />
+        }
+      >
+        <Input value={props.textToCopy} class={noBorderInputClass} readOnly />
+      </Show>
       <div
-        className={cn('flex  gap-1', {
-          'flex-col': !useInput,
+        class={cn('flex  gap-1', {
+          'flex-col': !props.useInput,
         })}
       >
-        <CopyButton textToCopy={textToCopy} variant="ghost" />
-        <Show when={fileName}>
+        <CopyButton textToCopy={props.textToCopy} variant="ghost" />
+        <Show when={props.fileName}>
           <DownloadButton
-            textToDownload={textToCopy}
-            fileName={fileName}
+            textToDownload={props.textToCopy}
+            fileName={props.fileName}
             variant="ghost"
             tooltipSide="bottom"
           />
@@ -50,5 +51,4 @@ const CopyToClipboardInput = ({
   );
 };
 
-CopyToClipboardInput.displayName = 'CopyToClipboardInput';
 export { CopyToClipboardInput };

@@ -15,10 +15,9 @@ import {
 import { alertMutations } from '@/features/alerts';
 import { userHooks } from '@/hooks/user-hooks';
 
-export const PlatformAdminProjectAlertSubscriptionBulkActions = ({
-  selectedProjects,
-  resetSelection,
-}: PlatformAdminProjectAlertSubscriptionBulkActionsProps) => {
+export const PlatformAdminProjectAlertSubscriptionBulkActions = (
+  props: PlatformAdminProjectAlertSubscriptionBulkActionsProps,
+) => {
   const { data: currentUser } = userHooks.useCurrentUser();
   const [confirmUnsubscribeOpen, setConfirmUnsubscribeOpen] =
     createSignal(false);
@@ -29,21 +28,21 @@ export const PlatformAdminProjectAlertSubscriptionBulkActions = ({
     alertMutations.useBulkUnsubscribeAlerts();
 
   const userEmail = currentUser?.email;
-  if (!userEmail || selectedProjects.length === 0) {
+  if (!userEmail || props.selectedProjects.length === 0) {
     return null;
   }
 
   const isRunning = isSubscribing || isUnsubscribing;
 
   const handleSubscribe = () => {
-    subscribe({ email: userEmail, projects: selectedProjects });
-    resetSelection();
+    subscribe({ email: userEmail, projects: props.selectedProjects });
+    props.resetSelection();
   };
 
   const handleUnsubscribe = () => {
     setConfirmUnsubscribeOpen(false);
-    unsubscribe({ email: userEmail, projects: selectedProjects });
-    resetSelection();
+    unsubscribe({ email: userEmail, projects: props.selectedProjects });
+    props.resetSelection();
   };
 
   return (
@@ -79,7 +78,7 @@ export const PlatformAdminProjectAlertSubscriptionBulkActions = ({
             <DialogDescription>
               {t('unsubscribeAlertsConfirmDescription', {
                 email: userEmail,
-                count: selectedProjects.length,
+                count: props.selectedProjects.length,
               })}
             </DialogDescription>
           </DialogHeader>

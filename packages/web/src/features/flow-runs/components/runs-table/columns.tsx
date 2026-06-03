@@ -11,6 +11,7 @@ import {
   Timer,
   AlertTriangle,
 } from 'lucide-solid';
+import { Match, Setter, Switch, Show } from 'solid-js';
 
 import { RowDataWithActions } from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
@@ -41,11 +42,11 @@ type SelectedRow = {
 type RunsTableColumnsProps = {
   data: SeekPage<FlowRun> | undefined;
   selectedRows: SelectedRow[];
-  setSelectedRows: Dispatch<SetStateAction<SelectedRow[]>>;
+  setSelectedRows: Setter<SelectedRow[]>;
   selectedAll: boolean;
-  setSelectedAll: Dispatch<SetStateAction<boolean>>;
+  setSelectedAll: Setter<boolean>;
   excludedRows: Set<string>;
-  setExcludedRows: Dispatch<SetStateAction<Set<string>>>;
+  setExcludedRows: Setter<Set<string>>;
   onViewError: (run: FlowRun) => void;
   onViewRun: (run: FlowRun) => void;
 };
@@ -66,19 +67,21 @@ export const runsTableColumns = ({
     size: 40,
     minSize: 40,
     maxSize: 40,
-    header: ({ table }) => (
-      <div className="flex items-center h-full relative">
+    header: (props) => (
+      <div class="flex items-center h-full relative">
         <Checkbox
-          checked={selectedAll || table.getIsAllPageRowsSelected()}
+          checked={selectedAll || props.table.getIsAllPageRowsSelected()}
           onCheckedChange={(value) => {
             const isChecked = !!value;
-            table.toggleAllPageRowsSelected(isChecked);
+            props.table.toggleAllPageRowsSelected(isChecked);
 
             if (isChecked) {
-              const currentPageRows = table.getRowModel().rows.map((row) => ({
-                id: row.original.id,
-                status: row.original.status,
-              }));
+              const currentPageRows = props.table
+                .getRowModel()
+                .rows.map((row) => ({
+                  id: row.original.id,
+                  status: row.original.status,
+                }));
 
               setSelectedRows((prev) => {
                 const uniqueRows = new Map<string, SelectedRow>([
@@ -97,8 +100,8 @@ export const runsTableColumns = ({
             }
           }}
         />
-        {selectedRows.length > 0 && (
-          <div className="absolute left-5">
+        <Show when={selectedRows.length > 0}>
+          <div class="absolute left-5">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="xs">
@@ -109,7 +112,7 @@ export const runsTableColumns = ({
                 <DropdownMenuItem
                   class="cursor-pointer"
                   onClick={() => {
-                    const currentPageRows = table
+                    const currentPageRows = props.table
                       .getRowModel()
                       .rows.map((row) => ({
                         id: row.original.id,
@@ -118,7 +121,7 @@ export const runsTableColumns = ({
                     setSelectedRows(currentPageRows);
                     setSelectedAll(false);
                     setExcludedRows(new Set());
-                    table.toggleAllPageRowsSelected(true);
+                    props.table.toggleAllPageRowsSelected(true);
                   }}
                 >
                   {t('Select shown')}
@@ -134,7 +137,7 @@ export const runsTableColumns = ({
                       setSelectedRows(allRows);
                       setSelectedAll(true);
                       setExcludedRows(new Set());
-                      table.toggleAllPageRowsSelected(true);
+                      props.table.toggleAllPageRowsSelected(true);
                     }
                   }}
                 >
@@ -143,49 +146,49 @@ export const runsTableColumns = ({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-        )}
+        </Show>
       </div>
     ),
-    cell: ({ row }) => {
-      const isExcluded = excludedRows.has(row.original.id);
-      const isSelected = selectedAll
-        ? !isExcluded
-        : selectedRows.some(
-            (selectedRow) => selectedRow.id === row.original.id,
-          );
+    cell: (props) => {
+      const run = () => props.row.original;
+      const isSelected = () =>
+        selectedAll
+          ? !excludedRows.has(run().id)
+          : selectedRows.some((selectedRow) => selectedRow.id === run().id);
 
       return (
-        <div className="flex items-center h-full">
+        <div class="flex items-center h-full">
           <Checkbox
-            checked={isSelected}
+            checked={isSelected()}
             onCheckedChange={(value) => {
               const isChecked = !!value;
+              const current = run();
               if (selectedAll) {
                 if (isChecked) {
-                  const newExcluded = new Set(excludedRows);
-                  newExcluded.delete(row.original.id);
-                  setExcludedRows(newExcluded);
+                  setExcludedRows((prev) => {
+                    const next = new Set(prev);
+                    next.delete(current.id);
+                    return next;
+                  });
                 } else {
-                  setExcludedRows(new Set([...excludedRows, row.original.id]));
+                  setExcludedRows((prev) => new Set([...prev, current.id]));
                 }
               } else {
                 if (isChecked) {
                   setSelectedRows((prev) => [
                     ...prev,
                     {
-                      id: row.original.id,
-                      status: row.original.status,
+                      id: current.id,
+                      status: current.status,
                     },
                   ]);
                 } else {
                   setSelectedRows((prev) =>
-                    prev.filter(
-                      (selectedRow) => selectedRow.id !== row.original.id,
-                    ),
+                    prev.filter((selectedRow) => selectedRow.id !== current.id),
                   );
                 }
               }
-              row.toggleSelected(isChecked);
+              props.row.toggleSelected(isChecked);
             }}
           />
         </div>
@@ -194,45 +197,44 @@ export const runsTableColumns = ({
   },
   {
     accessorKey: 'flowId',
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Flow')}
         icon={Workflow}
       />
     ),
-    cell: ({ row }) => {
-      const { archivedAt, flowVersion } = row.original;
-      const displayName = flowVersion?.displayName ?? '—';
-
+    cell: (props) => {
       return (
-        <div className="flex items-center gap-2 text-left">
-          {!isNil(archivedAt) && (
+        <div class="flex items-center gap-2 text-left">
+          <Show when={!isNil(props.row.original.archivedAt)}>
             <Archive class="size-4 text-muted-foreground" />
-          )}
-          <TruncatedColumnTextValue value={displayName} />
+          </Show>
+          <TruncatedColumnTextValue
+            value={props.row.original.flowVersion?.displayName ?? '—'}
+          />
         </div>
       );
     },
   },
   {
     accessorKey: 'status',
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Status')}
         icon={Activity}
       />
     ),
-    cell: ({ row }) => {
-      const status = row.original.status;
-      const { variant, Icon } = flowRunUtils.getStatusIcon(status);
+    cell: (props) => {
+      const state = () => flowRunUtils.getStatusIcon(props.row.original.status);
+      const Icon = () => state().Icon;
       return (
-        <div className="text-left">
+        <div class="text-left">
           <StatusIconWithText
-            icon={Icon}
-            text={formatUtils.convertEnumToReadable(status)}
-            variant={variant}
+            icon={Icon()}
+            text={formatUtils.convertEnumToReadable(props.row.original.status)}
+            variant={state().variant}
           />
         </div>
       );
@@ -240,18 +242,18 @@ export const runsTableColumns = ({
   },
   {
     accessorKey: 'created',
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Started At')}
         icon={Clock}
       />
     ),
-    cell: ({ row }) => {
+    cell: (props) => {
       return (
-        <div className="text-left">
+        <div class="text-left">
           <FormattedDate
-            date={new Date(row.original.created ?? new Date())}
+            date={new Date(props.row.original.created ?? new Date())}
             class="text-left"
             includeTime={true}
           />
@@ -261,41 +263,41 @@ export const runsTableColumns = ({
   },
   {
     accessorKey: 'duration',
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Duration')}
         icon={Timer}
       />
     ),
-    cell: ({ row }) => {
-      const duration =
-        row.original.startTime && row.original.finishTime
-          ? new Date(row.original.finishTime).getTime() -
-            new Date(row.original.startTime).getTime()
+    cell: (props) => {
+      const duration = () =>
+        props.row.original.startTime && props.row.original.finishTime
+          ? new Date(props.row.original.finishTime).getTime() -
+            new Date(props.row.original.startTime).getTime()
           : undefined;
-      const waitDuration =
-        row.original.startTime && row.original.created
-          ? new Date(row.original.startTime).getTime() -
-            new Date(row.original.created).getTime()
+      const waitDuration = () =>
+        props.row.original.startTime && props.row.original.created
+          ? new Date(props.row.original.startTime).getTime() -
+            new Date(props.row.original.created).getTime()
           : undefined;
 
       return (
         <Tooltip>
           <TooltipTrigger>
-            <div className="text-left flex items-center gap-2">
-              {row.original.finishTime && (
+            <div class="text-left flex items-center gap-2">
+              <Show when={props.row.original.finishTime}>
                 <>
                   <Hourglass class="h-4 w-4 text-muted-foreground" />
-                  {formatUtils.formatDuration(duration)}
+                  {formatUtils.formatDuration(duration())}
                 </>
-              )}
+              </Show>
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom">
             {t(
               `Time waited before first execution attempt: ${formatUtils.formatDuration(
-                waitDuration,
+                waitDuration(),
               )}`,
             )}
           </TooltipContent>
@@ -305,44 +307,46 @@ export const runsTableColumns = ({
   },
   {
     accessorKey: 'failedStep',
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Failure')}
         icon={AlertTriangle}
       />
     ),
-    cell: ({ row }) => {
-      const { failedStep } = row.original;
-      if (isNil(failedStep)) {
-        return <div className="text-left">-</div>;
-      }
+    cell: (props) => {
       return (
-        <div className="text-left">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (failedStep.message) {
-                    onViewError(row.original);
-                  } else {
-                    onViewRun(row.original);
-                  }
-                }}
-              >
-                {t('View error')}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              {t('Failed on ({stepName})', {
-                stepName: failedStep.displayName,
-              })}
-            </TooltipContent>
-          </Tooltip>
-        </div>
+        <Switch fallback={<div class="text-left">-</div>}>
+          <Match when={props.row.original.failedStep}>
+            {(failedStep) => (
+              <div class="text-left">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (failedStep().message) {
+                          onViewError(props.row.original);
+                          return;
+                        }
+                        onViewRun(props.row.original);
+                      }}
+                    >
+                      {t('View error')}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    {t('Failed on ({stepName})', {
+                      stepName: failedStep().displayName,
+                    })}
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+          </Match>
+        </Switch>
       );
     },
   },

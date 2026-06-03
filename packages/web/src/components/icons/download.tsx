@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -69,7 +69,7 @@ function DownloadIcon(props: DownloadIconProps & { ref?: DownloadIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -94,6 +94,5 @@ function DownloadIcon(props: DownloadIconProps & { ref?: DownloadIconHandle }) {
     </div>
   );
 }
-DownloadIcon.displayName = 'DownloadIcon';
 
 export { DownloadIcon };

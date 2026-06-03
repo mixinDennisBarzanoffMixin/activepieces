@@ -12,37 +12,32 @@ type FlowCardProps = {
   onClick: () => void;
 };
 
-export const FlowCard = ({
-  flow,
-  isSelected,
-  singleFlow,
-  onClick,
-}: FlowCardProps) => {
+export const FlowCard = (props: FlowCardProps) => {
   return (
     <Card
-      onClick={onClick}
-      variant={singleFlow ? 'default' : 'interactive'}
-      isSelected={!singleFlow && isSelected}
+      onClick={props.onClick}
+      variant={props.singleFlow ? 'default' : 'interactive'}
+      isSelected={!props.singleFlow && props.isSelected}
     >
       <CardContent class="p-4 flex items-center gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
             <Workflow class="w-4 h-4 shrink-0" />
-            <span className="font-medium text-sm leading-tight truncate">
-              {flow.displayName}
+            <span class="font-medium text-sm leading-tight truncate">
+              {props.flow.displayName}
             </span>
           </div>
-          <Show when={flow.description}>
-            <p className="text-xs text-muted-foreground line-clamp-2">
-              {flow.description}
+          <Show when={props.flow.description}>
+            <p class="text-xs text-muted-foreground line-clamp-2">
+              {props.flow.description}
             </p>
           </Show>
         </div>
 
-        <Show when={flow.trigger}>
-          <div className="h-6 px-3 flex items-center rounded-md shrink-0">
+        <Show when={props.flow.trigger}>
+          <div class="h-6 px-3 flex items-center rounded-md shrink-0">
             <PieceIconList
-              trigger={flow.trigger}
+              trigger={props.flow.trigger}
               maxNumberOfIconsToShow={3}
               size="md"
               class="flex gap-1.5"

@@ -1,55 +1,56 @@
-import { createEffect, createSignal } from 'solid-js';
+import { createEffect, createSignal, Show } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
 import { useCellContext } from './cell-context';
 
 const NumberEditor = () => {
-  const { value, handleCellChange, setIsEditing, isEditing } = useCellContext();
-  const inputRef = null;
-  const [inputValue, setInputValue] = createSignal(value);
-  const handleChange = (event: Event) => {
-    const newValue = event.target.value;
-    setInputValue(newValue);
+  const cell = useCellContext();
+  let inputRef: HTMLInputElement | undefined;
+  const [inputValue, setInputValue] = createSignal(cell.value);
+  const handleChange = (
+    event: InputEvent & { currentTarget: HTMLInputElement },
+  ) => {
+    setInputValue(event.currentTarget.value);
   };
 
   createEffect(() => {
-    if (isEditing) {
-      inputRef.current?.focus();
+    if (cell.isEditing) {
+      inputRef?.focus();
     } else {
-      setInputValue(value);
+      setInputValue(cell.value);
     }
   });
 
   return (
-    <div className="h-full relative w-full">
+    <div class="h-full relative w-full">
       <div
-        className={cn('h-full flex items-center gap-2', {
-          'border-2 border-primary': isEditing,
-          'border-transparent': !isEditing,
+        class={cn('h-full flex items-center gap-2', {
+          'border-2 border-primary': cell.isEditing,
+          'border-transparent': !cell.isEditing,
         })}
       >
-        {isEditing && (
+        <Show when={cell.isEditing}>
           <input
             ref={inputRef}
-            value={inputValue}
+            value={inputValue()}
             type={'number'}
-            onChange={handleChange}
+            onInput={handleChange}
             onBlur={() => {
-              handleCellChange(inputValue);
+              cell.handleCellChange(inputValue());
             }}
             onKeyDown={(e) => {
               e.stopPropagation();
               if (e.key === 'Enter') {
-                handleCellChange(inputValue);
+                cell.handleCellChange(inputValue());
                 e.preventDefault();
               }
               if (e.key === 'Escape') {
-                setIsEditing(false);
+                cell.setIsEditing(false);
                 e.preventDefault();
               }
             }}
-            className={cn(
+            class={cn(
               'flex-1 h-full min-w-0',
               'border-none text-sm px-2',
               'focus:outline-hidden',
@@ -57,11 +58,12 @@ const NumberEditor = () => {
             )}
             autoComplete="off"
           />
-        )}
-        {!isEditing && <div className="flex grow h-full w-full ">{value}</div>}
+        </Show>
+        <Show when={!cell.isEditing}>
+          <div class="flex grow h-full w-full ">{cell.value}</div>
+        </Show>
       </div>
     </div>
   );
 };
-NumberEditor.displayName = 'NumberEditor';
 export { NumberEditor };

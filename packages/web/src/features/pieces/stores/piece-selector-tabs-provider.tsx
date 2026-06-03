@@ -1,4 +1,5 @@
 import { createContext, createSignal, useContext } from 'solid-js';
+
 import { StepMetadataWithSuggestions } from '@/features/pieces/types';
 
 export enum PieceSelectorTabType {
@@ -18,18 +19,16 @@ export const PieceSelectorTabsContext = createContext({
   selectedPieceInExplore: null as null | StepMetadataWithSuggestions,
 });
 
-export const PieceSelectorTabsProvider = ({
-  children,
-  onTabChange,
-  initiallySelectedTab,
-}: {
+export const PieceSelectorTabsProvider = (props: {
   children;
   onTabChange: (tab: PieceSelectorTabType) => void;
   initiallySelectedTab: PieceSelectorTabType;
 }) => {
-  const [selectedTab, setSelectedTab] = createSignal(initiallySelectedTab);
+  const [selectedTab, setSelectedTab] = createSignal(
+    props.initiallySelectedTab,
+  );
   const [lastTabBefroeNoneWasSelected, setLastTabBeforeNoneWasSelected] =
-    createSignal(initiallySelectedTab);
+    createSignal(props.initiallySelectedTab);
   const [selectedPieceInExplore, setSelectedPieceInExplore] =
     createSignal<StepMetadataWithSuggestions | null>(null);
   return (
@@ -41,7 +40,7 @@ export const PieceSelectorTabsProvider = ({
         setSelectedTab: (tab: PieceSelectorTabType) => {
           if (tab !== PieceSelectorTabType.NONE) {
             setLastTabBeforeNoneWasSelected(tab);
-            onTabChange(tab);
+            props.onTabChange(tab);
           }
           setSelectedTab(tab);
         },
@@ -50,7 +49,7 @@ export const PieceSelectorTabsProvider = ({
         },
       }}
     >
-      {children}
+      {props.children}
     </PieceSelectorTabsContext.Provider>
   );
 };

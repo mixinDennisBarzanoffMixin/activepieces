@@ -23,7 +23,7 @@ export const alertMutations = {
   useCreateAlert: (params?: CreateAlertParams) => {
     const queryClient = useQueryClient();
     const projectId = authenticationSession.getProjectId()!;
-    return createMutation<Alert, Error, { email: string }>({
+    return createMutation<Alert, Error, { email: string }>(() => ({
       mutationFn: async (params) =>
         alertsApi.create({
           receiver: params.email,
@@ -31,7 +31,7 @@ export const alertMutations = {
           channel: AlertChannel.EMAIL,
         }),
       onSuccess: () => {
-        queryClient.invalidateQueries({
+        void queryClient.invalidateQueries({
           queryKey: createAlertQueryKey(projectId),
         });
         toast.success(t('Your changes have been saved.'), {
@@ -52,22 +52,22 @@ export const alertMutations = {
           }
         }
       },
-    });
+    }));
   },
   useDeleteAlert: () => {
     const queryClient = useQueryClient();
     const projectId = authenticationSession.getProjectId()!;
-    return createMutation<void, Error, Alert>({
+    return createMutation<void, Error, Alert>(() => ({
       mutationFn: (alert) => alertsApi.delete(alert.id),
       onSuccess: () => {
-        queryClient.invalidateQueries({
+        void queryClient.invalidateQueries({
           queryKey: createAlertQueryKey(projectId),
         });
         toast.success(t('Your changes have been saved.'), {
           duration: 3000,
         });
       },
-    });
+    }));
   },
   useBulkSubscribeAlerts: () => {
     return createMutation<
@@ -75,7 +75,7 @@ export const alertMutations = {
       Error,
       BulkAlertParams,
       { toastId: string | number }
-    >({
+    >(() => ({
       mutationFn: async ({ email, projects }) => {
         const results = await Promise.allSettled(
           projects.map((project) =>
@@ -110,7 +110,7 @@ export const alertMutations = {
           );
         }
       },
-    });
+    }));
   },
   useBulkUnsubscribeAlerts: () => {
     return createMutation<
@@ -118,7 +118,7 @@ export const alertMutations = {
       Error,
       BulkAlertParams,
       { toastId: string | number }
-    >({
+    >(() => ({
       mutationFn: async ({ email, projects }) => {
         const lowerEmail = email.toLowerCase();
         const results = await Promise.allSettled(
@@ -152,14 +152,14 @@ export const alertMutations = {
           );
         }
       },
-    });
+    }));
   },
 };
 
 export const alertQueries = {
   useAlertsEmailList: () => {
     const projectId = authenticationSession.getProjectId()!;
-    return createQuery<Alert[], Error, Alert[]>({
+    return createQuery<Alert[], Error, Alert[]>(() => ({
       queryKey: createAlertQueryKey(projectId),
       queryFn: async () => {
         const page = await alertsApi.list({
@@ -168,7 +168,7 @@ export const alertQueries = {
         });
         return page.data;
       },
-    });
+    }));
   },
 };
 

@@ -19,64 +19,54 @@ type TimeSavedFilterContentProps = {
   onApply: () => void;
 };
 
-export function TimeSavedFilterContent({
-  draftMin,
-  onMinChange,
-  unitMin,
-  onCycleUnitMin,
-  draftMax,
-  onMaxChange,
-  unitMax,
-  onCycleUnitMax,
-  onApply,
-}: TimeSavedFilterContentProps) {
+export function TimeSavedFilterContent(props: TimeSavedFilterContentProps) {
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1.5">
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-1.5">
         <Label class="text-sm text-muted-foreground">{t('Minimum')}</Label>
-        <div className="relative">
+        <div class="relative">
           <Input
             type="number"
             min={0}
             placeholder="0"
-            value={draftMin}
-            onChange={(e) => onMinChange(e.target.value)}
+            value={props.draftMin}
+            onChange={(e) => props.onMinChange(e.currentTarget.value)}
             class="pr-12"
           />
           <button
             type="button"
-            onClick={onCycleUnitMin}
-            className="absolute bg-accent px-1.5 py-0.5 rounded-sm right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none"
+            onClick={() => props.onCycleUnitMin()}
+            class="absolute bg-accent px-1.5 py-0.5 rounded-sm right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none"
           >
-            {unitMin}
+            {props.unitMin}
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-1.5">
+      <div class="flex flex-col gap-1.5">
         <Label class="text-sm text-muted-foreground">{t('Maximum')}</Label>
-        <div className="relative">
+        <div class="relative">
           <Input
             type="number"
             min={0}
             placeholder="∞"
-            value={draftMax}
-            onChange={(e) => onMaxChange(e.target.value)}
-            class={draftMax ? 'pr-12' : ''}
+            value={props.draftMax}
+            onChange={(e) => props.onMaxChange(e.currentTarget.value)}
+            class={props.draftMax ? 'pr-12' : ''}
           />
-          <Show when={draftMax}>
+          <Show when={props.draftMax}>
             <button
               type="button"
-              onClick={onCycleUnitMax}
-              className="absolute bg-accent px-1.5 py-0.5 rounded-sm right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none"
+              onClick={() => props.onCycleUnitMax()}
+              class="absolute bg-accent px-1.5 py-0.5 rounded-sm right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none"
             >
-              {unitMax}
+              {props.unitMax}
             </button>
           </Show>
         </div>
       </div>
 
-      <Button onClick={onApply} class="w-full mt-1">
+      <Button onClick={() => props.onApply()} class="w-full mt-1">
         {t('Apply')}
       </Button>
     </div>

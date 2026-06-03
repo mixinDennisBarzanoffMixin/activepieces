@@ -17,9 +17,7 @@ import { api } from '@/lib/api';
 
 import { StepShell } from '../stepper';
 
-export const HostnameStep = ({
-  subdomain,
-}: {
+export const HostnameStep = (props: {
   subdomain: EmbedSubdomain | undefined;
 }) => {
   return (
@@ -29,8 +27,8 @@ export const HostnameStep = ({
         "Pick the domain you'll embed in your website. It will be visible inside workflows.",
       )}
     >
-      <Show when={subdomain} fallback={<EmbedHostnameForm />}>
-        <EmbedHostnameSummary subdomain={subdomain} />
+      <Show when={props.subdomain} fallback={<EmbedHostnameForm />}>
+        {(subdomain) => <EmbedHostnameSummary subdomain={subdomain()} />}
       </Show>
     </StepShell>
   );
@@ -66,42 +64,40 @@ const EmbedHostnameForm = () => {
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
-        <div className="space-y-1">
-          <Label for="hostname">{t('Domain')}</Label>
-          <Input
-            id="hostname"
-            value={hostname()}
-            onInput={(event) => setHostname(event.currentTarget.value)}
-            placeholder="flows.acme.com"
-          />
-          <p className="text-xs text-muted-foreground">
-            {t('Use a subdomain you control, like flows.acme.com')}
-          </p>
-        </div>
-        <Show when={error()}>
-          <p className="text-sm text-destructive">
-            {error()}
-          </p>
-        </Show>
-        <div className="flex justify-end mt-6">
-          <Button type="submit" size="sm" disabled={isPending}>
-            <Show when={isPending}>
-              <Loader2 class="size-4 animate-spin mr-2" />
-            </Show>
-            {t('Save domain')}
-          </Button>
-        </div>
-      </form>
+    <form onSubmit={submit} class="flex flex-col gap-3">
+      <div class="space-y-1">
+        <Label for="hostname">{t('Domain')}</Label>
+        <Input
+          id="hostname"
+          value={hostname()}
+          onInput={(event) => setHostname(event.currentTarget.value)}
+          placeholder="flows.acme.com"
+        />
+        <p class="text-xs text-muted-foreground">
+          {t('Use a subdomain you control, like flows.acme.com')}
+        </p>
+      </div>
+      <Show when={error()}>
+        <p class="text-sm text-destructive">{error()}</p>
+      </Show>
+      <div class="flex justify-end mt-6">
+        <Button type="submit" size="sm" disabled={isPending}>
+          <Show when={isPending}>
+            <Loader2 class="size-4 animate-spin mr-2" />
+          </Show>
+          {t('Save domain')}
+        </Button>
+      </div>
+    </form>
   );
 };
 
-const EmbedHostnameSummary = ({ subdomain }: { subdomain: EmbedSubdomain }) => {
+const EmbedHostnameSummary = (props: { subdomain: EmbedSubdomain }) => {
   const [confirmOpen, setConfirmOpen] = createSignal(false);
   const [errorMessage, setErrorMessage] = createSignal<string | null>(null);
   const { mutateAsync, isPending } = embedSubdomainMutations.useUpsert();
-  const [hostname, setHostname] = createSignal(subdomain.hostname);
-  const isDirty = () => hostname().trim() !== subdomain.hostname;
+  const [hostname, setHostname] = createSignal(props.subdomain.hostname);
+  const isDirty = () => hostname().trim() !== props.subdomain.hostname;
 
   const handleConfirm = async () => {
     setErrorMessage(null);
@@ -123,7 +119,9 @@ const EmbedHostnameSummary = ({ subdomain }: { subdomain: EmbedSubdomain }) => {
       hostname: hostname(),
     });
     if (!parsed.success) {
-      setErrorMessage(parsed.error.issues[0]?.message || t("Couldn't update domain"));
+      setErrorMessage(
+        parsed.error.issues[0]?.message || t("Couldn't update domain"),
+      );
       return;
     }
     setHostname(parsed.data.hostname);
@@ -131,43 +129,45 @@ const EmbedHostnameSummary = ({ subdomain }: { subdomain: EmbedSubdomain }) => {
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3">
-        <div className="space-y-1">
-          <Label for="hostname">{t('Domain')}</Label>
-          <Input
-            id="hostname"
-            value={hostname()}
-            onInput={(event) => setHostname(event.currentTarget.value)}
-            placeholder="flows.acme.com"
-          />
-          <p className="text-xs text-muted-foreground">
-            {t('Use a subdomain you control, like flows.acme.com')}
-          </p>
-        </div>
-        <Show when={errorMessage()}>
-          <p className="text-sm text-destructive">{errorMessage()}</p>
-        </Show>
-        <div className="flex justify-end mt-6">
-          <Button type="submit" size="sm" disabled={!isDirty() || isPending}>
-            <Show when={isPending}>
-              <Loader2 class="size-4 animate-spin mr-2" />
-            </Show>
-            {t('Update')}
-          </Button>
-        </div>
-        <ConfirmationDeleteDialog
-          open={confirmOpen}
-          onOpenChange={setConfirmOpen}
-          title={t('Change embed domain?')}
-          message={t(
-            "Your current domain will stop working and you'll need to add new DNS records to verify the new one. Allowed websites and signing keys will be kept.",
-          )}
-          warning={t('This action cannot be undone.')}
-          buttonText={t('Update domain')}
-          entityName={t('domain')}
-          mutationFn={handleConfirm}
+    <form onSubmit={submit} class="flex flex-col gap-3">
+      <div class="space-y-1">
+        <Label for="hostname">{t('Domain')}</Label>
+        <Input
+          id="hostname"
+          value={hostname()}
+          onInput={(event) => setHostname(event.currentTarget.value)}
+          placeholder="flows.acme.com"
         />
-      </form>
+        <p class="text-xs text-muted-foreground">
+          {t('Use a subdomain you control, like flows.acme.com')}
+        </p>
+      </div>
+      <Show when={errorMessage()}>
+        <p class="text-sm text-destructive">{errorMessage()}</p>
+      </Show>
+      <div class="flex justify-end mt-6">
+        <Button type="submit" size="sm" disabled={!isDirty() || isPending}>
+          <Show when={isPending}>
+            <Loader2 class="size-4 animate-spin mr-2" />
+          </Show>
+          {t('Update')}
+        </Button>
+      </div>
+      <ConfirmationDeleteDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t('Change embed domain?')}
+        message={String(
+          t(
+            "Your current domain will stop working and you'll need to add new DNS records to verify the new one. Allowed websites and signing keys will be kept.",
+          ),
+        )}
+        warning={String(t('This action cannot be undone.'))}
+        buttonText={t('Update domain')}
+        entityName={t('domain')}
+        mutationFn={handleConfirm}
+      />
+    </form>
   );
 };
 

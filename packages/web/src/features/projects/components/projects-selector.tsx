@@ -7,28 +7,25 @@ import { MultiSelectPieceProperty } from '../../../components/custom/multi-selec
 import { FormItem, FormMessage } from '../../../components/ui/form';
 import { Label } from '../../../components/ui/label';
 
-export const ProjectSelector = ({
-  value,
-  onChange,
-}: ProjectSelectorProps) => {
+export const ProjectSelector = (props: ProjectSelectorProps) => {
   const { data: projects } = projectCollectionUtils.useAll();
   return (
-    <FormItem className="flex flex-col gap-2">
+    <FormItem class="flex flex-col gap-2">
       <Label>{t('Available for Projects')}</Label>
       <MultiSelectPieceProperty
         placeholder={t('Select projects')}
         options={
-          projects?.map((project) => ({
+          projects.map((project) => ({
             value: project.id,
             label: project.displayName,
           })) ?? []
         }
         loading={!projects}
-        onChange={(value) => {
-          onChange(isNil(value) ? [] : value.filter(isString));
+        onInput={(value) => {
+          props.onInput(isNil(value) ? [] : value.filter(isString));
         }}
-        initialValues={value}
-        showDeselect={value.length > 0}
+        initialValues={props.value}
+        showDeselect={props.value.length > 0}
       />
 
       <FormMessage />
@@ -42,5 +39,5 @@ function isString(value: unknown): value is string {
 
 type ProjectSelectorProps = {
   value: string[];
-  onChange: (value: string[]) => void;
+  onInput: (value: string[]) => void;
 };

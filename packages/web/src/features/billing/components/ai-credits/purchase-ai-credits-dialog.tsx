@@ -1,6 +1,6 @@
 import { t } from 'i18next';
 import { Loader2, Zap } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { createSignal, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -20,26 +20,23 @@ interface PurchaseAICreditsDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function PurchaseAICreditsDialog({
-  isOpen,
-  onOpenChange,
-}: PurchaseAICreditsDialogProps) {
+export function PurchaseAICreditsDialog(props: PurchaseAICreditsDialogProps) {
   const [creditsToAdd, setCreditsToAdd] = createSignal(1000); // Default to 1k credits
   const COST_PER_1000_CREDITS = 1;
 
   const { mutate: createCheckoutSession, isPending: isCreatingSession } =
     billingMutations.useCreateAICreditCheckoutSession(() =>
-      onOpenChange(false),
+      props.onOpenChange(false),
     );
 
-  const totalCost = (creditsToAdd / 1000) * COST_PER_1000_CREDITS;
+  const totalCost = () => (creditsToAdd() / 1000) * COST_PER_1000_CREDITS;
 
   const handlePurchase = () => {
-    createCheckoutSession({ aiCredits: creditsToAdd });
+    createCheckoutSession({ aiCredits: creditsToAdd() });
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={props.isOpen} onOpenChange={props.onOpenChange}>
       <DialogContent class="max-w-[480px]">
         <DialogHeader>
           <DialogTitle class="flex items-center gap-2 text-lg">
@@ -50,40 +47,40 @@ export function PurchaseAICreditsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <div className="space-y-3">
-            <div className="flex justify-between text-sm font-medium">
+        <div class="space-y-6">
+          <div class="space-y-3">
+            <div class="flex justify-between text-sm font-medium">
               <span>{t('Credits to add')}</span>
-              <span className="text-primary font-semibold">
+              <span class="text-primary font-semibold">
                 {t('{creditsToAdd} credits', {
-                  creditsToAdd: creditsToAdd.toLocaleString(),
+                  creditsToAdd: creditsToAdd().toLocaleString(),
                 })}
               </span>
             </div>
             <Slider
-              value={[creditsToAdd]}
-              onValueChange={(v) => setCreditsToAdd(v[0])}
+              value={[creditsToAdd()]}
+              onInput={(value) => setCreditsToAdd(value[0] ?? 1000)}
               min={1000}
               max={500000}
               step={1000}
             />
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div class="flex justify-between text-xs text-muted-foreground">
               <span>{t('1,000')}</span>
               <span>{t('500,000')}</span>
             </div>
           </div>
 
-          <div className="rounded-lg border p-4 bg-primary/5 border-primary/30">
-            <div className="space-y-3 animate-in fade-in duration-300">
-              <div className="flex justify-between items-baseline">
-                <span className="text-sm font-semibold">{t('Total Cost')}</span>
-                <span className="text-2xl font-bold text-primary">
+          <div class="rounded-lg border p-4 bg-primary/5 border-primary/30">
+            <div class="space-y-3 animate-in fade-in duration-300">
+              <div class="flex justify-between items-baseline">
+                <span class="text-sm font-semibold">{t('Total Cost')}</span>
+                <span class="text-2xl font-bold text-primary">
                   {t('${totalCost}', {
-                    totalCost: totalCost.toFixed(2),
+                    totalCost: totalCost().toFixed(2),
                   })}
                 </span>
               </div>
-              <div className="text-xs text-muted-foreground text-right">
+              <div class="text-xs text-muted-foreground text-right">
                 {t('${cost} per 1000 credits', { cost: COST_PER_1000_CREDITS })}
               </div>
             </div>
@@ -93,7 +90,7 @@ export function PurchaseAICreditsDialog({
         <DialogFooter>
           <Button
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => props.onOpenChange(false)}
             disabled={isCreatingSession}
           >
             {t('Cancel')}
@@ -101,13 +98,11 @@ export function PurchaseAICreditsDialog({
           <Button
             onClick={handlePurchase}
             class="gap-2"
-            disabled={isCreatingSession || creditsToAdd < 1000}
+            disabled={isCreatingSession || creditsToAdd() < 1000}
           >
-            {isCreatingSession ? (
+            <Show when={isCreatingSession} fallback={<Zap class="w-4 h-4" />}>
               <Loader2 class="w-4 h-4 animate-spin" />
-            ) : (
-              <Zap class="w-4 h-4" />
-            )}
+            </Show>
             {isCreatingSession ? t('Processing...') : t('Purchase Credits')}
           </Button>
         </DialogFooter>

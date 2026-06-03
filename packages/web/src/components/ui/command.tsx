@@ -15,7 +15,7 @@ import {
   type CommandSeparatorProps,
 } from 'cmdk-solid';
 import { SearchIcon } from 'lucide-solid';
-import { JSX, splitProps } from 'solid-js';
+import { splitProps, type JSX } from 'solid-js';
 
 import {
   Dialog,
@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
-function Command(props: CommandRootProps & { className?: string }) {
+function Command(props: ClassName<CommandRootProps>) {
   const [local, rest] = splitProps(props, ['className', 'children']);
   return (
     <CommandPrimitive
@@ -42,15 +42,17 @@ function Command(props: CommandRootProps & { className?: string }) {
   );
 }
 
-function CommandDialog(props: Parameters<typeof Dialog>[0] & {
-  title?: string;
-  description?: string;
-  className?: string;
-  showCloseButton?: boolean;
-  shouldFilter?: boolean;
-  commandValue?: string;
-  onCommandValueChange?: (value: string) => void;
-}) {
+function CommandDialog(
+  props: Parameters<typeof Dialog>[0] & {
+    title?: string;
+    description?: string;
+    className?: string;
+    showCloseButton?: boolean;
+    shouldFilter?: boolean;
+    commandValue?: string;
+    onCommandValueChange?: (value: string) => void;
+  },
+) {
   const [local, rest] = splitProps(props, [
     'title',
     'description',
@@ -86,19 +88,18 @@ function CommandDialog(props: Parameters<typeof Dialog>[0] & {
   );
 }
 
-function CommandInput({
-  className,
-  containerClassName,
-  ...props
-}: CommandInputProps & {
-  containerClassName?: string;
-}) {
+function CommandInput(_props: CommandInputWrapperProps) {
+  const [local, rest] = splitProps(_props, [
+    'className',
+    'containerClassName',
+    'disabled',
+  ]);
   return (
     <div
       data-slot="command-input-wrapper"
-      className={cn(
+      class={cn(
         'flex h-9 items-center gap-2 border-b px-3',
-        containerClassName,
+        local.containerClassName,
       )}
     >
       <SearchIcon class="size-4 shrink-0 opacity-50" />
@@ -106,49 +107,46 @@ function CommandInput({
         data-slot="command-input"
         class={cn(
           'flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50',
-          { 'cursor-not-allowed opacity-50': props.disabled },
-          className,
+          { 'cursor-not-allowed opacity-50': local.disabled },
+          local.className,
         )}
-        {...props}
+        disabled={local.disabled}
+        {...rest}
       />
     </div>
   );
 }
 
-function CommandList({
-  className,
-  ...props
-}: CommandListProps) {
+function CommandList(_props: ClassName<CommandListProps>) {
+  const [local, rest] = splitProps(_props, ['className']);
   return (
     <CommandPrimitiveList
       data-slot="command-list"
-      class={cn('max-h-[300px] overflow-x-hidden overflow-y-hidden', className)}
-      {...props}
+      class={cn(
+        'max-h-[300px] overflow-x-hidden overflow-y-hidden',
+        local.className,
+      )}
+      {...rest}
     />
   );
 }
 
-function CommandEmpty({
-  ...props
-}: CommandEmptyProps) {
+function CommandEmpty(_props: CommandEmptyProps) {
   return (
     <CommandPrimitiveEmpty
       data-slot="command-empty"
       class="py-6 text-center text-sm"
-      {...props}
+      {..._props}
     />
   );
 }
 
-function CommandGroup(props: CommandGroupProps & { className?: string }) {
+function CommandGroup(props: ClassName<CommandGroupProps>) {
   const [local, rest] = splitProps(props, ['className', 'heading', 'children']);
   return (
     <CommandPrimitiveGroup
       data-slot="command-group"
-      class={cn(
-        'overflow-hidden p-1 text-foreground',
-        local.className,
-      )}
+      class={cn('overflow-hidden p-1 text-foreground', local.className)}
       heading={local.heading}
       {...rest}
     >
@@ -157,52 +155,48 @@ function CommandGroup(props: CommandGroupProps & { className?: string }) {
   );
 }
 
-function CommandSeparator({
-  className,
-  ...props
-}: CommandSeparatorProps) {
+function CommandSeparator(_props: ClassName<CommandSeparatorProps>) {
+  const [local, rest] = splitProps(_props, ['className']);
   return (
     <CommandPrimitiveSeparator
       data-slot="command-separator"
-      class={cn('-mx-1 h-px bg-border', className)}
-      {...props}
+      class={cn('-mx-1 h-px bg-border', local.className)}
+      {...rest}
     />
   );
 }
 
-function CommandItem({
-  className,
-  disabled,
-  onSelect,
-  ...props
-}: CommandItemProps & { className?: string }) {
+function CommandItem(_props: ClassName<CommandItemProps>) {
+  const [local, rest] = splitProps(_props, [
+    'className',
+    'disabled',
+    'onSelect',
+  ]);
   return (
     <CommandPrimitiveItem
       data-slot="command-item"
-      disabled={disabled}
+      disabled={local.disabled}
       class={cn(
         "relative flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-hidden select-none data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 [&_svg:not([class*='text-'])]:text-muted-foreground",
-        { 'pointer-events-none opacity-50': disabled },
-        className,
+        { 'pointer-events-none opacity-50': local.disabled },
+        local.className,
       )}
-      onSelect={onSelect}
-      {...props}
+      onSelect={local.onSelect}
+      {...rest}
     />
   );
 }
 
-function CommandShortcut({
-  className,
-  ...props
-}: JSX.IntrinsicElements['span']) {
+function CommandShortcut(_props: ClassName<JSX.IntrinsicElements['span']>) {
+  const [local, rest] = splitProps(_props, ['className']);
   return (
     <span
       data-slot="command-shortcut"
-      className={cn(
+      class={cn(
         'ml-auto text-xs tracking-widest text-muted-foreground',
-        className,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
@@ -217,4 +211,12 @@ export {
   CommandItem,
   CommandShortcut,
   CommandSeparator,
+};
+
+type ClassName<T> = Omit<T, 'className'> & {
+  className?: string;
+};
+
+type CommandInputWrapperProps = ClassName<CommandInputProps> & {
+  containerClassName?: string;
 };

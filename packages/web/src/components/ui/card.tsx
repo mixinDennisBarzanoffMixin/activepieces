@@ -1,4 +1,5 @@
 import { cva } from 'class-variance-authority';
+import { splitProps, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -20,85 +21,110 @@ const cardVariants = cva('rounded-lg border bg-background text-foreground', {
   },
 });
 
-function Card({ className, variant, isSelected, ...props }: CardProps) {
+function Card(props: CardProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'variant',
+    'isSelected',
+  ]);
+
   return (
     <div
       data-slot="card"
-      className={cn(cardVariants({ variant, isSelected }), className)}
-      {...props}
+      class={cn(
+        cardVariants({ variant: local.variant, isSelected: local.isSelected }),
+        local.class,
+        local.className,
+      )}
+      {...rest}
     />
   );
 }
 
-function CardHeader({ className, ...props }: JSX.IntrinsicElements['div']) {
+function CardHeader(props: CardBaseProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="card-header"
-      className={cn('flex flex-col space-y-1.5 p-6', className)}
-      {...props}
+      class={cn('flex flex-col space-y-1.5 p-6', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function CardTitle({ className, ...props }: JSX.IntrinsicElements['div']) {
+function CardTitle(props: CardBaseProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="card-title"
-      className={cn('leading-none font-semibold', className)}
-      {...props}
+      class={cn('leading-none font-semibold', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function CardDescription({
-  className,
-  ...props
-}: JSX.IntrinsicElements['div']) {
+function CardDescription(props: CardBaseProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="card-description"
-      className={cn('text-sm text-muted-foreground', className)}
-      {...props}
+      class={cn('text-sm text-muted-foreground', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function CardAction({ className, ...props }: JSX.IntrinsicElements['div']) {
+function CardAction(props: CardBaseProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="card-action"
-      className={cn(
+      class={cn(
         'col-start-2 row-span-2 row-start-1 self-start justify-self-end',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function CardContent({ className, ...props }: JSX.IntrinsicElements['div']) {
+function CardContent(props: CardBaseProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="card-content"
-      className={cn('p-6 pt-0', className)}
-      {...props}
+      class={cn('p-6 pt-0', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function CardFooter({ className, ...props }: JSX.IntrinsicElements['div']) {
+function CardFooter(props: CardBaseProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="card-footer"
-      className={cn('flex items-center p-6 pt-0', className)}
-      {...props}
+      class={cn('flex items-center p-6 pt-0', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
 // Type definitions
 
-type CardProps = JSX.IntrinsicElements['div'] & {
+type CardBaseProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
+};
+
+type CardProps = CardBaseProps & {
   variant?: 'default' | 'interactive';
   isSelected?: boolean;
 };

@@ -11,7 +11,7 @@ import {
   FileJson,
   Lock,
 } from 'lucide-solid';
-import { createSignal } from 'solid-js';
+import { Show, createSignal } from 'solid-js';
 
 import { ActiveUsersWidget } from '@/components/custom/active-users-widget';
 import { ConfirmationDeleteDialog } from '@/components/custom/delete-dialog';
@@ -55,11 +55,7 @@ interface ApTableHeaderProps {
   takeOver: () => void;
 }
 
-export function ApTableHeader({
-  onBack,
-  lockedBy,
-  takeOver,
-}: ApTableHeaderProps) {
+export function ApTableHeader(props: ApTableHeaderProps) {
   const [
     selectedRecords,
     setSelectedRecords,
@@ -93,7 +89,7 @@ export function ApTableHeader({
 
   const exportTemplate = async () => {
     const tableTemplate = await tablesApi.getTemplate(table.id);
-    downloadFile({
+    void downloadFile({
       obj: JSON.stringify(tableTemplate, null, 2),
       fileName: tableTemplate.name,
       extension: 'json',
@@ -109,17 +105,19 @@ export function ApTableHeader({
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem>
-          <BreadcrumbLink onClick={onBack} class="cursor-pointer">
-            {getProjectName(project)}
+          <BreadcrumbLink onClick={props.onBack} class="cursor-pointer">
+            <Show when={project} keyed>
+              {(item) => getProjectName(item)}
+            </Show>
           </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbSeparator />
         <BreadcrumbItem>
           <BreadcrumbPage>
-            <div className="flex items-center gap-1">
+            <div class="flex items-center gap-1">
               <EditableText
                 class="hover:cursor-text"
-                value={table?.name || t('Table Editor')}
+                value={table.name || t('Table Editor')}
                 readonly={!canEdit}
                 onValueChange={(newName) => {
                   renameTable(newName);
@@ -159,7 +157,7 @@ export function ApTableHeader({
                     <FileJson class="mr-2 h-4 w-4" />
                     {t('Export Template')}
                   </DropdownMenuItem>
-                  {showPushToGit && (
+                  <Show when={showPushToGit}>
                     <>
                       <DropdownMenuSeparator />
                       <PermissionNeededTooltip
@@ -168,8 +166,12 @@ export function ApTableHeader({
                         <PushToGitDialog type="table" tables={[table]}>
                           <DropdownMenuItem
                             disabled={!userHasPermissionToPushToGit}
-                            onSelect={(e) => e.preventDefault()}
-                            onClick={(e) => e.stopPropagation()}
+                            onSelect={(e: Event) => {
+                              e.preventDefault();
+                            }}
+                            onClick={(e: Event) => {
+                              e.stopPropagation();
+                            }}
                           >
                             <UploadCloud class="mr-2 h-4 w-4" />
                             {t('Push to Git')}
@@ -178,8 +180,10 @@ export function ApTableHeader({
                       </PermissionNeededTooltip>
                       <DropdownMenuSeparator />
                     </>
-                  )}
-                  {!showPushToGit && <DropdownMenuSeparator />}
+                  </Show>
+                  <Show when={!showPushToGit}>
+                    <DropdownMenuSeparator />
+                  </Show>
                   <DropdownMenuItem onSelect={downloadCsv}>
                     <Download class="mr-2 h-4 w-4" />
                     {t('Download Data')}
@@ -187,20 +191,26 @@ export function ApTableHeader({
                   <PermissionNeededTooltip hasPermission={canEdit}>
                     <ConfirmationDeleteDialog
                       title={t('Delete Table')}
-                      message={t(
-                        'This will permanently delete the table and all its data.',
+                      message={String(
+                        t(
+                          'This will permanently delete the table and all its data.',
+                        ),
                       )}
                       entityName={t('table')}
                       buttonText={t('Delete')}
-                      mutationFn={async () => {
-                        await tablesApi.delete(table.id);
-                        onBack();
+                      mutationFn={() => {
+                        void tablesApi.delete(table.id);
+                        props.onBack();
                       }}
                     >
                       <DropdownMenuItem
                         disabled={!canEdit}
-                        onSelect={(e) => e.preventDefault()}
-                        onClick={(e) => e.stopPropagation()}
+                        onSelect={(e: Event) => {
+                          e.preventDefault();
+                        }}
+                        onClick={(e: Event) => {
+                          e.stopPropagation();
+                        }}
                         class="text-destructive focus:text-destructive"
                       >
                         <Trash2 class="mr-2 h-4 w-4" />
@@ -218,34 +228,36 @@ export function ApTableHeader({
   );
 
   const rightContent = (
-    <div className="flex items-center gap-2">
-      {isSaving && (
-        <div className="flex items-center gap-2 text-muted-foreground animate-in fade-in">
+    <div class="flex items-center gap-2">
+      <Show when={isSaving}>
+        <div class="flex items-center gap-2 text-muted-foreground animate-in fade-in">
           <RefreshCw class="h-4 w-4 animate-spin" />
-          <span className="text-sm">{t('Saving...')}</span>
+          <span class="text-sm">{t('Saving...')}</span>
         </div>
-      )}
-      {lockedBy && (
-        <div className="flex items-center gap-1.5 border border-warning/50 rounded-md px-2.5 py-1 text-sm text-warning-700 dark:text-warning-300">
+      </Show>
+      <Show when={props.lockedBy}>
+        <div class="flex items-center gap-1.5 border border-warning/50 rounded-md px-2.5 py-1 text-sm text-warning-700 dark:text-warning-300">
           <Lock class="size-3.5 shrink-0" />
           <span>
-            {t('{name} is editing', { name: lockedBy.userDisplayName })}
+            {t('{name} is editing', { name: props.lockedBy.userDisplayName })}
           </span>
-          <span className="text-warning/40">|</span>
-          <button className="hover:underline font-medium" onClick={takeOver}>
+          <span class="text-warning/40">|</span>
+          <button class="hover:underline font-medium" onClick={props.takeOver}>
             {t('Take Over')}
           </button>
         </div>
-      )}
+      </Show>
       <ActiveUsersWidget resourceId={table.id} />
-      {selectedRecords.size > 0 && (
+      <Show when={selectedRecords.size > 0}>
         <PermissionNeededTooltip hasPermission={canEdit}>
           <ConfirmationDeleteDialog
             title={t('Delete Records')}
-            message={t('The selected records will be permanently deleted.')}
+            message={String(
+              t('The selected records will be permanently deleted.'),
+            )}
             entityName={selectedRecords.size === 1 ? t('record') : t('records')}
             buttonText={t('Delete')}
-            mutationFn={async () => {
+            mutationFn={() => {
               const indices = Array.from(selectedRecords).map((row) =>
                 records.findIndex((r) => r.uuid === row),
               );
@@ -264,7 +276,7 @@ export function ApTableHeader({
             </Button>
           </ConfirmationDeleteDialog>
         </PermissionNeededTooltip>
-      )}
+      </Show>
     </div>
   );
 
@@ -275,11 +287,13 @@ export function ApTableHeader({
         rightContent={rightContent}
         class="gap-1 justify-between px-4"
       />
-      <div className="flex items-center gap-2">
+      <div class="flex items-center gap-2">
         <Button
           variant="ghost"
           class="flex gap-2 items-center"
-          onClick={downloadCsv}
+          onClick={() => {
+            void downloadCsv();
+          }}
         >
           <Download class="size-4" />
           {t('Download Data')}

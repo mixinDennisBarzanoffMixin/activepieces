@@ -2,8 +2,12 @@ import {
   createSignal,
   createEffect,
   createContext,
+  createMemo,
+  mergeProps,
   useContext,
   JSX,
+  splitProps,
+  type ComponentProps,
 } from 'solid-js';
 
 import { Textarea } from '@/components/ui/textarea';
@@ -16,23 +20,23 @@ import {
 import { cn } from '@/lib/utils';
 
 type PromptInputContextType = {
-  isLoading: boolean;
+  isLoading: () => boolean;
   value: () => string;
   setValue: (value: string) => void;
-  maxHeight: number | string;
-  onSubmit?: () => void;
-  disabled?: boolean;
+  maxHeight: () => number | string;
+  submit: () => (() => void) | undefined;
+  disabled: () => boolean;
   textarea: () => HTMLTextAreaElement | undefined;
   setTextarea: (el: HTMLTextAreaElement | undefined) => void;
 };
 
 const PromptInputContext = createContext<PromptInputContextType>({
-  isLoading: false,
+  isLoading: () => false,
   value: () => '',
   setValue: () => {},
-  maxHeight: 240,
-  onSubmit: undefined,
-  disabled: false,
+  maxHeight: () => 240,
+  submit: () => undefined,
+  disabled: () => false,
   textarea: () => undefined,
   setTextarea: () => {},
 });
@@ -52,41 +56,52 @@ export type PromptInputProps = {
   disabled?: boolean;
 } & ComponentProps<'div'>;
 
-function PromptInput({
-  className,
-  isLoading = false,
-  maxHeight = 240,
-  value,
-  onValueChange,
-  onSubmit,
-  children,
-  disabled = false,
-  onClick,
-  ...props
-}: PromptInputProps) {
-  const [internalValue, setInternalValue] = createSignal(value || '');
+function PromptInput(_props: PromptInputProps) {
+  const merged = mergeProps(
+    { isLoading: false, maxHeight: 240, disabled: false },
+    _props,
+  );
+  const [local, props] = splitProps(merged, [
+    'className',
+    'isLoading',
+    'maxHeight',
+    'value',
+    'onValueChange',
+    'onSubmit',
+    'children',
+    'disabled',
+    'onClick',
+  ]);
+  const [internalValue, setInternalValue] = createSignal('');
+  const value = createMemo(() =>
+    local.value === undefined ? internalValue() : local.value,
+  );
+  const setValue = (next: string) => {
+    if (local.onValueChange) return local.onValueChange(next);
+    handleChange(next);
+  };
   let textarea: HTMLTextAreaElement | undefined;
 
   const handleChange = (newValue: string) => {
     setInternalValue(newValue);
-    onValueChange?.(newValue);
+    local.onValueChange?.(newValue);
   };
 
   const handleClick = (e: MouseEvent) => {
-    if (!disabled) textarea?.focus();
-    onClick?.(e);
+    if (!local.disabled) textarea?.focus();
+    local.onClick?.(e);
   };
 
   return (
     <TooltipProvider>
       <PromptInputContext.Provider
         value={{
-          isLoading,
-          value: () => value ?? internalValue(),
-          setValue: onValueChange ?? handleChange,
-          maxHeight,
-          onSubmit,
-          disabled,
+          isLoading: () => local.isLoading,
+          value,
+          setValue,
+          maxHeight: () => local.maxHeight,
+          submit: () => local.onSubmit,
+          disabled: () => local.disabled,
           textarea: () => textarea,
           setTextarea: (el) => {
             textarea = el;
@@ -95,14 +110,14 @@ function PromptInput({
       >
         <div
           onClick={handleClick}
-          className={cn(
+          class={cn(
             'border-input bg-background cursor-text rounded-3xl border p-2 shadow-xs',
-            disabled && 'cursor-not-allowed opacity-60',
-            className,
+            local.disabled && 'cursor-not-allowed opacity-60',
+            local.className,
           )}
           {...props}
         >
-          {children}
+          {local.children}
         </div>
       </PromptInputContext.Provider>
     </TooltipProvider>
@@ -113,24 +128,32 @@ export type PromptInputTextareaProps = {
   disableAutosize?: boolean;
 } & ComponentProps<typeof Textarea>;
 
-function PromptInputTextarea({
-  className,
-  onKeyDown,
-  disableAutosize = false,
-  ...props
-}: PromptInputTextareaProps) {
-  const { value, setValue, maxHeight, onSubmit, disabled, textarea, setTextarea } =
-    usePromptInput();
+function PromptInputTextarea(_props: PromptInputTextareaProps) {
+  const merged = mergeProps({ disableAutosize: false }, _props);
+  const [local, props] = splitProps(merged, [
+    'className',
+    'onKeyDown',
+    'disableAutosize',
+  ]);
+  const {
+    value,
+    setValue,
+    maxHeight,
+    submit,
+    disabled,
+    textarea,
+    setTextarea,
+  } = usePromptInput();
 
   const adjustHeight = (el: HTMLTextAreaElement | null) => {
-    if (!el || disableAutosize) return;
+    if (!el || local.disableAutosize) return;
 
     el.style.height = 'auto';
 
-    if (typeof maxHeight === 'number') {
-      el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    if (typeof maxHeight() === 'number') {
+      el.style.height = `${Math.min(el.scrollHeight, maxHeight())}px`;
     } else {
-      el.style.height = `min(${el.scrollHeight}px, ${maxHeight})`;
+      el.style.height = `min(${el.scrollHeight}px, ${maxHeight()})`;
     }
   };
 
@@ -141,16 +164,16 @@ function PromptInputTextarea({
 
   createEffect(() => {
     value();
-    if (!textarea() || disableAutosize) return;
+    if (!textarea() || local.disableAutosize) return;
 
     const el = textarea();
     if (!el) return;
     el.style.height = 'auto';
 
-    if (typeof maxHeight === 'number') {
-      el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`;
+    if (typeof maxHeight() === 'number') {
+      el.style.height = `${Math.min(el.scrollHeight, maxHeight())}px`;
     } else {
-      el.style.height = `min(${el.scrollHeight}px, ${maxHeight})`;
+      el.style.height = `min(${el.scrollHeight}px, ${maxHeight()})`;
     }
   });
 
@@ -162,38 +185,38 @@ function PromptInputTextarea({
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      onSubmit?.();
+      submit()?.();
     }
-    onKeyDown?.(e);
+    local.onKeyDown?.(e);
   };
 
   return (
     <Textarea
       ref={handleRef}
       value={value()}
-      onChange={handleChange}
+      onInput={handleChange}
       onKeyDown={handleKeyDown}
       class={cn(
         'text-foreground min-h-[44px] w-full resize-none border-none bg-transparent shadow-none outline-none focus-visible:ring-0 focus-visible:ring-offset-0',
-        className,
+        local.className,
       )}
       rows={1}
-      disabled={disabled}
+      disabled={disabled()}
       {...props}
     />
   );
 }
 
-export type PromptInputActionsProps = JSX.HTMLAttributes<HTMLDivElement>;
+export type PromptInputActionsProps = {
+  children?: JSX.Element;
+  className?: string;
+} & Omit<JSX.HTMLAttributes<HTMLDivElement>, 'children' | 'className'>;
 
-function PromptInputActions({
-  children,
-  className,
-  ...props
-}: PromptInputActionsProps) {
+function PromptInputActions(_props: PromptInputActionsProps) {
+  const [local, props] = splitProps(_props, ['children', 'className']);
   return (
-    <div className={cn('flex items-center gap-2', className)} {...props}>
-      {children}
+    <div class={cn('flex items-center gap-2', local.className)} {...props}>
+      {local.children}
     </div>
   );
 }
@@ -205,26 +228,27 @@ export type PromptInputActionProps = {
   side?: 'top' | 'bottom' | 'left' | 'right';
 } & ComponentProps<typeof Tooltip>;
 
-function PromptInputAction({
-  tooltip,
-  children,
-  className,
-  side = 'top',
-  ...props
-}: PromptInputActionProps) {
+function PromptInputAction(_props: PromptInputActionProps) {
+  const merged = mergeProps({ side: 'top' }, _props);
+  const [local, props] = splitProps(merged, [
+    'tooltip',
+    'children',
+    'className',
+    'side',
+  ]);
   const { disabled } = usePromptInput();
 
   return (
     <Tooltip {...props}>
       <TooltipTrigger
         asChild
-        disabled={disabled}
+        disabled={disabled()}
         onClick={(event) => event.stopPropagation()}
       >
-        {children}
+        {local.children}
       </TooltipTrigger>
-      <TooltipContent side={side} class={className}>
-        {tooltip}
+      <TooltipContent side={local.side} class={local.className}>
+        {local.tooltip}
       </TooltipContent>
     </Tooltip>
   );

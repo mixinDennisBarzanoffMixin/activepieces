@@ -1,7 +1,7 @@
 import { t } from 'i18next';
 import { X } from 'lucide-solid';
 import { motion } from 'motion/react';
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, createUniqueId, For, Fragment, Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -14,23 +14,18 @@ const APPROVAL_OPTIONS = [
   { value: 'reject', labelKey: 'No, cancel' },
 ] as const;
 
-export function ToolApprovalForm({
-  displayName,
-  onApprove,
-  onReject,
-  onDismiss,
-}: {
+export function ToolApprovalForm(props: {
   displayName: string;
   onApprove: () => void;
   onReject: () => void;
   onDismiss: () => void;
 }) {
-  const fieldId = useId();
+  const fieldId = createUniqueId();
   const [hoveredIndex, setHoveredIndex] = createSignal<number | null>(null);
 
   function handleSelect(value: string) {
-    if (value === 'approve') onApprove();
-    else if (value === 'reject') onReject();
+    if (value === 'approve') props.onApprove();
+    if (value === 'reject') props.onReject();
   }
 
   return (
@@ -41,63 +36,63 @@ export function ToolApprovalForm({
       exit={{ opacity: 0, y: 8, scale: 0.98 }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
     >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
+      <div class="flex items-start justify-between gap-4">
+        <div class="flex-1 min-w-0">
           <Label class="block text-base font-semibold leading-snug text-foreground">
-            {displayName}
+            {props.displayName}
           </Label>
         </div>
         <Button
           variant="ghost"
           size="icon"
           class="h-7 w-7 shrink-0"
-          onClick={onDismiss}
+          onClick={props.onDismiss}
           aria-label={t('Close')}
         >
           <X class="size-4" />
         </Button>
       </div>
 
-      <div className="mt-4">
+      <div class="mt-4">
         <RadioGroup value="" onValueChange={handleSelect} class="gap-0">
           <For each={APPROVAL_OPTIONS}>
             {(option, i) => {
-              const id = `${fieldId}-opt-${i}`;
-              const isHovered = hoveredIndex === i;
-              const prevHovered = hoveredIndex === i - 1;
+              const id = () => `${fieldId}-opt-${i()}`;
+              const isHovered = () => hoveredIndex() === i();
+              const prevHovered = () => hoveredIndex() === i() - 1;
               return (
                 <Fragment key={option.value}>
-                  <Show when={i > 0}>
-                    <div className="px-3">
+                  <Show when={i() > 0}>
+                    <div class="px-3">
                       <Separator
                         class={cn(
                           'bg-border/60 transition-opacity duration-150',
-                          (isHovered || prevHovered) && 'opacity-0',
+                          (isHovered() || prevHovered()) && 'opacity-0',
                         )}
                       />
                     </div>
                   </Show>
                   <Label
-                    for={id}
+                    for={id()}
                     onClick={() => handleSelect(option.value)}
-                    onMouseEnter={() => setHoveredIndex(i)}
+                    onMouseEnter={() => setHoveredIndex(i())}
                     onMouseLeave={() =>
-                      setHoveredIndex((prev) => (prev === i ? null : prev))
+                      setHoveredIndex((prev) => (prev === i() ? null : prev))
                     }
                     class="group flex items-center gap-3 rounded-xl px-2 py-2 text-sm font-normal cursor-pointer transition-colors hover:bg-muted"
                   >
                     <RadioGroupItem
-                      id={id}
+                      id={id()}
                       value={option.value}
                       class="peer sr-only"
                     />
                     <span
                       aria-hidden
-                      className="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted-foreground/10 text-xs font-medium text-muted-foreground transition-colors"
+                      class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted-foreground/10 text-xs font-medium text-muted-foreground transition-colors"
                     >
-                      {i + 1}
+                      {i() + 1}
                     </span>
-                    <span className="flex-1 leading-snug">
+                    <span class="flex-1 leading-snug">
                       {t(option.labelKey)}
                     </span>
                   </Label>

@@ -3,7 +3,6 @@ import {
   FlowTriggerType,
   isNil,
 } from '@activepieces/shared';
-import { useDebounce } from '@/lib/debounce';
 import { t } from 'i18next';
 import {
   CheckCircle2Icon,
@@ -12,7 +11,7 @@ import {
   SparklesIcon,
   WrenchIcon,
 } from 'lucide-solid';
-import { Show, createEffect } from 'solid-js';
+import { Show, createEffect, mergeProps } from 'solid-js';
 
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
 import {
@@ -34,6 +33,7 @@ import {
 import { aiProviderQueries } from '@/features/platform-admin';
 import { platformHooks } from '@/hooks/platform-hooks';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useDebounce } from '@/lib/debounce';
 
 import { AITabContent } from './ai-tab-content';
 import { ApprovalsTabContent } from './approvals-tab-content';
@@ -100,13 +100,8 @@ const PieceSelectorWrapper = (props: PieceSelectorProps) => {
   );
 };
 
-const PieceSelectorContent = ({
-  children,
-  operation,
-  id,
-  openSelectorOnClick = true,
-  stepToReplacePieceDisplayName,
-}: PieceSelectorProps) => {
+const PieceSelectorContent = (_props: PieceSelectorProps) => {
+  const props = mergeProps({ openSelectorOnClick: true }, _props);
   const [
     openedPieceSelectorStepNameOrAddButtonId,
     setOpenedPieceSelectorStepNameOrAddButtonId,
@@ -118,15 +113,16 @@ const PieceSelectorContent = ({
     state.setOpenedPieceSelectorStepNameOrAddButtonId,
     state.setSelectedPieceMetadataInPieceSelector,
     state.flowVersion.trigger.type === FlowTriggerType.EMPTY &&
-      id === 'trigger',
+      props.id === 'trigger',
     state.deselectStep,
   ]);
   const { searchQuery, setSearchQuery } = usePieceSearchContext();
   const isForReplace =
-    operation.type === FlowOperationType.UPDATE_ACTION ||
-    (operation.type === FlowOperationType.UPDATE_TRIGGER && !isForEmptyTrigger);
+    props.operation.type === FlowOperationType.UPDATE_ACTION ||
+    (props.operation.type === FlowOperationType.UPDATE_TRIGGER &&
+      !isForEmptyTrigger);
   const [debouncedQuery] = useDebounce(searchQuery, 300);
-  const isOpen = openedPieceSelectorStepNameOrAddButtonId === id;
+  const isOpen = openedPieceSelectorStepNameOrAddButtonId === props.id;
   const isMobile = useIsMobile();
   const { listHeightRef, popoverTriggerRef } =
     pieceSelectorUtils.useAdjustPieceListHeightToAvailableSpace();
@@ -147,8 +143,8 @@ const PieceSelectorContent = ({
 
   const { platform } = platformHooks.useCurrentPlatform();
   const tabsList = getTabsList(
-    operation.type,
-    platform.plan.agentsEnabled &&
+    props.operation.type,
+    platform?.plan.agentsEnabled === true &&
       !isNil(aiProviders) &&
       aiProviders.length > 0,
   );
@@ -171,12 +167,12 @@ const PieceSelectorContent = ({
         ref={popoverTriggerRef}
         asChild={true}
         onClick={() => {
-          if (openSelectorOnClick) {
-            setOpenedPieceSelectorStepNameOrAddButtonId(id);
+          if (props.openSelectorOnClick) {
+            setOpenedPieceSelectorStepNameOrAddButtonId(props.id);
           }
         }}
       >
-        {children}
+        {props.children}
       </PopoverTrigger>
 
       <PieceSelectorTabsProvider
@@ -215,21 +211,21 @@ const PieceSelectorContent = ({
               <Separator orientation="horizontal" class="mt-1" />
             </div>
             <div
-              className=" flex flex-row max-h-[300px]"
+              class=" flex flex-row max-h-[300px]"
               style={{
                 height: listHeight + 'px',
               }}
             >
-              <ExploreTabContent operation={operation} />
-              <AITabContent operation={operation} />
-              <ApprovalsTabContent operation={operation} />
+              <ExploreTabContent operation={props.operation} />
+              <AITabContent operation={props.operation} />
+              <ApprovalsTabContent operation={props.operation} />
 
               <PiecesCardList
                 //this is done to avoid debounced results when user clears search
                 searchQuery={searchQuery === '' ? '' : debouncedQuery}
-                operation={operation}
+                operation={props.operation}
                 stepToReplacePieceDisplayName={
-                  isMobile ? undefined : stepToReplacePieceDisplayName
+                  isMobile ? undefined : props.stepToReplacePieceDisplayName
                 }
               />
             </div>

@@ -48,7 +48,7 @@ export const variablesQueries = {
         name: sp.get('name') ?? undefined,
         ownerEmails: sp.getAll('owner'),
       };
-    }, [search]);
+    });
   },
 
   useVariableOwners: (projectId: string) => {

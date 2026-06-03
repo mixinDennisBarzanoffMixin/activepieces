@@ -22,9 +22,9 @@ export const createServerState = (
 ) => {
   const queue = new PromiseQueue();
 
-  const clonedTable: Table = JSON.parse(JSON.stringify(_table));
-  const clonedFields: Field[] = JSON.parse(JSON.stringify(_fields));
-  let clonedRecords: PopulatedRecord[] = JSON.parse(JSON.stringify(_records));
+  const clonedTable = structuredClone(_table);
+  const clonedFields = structuredClone(_fields);
+  let clonedRecords = structuredClone(_records);
 
   function addPromiseToQueue(promise: () => Promise<void>) {
     queue.add(async () => {
@@ -120,14 +120,14 @@ export const createServerState = (
         });
       });
     },
-    update: async (request: UpdateTableRequest) => {
+    update: (request: UpdateTableRequest) => {
       addPromiseToQueue(async () => {
         const updatedTable = await tablesApi.update(clonedTable.id, request);
         clonedTable.status = updatedTable.status;
       });
     },
     setRecords: (records: PopulatedRecord[]) => {
-      clonedRecords = JSON.parse(JSON.stringify(records));
+      clonedRecords = structuredClone(records);
     },
     fields: clonedFields,
     records: clonedRecords,

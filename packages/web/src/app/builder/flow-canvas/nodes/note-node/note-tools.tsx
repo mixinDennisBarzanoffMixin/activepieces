@@ -18,7 +18,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-export const NoteTools = ({ editor, currentColor, id }: NoteToolsProps) => {
+export const NoteTools = (props: NoteToolsProps) => {
   let containerRef: HTMLDivElement | undefined;
   const [updateNoteColor, deleteNote] = useBuilderStateContext((state) => [
     state.updateNoteColor,
@@ -27,25 +27,25 @@ export const NoteTools = ({ editor, currentColor, id }: NoteToolsProps) => {
   return (
     <div
       ref={(el) => (containerRef = el)}
-      className="absolute cursor-default -top-[45px] w-full left-0"
+      class="absolute cursor-default -top-[45px] w-full left-0"
     >
-      <div className="flex items-center justify-center">
-        <div className="p-1 bg-background flex items-center gap-0.5 shadow-md rounded-lg scale-65 border border-solid border-border">
+      <div class="flex items-center justify-center">
+        <div class="p-1 bg-background flex items-center gap-0.5 shadow-md rounded-lg scale-65 border border-solid border-border">
           <NoteColorPicker
-            currentColor={currentColor}
+            currentColor={props.currentColor}
             setCurrentColor={(color: NoteColorVariant) => {
-              updateNoteColor(id, color);
+              updateNoteColor(props.id, color);
             }}
             container={containerRef}
           />
-          <MarkdownTools editor={editor} />
-          <Separator orientation="vertical" class="h-[30px]"></Separator>
+          <MarkdownTools editor={props.editor} />
+          <Separator orientation="vertical" class="h-[30px]" />
           <ToolWrapper tooltip={t('Delete')}>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => {
-                deleteNote(id);
+                deleteNote(props.id);
               }}
             >
               <TrashIcon class="size-4 text-destructive" />
@@ -66,11 +66,7 @@ const NoteColorPickerClassName = {
   [NoteColorVariant.PURPLE]: 'bg-purple-400',
 };
 
-const NoteColorPicker = ({
-  currentColor,
-  setCurrentColor,
-  container,
-}: NoteColorPickerProps) => {
+const NoteColorPicker = (props: NoteColorPickerProps) => {
   const [open, setOpen] = createSignal(false);
   let popoverTriggerRef: HTMLButtonElement | undefined;
   return (
@@ -79,7 +75,7 @@ const NoteColorPicker = ({
         <PopoverTrigger asChild>
           <div>
             <ColorButton
-              color={currentColor}
+              color={props.currentColor}
               big={true}
               ref={(el) => (popoverTriggerRef = el)}
             />
@@ -88,18 +84,18 @@ const NoteColorPicker = ({
       </ToolWrapper>
 
       <PopoverContent
-        container={container}
+        container={props.container}
         side="top"
         class="w-[80px] p-1 mb-2"
       >
-        <div className="flex items-center cursor-default gap-1 justify-between flex-wrap w-full ">
+        <div class="flex items-center cursor-default gap-1 justify-between flex-wrap w-full ">
           <For each={Object.values(NoteColorVariant)}>
             {(color) => (
               <ColorButton
                 key={color}
                 color={color}
                 onClick={() => {
-                  setCurrentColor(color);
+                  props.setCurrentColor(color);
                   setOpen(false);
                   requestAnimationFrame(() => {
                     popoverTriggerRef?.focus();
@@ -113,7 +109,6 @@ const NoteColorPicker = ({
     </Popover>
   );
 };
-NoteTools.displayName = 'NoteTools';
 
 type NoteToolsProps = {
   editor: Editor;
@@ -127,33 +122,33 @@ type NoteColorPickerProps = {
   container: HTMLDivElement | null;
 };
 
-function ColorButton({ color, onClick, big, ref }: ColorButtonProps) {
+function ColorButton(props: ColorButtonProps) {
   return (
     <Button
-      key={color}
-      ref={ref}
+      key={props.color}
+      ref={props.ref}
       variant="ghost"
       size="icon"
       role="button"
       class={cn('size-5 shrink-0 grow flex items-center justify-center', {
-        'size-6': big,
+        'size-6': props.big,
       })}
-      onClick={onClick}
+      onClick={props.onClick}
     >
       <div
-        className={cn(
-          NoteColorPickerClassName[color] ??
+        class={cn(
+          NoteColorPickerClassName[props.color] ??
             NoteColorPickerClassName[NoteColorVariant.YELLOW],
           'size-4 shrink-0 rounded-full',
           {
-            'size-5': big,
+            'size-5': props.big,
           },
         )}
-      ></div>
+      />
     </Button>
   );
 }
-ColorButton.displayName = 'ColorButton';
+
 type ColorButtonProps = JSX.IntrinsicElements['button'] & {
   color: NoteColorVariant;
   onClick?: () => void;

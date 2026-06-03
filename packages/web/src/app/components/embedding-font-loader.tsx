@@ -46,10 +46,10 @@ const useDownloadEmbeddingFont = () => {
     },
   }));
 };
-const EmbeddingFontLoader = ({ children }: { children: JSX.Element }) => {
+const EmbeddingFontLoader = (props: { children: JSX.Element }) => {
   useDownloadEmbeddingFont();
 
-  return <>{children}</>;
+  return <>{props.children}</>;
 };
 
 export { EmbeddingFontLoader };

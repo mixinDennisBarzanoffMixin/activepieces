@@ -48,29 +48,23 @@ function buildInputSchemaForStep(
 ): ZodType {
   switch (type) {
     case FlowActionType.PIECE: {
-      if (
-        piece &&
-        actionNameOrTriggerName &&
-        piece.actions[actionNameOrTriggerName]
-      ) {
+      if (piece && Object.hasOwn(piece.actions, actionNameOrTriggerName)) {
+        const action = piece.actions[actionNameOrTriggerName];
         return piecePropertiesUtils.buildSchema(
-          piece.actions[actionNameOrTriggerName].props,
+          action.props,
           piece.auth,
-          piece.actions[actionNameOrTriggerName].requireAuth,
+          action.requireAuth,
         );
       }
       return z.object({});
     }
     case FlowTriggerType.PIECE: {
-      if (
-        piece &&
-        actionNameOrTriggerName &&
-        piece.triggers[actionNameOrTriggerName]
-      ) {
+      if (piece && Object.hasOwn(piece.triggers, actionNameOrTriggerName)) {
+        const trigger = piece.triggers[actionNameOrTriggerName];
         return piecePropertiesUtils.buildSchema(
-          piece.triggers[actionNameOrTriggerName].props,
+          trigger.props,
           piece.auth,
-          piece.triggers[actionNameOrTriggerName].requireAuth,
+          trigger.requireAuth,
         );
       }
       return z.object({});
@@ -383,7 +377,10 @@ function buildCustomAuthValueSchema(auth: PieceAuthProperty) {
   return z.object({
     value: z.object({
       type: z.literal(AppConnectionType.CUSTOM_AUTH),
-      props: piecePropertiesUtils.buildSchema(auth.props, undefined),
+      props: piecePropertiesUtils.buildSchema(
+        auth.props as PiecePropertyMap,
+        undefined,
+      ),
     }),
   });
 }

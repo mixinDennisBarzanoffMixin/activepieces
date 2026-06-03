@@ -77,20 +77,18 @@ export const platformAnalyticsHooks = {
     projectId?: string,
   ): { isLoading: boolean; data: PlatformAnalyticsReport | null } => {
     const selectFilteredByProject = (report: PlatformAnalyticsReport) => {
-        if (!projectId) {
-          return report;
-        }
-        const flows = report.flows.filter(
-          (flow) => flow.projectId === projectId,
-        );
-        const runs = report.runs.filter((run) =>
-          flows.some((flow) => flow.flowId === run.flowId),
-        );
-        return {
-          ...report,
-          flows,
-          runs,
-        };
+      if (!projectId) {
+        return report;
+      }
+      const flows = report.flows.filter((flow) => flow.projectId === projectId);
+      const runs = report.runs.filter((run) =>
+        flows.some((flow) => flow.flowId === run.flowId),
+      );
+      return {
+        ...report,
+        flows,
+        runs,
+      };
     };
 
     const { platform } = platformHooks.useCurrentPlatform();
@@ -119,9 +117,11 @@ export const platformAnalyticsHooks = {
       },
       onSuccess: () => {
         setIsRefreshing(false);
-        queryClient.invalidateQueries({ queryKey: analyticsQueryKey });
-        queryClient.invalidateQueries({ queryKey: ['project-leaderboard'] });
-        queryClient.invalidateQueries({ queryKey: ['user-leaderboard'] });
+        void queryClient.invalidateQueries({ queryKey: analyticsQueryKey });
+        void queryClient.invalidateQueries({
+          queryKey: ['project-leaderboard'],
+        });
+        void queryClient.invalidateQueries({ queryKey: ['user-leaderboard'] });
       },
       retry: true,
       retryDelay: 50000,

@@ -1,21 +1,29 @@
-import { createSignal } from 'solid-js';
+import { createSignal, Show, splitProps, type JSX } from 'solid-js';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import { colorsUtils } from '@/lib/color-utils';
 import { cn } from '@/lib/utils';
 
-interface ImageWithColorBackgroundProps extends any {
-  fallback?: any;
+interface ImageWithColorBackgroundProps
+  extends Omit<JSX.IntrinsicElements['img'], 'alt' | 'className' | 'src'> {
+  alt?: string;
   border?: boolean;
+  className?: string;
+  fallback?: JSX.Element;
   roundedCorner?: boolean;
+  src?: string;
 }
-const ImageWithColorBackground = ({
-  src,
-  alt,
-  fallback,
-  roundedCorner,
-  ...props
-}: ImageWithColorBackgroundProps) => {
+const ImageWithColorBackground = (_props: ImageWithColorBackgroundProps) => {
+  const split = splitProps(_props, [
+    'src',
+    'alt',
+    'fallback',
+    'roundedCorner',
+    'className',
+    'border',
+  ]);
+  const props = split[0];
+  const rest = split[1];
   const [hasError, setHasError] = createSignal(false);
   const [isLoading, setIsLoading] = createSignal(true);
   const [backgroundColor, setBackgroundColor] = createSignal<string | null>(
@@ -24,9 +32,11 @@ const ImageWithColorBackground = ({
 
   const handleLoad = (e: Event) => {
     setIsLoading(false);
-    const img = e.currentTarget as HTMLImageElement;
+    if (!(e.currentTarget instanceof HTMLImageElement)) {
+      return;
+    }
     colorsUtils.fac
-      .getColorAsync(img, { algorithm: 'simple' })
+      .getColorAsync(e.currentTarget, { algorithm: 'simple' })
       .then((color) => {
         const [r, g, b] = color.value;
         if (colorsUtils.isGrayColor(r, g, b)) {
@@ -47,15 +57,13 @@ const ImageWithColorBackground = ({
     setIsLoading(false);
   };
 
-  const { className, border, ...rest } = props;
-
   return (
     <span
-      className={cn('relative inline-block h-full w-full', className, {
+      class={cn('relative inline-block h-full w-full', props.className, {
         'bg-background': backgroundColor() === null,
         'border border-border/50 dark:bg-foreground/10':
-          backgroundColor() === null && border,
-        'rounded-lg': roundedCorner,
+          backgroundColor() === null && props.border,
+        'rounded-lg': props.roundedCorner,
       })}
       style={
         backgroundColor()
@@ -66,26 +74,26 @@ const ImageWithColorBackground = ({
       }
     >
       <Show when={isLoading() && !hasError()}>
-        <span className="absolute inset-0 flex items-center justify-center">
-          {fallback ?? <Skeleton class="w-full h-full" />}
+        <span class="absolute inset-0 flex items-center justify-center">
+          {props.fallback ?? <Skeleton class="w-full h-full" />}
         </span>
       </Show>
       <Show
-        when={!hasError() && src}
+        when={!hasError() && props.src}
         fallback={
-          <span className="absolute inset-0 flex items-center justify-center">
-            {fallback ?? <Skeleton class="w-full h-full" />}
+          <span class="absolute inset-0 flex items-center justify-center">
+            {props.fallback ?? <Skeleton class="w-full h-full" />}
           </span>
         }
       >
         <img
-          src={src}
-          alt={alt}
+          src={props.src}
+          alt={props.alt}
           crossOrigin="anonymous"
           onLoad={handleLoad}
           onError={handleError}
-          className={cn(
-            `transition-opacity duration-500 w-full h-full object-contain`,
+          class={cn(
+            'transition-opacity duration-500 w-full h-full object-contain',
             {
               'opacity-0': isLoading(),
               'opacity-100': !isLoading(),

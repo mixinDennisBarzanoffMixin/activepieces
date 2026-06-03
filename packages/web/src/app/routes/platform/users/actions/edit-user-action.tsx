@@ -17,20 +17,20 @@ type EditUserActionProps = {
   onUpdate: () => void;
 };
 
-export const EditUserAction = ({ row, onUpdate }: EditUserActionProps) => {
-  if (row.type === 'invitation') {
+export const EditUserAction = (props: EditUserActionProps) => {
+  if (props.row.type === 'invitation') {
     return null;
   }
 
   return (
-    <div className="flex items-end justify-end">
+    <div class="flex items-end justify-end">
       <Tooltip>
         <TooltipTrigger>
           <UpdateUserDialog
-            userId={row.data.id}
-            role={row.data.platformRole}
-            externalId={row.data.externalId ?? undefined}
-            onUpdate={onUpdate}
+            userId={props.row.data.id}
+            role={props.row.data.platformRole}
+            externalId={props.row.data.externalId ?? undefined}
+            onUpdate={props.onUpdate}
           >
             <Button variant="ghost" class="size-8 p-0">
               <Pencil class="size-4" />

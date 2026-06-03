@@ -12,35 +12,28 @@ type TestStepContainerProps = {
   projectId: string;
 };
 
-const TestStepContainer = ({
-  flowVersionId,
-  isSaving,
-  type,
-  flowId,
-  projectId,
-}: TestStepContainerProps) => {
+const TestStepContainer = (props: TestStepContainerProps) => {
   return (
-    <div className="flex flex-col h-full">
+    <div class="flex flex-col h-full">
       <Show
-        when={type === FlowTriggerType.PIECE()}
+        when={props.type === FlowTriggerType.PIECE}
         fallback={
           <TestActionSection
-            flowVersionId={flowVersionId}
-            isSaving={isSaving}
-            projectId={projectId}
-          ></TestActionSection>
+            flowVersionId={props.flowVersionId}
+            isSaving={props.isSaving}
+            projectId={props.projectId}
+          />
         }
       >
         <TestTriggerSection
-          flowId={flowId}
-          isSaving={isSaving}
-          flowVersionId={flowVersionId}
-          projectId={projectId}
-        ></TestTriggerSection>
+          flowId={props.flowId}
+          isSaving={props.isSaving}
+          flowVersionId={props.flowVersionId}
+          projectId={props.projectId}
+        />
       </Show>
     </div>
   );
 };
-TestStepContainer.displayName = 'TestStepContainer';
 
 export { TestStepContainer };

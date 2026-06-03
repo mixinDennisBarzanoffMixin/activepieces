@@ -1,4 +1,5 @@
 import { ApEdition, ApFlagId } from '@activepieces/shared';
+import type { JSX } from 'solid-js';
 
 import { flagsHooks } from '@/hooks/flags-hooks';
 
@@ -7,12 +8,12 @@ type EditionGuardProps = {
   allowedEditions: ApEdition[];
 };
 
-const EditionGuard = ({ children, allowedEditions }: EditionGuardProps) => {
+const EditionGuard = (props: EditionGuardProps) => {
   const { data: edition } = flagsHooks.useFlag<ApEdition>(ApFlagId.EDITION);
 
-  if (!edition || !allowedEditions.includes(edition)) {
+  if (!edition || !props.allowedEditions.includes(edition)) {
     return null;
   }
-  return children;
+  return props.children;
 };
 export { EditionGuard };

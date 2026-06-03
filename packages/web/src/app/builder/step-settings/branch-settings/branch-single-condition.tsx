@@ -6,9 +6,9 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { Trash } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { Show, createMemo } from 'solid-js';
 
-import { useFormContext } from '@/app/builder/builder-form';
+import { BuilderField, useFormContext } from '@/app/builder/builder-form';
 import { SearchableSelect } from '@/components/custom/searchable-select';
 import { Button } from '@/components/ui/button';
 import { FormField, FormItem, FormMessage } from '@/components/ui/form';
@@ -50,12 +50,14 @@ const textToBranchOperation: Record<BranchOperator, string> = {
   [BranchOperator.EXISTS]: t('Exists'),
   [BranchOperator.DOES_NOT_EXIST]: t('Does not exist'),
 };
-const operationOptions = Object.keys(textToBranchOperation).map((operator) => {
-  return {
-    label: textToBranchOperation[operator as BranchOperator],
-    value: operator,
-  };
-});
+const operationOptions = Object.entries(textToBranchOperation).map(
+  ([operator, label]) => {
+    return {
+      label,
+      value: operator,
+    };
+  },
+);
 
 type BranchSingleConditionProps = {
   showDelete: boolean;
@@ -66,36 +68,32 @@ type BranchSingleConditionProps = {
   branchIndex: number;
 };
 
-const BranchSingleCondition = ({
-  deleteClick,
-  groupIndex,
-  conditionIndex,
-  showDelete,
-  readonly,
-  branchIndex,
-}: BranchSingleConditionProps) => {
+const BranchSingleCondition = (props: BranchSingleConditionProps) => {
   const form = useFormContext<RouterAction>();
 
-  const condition = form.getValues(
-    `settings.branches.${branchIndex}.conditions.${groupIndex}.${conditionIndex}`,
+  const condition = createMemo(() =>
+    form.getValues(
+      `settings.branches.${props.branchIndex}.conditions.${props.groupIndex}.${props.conditionIndex}`,
+    ),
   );
 
-  const isTextCondition =
-    condition.operator && textConditions.includes(condition?.operator);
-  const isSingleValueCondition =
-    condition.operator && singleValueConditions.includes(condition?.operator);
-  const isInvalid = isSingleValueCondition
-    ? condition.firstValue.length === 0
-    : condition.firstValue.length === 0 ||
-      ('secondValue' in condition && condition.secondValue?.length === 0);
+  const isTextCondition = createMemo(() =>
+    textConditions.includes(getOperator(condition())),
+  );
+  const isSingleValueCondition = createMemo(() =>
+    singleValueConditions.includes(getOperator(condition())),
+  );
+  const isInvalid = createMemo(() =>
+    isConditionInvalid(condition(), isSingleValueCondition()),
+  );
   return (
     <>
-      <div className="flex items-center gap-2">
+      <div class="flex items-center gap-2">
         <Show when={isInvalid()}>
           <Tooltip>
             <TooltipTrigger asChild>
               <div>
-                <InvalidStepIcon class="h-4 w-4 shrink-0"></InvalidStepIcon>
+                <InvalidStepIcon class="h-4 w-4 shrink-0" />
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom">
@@ -104,55 +102,54 @@ const BranchSingleCondition = ({
           </Tooltip>
         </Show>
         <div
-          className={cn('grid gap-2 grow', {
-            'grid-cols-2': isSingleValueCondition,
-            'grid-cols-3': !isSingleValueCondition,
+          class={cn('grid gap-2 grow', {
+            'grid-cols-2': isSingleValueCondition(),
+            'grid-cols-3': !isSingleValueCondition(),
           })}
         >
           <FormField
-            name={`settings.branches.${branchIndex}.conditions.${groupIndex}.${conditionIndex}.firstValue`}
+            name={`settings.branches.${props.branchIndex}.conditions.${props.groupIndex}.${props.conditionIndex}.firstValue`}
             control={form.control}
-            render={({ field }) => {
+            render={({ field }: { field: BuilderField<string> }) => {
               return (
                 <FormItem>
                   <TextInputWithMentions
-                    disabled={readonly}
+                    disabled={props.readonly}
                     placeholder={t('First value')}
                     onChange={(value) => {
                       field.onChange(value);
-                      form.trigger();
+                      void form.trigger();
                     }}
                     initialValue={field.value}
-                  ></TextInputWithMentions>
+                  />
                 </FormItem>
               );
             }}
           />
           <FormField
-            name={`settings.branches.${branchIndex}.conditions.${groupIndex}.${conditionIndex}.operator`}
+            name={`settings.branches.${props.branchIndex}.conditions.${props.groupIndex}.${props.conditionIndex}.operator`}
             control={form.control}
-            render={({ field }) => (
+            render={({ field }: { field: BuilderField<BranchOperator> }) => (
               <FormItem>
                 <SearchableSelect
-                  disabled={readonly}
+                  disabled={props.readonly}
                   value={field.value}
                   options={operationOptions}
                   placeholder={''}
                   onChange={(e) => {
                     if (
-                      isSingleValueCondition &&
+                      isSingleValueCondition() &&
                       e !== null &&
-                      !singleValueConditions.includes(e as BranchOperator)
+                      isBranchOperator(e) &&
+                      !singleValueConditions.includes(e)
                     ) {
-                      //TODO: fix this
-                      //@ts-expect-ignore
                       form.setValue(
-                        `settings.branches.${branchIndex}.conditions.${groupIndex}.${conditionIndex}.secondValue`,
-                        '' as any,
+                        `settings.branches.${props.branchIndex}.conditions.${props.groupIndex}.${props.conditionIndex}.secondValue`,
+                        '',
                       );
                     }
                     field.onChange(e);
-                    form.trigger();
+                    void form.trigger();
                   }}
                 />
               </FormItem>
@@ -160,19 +157,19 @@ const BranchSingleCondition = ({
           />
           <Show when={!isSingleValueCondition()}>
             <FormField
-              name={`settings.branches.${branchIndex}.conditions.${groupIndex}.${conditionIndex}.secondValue`}
+              name={`settings.branches.${props.branchIndex}.conditions.${props.groupIndex}.${props.conditionIndex}.secondValue`}
               control={form.control}
-              render={({ field }) => (
+              render={({ field }: { field: BuilderField<string> }) => (
                 <FormItem>
                   <TextInputWithMentions
                     placeholder={t('Second value')}
-                    disabled={readonly}
+                    disabled={props.readonly}
                     initialValue={field.value || ''}
                     onChange={(value) => {
                       field.onChange(value);
-                      form.trigger();
+                      void form.trigger();
                     }}
-                  ></TextInputWithMentions>
+                  />
                 </FormItem>
               )}
             />
@@ -180,16 +177,16 @@ const BranchSingleCondition = ({
         </div>
       </div>
 
-      <div className="flex justify-start items-center gap-2 mt-2">
+      <div class="flex justify-start items-center gap-2 mt-2">
         <Show when={isTextCondition()}>
           <FormField
-            name={`settings.branches.${branchIndex}.conditions.${groupIndex}.${conditionIndex}.caseSensitive`}
+            name={`settings.branches.${props.branchIndex}.conditions.${props.groupIndex}.${props.conditionIndex}.caseSensitive`}
             control={form.control}
-            render={({ field }) => (
+            render={({ field }: { field: BuilderField<boolean> }) => (
               <FormItem>
-                <div className="flex items-center gap-2 p-1">
+                <div class="flex items-center gap-2 p-1">
                   <Switch
-                    disabled={readonly}
+                    disabled={props.readonly}
                     id="case-sensitive"
                     checked={field.value}
                     onCheckedChange={(e) => field.onChange(e)}
@@ -201,16 +198,16 @@ const BranchSingleCondition = ({
             )}
           />
         </Show>
-        <div className="grow"></div>
+        <div class="grow" />
         <div>
-          <Show when={showDelete()}>
+          <Show when={props.showDelete}>
             <Button
               variant={'basic'}
               class="text-destructive gap-2 items-center"
               size={'sm'}
-              onClick={deleteClick}
+              onClick={props.deleteClick}
             >
-              <Trash class="w-4 h-4"></Trash> {t('Remove')}
+              <Trash class="w-4 h-4" /> {t('Remove')}
             </Button>
           </Show>
         </div>
@@ -219,5 +216,33 @@ const BranchSingleCondition = ({
   );
 };
 
-BranchSingleCondition.displayName = 'BranchSingleCondition';
 export { BranchSingleCondition };
+
+function isBranchOperator(value: unknown): value is BranchOperator {
+  return Object.values(BranchOperator).includes(value as BranchOperator);
+}
+
+function isConditionInvalid(condition: unknown, single: boolean) {
+  if (!isRecord(condition)) {
+    return true;
+  }
+  const firstValue =
+    typeof condition.firstValue === 'string' ? condition.firstValue : '';
+  if (single) {
+    return firstValue.length === 0;
+  }
+  const secondValue =
+    typeof condition.secondValue === 'string' ? condition.secondValue : '';
+  return firstValue.length === 0 || secondValue.length === 0;
+}
+
+function getOperator(condition: unknown) {
+  if (!isRecord(condition) || !isBranchOperator(condition.operator)) {
+    return BranchOperator.EXISTS;
+  }
+  return condition.operator;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}

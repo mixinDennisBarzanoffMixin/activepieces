@@ -58,15 +58,15 @@ export const AppearanceSection = () => {
   }));
 
   return (
-    <div className="grid gap-4">
+    <div class="grid gap-4">
       <form
-        className="grid space-y-4 mt-4"
+        class="grid space-y-4 mt-4"
         onSubmit={(e) => {
           e.preventDefault();
           updatePlatform();
         }}
       >
-        <div className="max-w-[600px] grid space-y-4">
+        <div class="max-w-[600px] grid space-y-4">
           <div class="grid space-y-2">
             <Label for="name">{t('Platform Name')}</Label>
             <Input
@@ -86,7 +86,7 @@ export const AppearanceSection = () => {
 
           <div class="grid space-y-2">
             <Label for="logoFile">{t('Logo')}</Label>
-            <div className="flex flex-row gap-2 items-center">
+            <div class="flex flex-row gap-2 items-center">
               <Input
                 type="file"
                 ref={(el) => (logoRef = el)}
@@ -99,7 +99,7 @@ export const AppearanceSection = () => {
           </div>
           <div class="grid space-y-2">
             <Label for="iconFile">{t('Icon')}</Label>
-            <div className="flex flex-row gap-2 items-center">
+            <div class="flex flex-row gap-2 items-center">
               <Input
                 type="file"
                 ref={(el) => (iconRef = el)}
@@ -112,7 +112,7 @@ export const AppearanceSection = () => {
           </div>
           <div class="grid space-y-2">
             <Label for="faviconFile">{t('Favicon URL')}</Label>
-            <div className="flex flex-row gap-2 items-center">
+            <div class="flex flex-row gap-2 items-center">
               <Input
                 type="file"
                 ref={(el) => (faviconRef = el)}
@@ -126,7 +126,7 @@ export const AppearanceSection = () => {
 
           <div class="grid space-y-2">
             <Label for="color">{t('Primary Color')}</Label>
-            <div className="flex flex-row gap-2 items-center">
+            <div class="flex flex-row gap-2 items-center">
               <ColorPicker
                 value={values().color}
                 onChange={(color: string) =>
@@ -138,7 +138,7 @@ export const AppearanceSection = () => {
           </div>
         </div>
 
-        <div className="flex gap-2 justify-end mt-4">
+        <div class="flex gap-2 justify-end mt-4">
           <Button type="submit" loading={isPending} disabled={!valid()}>
             {t('Save')}
           </Button>

@@ -18,6 +18,7 @@ import {
   OpenAICompatibleProviderConfig,
   OpenAIProviderAuthConfig,
   OpenAIProviderConfig,
+  ProviderModelConfig,
   UpdateAIProviderRequest,
 } from '@activepieces/shared';
 import { createMutation } from '@tanstack/solid-query';
@@ -84,61 +85,55 @@ export const UpsertAIProviderDialog = (params: UpsertAIProviderDialogProps) => {
   );
 };
 
-export const UpsertAIProviderDialogContent = ({
-  children,
-  onSave,
-  config,
-  provider,
-  providerId,
-  defaultDisplayName = '',
-  setOpen,
-}: UpsertAIProviderDialogProps & { setOpen: (val: boolean) => void }) => {
+export const UpsertAIProviderDialogContent = (
+  props: UpsertAIProviderDialogProps & { setOpen: (val: boolean) => void },
+) => {
   const currentProviderDef = createMemo(
-    () => SUPPORTED_AI_PROVIDERS.find((p) => p.provider === provider)!
+    () => SUPPORTED_AI_PROVIDERS.find((p) => p.provider === props.provider)!,
   );
   const [form, setForm] = createStore<ProviderForm>({
-    provider,
-    displayName: defaultDisplayName,
-    config: config ?? getDefaultConfig(provider),
-    auth: getDefaultAuth(provider),
+    provider: props.provider,
+    displayName: props.defaultDisplayName ?? '',
+    config: props.config ?? getDefaultConfig(props.provider),
+    auth: getDefaultAuth(props.provider),
   });
   const [errors, setErrors] = createSignal<Record<string, string>>({});
   const [serverError, setServerError] = createSignal<string>();
 
-  const { mutate, isPending } = createMutation({
+  const { mutate, isPending } = createMutation(() => ({
     mutationFn: (data: CreateAIProviderRequest): Promise<void> => {
-      if (providerId) {
+      if (props.providerId) {
         const updateData: UpdateAIProviderRequest = {
           displayName: data.displayName,
           config: data.config,
           ...(hasAnyAuthFieldFilled(data.auth) ? { auth: data.auth } : {}),
         };
-        return aiProviderApi.update(providerId, updateData);
-      } else {
-        return aiProviderApi.upsert(data);
+        return aiProviderApi.update(props.providerId, updateData);
       }
+      return aiProviderApi.upsert(data);
     },
     onSuccess: () => {
-      setOpen(false);
-      onSave();
+      props.setOpen(false);
+      props.onSave();
     },
     onError: (
-      error: AxiosError<{ message?: string; params?: { message: string } }>
+      error: AxiosError<{ message?: string; params?: { message: string } }>,
     ) => {
       const data = error.response?.data;
 
       setServerError(
-        data?.message ?? data?.params?.message ?? JSON.stringify(error)
+        data?.message ?? data?.params?.message ?? JSON.stringify(error),
       );
     },
-  });
+  }));
 
   const handleSave = (e: SubmitEvent) => {
     e.preventDefault();
     setServerError(undefined);
-    const parsed = createFormSchema(provider, !isNil(providerId)).safeParse(
-      form
-    );
+    const parsed = createFormSchema(
+      props.provider,
+      !isNil(props.providerId),
+    ).safeParse(form);
     const errs = getVertexErrors(form);
     if (!parsed.success) {
       setErrors({ ...getZodErrors(parsed.error), ...errs });
@@ -154,19 +149,19 @@ export const UpsertAIProviderDialogContent = ({
 
   return (
     <>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent class="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            <Show when={providerId} fallback={t('Add AI Provider')}>
-              t('Update AI Provider'
+            <Show when={props.providerId} fallback={t('Add AI Provider')}>
+              {t('Update AI Provider')}
             </Show>
           </DialogTitle>
         </DialogHeader>
 
-        <form className="grid space-y-4" onSubmit={handleSave}>
+        <form class="grid space-y-4" onSubmit={handleSave}>
           <ScrollArea viewPortClassName="max-h-[calc(70vh)] p-px">
-            <div className="space-y-4">
+            <div class="space-y-4">
               <div
                 class="space-y-3"
                 hidden={currentProviderDef().provider !== AIProviderName.CUSTOM}
@@ -183,19 +178,17 @@ export const UpsertAIProviderDialogContent = ({
               </div>
 
               <Show when={currentProviderDef().markdown}>
-                <div className="text-sm text-muted-foreground">
-                  <ApMarkdown
-                    markdown={currentProviderDef().markdown}
-                  ></ApMarkdown>
+                <div class="text-sm text-muted-foreground">
+                  <ApMarkdown markdown={currentProviderDef().markdown} />
                 </div>
               </Show>
 
               <UpsertProviderConfigForm
                 form={{ values: form, set: setForm, errors: errors() }}
-                provider={provider}
-                apiKeyRequired={!config}
+                provider={props.provider}
+                apiKeyRequired={!props.config}
                 isLoading={isPending}
-                isEditMode={!!providerId}
+                isEditMode={!!props.providerId}
               />
 
               <FieldError message={serverError()} />
@@ -209,7 +202,7 @@ export const UpsertAIProviderDialogContent = ({
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                setOpen(false);
+                props.setOpen(false);
               }}
               disabled={isPending}
             >
@@ -225,37 +218,41 @@ export const UpsertAIProviderDialogContent = ({
   );
 };
 
-const FieldError = ({ message }: { message?: string }) => (
-  <Show when={message}>
+const FieldError = (props: { message?: string }) => (
+  <Show when={props.message}>
     <p class="text-sm font-medium text-destructive wrap-break-word">
-      {t(message ?? '')}
+      {t(props.message ?? '')}
     </p>
   </Show>
 );
 
 const getZodErrors = (err: z.ZodError) =>
   Object.fromEntries(
-    err.issues.map((issue) => [issue.path.join('.'), issue.message])
+    err.issues.map((issue) => [issue.path.join('.'), issue.message]),
   );
 
 const getVertexErrors = (form: ProviderForm) => {
   if (form.provider !== AIProviderName.CLOUDFLARE_GATEWAY) {
     return {};
   }
+  const cfg = form.config;
+  if (!('models' in cfg)) {
+    return {};
+  }
   if (
-    !form.config.models.some((model) =>
-      model.modelId.includes('google-vertex-ai')
+    !cfg.models.some((model: ProviderModelConfig) =>
+      model.modelId.includes('google-vertex-ai'),
     )
   ) {
     return {};
   }
   return {
-    ...(form.config.vertexProject?.trim()
+    ...('vertexProject' in cfg && cfg.vertexProject?.trim()
       ? {}
       : {
           'config.vertexProject': 'Required when using Google Vertex AI models',
         }),
-    ...(form.config.vertexRegion?.trim()
+    ...('vertexRegion' in cfg && cfg.vertexRegion?.trim()
       ? {}
       : {
           'config.vertexRegion': 'Required when using Google Vertex AI models',

@@ -1,6 +1,6 @@
 import type { Transition } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -63,7 +63,7 @@ function ChevronLeftIcon(
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -92,6 +92,5 @@ function ChevronLeftIcon(
     </div>
   );
 }
-ChevronLeftIcon.displayName = 'ChevronLeftIcon';
 
 export { ChevronLeftIcon };

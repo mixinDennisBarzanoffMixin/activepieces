@@ -1,8 +1,7 @@
-import { createSignal, type JSX } from 'solid-js';
-import { createMutation } from '@tanstack/solid-query';
+import { createMutation, useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
+import { createSignal, type JSX, Show } from 'solid-js';
 
-import { queryClient } from '@/app/query-client';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,10 +14,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { samlSsoApi } from '@/features/platform-admin';
 
-export const SamlDomainDialog = ({ children }: SamlDomainDialogProps) => {
+export const SamlDomainDialog = (props: SamlDomainDialogProps) => {
   const [open, setOpen] = createSignal(false);
   const [domain, setDomain] = createSignal('');
   const [error, setError] = createSignal('');
+  const queryClient = useQueryClient();
 
   const { mutate, isPending } = createMutation(
     () => ({
@@ -61,7 +61,7 @@ export const SamlDomainDialog = ({ children }: SamlDomainDialogProps) => {
         setOpen(next);
       }}
     >
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Sign in with SAML')}</DialogTitle>
@@ -82,14 +82,22 @@ export const SamlDomainDialog = ({ children }: SamlDomainDialogProps) => {
               onInput={(event) => setDomain(event.currentTarget.value)}
             />
           </div>
-          {error() && (
+          <Show when={error()}>
             <p class="text-sm font-medium text-destructive">{error()}</p>
-          )}
+          </Show>
           <div class="mt-3 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button variant="outline" onClick={() => setOpen(false)} type="button">
+            <Button
+              variant="outline"
+              onClick={() => setOpen(false)}
+              type="button"
+            >
               {t('Cancel')}
             </Button>
-            <Button type="submit" loading={isPending} disabled={!domain().trim()}>
+            <Button
+              type="submit"
+              loading={isPending}
+              disabled={!domain().trim()}
+            >
               {t('Continue')}
             </Button>
           </div>

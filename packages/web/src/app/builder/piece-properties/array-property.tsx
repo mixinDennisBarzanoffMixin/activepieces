@@ -6,11 +6,10 @@ import {
 import { t } from 'i18next';
 import { Plus, TrashIcon } from 'lucide-solid';
 import { nanoid } from 'nanoid';
-import { For, Show, createSignal } from 'solid-js';
+import { For, Show, createEffect, createSignal } from 'solid-js';
 
 import { useFormContext } from '@/app/builder/builder-form';
 import { ArrayInput } from '@/components/custom/array-input';
-import { TextWithIcon } from '@/components/custom/text-with-icon';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn, GAP_SIZE_FOR_STEP_SETTINGS } from '@/lib/utils';
@@ -27,12 +26,24 @@ type ArrayPropertyProps = {
 
 type ArrayField = {
   id: string;
-  value: string | Record<string, unknown>;
+  value: unknown;
+};
+
+const getFields = (value: unknown): ArrayField[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const items: unknown[] = value;
+  return items.map((item) => ({
+    id: nanoid(),
+    value: item,
+  }));
 };
 
 const getDefaultValuesForInputs = (arrayProperties: ArraySubProps<boolean>) => {
   return Object.entries(arrayProperties).reduce((acc, [key, value]) => {
-    switch (value.type) {
+    const property = value as { type: PropertyType };
+    switch (property.type) {
       case PropertyType.LONG_TEXT:
       case PropertyType.SHORT_TEXT:
       case PropertyType.NUMBER:
@@ -63,29 +74,20 @@ const getDefaultValuesForInputs = (arrayProperties: ArraySubProps<boolean>) => {
     }
   }, {} as Record<string, unknown>);
 };
-const ArrayPieceProperty = ({
-  inputName,
-  useMentionTextInput,
-  disabled,
-  arrayProperty,
-}: ArrayPropertyProps) => {
+const ArrayPieceProperty = (props: ArrayPropertyProps) => {
   const form = useFormContext();
+  const properties = () =>
+    props.arrayProperty.properties() as ArraySubProps<boolean> | undefined;
 
-  const [fields, setFields] = createSignal<ArrayField[]>(() => {
-    const formValues = form.getValues(inputName);
-    if (formValues) {
-      return formValues.map((value: string | Record<string, unknown>) => ({
-        id: nanoid(),
-        value,
-      }));
-    } else {
-      return [];
-    }
+  const [fields, setFields] = createSignal<ArrayField[]>([]);
+
+  createEffect(() => {
+    setFields(getFields(form.getValues(props.inputName)));
   });
 
   const updateFormValue = (newFields: ArrayField[]) => {
     form.setValue(
-      inputName,
+      props.inputName,
       newFields.map((f) => f.value),
       { shouldValidate: true },
     );
@@ -93,29 +95,17 @@ const ArrayPieceProperty = ({
 
   const append = () => {
     //passing empty object will result in react form putting in the initial values when the user first started editing
-    const value = arrayProperty.properties
-      ? getDefaultValuesForInputs(arrayProperty.properties)
-      : '';
-    const formValues = form.getValues(inputName) || [];
-    const newFields = [
-      ...formValues.map((value: string | Record<string, unknown>) => ({
-        id: nanoid(),
-        value,
-      })),
-      { id: nanoid(), value },
-    ];
+    const current = properties();
+    const value = current ? getDefaultValuesForInputs(current) : '';
+    const formValues = getFields(form.getValues(props.inputName));
+    const newFields = [...formValues, { id: nanoid(), value }];
 
     setFields(newFields);
     updateFormValue(newFields);
   };
 
   const remove = (index: number) => {
-    const currentFields: ArrayField[] = form
-      .getValues(inputName)
-      .map((value: string | Record<string, unknown>) => ({
-        id: nanoid(),
-        value,
-      }));
+    const currentFields = getFields(form.getValues(props.inputName));
     const newFields = currentFields.filter((_, i) => i !== index);
     setFields(newFields);
     updateFormValue(newFields);
@@ -123,80 +113,80 @@ const ArrayPieceProperty = ({
 
   return (
     <>
-      <Show when={arrayProperty.properties()}>
-        <>
-          <div
-            className={cn('flex w-full flex-col', GAP_SIZE_FOR_STEP_SETTINGS)}
-          >
+      <Show when={properties()}>
+        {(properties) => (
+          <div class={cn('flex w-full flex-col', GAP_SIZE_FOR_STEP_SETTINGS)}>
             <For each={fields}>
               {(field, index) => (
                 <div
-                  className={cn(
+                  class={cn(
                     'p-4 border rounded-md flex flex-col',
                     GAP_SIZE_FOR_STEP_SETTINGS,
                   )}
-                  key={'array-item-' + field.id}
                 >
-                  <div className="flex justify-between">
-                    <div className="font-semibold"> #{index + 1}</div>
+                  <div class="flex justify-between">
+                    <div class="font-semibold"> #{index() + 1}</div>
                     <Button
                       variant="outline"
                       size="icon"
                       class="size-8 shrink-0"
                       onClick={() => {
-                        remove(index);
+                        remove(index());
                       }}
-                      disabled={disabled}
+                      disabled={props.disabled}
                     >
                       <TrashIcon
                         class="size-4 text-destructive"
                         aria-hidden="true"
                       />
-                      <span className="sr-only">{t('Remove')}</span>
+                      <span class="sr-only">{t('Remove')}</span>
                     </Button>
                   </div>
                   <GenericPropertiesForm
-                    prefixValue={`${inputName}.[${index}]`}
-                    props={arrayProperty.properties!}
-                    useMentionTextInput={useMentionTextInput}
+                    prefixValue={`${props.inputName}.[${index()}]`}
+                    props={properties()}
+                    useMentionTextInput={props.useMentionTextInput}
                     propertySettings={null}
                     dynamicPropsInfo={null}
-                    disabled={disabled}
+                    disabled={props.disabled}
                     onValueChange={() => {
-                      form.trigger(inputName);
+                      void form.trigger(props.inputName);
                     }}
-                  ></GenericPropertiesForm>
+                  />
                 </div>
               )}
             </For>
+            <Show when={!props.disabled}>
+              <Button
+                variant="outline"
+                size="sm"
+                class="mt-2"
+                onClick={() => {
+                  append();
+                }}
+                type="button"
+              >
+                <div class="flex items-center gap-2">
+                  <Plus size={18} />
+                  {t('Add Item')}
+                </div>
+              </Button>
+            </Show>
           </div>
-          <Show when={!disabled()}>
-            <Button
-              variant="outline"
-              size="sm"
-              class="mt-2"
-              onClick={() => {
-                append();
-              }}
-              type="button"
-            >
-              <TextWithIcon icon={<Plus size={18} />} text={t('Add Item')} />
-            </Button>
-          </Show>
-        </>
+        )}
       </Show>
 
-      <Show when={!arrayProperty.properties()}>
+      <Show when={!props.arrayProperty.properties()}>
         <ArrayInput
-          inputName={inputName}
-          disabled={disabled}
-          required={arrayProperty.required}
+          inputName={props.inputName}
+          disabled={props.disabled}
+          required={props.arrayProperty.required}
           customInputNode={(onChange, value, disabled) => {
-            if (!useMentionTextInput) {
+            if (!props.useMentionTextInput) {
               return (
                 <Input
                   value={value}
-                  onChange={(e) => onChange(e.target.value)}
+                  onChange={(e) => onChange(e.currentTarget.value)}
                   disabled={disabled}
                 />
               );
@@ -215,5 +205,4 @@ const ArrayPieceProperty = ({
   );
 };
 
-ArrayPieceProperty.displayName = 'ArrayPieceProperty';
 export { ArrayPieceProperty };

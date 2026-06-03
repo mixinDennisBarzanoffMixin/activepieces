@@ -29,7 +29,7 @@ const FIELD_TYPE_FRIENDLY_NAME: Record<FieldType, string> = {
   [FieldType.STATIC_DROPDOWN]: 'Dropdown',
 };
 
-export function NewFieldPopup({ children }: NewFieldDialogProps) {
+export function NewFieldPopup(props: NewFieldDialogProps) {
   const [open, setOpen] = createSignal(false);
   const [name, setName] = createSignal('');
   const [type, setType] = createSignal<FieldType>(FieldType.TEXT);
@@ -49,7 +49,7 @@ export function NewFieldPopup({ children }: NewFieldDialogProps) {
     const next: NewFieldErrors = {};
     if (name().trim().length === 0) {
       next.name = t('Name is required');
-    } else if (fields?.find((field) => field.name.trim() === name().trim())) {
+    } else if (fields.find((field) => field.name.trim() === name().trim())) {
       next.name = t('Name must be unique');
     }
     if (isNil(type())) {
@@ -98,102 +98,102 @@ export function NewFieldPopup({ children }: NewFieldDialogProps) {
 
   return (
     <Popover open={open} modal={false} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      <PopoverTrigger asChild>{props.children}</PopoverTrigger>
       <PopoverContent class="w-[400px] py-4 px-2 drop-shadow-xl">
-        <div className="text-lg font-semibold mb-4 px-3">{t('New Field')}</div>
+        <div class="text-lg font-semibold mb-4 px-3">{t('New Field')}</div>
 
-        <form onSubmit={submit} className="mx-2">
-          <div className="max-h-[80vh]  overflow-y-auto space-y-4 px-1 ">
-              <div class="grid space-y-3">
-                <Label for="name">{t('Name')}</Label>
-                <Input
-                  thin={true}
-                  id="name"
-                  value={name()}
-                  onInput={(event) => setName(event.currentTarget.value)}
-                />
-                <Show when={errors().name}>
-                  <p class="text-sm font-medium text-destructive wrap-break-word">
-                    {errors().name}
-                  </p>
-                </Show>
-              </div>
-              <div class="grid space-y-2">
-                <Label>{t('Type')}</Label>
-                <ScrollArea class="max-h-[200px] rounded-md border">
-                  <RadioGroup
-                    value={type()}
-                    onValueChange={(value) => {
-                      const next = Object.values(FieldType).find(
-                        (item) => item === value,
-                      );
-                      if (next) setType(next);
-                    }}
-                    class="p-1"
-                  >
-                    <For each={Object.values(FieldType)}>
-                      {(item) => (
-                        <div className="flex items-center">
-                          <RadioGroupItem
-                            value={item}
-                            id={item}
-                            class="sr-only"
-                          />
-                          <Label
-                            for={item}
-                            class={cn(
-                              'flex items-center gap-2 w-full px-3 py-2 rounded-sm',
-                              'text-left text-accent-foreground cursor-pointer hover:bg-muted',
-                              type() === item && 'bg-muted text-primary',
-                            )}
-                          >
-                            {tablesUtils.getColumnIcon(item)}
-                            {FIELD_TYPE_FRIENDLY_NAME[item]
-                              ? t(FIELD_TYPE_FRIENDLY_NAME[item])
-                              : t(item)}
-                          </Label>
-                        </div>
-                      )}
-                    </For>
-                  </RadioGroup>
-                </ScrollArea>
-                <Show when={errors().type}>
-                  <p class="text-sm font-medium text-destructive wrap-break-word">
-                    {errors().type}
-                  </p>
-                </Show>
-              </div>
-              <Show when={type() === FieldType.STATIC_DROPDOWN}>
-                <div class="grid space-y-3">
-                  <Label>{t('Options')}</Label>
-                  <ArrayInput
-                    inputName="data.options"
-                    disabled={false}
-                    required={true}
-                    thinInputs={true}
-                    value={options()}
-                    onChange={setOptions}
-                  />
-                  <Show when={errors().options}>
-                    <p class="text-sm font-medium text-destructive wrap-break-word">
-                      {errors().options}
-                    </p>
-                  </Show>
-                </div>
+        <form onSubmit={submit} class="mx-2">
+          <div class="max-h-[80vh]  overflow-y-auto space-y-4 px-1 ">
+            <div class="grid space-y-3">
+              <Label for="name">{t('Name')}</Label>
+              <Input
+                thin={true}
+                id="name"
+                value={name()}
+                onInput={(event) => setName(event.currentTarget.value)}
+              />
+              <Show when={errors().name}>
+                <p class="text-sm font-medium text-destructive wrap-break-word">
+                  {errors().name}
+                </p>
               </Show>
+            </div>
+            <div class="grid space-y-2">
+              <Label>{t('Type')}</Label>
+              <ScrollArea class="max-h-[200px] rounded-md border">
+                <RadioGroup
+                  value={type()}
+                  onValueChange={(value) => {
+                    const next = Object.values(FieldType).find(
+                      (item) => item === value,
+                    );
+                    if (next) setType(next);
+                  }}
+                  class="p-1"
+                >
+                  <For each={Object.values(FieldType)}>
+                    {(item) => (
+                      <div class="flex items-center">
+                        <RadioGroupItem
+                          value={item}
+                          id={item}
+                          class="sr-only"
+                        />
+                        <Label
+                          for={item}
+                          class={cn(
+                            'flex items-center gap-2 w-full px-3 py-2 rounded-sm',
+                            'text-left text-accent-foreground cursor-pointer hover:bg-muted',
+                            type() === item && 'bg-muted text-primary',
+                          )}
+                        >
+                          {tablesUtils.getColumnIcon(item)}
+                          {FIELD_TYPE_FRIENDLY_NAME[item]
+                            ? t(FIELD_TYPE_FRIENDLY_NAME[item])
+                            : t(item)}
+                        </Label>
+                      </div>
+                    )}
+                  </For>
+                </RadioGroup>
+              </ScrollArea>
+              <Show when={errors().type}>
+                <p class="text-sm font-medium text-destructive wrap-break-word">
+                  {errors().type}
+                </p>
+              </Show>
+            </div>
+            <Show when={type() === FieldType.STATIC_DROPDOWN}>
+              <div class="grid space-y-3">
+                <Label>{t('Options')}</Label>
+                <ArrayInput
+                  inputName="data.options"
+                  disabled={false}
+                  required={true}
+                  thinInputs={true}
+                  value={options()}
+                  onInput={setOptions}
+                />
+                <Show when={errors().options}>
+                  <p class="text-sm font-medium text-destructive wrap-break-word">
+                    {errors().options}
+                  </p>
+                </Show>
+              </div>
+            </Show>
           </div>
-          <div className="flex justify-end gap-2 pt-2 mt-3">
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => setOpen(false)}
-              >
-                {t('Cancel')}
-              </Button>
-              <Button type="submit" size="sm">
-                {t('Create')}
-              </Button>
+          <div class="flex justify-end gap-2 pt-2 mt-3">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              onClick={() => setOpen(false)}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button type="submit" size="sm">
+              {t('Create')}
+            </Button>
           </div>
         </form>
       </PopoverContent>

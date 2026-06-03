@@ -1,5 +1,4 @@
 import {
-  FlowTrigger,
   FlowTriggerType,
   flowStructureUtil,
   isNil,
@@ -28,11 +27,7 @@ type TestTriggerSectionProps = {
   projectId: string;
 };
 
-const TestTriggerSection = ({
-  isSaving,
-  flowVersionId,
-  flowId,
-}: TestTriggerSectionProps) => {
+const TestTriggerSection = (props: TestTriggerSectionProps) => {
   const runner = useTriggerTestRunner();
   const currentStep = useBuilderStateContext((state) =>
     state.selectedStep
@@ -41,20 +36,14 @@ const TestTriggerSection = ({
   );
 
   const stepName = currentStep?.name;
-  const { sampleData, sampleDataInput, lastTestDate } = useBuilderStateContext(
-    (state) => ({
-      sampleData: stepName ? state.outputSampleData[stepName] : undefined,
-      sampleDataInput: stepName ? state.inputSampleData[stepName] : undefined,
-      lastTestDate:
-        stepName && state.selectedStep
-          ? findTriggerLastTestDate(state.flowVersion.trigger, stepName)
-          : undefined,
-    }),
-  );
+  const { sampleData, sampleDataInput } = useBuilderStateContext((state) => ({
+    sampleData: stepName ? state.outputSampleData[stepName] : undefined,
+    sampleDataInput: stepName ? state.inputSampleData[stepName] : undefined,
+  }));
 
   const { pollResults } = triggerEventHooks.usePollResults(
-    flowVersionId,
-    flowId,
+    props.flowVersionId,
+    props.flowId,
   );
 
   if (!runner || !currentStep || currentStep.type !== FlowTriggerType.PIECE) {
@@ -79,15 +68,16 @@ const TestTriggerSection = ({
     fireTest,
   } = runner;
 
+  const lastTestDate = currentStep.settings.sampleData?.lastTestDate;
   const sampleDataSelected = !isNil(lastTestDate) || !isNil(errorMessage);
   const isTestedBefore = !isNil(lastTestDate);
   const showFirstTimeTestingSection = !isTestedBefore && !isSimulating;
 
   if (isPieceLoading || isNil(testType)) {
     return (
-      <div className="flex flex-col h-full">
+      <div class="flex flex-col h-full">
         <TestPanelHeader status="idle" />
-        <div className="flex justify-end px-3 py-2 shrink-0">
+        <div class="flex justify-end px-3 py-2 shrink-0">
           <TestPanelViewToggle />
         </div>
       </div>
@@ -109,7 +99,7 @@ const TestTriggerSection = ({
         });
       case 'webhook':
         return (
-          <div className="flex flex-col gap-2">
+          <div class="flex flex-col gap-2">
             <p>
               {t(
                 'Send Data to the webhook URL to generate sample data to use in the next steps',
@@ -117,9 +107,9 @@ const TestTriggerSection = ({
             </p>
             <ManualWebhookTestButton
               isWebhookTestingDialogOpen={isTestingDialogOpen}
-              setIsWebhookTestingDialogOpen={(value) => {
-                setIsTestingDialogOpen(value);
-                if (!value) {
+              setIsWebhookTestingDialogOpen={(open) => {
+                setIsTestingDialogOpen(open);
+                if (!open) {
                   abortControllerRef.current.abort();
                   abortControllerRef.current = new AbortController();
                 }
@@ -133,22 +123,22 @@ const TestTriggerSection = ({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <Show when={showFirstTimeTestingSection && !errorMessage()}>
-        <div className="flex flex-col h-full">
+    <div class="flex flex-col h-full">
+      <Show when={showFirstTimeTestingSection && !errorMessage}>
+        <div class="flex flex-col h-full">
           <TestPanelHeader status="idle" />
-          <div className="flex justify-end px-3 py-2 shrink-0">
+          <div class="flex justify-end px-3 py-2 shrink-0">
             <TestPanelViewToggle />
           </div>
-          <div className="grow flex flex-col items-center justify-center w-full px-6 py-10 gap-4 text-center">
-            <div className="flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary">
+          <div class="grow flex flex-col items-center justify-center w-full px-6 py-10 gap-4 text-center">
+            <div class="flex items-center justify-center size-12 rounded-full bg-primary/10 text-primary">
               <Zap class="size-6" />
             </div>
-            <div className="flex flex-col gap-1.5 max-w-[280px]">
-              <span className="text-sm font-medium text-foreground">
+            <div class="flex flex-col gap-1.5 max-w-[280px]">
+              <span class="text-sm font-medium text-foreground">
                 {t('No sample data yet')}
               </span>
-              <span className="text-xs text-muted-foreground leading-relaxed">
+              <span class="text-xs text-muted-foreground leading-relaxed">
                 {t(
                   'Test the trigger to capture sample data. You can then use the result in the following steps.',
                 )}
@@ -161,7 +151,7 @@ const TestTriggerSection = ({
                 isPollingTesting || isSimulating || isTestingDialogOpen
               }
               mockData={mockData}
-              isSaving={isSaving || isSavingMockdata}
+              isSaving={props.isSaving || isSavingMockdata}
               onSimulateTrigger={fireTest}
               onPollTrigger={fireTest}
               onMcpToolTesting={fireTest}
@@ -170,9 +160,9 @@ const TestTriggerSection = ({
           </div>
         </div>
       </Show>
-      <Show when={(!showFirstTimeTestingSection || errorMessage)()}>
+      <Show when={!showFirstTimeTestingSection || errorMessage}>
         <>
-          <Show when={showSampleDataViewer()}>
+          <Show when={showSampleDataViewer}>
             <TestSampleDataViewer
               onRetest={fireTest}
               hideCancel={true}
@@ -183,9 +173,9 @@ const TestTriggerSection = ({
               sampleDataInput={sampleDataInput ?? null}
               errorMessage={errorMessage ?? null}
               lastTestDate={lastTestDate}
-              isSaving={isSaving}
+              isSaving={props.isSaving}
             >
-              <Show when={pollResults?.data && !errorMessage()}>
+              <Show when={pollResults && !errorMessage}>
                 <TriggerEventSelect
                   pollResults={pollResults}
                   sampleData={sampleData}
@@ -194,7 +184,7 @@ const TestTriggerSection = ({
             </TestSampleDataViewer>
           </Show>
 
-          <Show when={isSimulating()}>
+          <Show when={isSimulating}>
             <SimulationNote
               note={getSimulationNote()}
               resetSimulation={resetSimulation}
@@ -205,15 +195,6 @@ const TestTriggerSection = ({
       </Show>
     </div>
   );
-};
-TestTriggerSection.displayName = 'TestTriggerSection';
-
-const findTriggerLastTestDate = (
-  trigger: FlowTrigger,
-  stepName: string,
-): string | undefined => {
-  const step = flowStructureUtil.getStep(stepName, trigger);
-  return step?.settings?.sampleData?.lastTestDate;
 };
 
 export { TestTriggerSection };

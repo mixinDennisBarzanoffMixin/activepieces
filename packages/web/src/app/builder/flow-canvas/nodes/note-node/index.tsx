@@ -1,10 +1,7 @@
 import { Note, NoteColorVariant } from '@activepieces/shared';
-import { useDraggable } from '@/lib/solid-dnd-kit';
-import { useDebouncedCallback } from '@/lib/debounce';
 import { Editor } from '@tiptap/core';
-import { NodeProps, NodeResizeControl } from '../../solid-flow-adapter';
 import { t } from 'i18next';
-import { Show, createSignal } from 'solid-js';
+import { Show, createMemo, createSignal, untrack } from 'solid-js';
 
 import { MarkdownInput } from '@/components/custom/markdown-input';
 import {
@@ -12,9 +9,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useDebouncedCallback } from '@/lib/debounce';
+import { useDraggable } from '@/lib/solid-dnd-kit';
 import { cn } from '@/lib/utils';
 
 import { useBuilderStateContext } from '../../../builder-hooks';
+import { NodeProps, NodeResizeControl } from '../../solid-flow-adapter';
 import { flowCanvasConsts } from '../../utils/consts';
 import { ApNoteNode } from '../../utils/types';
 
@@ -22,104 +22,100 @@ import { NoteFooter } from './note-footer';
 import { NoteTools } from './note-tools';
 
 const ApNoteCanvasNode = (props: NodeProps & Omit<ApNoteNode, 'position'>) => {
+  const id = createMemo(() => props.id);
+  const data = createMemo(() => props.data);
   const [draggedNote, resizeNote, note, readonly] = useBuilderStateContext(
     (state) => [
       state.draggedNote,
       state.resizeNote,
-      state.getNoteById(props.id),
+      state.getNoteById(id()),
       state.readonly,
     ],
   );
   const { attributes, listeners, setNodeRef } = useDraggable({
-    id: props.id,
+    id: untrack(id),
     data: {
       type: flowCanvasConsts.DRAGGED_NOTE_TAG,
     },
   });
   //because react flow only detects nowheel class, it doesn't work with focus-within:nowheel
   const [isFocusWithin, setIsFocusWithin] = createSignal(false);
-  const [size, setSize] = createSignal(props.data.size);
-  if (draggedNote?.id === props.id || note === null) {
-    return null;
-  }
+  const [size, setSize] = createSignal(untrack(data).size);
   return (
-    <div
-      className={cn('group note-node outline-none', {
-        nowheel: isFocusWithin,
-      })}
-      onFocus={() => setIsFocusWithin(true)}
-      onBlur={() => setIsFocusWithin(false)}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          setIsFocusWithin(false);
-          if (
-            document.activeElement instanceof HTMLElement &&
-            document.activeElement.closest('.note-node')
-          ) {
-            document.activeElement.blur();
+    <Show when={note !== null && draggedNote?.id !== id()} keyed>
+      <div
+        class={cn('group note-node outline-none', {
+          nowheel: isFocusWithin,
+        })}
+        onFocus={() => setIsFocusWithin(true)}
+        onBlur={() => setIsFocusWithin(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setIsFocusWithin(false);
+            if (
+              document.activeElement instanceof HTMLElement &&
+              document.activeElement.closest('.note-node')
+            ) {
+              document.activeElement.blur();
+            }
           }
-        }
-      }}
-    >
-      <NodeResizeControl
-        minWidth={150}
-        minHeight={150}
-        maxWidth={600}
-        maxHeight={600}
-        onResize={(_, params) => {
-          // update the size locally means that we don't re-render the whole graph
-          setSize({ width: params.width, height: params.height });
-        }}
-        onResizeEnd={(_, params) => {
-          resizeNote(props.id, {
-            width: params.width,
-            height: params.height,
-          });
         }}
       >
-        <button
-          className={cn(
-            'group-focus-within:block hidden outline-none cursor-nwse-resize  rounded-full bg-stone-50 border border-solid  -translate-x-[60%] -translate-y-[60%] p-0.75',
+        <NodeResizeControl
+          minWidth={150}
+          minHeight={150}
+          maxWidth={600}
+          maxHeight={600}
+          onResize={(_, params) => {
+            // update the size locally means that we don't re-render the whole graph
+            setSize({ width: params.width, height: params.height });
+          }}
+          onResizeEnd={(_, params) => {
+            resizeNote(id(), {
+              width: params.width,
+              height: params.height,
+            });
+          }}
+        >
+          <button
+            class={cn(
+              'group-focus-within:block hidden outline-none cursor-nwse-resize  rounded-full bg-stone-50 border border-solid  -translate-x-[60%] -translate-y-[60%] p-0.75',
+              FocusedBorderClassName[note.color],
+            )}
+          />
+        </NodeResizeControl>
+
+        <div
+          ref={setNodeRef}
+          {...attributes}
+          {...listeners}
+          class={cn(
+            'p-0.75 outline-none group-focus-within:border-solid border border-transparent outline-hidden rounded-md',
+            {
+              'cursor-default': readonly,
+            },
             FocusedBorderClassName[note.color],
           )}
-        ></button>
-      </NodeResizeControl>
-
-      <div
-        key={
-          props.data.size.height +
-          props.data.size.width +
-          note.position.x +
-          note.position.y
-        }
-        ref={setNodeRef}
-        {...attributes}
-        {...listeners}
-        className={cn(
-          'p-0.75 outline-none group-focus-within:border-solid border border-transparent outline-hidden rounded-md',
-          {
-            'cursor-default': readonly,
-          },
-          FocusedBorderClassName[note.color],
-        )}
-      >
-        <NoteContent
-          note={{
-            ...note,
-            size,
-          }}
-          isDragging={false}
-        />
+        >
+          <NoteContent
+            note={{
+              ...note,
+              size: size(),
+            }}
+            isDragging={false}
+          />
+        </div>
       </div>
-    </div>
+    </Show>
   );
 };
-ApNoteCanvasNode.displayName = 'ApNoteCanvasNode';
 
-const NoteContent = ({ note, isDragging }: NoteContentProps) => {
-  const { id, ownerId: creatorId, color, size } = note;
-  const { width, height } = size;
-  const [localNote, setLocalNote] = createSignal(note);
+const NoteContent = (props: NoteContentProps) => {
+  const note = createMemo(() => props.note);
+  const id = createMemo(() => note().id);
+  const color = createMemo(() => note().color);
+  const size = createMemo(() => note().size);
+  const [localNote, setLocalNote] = createSignal(untrack(note));
   const [updateContent, readonly] = useBuilderStateContext((state) => [
     state.updateContent,
     state.readonly,
@@ -134,32 +130,32 @@ const NoteContent = ({ note, isDragging }: NoteContentProps) => {
   let editorRef: Editor | null | undefined;
   return (
     <div
-      id={id}
-      className={cn(
+      id={id()}
+      class={cn(
         'rounded-md border-solid shadow-sm p-2 ',
-        NoteColorVariantClassName[color],
+        NoteColorVariantClassName[color()],
       )}
       style={{
-        width: `${width}px`,
-        height: `${height}px`,
+        width: `${size().width}px`,
+        height: `${size().height}px`,
       }}
     >
-      <Show when={!isDragging && !readonly && editorRef()}>
+      <Show when={!props.isDragging && !readonly && editorRef}>
         <div
-          className="opacity-0 focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto group-focus-within:opacity-100 transition-opacity duration-300"
+          class="opacity-0 focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto group-focus-within:opacity-100 transition-opacity duration-300"
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <NoteTools editor={editorRef} currentColor={note.color} id={id} />
+          <NoteTools editor={editorRef} currentColor={note().color} id={id()} />
         </div>
       </Show>
 
-      <div className="flex flex-col gap-2 h-full">
+      <div class="flex flex-col gap-2 h-full">
         <Tooltip>
           <TooltipTrigger asChild>
             <div
               onContextMenu={(e) => e.stopPropagation()}
-              className="grow h-full overflow-auto "
-              onDoubleClick={(e) => {
+              class="grow h-full overflow-auto "
+              onDblClick={(e) => {
                 e.stopPropagation();
                 editorRef?.commands.focus();
               }}
@@ -171,38 +167,48 @@ const NoteContent = ({ note, isDragging }: NoteContentProps) => {
               }}
             >
               <MarkdownInput
-                ref={(el) => (editorRef = el)}
-                key={`${localNote.id}-${readonly ? 'readonly' : 'editable'}-${
-                  localNote.position.x
-                }-${localNote.position.y}`}
-                disabled={isDragging || readonly}
-                initialValue={localNote.content}
-                class={cn('text-xs h-full', NoteColorVariantClassName[color], {
-                  '!cursor-grabbing': isDragging,
-                  '!text-foreground': true,
-                })}
+                ref={(el: Editor) => {
+                  editorRef = el;
+                }}
+                key={`${localNote().id}-${readonly ? 'readonly' : 'editable'}-${
+                  localNote().position.x
+                }-${localNote().position.y}`}
+                disabled={props.isDragging || readonly}
+                initialValue={localNote().content}
+                class={cn(
+                  'text-xs h-full',
+                  NoteColorVariantClassName[color()],
+                  {
+                    '!cursor-grabbing': props.isDragging,
+                    '!text-foreground': true,
+                  },
+                )}
                 onlyEditableOnDoubleClick={true}
                 placeholder={t('Double click to edit...')}
                 placeholderClassName={cn(
                   'text-xs',
-                  NoteColorVariantClassName[color],
+                  NoteColorVariantClassName[color()],
                 )}
                 onChange={(value: string) => {
-                  if (value !== localNote.content) {
-                    setLocalNote({ ...localNote, content: value });
-                    debouncedUpdateContent(id, value);
+                  if (value !== localNote().content) {
+                    setLocalNote({ ...localNote(), content: value });
+                    debouncedUpdateContent(id(), value);
                   }
                 }}
               />
             </div>
           </TooltipTrigger>
-          <Show when={!readonly && !isDragging && !editorRef?.isFocused()}>
+          <Show when={!readonly && !props.isDragging && !editorRef?.isFocused}>
             <TooltipContent side="right">
               {t('Double click to edit')}
             </TooltipContent>
           </Show>
         </Tooltip>
-        <NoteFooter id={id} isDragging={isDragging} creatorId={creatorId} />
+        <NoteFooter
+          id={id()}
+          isDragging={props.isDragging}
+          creatorId={note().ownerId}
+        />
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import {
   Folder,
   FolderDto,
   ListFolderRequest,
+  SeekPage,
   UpdateFolderRequest,
 } from '@activepieces/shared';
 
@@ -17,8 +18,8 @@ export const foldersApi = {
       projectId: authenticationSession.getProjectId()!,
     };
 
-    const response = await api.get<any>('/v1/folders', request);
-    return response.data || [];
+    const response = await api.get<SeekPage<FolderDto>>('/v1/folders', request);
+    return response.data;
   },
   get(folderId: string) {
     return api.get<Folder>(`/v1/folders/${folderId}`);

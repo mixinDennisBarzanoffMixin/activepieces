@@ -1,5 +1,5 @@
 import { isNil, ProjectReleaseType } from '@activepieces/shared';
-import { useParams } from '@solidjs/router';
+import { useNavigate, useParams } from '@solidjs/router';
 import { formatDistance } from 'date-fns';
 import { t } from 'i18next';
 import {
@@ -27,19 +27,19 @@ const getReleaseSummaryType = (type: ProjectReleaseType) => {
   switch (type) {
     case ProjectReleaseType.GIT:
       return (
-        <span className="flex items-center gap-1">
+        <span class="flex items-center gap-1">
           <GitBranch class="size-4" /> {t('Git')}
         </span>
       );
     case ProjectReleaseType.PROJECT:
       return (
-        <span className="flex items-center gap-1">
+        <span class="flex items-center gap-1">
           <FolderOpenDot class="size-4" /> {t('Project')}
         </span>
       );
     case ProjectReleaseType.ROLLBACK:
       return (
-        <span className="flex items-center gap-1">
+        <span class="flex items-center gap-1">
           <RotateCcw class="size-4" /> {t('Rollback')}
         </span>
       );
@@ -47,6 +47,7 @@ const getReleaseSummaryType = (type: ProjectReleaseType) => {
 };
 
 const ViewRelease = () => {
+  const navigate = useNavigate();
   const { releaseId } = useParams();
   const { data: release, isLoading } = projectReleaseQueries.useProjectRelease(
     releaseId || '',
@@ -67,9 +68,9 @@ const ViewRelease = () => {
   const timeAgo = formatDistance(createdDate, new Date(), { addSuffix: true });
 
   return (
-    <div className="space-y-6 w-full">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+    <div class="space-y-6 w-full">
+      <div class="space-y-2">
+        <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <Button
             variant="link"
             class="p-0 h-auto text-sm text-muted-foreground hover:text-primary"
@@ -80,10 +81,10 @@ const ViewRelease = () => {
           <ChevronRight class="h-4 w-4" />
           <span>{release?.name}</span>
         </div>
-        <div className="flex justify-between items-center w-full">
-          <div className="flex flex-col items-start gap-2 w-full">
-            <div className="flex items-center gap-2 text-md justify-between w-full">
-              <h1 className="text-3xl font-bold">{release?.name}</h1>
+        <div class="flex justify-between items-center w-full">
+          <div class="flex flex-col items-start gap-2 w-full">
+            <div class="flex items-center gap-2 text-md justify-between w-full">
+              <h1 class="text-3xl font-bold">{release?.name}</h1>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <ApplyButton
@@ -105,26 +106,26 @@ const ViewRelease = () => {
                 <TooltipContent side="bottom">{t('Rollback')}</TooltipContent>
               </Tooltip>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p class="text-sm text-muted-foreground">
               {t('Created')}: {timeAgo}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="space-y-2">
-        <span className="text-md font-semibold">{t('Summary')}</span>
+      <div class="space-y-2">
+        <span class="text-md font-semibold">{t('Summary')}</span>
         <Show
           when={isLoading}
           fallback={
-            <div className="flex flex-col items-start gap-2">
+            <div class="flex flex-col items-start gap-2">
               <Show when={release?.importedBy} fallback={null}>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="flex items-center flex-row gap-1">
+                      <span class="flex items-center flex-row gap-1">
                         {t('Imported by')}
-                        <span className="font-semibold text-md">
+                        <span class="font-semibold text-md">
                           {release?.importedByUser?.firstName}{' '}
                           {release?.importedByUser?.lastName}
                         </span>
@@ -146,13 +147,13 @@ const ViewRelease = () => {
           <Skeleton class="h-24 w-full" />
         </Show>
       </div>
-      <div className="space-y-2">
-        <span className="text-md font-semibold">{t('Description')}</span>
+      <div class="space-y-2">
+        <span class="text-md font-semibold">{t('Description')}</span>
         <Show
           when={isLoading}
           fallback={
-            <div className="flex flex-col items-start gap-2">
-              <pre className="whitespace-pre-wrap">
+            <div class="flex flex-col items-start gap-2">
+              <pre class="whitespace-pre-wrap">
                 {release?.description || t('No description provided')}
               </pre>
             </div>

@@ -14,6 +14,7 @@ import {
   Activity,
   XIcon,
 } from 'lucide-solid';
+import { Show } from 'solid-js';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
 import LockedFeatureGuard from '@/app/components/locked-feature-guard';
@@ -59,27 +60,28 @@ const SecretManagersPage = () => {
     {
       accessorKey: 'name',
       size: 240,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Name')}
           icon={KeyRound}
         />
       ),
-      cell: ({ row }) => {
-        const provider = SECRET_MANAGER_PROVIDERS_METADATA.find(
-          (p) => p.id === row.original.providerId,
-        );
+      cell: (props) => {
+        const provider = () =>
+          SECRET_MANAGER_PROVIDERS_METADATA.find(
+            (item) => item.id === props.row.original.providerId,
+          );
         return (
-          <div className="flex items-center gap-2 w-fit">
+          <div class="flex items-center gap-2 w-fit">
             <PieceIcon
               size="md"
               border={true}
-              displayName={provider?.name}
-              logoUrl={provider?.logo}
+              displayName={provider()?.name}
+              logoUrl={provider()?.logo}
               showTooltip={true}
             />
-            <span>{row.original.name}</span>
+            <span>{props.row.original.name}</span>
           </div>
         );
       },
@@ -87,103 +89,108 @@ const SecretManagersPage = () => {
     {
       accessorKey: 'scope',
       size: 100,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Scope')}
           icon={Globe}
         />
       ),
-      cell: ({ row }) => {
-        const connection = row.original;
-        if (connection.scope === SecretManagerConnectionScope.PLATFORM) {
-          return (
+      cell: (props) => (
+        <Show
+          when={
+            props.row.original.scope === SecretManagerConnectionScope.PLATFORM
+          }
+          fallback={
             <Badge variant="outline" class="text-xs">
-              {t('Platform')}
+              {t('Project')}
             </Badge>
-          );
-        }
-        return (
+          }
+        >
           <Badge variant="outline" class="text-xs">
-            {t('Project')}
+            {t('Platform')}
           </Badge>
-        );
-      },
+        </Show>
+      ),
     },
     {
       accessorKey: 'connection',
       size: 100,
-      header: ({ column }) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title={t('Status')}
           icon={Activity}
         />
       ),
-      cell: ({ row }) => {
-        const { configured, connected } = row.original.connection;
-        if (!configured) {
-          return (
+      cell: (props) => (
+        <Show
+          when={props.row.original.connection.configured}
+          fallback={
             <Badge variant="outline" class="text-xs text-muted-foreground">
               {t('Not configured')}
             </Badge>
-          );
-        }
-        if (connected) {
-          return (
+          }
+        >
+          <Show
+            when={props.row.original.connection.connected}
+            fallback={
+              <StatusIconWithText
+                icon={XIcon}
+                text={t('Disconnected')}
+                variant="error"
+              />
+            }
+          >
             <StatusIconWithText
               icon={Activity}
               text={t('Connected')}
               variant="success"
             />
-          );
-        }
-        return (
-          <StatusIconWithText
-            icon={XIcon}
-            text={t('Disconnected')}
-            variant="error"
-          />
-        );
-      },
+          </Show>
+        </Show>
+      ),
     },
     {
       id: 'actions',
-      cell: ({ row }) => {
-        const connection = row.original;
-        return (
-          <div className="flex items-center gap-1 justify-end">
-            <AddEditSecretManagerConnectionDialog connection={connection}>
-              <Button variant="ghost" size="sm">
-                <Pencil class="size-4" />
-              </Button>
-            </AddEditSecretManagerConnectionDialog>
-            <SecretManagerClearCacheButton connection={connection} />
-            <ConfirmationDeleteDialog
-              title={t('Delete Connection')}
-              message={t(
+      cell: (props) => (
+        <div class="flex items-center gap-1 justify-end">
+          <AddEditSecretManagerConnectionDialog connection={props.row.original}>
+            <Button variant="ghost" size="sm">
+              <Pencil class="size-4" />
+            </Button>
+          </AddEditSecretManagerConnectionDialog>
+          <SecretManagerClearCacheButton connection={props.row.original} />
+          <ConfirmationDeleteDialog
+            title={t('Delete Connection')}
+            message={String(
+              t(
                 'Are you sure you want to delete this secret manager connection?',
-              )}
-              warning={t(
+              ),
+            )}
+            warning={String(
+              t(
                 'Deleting this secret manager connection will break all flows/app connections using it.',
-              )}
-              entityName={connection.name}
-              mutationFn={async () => deleteConnection(connection.id)}
-            >
-              <div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <Trash class="size-4 text-destructive" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{t('Delete')}</TooltipContent>
-                </Tooltip>
-              </div>
-            </ConfirmationDeleteDialog>
-          </div>
-        );
-      },
+              ),
+            )}
+            entityName={props.row.original.name}
+            mutationFn={() => {
+              deleteConnection(props.row.original.id);
+            }}
+          >
+            <div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm">
+                    <Trash class="size-4 text-destructive" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{t('Delete')}</TooltipContent>
+              </Tooltip>
+            </div>
+          </ConfirmationDeleteDialog>
+        </div>
+      ),
     },
   ];
 
@@ -194,10 +201,10 @@ const SecretManagersPage = () => {
       lockTitle={t('Enable Secret Managers')}
       lockDescription={t('Manage your secrets from a single and secure place')}
     >
-      <div className="flex-col w-full">
+      <div class="flex-col w-full">
         <DashboardPageHeader
-          title={t('Secret Managers')}
-          description={t('Manage Secret Manager connections')}
+          title={String(t('Secret Managers'))}
+          description={String(t('Manage Secret Manager connections'))}
         >
           <AddEditSecretManagerConnectionDialog>
             <AnimatedIconButton icon={PlusIcon} iconSize={16} size="sm">
@@ -223,9 +230,7 @@ const SecretManagersPage = () => {
 
 export default SecretManagersPage;
 
-const SecretManagerClearCacheButton = ({
-  connection,
-}: {
+const SecretManagerClearCacheButton = (props: {
   connection: SecretManagerConnectionWithStatus;
 }) => {
   const { mutate: clearCache, isPending: isClearingCache } =
@@ -237,7 +242,7 @@ const SecretManagerClearCacheButton = ({
           variant="ghost"
           size="sm"
           loading={isClearingCache}
-          onClick={() => clearCache(connection.id)}
+          onClick={() => clearCache(props.connection.id)}
         >
           <RefreshCcw class="size-4" />
         </Button>

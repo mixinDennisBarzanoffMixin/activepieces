@@ -22,23 +22,18 @@ type PieceCardListItemProps = {
   isTemporaryDisabledUntilNextCursorMove: boolean;
 };
 
-const PieceCardListItem = ({
-  pieceMetadata,
-  searchQuery,
-  operation,
-  isTemporaryDisabledUntilNextCursorMove,
-}: PieceCardListItemProps) => {
+const PieceCardListItem = (props: PieceCardListItemProps) => {
   const isMobile = useIsMobile();
-  const showSuggestions = searchQuery.length > 0 || isMobile;
-  let isMouseOver: any | undefined;
-  const selectPieceMetatdata = async () => {
-    if (isTemporaryDisabledUntilNextCursorMove || showSuggestions) {
+  const showSuggestions = props.searchQuery.length > 0 || isMobile;
+  let isMouseOver = false;
+  const selectPieceMetadata = async () => {
+    if (props.isTemporaryDisabledUntilNextCursorMove || showSuggestions) {
       return;
     }
     isMouseOver = true;
     await wait(250);
     if (isMouseOver) {
-      setSelectedPieceMetadataInPieceSelector(pieceMetadata);
+      setSelectedPieceMetadataInPieceSelector(props.pieceMetadata);
     }
   };
   const [
@@ -53,46 +48,46 @@ const PieceCardListItem = ({
     <>
       <CardListItem
         class={cn('flex-col p-3 gap-1 items-start truncate', {
-          'hover:bg-transparent!': isTemporaryDisabledUntilNextCursorMove,
+          'hover:bg-transparent!': props.isTemporaryDisabledUntilNextCursorMove,
         })}
-        style={{ height: `${itemHeight}px`, maxHeight: `${itemHeight}px` }}
+        style={{ height: `${itemHeight}px`, 'max-height': `${itemHeight}px` }}
         selected={
           selectedPieceMetadataInPieceSelector?.displayName ===
-            pieceMetadata.displayName && searchQuery.length === 0
+            props.pieceMetadata.displayName && props.searchQuery.length === 0
         }
         interactive={!showSuggestions}
-        onMouseEnter={selectPieceMetatdata}
-        onMouseMove={selectPieceMetatdata}
+        onMouseEnter={() => void selectPieceMetadata()}
+        onMouseMove={() => void selectPieceMetadata()}
         onClick={() => {
           if (!showSuggestions) {
-            setSelectedPieceMetadataInPieceSelector(pieceMetadata);
+            setSelectedPieceMetadataInPieceSelector(props.pieceMetadata);
           }
         }}
         onMouseLeave={() => {
           isMouseOver = false;
         }}
-        id={pieceMetadata.displayName}
-        data-testid={pieceMetadata.displayName}
+        id={props.pieceMetadata.displayName}
+        data-testid={props.pieceMetadata.displayName}
       >
-        <div className="flex gap-2 items-center h-full">
+        <div class="flex gap-2 items-center h-full">
           <PieceIcon
-            logoUrl={pieceMetadata.logoUrl}
-            displayName={pieceMetadata.displayName}
+            logoUrl={props.pieceMetadata.logoUrl}
+            displayName={props.pieceMetadata.displayName}
             showTooltip={false}
             size={'sm'}
           />
-          <div className="grow h-full flex items-center justify-left text-sm">
-            {pieceMetadata.displayName}
+          <div class="grow h-full flex items-center justify-left text-sm">
+            {props.pieceMetadata.displayName}
           </div>
         </div>
       </CardListItem>
 
-      <Show when={showSuggestions()}>
+      <Show when={showSuggestions}>
         <div>
           <PieceActionsOrTriggersList
-            stepMetadataWithSuggestions={pieceMetadata}
+            stepMetadataWithSuggestions={props.pieceMetadata}
             hidePieceIconAndDescription={true}
-            operation={operation}
+            operation={props.operation}
           />
         </div>
       </Show>
@@ -100,5 +95,4 @@ const PieceCardListItem = ({
   );
 };
 
-PieceCardListItem.displayName = 'PieceCardListItem';
 export { PieceCardListItem };

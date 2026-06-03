@@ -6,10 +6,8 @@ import {
   RunEnvironment,
   isFlowRunStateTerminal,
 } from '@activepieces/shared';
-import { useDebouncedCallback } from '@/lib/debounce';
 import { useLocation } from '@solidjs/router';
 import { createMutation, createQuery } from '@tanstack/solid-query';
-import { useReactFlow } from './solid-flow-adapter';
 import { t } from 'i18next';
 import { createEffect, createSignal } from 'solid-js';
 
@@ -18,15 +16,16 @@ import { useSocket } from '@/components/providers/socket-provider';
 import { flowRunsApi, flowRunUtils } from '@/features/flow-runs';
 import { flowsApi } from '@/features/flows';
 import { useAuthorization } from '@/hooks/authorization-hooks';
+import { useDebouncedCallback } from '@/lib/debounce';
 
 import { useBuilderStateContext } from '../builder-hooks';
 import { textMentionUtils } from '../piece-properties/text-input-with-mentions/text-input-utils';
 
+import { useReactFlow } from './solid-flow-adapter';
 import { flowCanvasUtils } from './utils/flow-canvas-utils';
 
 const useSetSocketListener = (refetchPiece: () => void) => {
   const socket = useSocket();
-  const [run] = useBuilderStateContext((state) => [state.run]);
   createEffect(() => {
     socket.on(WebsocketClientEvent.REFRESH_PIECE, () => {
       refetchPiece();
@@ -44,7 +43,7 @@ const useListenToExistingRun = () => {
     state.flowVersion,
   ]);
   const location = useLocation();
-  const inRunsPage = location.pathname?.includes('/runs');
+  const inRunsPage = location.pathname.includes('/runs');
   createQuery(() => ({
     queryKey: ['refetched-run', run?.id],
     queryFn: async () => {
@@ -70,7 +69,9 @@ const useShowBuilderIsSavingWarningBeforeLeaving = () => {
   const {
     embedState: { isEmbedded },
   } = useEmbedding();
-  const isSaving = useBuilderStateContext((state) => state.saving);
+  const isSaving = useBuilderStateContext((state) => ({
+    value: state.saving,
+  })).value;
   createEffect(() => {
     if (isEmbedded) {
       return;
@@ -142,7 +143,7 @@ const useIsFocusInsideListMapperModeInput = ({
   createEffect(() => {
     const focusInListener = () => {
       const focusedElement = document.activeElement;
-      const isFocusedInside = !!containerRef.current?.contains(focusedElement);
+      const isFocusedInside = !!containerRef?.contains(focusedElement);
       const isFocusedInsideDataSelector =
         !isNil(document.activeElement) &&
         document.activeElement instanceof HTMLElement &&
@@ -170,24 +171,24 @@ export const useFocusOnStep = () => {
 
   const [previousStatus, setPreviousStatus] = createSignal(currentRun?.status);
   createEffect(() => setPreviousStatus(currentRun?.status));
-  const currentStep = flowRunUtils.findLastStepWithStatus(
-    previousStatus() ?? FlowRunStatus.RUNNING,
-    currentRun?.steps ?? {},
-  );
-
   const { fitView } = useReactFlow();
-  const focusCurrentStep = useDebouncedCallback(() => {
+  const focusCurrentStep = useDebouncedCallback((step: string | undefined) => {
     if (userManuallySelectedStepDuringRun) {
       return;
     }
-    if (!isNil(currentStep)) {
-      fitView(flowCanvasUtils.createFocusStepInGraphParams(currentStep));
-      selectStep(currentStep, { fromAutoFocus: true });
+    if (!isNil(step)) {
+      void fitView(flowCanvasUtils.createFocusStepInGraphParams(step));
+      selectStep(step, { fromAutoFocus: true });
     }
   }, 500);
 
   createEffect(() => {
-    focusCurrentStep();
+    focusCurrentStep(
+      flowRunUtils.findLastStepWithStatus(
+        previousStatus() ?? FlowRunStatus.RUNNING,
+        currentRun?.steps ?? {},
+      ),
+    );
   });
 };
 
@@ -195,25 +196,25 @@ export const useResizeCanvas = (
   containerRef: HTMLDivElement | null | undefined,
   setHasCanvasBeenInitialised: (hasCanvasBeenInitialised: boolean) => void,
 ) => {
-  let containerSizeRef: any | undefined;
+  let containerSizeRef: { width: number; height: number } | undefined;
   const { getViewport, setViewport } = useReactFlow();
 
   createEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef) return;
     const resizeObserver = new ResizeObserver((entries) => {
       const { width, height } = entries[0].contentRect;
       setHasCanvasBeenInitialised(true);
       const { x, y, zoom } = getViewport();
-      if (containerRef.current && width !== containerSizeRef.width) {
+      if (containerSizeRef && width !== containerSizeRef.width) {
         const newX = x + (width - containerSizeRef.width) / 2;
-        setViewport({ x: newX, y, zoom });
+        void setViewport({ x: newX, y, zoom });
       }
       containerSizeRef = {
         width,
         height,
       };
     });
-    resizeObserver.observe(containerRef.current);
+    resizeObserver.observe(containerRef);
     return () => {
       resizeObserver.disconnect();
     };

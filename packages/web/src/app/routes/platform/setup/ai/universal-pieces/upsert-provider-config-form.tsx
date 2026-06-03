@@ -15,7 +15,6 @@ import {
   AlertCircle,
 } from 'lucide-solid';
 import { createSignal, For, Show } from 'solid-js';
-import { SetStoreFunction } from 'solid-js/store';
 
 import { DictionaryInput } from '@/components/custom/dictionary-input';
 import { Button } from '@/components/ui/button';
@@ -38,10 +37,21 @@ import { AWS_BEDROCK_REGIONS } from '@/features/agents/aws-regions';
 import { ModelFormPopover } from './model-form-popover';
 import type { ProviderForm } from './upsert-provider-dialog';
 
+type FormSet = {
+  (
+    key: 'auth',
+    setter: (auth: ProviderForm['auth']) => ProviderForm['auth'],
+  ): void;
+  (
+    key: 'config',
+    setter: (cfg: ProviderForm['config']) => ProviderForm['config'],
+  ): void;
+};
+
 type UpsertProviderConfigFormProps = {
   form: {
     values: ProviderForm;
-    set: SetStoreFunction<ProviderForm>;
+    set: FormSet;
     errors: Record<string, string>;
   };
   provider: AIProviderName;
@@ -50,184 +60,182 @@ type UpsertProviderConfigFormProps = {
   isEditMode?: boolean;
 };
 
-export const UpsertProviderConfigForm = ({
-  form,
-  provider,
-  apiKeyRequired = true,
-  isLoading,
-  isEditMode = false,
-}: UpsertProviderConfigFormProps) => {
-  const [showApiKeyInput, setShowApiKeyInput] = createSignal(!isEditMode);
-  const [showBedrockAuthInputs, setShowBedrockAuthInputs] = createSignal(
-    !isEditMode
-  );
+export const UpsertProviderConfigForm = (
+  props: UpsertProviderConfigFormProps,
+) => {
+  const [api, setApi] = createSignal(false);
+  const [bedrock, setBedrock] = createSignal(false);
+  const showApiKeyInput = () => !props.isEditMode || api();
+  const showBedrockAuthInputs = () => !props.isEditMode || bedrock();
   const append = (model: ProviderModelConfig) =>
-    form.set('config', (cfg) => ({
+    props.form.set('config', (cfg) => ({
       ...cfg,
       models: [...getModels(cfg), model],
     }));
   const update = (index: number, model: ProviderModelConfig) =>
-    form.set('config', (cfg) => ({
+    props.form.set('config', (cfg) => ({
       ...cfg,
       models: getModels(cfg).map((item, idx) => (idx === index ? model : item)),
     }));
   const remove = (index: number) =>
-    form.set('config', (cfg) => ({
+    props.form.set('config', (cfg) => ({
       ...cfg,
       models: getModels(cfg).filter((_, idx) => idx !== index),
     }));
 
   return (
-    <div className="grid space-y-4">
-      <Show when={provider !== AIProviderName.BEDROCK}>
+    <div class="grid space-y-4">
+      <Show when={props.provider !== AIProviderName.BEDROCK}>
         <div class="grid space-y-3">
-          <div className="flex items-center justify-between">
+          <div class="flex items-center justify-between">
             <Label for="apiKey">
               <Show
-                when={provider === AIProviderName.CLOUDFLARE_GATEWAY}
+                when={props.provider === AIProviderName.CLOUDFLARE_GATEWAY}
                 fallback={t('API Key')}
               >
-                t('AI Gateway Token'
+                {t('AI Gateway Token')}
               </Show>
             </Label>
-            <Show when={!showApiKeyInput}>
+            <Show when={!showApiKeyInput()}>
               <Button
                 type="button"
                 variant="basic"
                 size="sm"
-                onClick={() => setShowApiKeyInput(true)}
-                disabled={isLoading}
+                onClick={() => setApi(true)}
+                disabled={props.isLoading}
               >
                 <Pencil class="h-4 w-4 mr-2" />
                 {t('Edit')}
               </Button>
             </Show>
           </div>
-          <Show when={showApiKeyInput}>
+          <Show when={showApiKeyInput()}>
             <Input
-              value={getAuth(form.values.auth, 'apiKey')}
-              onInput={(e) => setAuth(form, 'apiKey', e.currentTarget.value)}
-              required={apiKeyRequired}
+              value={getAuth(props.form.values.auth, 'apiKey')}
+              onInput={(e) =>
+                setAuth(props.form, 'apiKey', e.currentTarget.value)
+              }
+              required={props.apiKeyRequired ?? true}
               id="apiKey"
               placeholder={'sk_************************'}
-              disabled={isLoading}
+              disabled={props.isLoading}
             />
           </Show>
-          <FieldError message={form.errors['auth.apiKey']} />
+          <FieldError message={props.form.errors['auth.apiKey']} />
         </div>
       </Show>
 
-      <Show when={provider === AIProviderName.AZURE}>
+      <Show when={props.provider === AIProviderName.AZURE}>
         <>
           <div class="grid space-y-3">
             <Label for="resourceName">{t('Resource Name')}</Label>
             <Input
-              value={getConfig(form.values.config, 'resourceName')}
+              value={getConfig(props.form.values.config, 'resourceName')}
               onInput={(e) =>
-                setConfig(form, 'resourceName', e.currentTarget.value)
+                setConfig(props.form, 'resourceName', e.currentTarget.value)
               }
               required
               id="resourceName"
               placeholder={'your-resource-name'}
-              disabled={isLoading}
+              disabled={props.isLoading}
             />
-            <FieldError message={form.errors['config.resourceName']} />
+            <FieldError message={props.form.errors['config.resourceName']} />
           </div>
 
           <div class="grid space-y-3">
             <Label for="apiVersion">{t('API Version')}</Label>
             <Input
-              value={getConfig(form.values.config, 'apiVersion')}
+              value={getConfig(props.form.values.config, 'apiVersion')}
               onInput={(e) =>
-                setConfig(form, 'apiVersion', e.currentTarget.value)
+                setConfig(props.form, 'apiVersion', e.currentTarget.value)
               }
               id="apiVersion"
               placeholder={'2024-10-21'}
-              disabled={isLoading}
+              disabled={props.isLoading}
             />
-            <p className="text-sm text-muted-foreground">
+            <p class="text-sm text-muted-foreground">
               {t(
-                'Optional. Leave empty to use the default. Some Azure resources require a different version, e.g. 2023-03-15-preview.'
+                'Optional. Leave empty to use the default. Some Azure resources require a different version, e.g. 2023-03-15-preview.',
               )}
             </p>
-            <FieldError message={form.errors['config.apiVersion']} />
+            <FieldError message={props.form.errors['config.apiVersion']} />
           </div>
         </>
       </Show>
 
-      <Show when={provider === AIProviderName.CLOUDFLARE_GATEWAY}>
+      <Show when={props.provider === AIProviderName.CLOUDFLARE_GATEWAY}>
         <>
           <div class="grid space-y-3">
             <Label for="accountId">{t('Account ID')}</Label>
             <Input
-              value={getConfig(form.values.config, 'accountId')}
+              value={getConfig(props.form.values.config, 'accountId')}
               onInput={(e) =>
-                setConfig(form, 'accountId', e.currentTarget.value)
+                setConfig(props.form, 'accountId', e.currentTarget.value)
               }
               required
               id="accountId"
               placeholder={'your-account-id'}
-              disabled={isLoading}
+              disabled={props.isLoading}
             />
-            <FieldError message={form.errors['config.accountId']} />
+            <FieldError message={props.form.errors['config.accountId']} />
           </div>
 
           <div class="grid space-y-3">
             <Label for="gatewayId">{t('Gateway ID')}</Label>
             <Input
-              value={getConfig(form.values.config, 'gatewayId')}
+              value={getConfig(props.form.values.config, 'gatewayId')}
               onInput={(e) =>
-                setConfig(form, 'gatewayId', e.currentTarget.value)
+                setConfig(props.form, 'gatewayId', e.currentTarget.value)
               }
               required
               id="gatewayId"
               placeholder={'your-gateway-id'}
-              disabled={isLoading}
+              disabled={props.isLoading}
             />
-            <FieldError message={form.errors['config.gatewayId']} />
+            <FieldError message={props.form.errors['config.gatewayId']} />
           </div>
           <div class="grid space-y-3">
             <Label for="vertexRegion">
               {t('Google Vertex Project Region')}
             </Label>
             <Input
-              value={getConfig(form.values.config, 'vertexRegion')}
+              value={getConfig(props.form.values.config, 'vertexRegion')}
               onInput={(e) =>
-                setConfig(form, 'vertexRegion', e.currentTarget.value)
+                setConfig(props.form, 'vertexRegion', e.currentTarget.value)
               }
               id="vertexRegion"
               placeholder={'global'}
-              disabled={isLoading}
+              disabled={props.isLoading}
             />
-            <FieldError message={form.errors['config.vertexRegion']} />
+            <FieldError message={props.form.errors['config.vertexRegion']} />
           </div>
           <div class="grid space-y-3">
             <Label for="vertexProjectId">{t('Google Vertex Project ID')}</Label>
             <Input
-              value={getConfig(form.values.config, 'vertexProject')}
+              value={getConfig(props.form.values.config, 'vertexProject')}
               onInput={(e) =>
-                setConfig(form, 'vertexProject', e.currentTarget.value)
+                setConfig(props.form, 'vertexProject', e.currentTarget.value)
               }
               id="vertexProjectId"
               placeholder={'project-1234'}
-              disabled={isLoading}
+              disabled={props.isLoading}
             />
-            <FieldError message={form.errors['config.vertexProject']} />
+            <FieldError message={props.form.errors['config.vertexProject']} />
           </div>
         </>
       </Show>
 
-      <Show when={provider === AIProviderName.BEDROCK}>
+      <Show when={props.provider === AIProviderName.BEDROCK}>
         <>
-          <Show when={!showBedrockAuthInputs}>
-            <div className="flex items-center justify-between">
+          <Show when={!showBedrockAuthInputs()}>
+            <div class="flex items-center justify-between">
               <Label class="text-sm font-medium">{t('AWS Credentials')}</Label>
               <Button
                 type="button"
                 variant="basic"
                 size="sm"
-                onClick={() => setShowBedrockAuthInputs(true)}
-                disabled={isLoading}
+                onClick={() => setBedrock(true)}
+                disabled={props.isLoading}
               >
                 <Pencil class="h-4 w-4 mr-2" />
                 {t('Edit')}
@@ -235,21 +243,21 @@ export const UpsertProviderConfigForm = ({
             </div>
           </Show>
 
-          <Show when={showBedrockAuthInputs}>
+          <Show when={showBedrockAuthInputs()}>
             <>
               <div class="grid space-y-3">
                 <Label for="accessKeyId">{t('AWS Access Key ID')}</Label>
                 <Input
-                  value={getAuth(form.values.auth, 'accessKeyId')}
+                  value={getAuth(props.form.values.auth, 'accessKeyId')}
                   onInput={(e) =>
-                    setAuth(form, 'accessKeyId', e.currentTarget.value)
+                    setAuth(props.form, 'accessKeyId', e.currentTarget.value)
                   }
-                  required={apiKeyRequired}
+                  required={props.apiKeyRequired ?? true}
                   id="accessKeyId"
                   placeholder={'AKIA************'}
-                  disabled={isLoading}
+                  disabled={props.isLoading}
                 />
-                <FieldError message={form.errors['auth.accessKeyId']} />
+                <FieldError message={props.form.errors['auth.accessKeyId']} />
               </div>
 
               <div class="grid space-y-3">
@@ -257,17 +265,23 @@ export const UpsertProviderConfigForm = ({
                   {t('AWS Secret Access Key')}
                 </Label>
                 <Input
-                  value={getAuth(form.values.auth, 'secretAccessKey')}
+                  value={getAuth(props.form.values.auth, 'secretAccessKey')}
                   onInput={(e) =>
-                    setAuth(form, 'secretAccessKey', e.currentTarget.value)
+                    setAuth(
+                      props.form,
+                      'secretAccessKey',
+                      e.currentTarget.value,
+                    )
                   }
                   type="password"
-                  required={apiKeyRequired}
+                  required={props.apiKeyRequired ?? true}
                   id="secretAccessKey"
                   placeholder={'****************************************'}
-                  disabled={isLoading}
+                  disabled={props.isLoading}
                 />
-                <FieldError message={form.errors['auth.secretAccessKey']} />
+                <FieldError
+                  message={props.form.errors['auth.secretAccessKey']}
+                />
               </div>
             </>
           </Show>
@@ -275,64 +289,70 @@ export const UpsertProviderConfigForm = ({
           <div class="grid space-y-3">
             <Label for="region">{t('AWS Region')}</Label>
             <Select
-              value={getConfig(form.values.config, 'region')}
-              onValueChange={(val) => setConfig(form, 'region', val)}
-              disabled={isLoading}
+              value={getConfig(props.form.values.config, 'region')}
+              onValueChange={(val: string) =>
+                setConfig(props.form, 'region', val)
+              }
+              disabled={props.isLoading}
             >
               <SelectTrigger id="region">
-                <SelectValue placeholder={t('Select a region')} />
+                <SelectValue placeholder={String(t('Select a region'))} />
               </SelectTrigger>
               <SelectContent>
                 <For each={AWS_BEDROCK_REGIONS}>
                   {(region) => (
-                    <SelectItem key={region.value} value={region.value}>
-                      {region.label}
+                    <SelectItem key={region.value} value={String(region.value)}>
+                      {String(region.label)}
                     </SelectItem>
                   )}
                 </For>
               </SelectContent>
             </Select>
-            <FieldError message={form.errors['config.region']} />
+            <FieldError message={props.form.errors['config.region']} />
           </div>
         </>
       </Show>
 
-      <Show when={provider === AIProviderName.CUSTOM}>
+      <Show when={props.provider === AIProviderName.CUSTOM}>
         <>
           <div class="grid space-y-3">
             <Label for="baseUrl">{t('Base URL')}</Label>
             <Input
-              value={getConfig(form.values.config, 'baseUrl')}
-              onInput={(e) => setConfig(form, 'baseUrl', e.currentTarget.value)}
+              value={getConfig(props.form.values.config, 'baseUrl')}
+              onInput={(e) =>
+                setConfig(props.form, 'baseUrl', e.currentTarget.value)
+              }
               required
               id="baseUrl"
               placeholder={'your-base-url'}
-              disabled={isLoading}
+              disabled={props.isLoading}
             />
-            <FieldError message={form.errors['config.baseUrl']} />
+            <FieldError message={props.form.errors['config.baseUrl']} />
           </div>
 
           <div class="grid space-y-3">
             <Label for="apiKeyHeader">{t('API Key Header')}</Label>
             <Input
-              value={getConfig(form.values.config, 'apiKeyHeader')}
+              value={getConfig(props.form.values.config, 'apiKeyHeader')}
               onInput={(e) =>
-                setConfig(form, 'apiKeyHeader', e.currentTarget.value)
+                setConfig(props.form, 'apiKeyHeader', e.currentTarget.value)
               }
               required
               id="apiKeyHeader"
               placeholder={'your-api-key-header'}
-              disabled={isLoading}
+              disabled={props.isLoading}
             />
-            <FieldError message={form.errors['config.apiKeyHeader']} />
+            <FieldError message={props.form.errors['config.apiKeyHeader']} />
           </div>
 
-          <div className="space-y-3">
+          <div class="space-y-3">
             <Label class="text-sm font-medium">{t('Custom Headers')}</Label>
             <DictionaryInput
-              values={getHeaders(form.values.config)}
-              onChange={(headers) => setConfig(form, 'defaultHeaders', headers)}
-              disabled={isLoading}
+              values={getHeaders(props.form.values.config)}
+              onChange={(headers) =>
+                setConfig(props.form, 'defaultHeaders', headers)
+              }
+              disabled={props.isLoading}
               keyPlaceholder={t('Header name')}
               valuePlaceholder={t('Header value')}
             />
@@ -344,17 +364,17 @@ export const UpsertProviderConfigForm = ({
         when={[
           AIProviderName.CUSTOM,
           AIProviderName.CLOUDFLARE_GATEWAY,
-        ].includes(provider)}
+        ].includes(props.provider)}
       >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
             <Label class="text-base">{t('Models Configuration')}</Label>
             <ModelFormPopover onSubmit={(model) => append(model)}>
               <Button
                 type="button"
                 size="sm"
                 variant="basic"
-                disabled={isLoading}
+                disabled={props.isLoading}
               >
                 <Plus class="h-4 w-4 mr-2" />
                 {t('Add Model')}
@@ -363,14 +383,14 @@ export const UpsertProviderConfigForm = ({
           </div>
 
           <Show
-            when={getModels(form.values.config).length === 0}
+            when={getModels(props.form.values.config).length === 0}
             fallback={
-              <div className="space-y-3">
-                <For each={getModels(form.values.config)}>
+              <div class="space-y-3">
+                <For each={getModels(props.form.values.config)}>
                   {(field, index) => (
                     <ProviderConfigModelItem
                       model={field}
-                      isLoading={isLoading}
+                      isLoading={props.isLoading}
                       onUpdate={(model) => update(index(), model)}
                       onRemove={() => remove(index())}
                     />
@@ -379,13 +399,13 @@ export const UpsertProviderConfigForm = ({
               </div>
             }
           >
-            <div className="text-center py-8 border border-dashed rounded-lg flex flex-col items-center justify-center gap-2">
-              <span className="mb-2 flex justify-center text-muted-foreground">
+            <div class="text-center py-8 border border-dashed rounded-lg flex flex-col items-center justify-center gap-2">
+              <span class="mb-2 flex justify-center text-muted-foreground">
                 <AlertCircle class="h-8 w-8 mx-auto" />
               </span>
-              <p className="text-sm text-muted-foreground">
+              <p class="text-sm text-muted-foreground">
                 {t(
-                  'This provider does not support listing models via API, please add models manually.'
+                  'This provider does not support listing models via API, please add models manually.',
                 )}
               </p>
             </div>
@@ -403,59 +423,54 @@ type ProviderConfigModelItemProps = {
   onRemove: () => void;
 };
 
-const ProviderConfigModelItem = ({
-  model,
-  isLoading,
-  onUpdate,
-  onRemove,
-}: ProviderConfigModelItemProps) => {
+const ProviderConfigModelItem = (props: ProviderConfigModelItemProps) => {
   return (
-    <div className="flex items-center justify-between p-4 border rounded-lg transition-colors">
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <ModelTypeIcon modelType={model.modelType} />
-          <div className="flex flex-col gap-0">
-            <p className="text-sm">{model.modelName}</p>
-            <p className="text-sm text-muted-foreground">{model.modelId}</p>
+    <div class="flex items-center justify-between p-4 border rounded-lg transition-colors">
+      <div class="flex-1">
+        <div class="flex items-center gap-2">
+          <ModelTypeIcon modelType={props.model.modelType} />
+          <div class="flex flex-col gap-0">
+            <p class="text-sm">{props.model.modelName}</p>
+            <p class="text-sm text-muted-foreground">{props.model.modelId}</p>
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div class="flex items-center gap-2">
         <ModelFormPopover
-          initialData={model}
-          onSubmit={(updatedModel) => onUpdate(updatedModel)}
+          initialData={props.model}
+          onSubmit={(updatedModel) => props.onUpdate(updatedModel)}
         >
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            disabled={isLoading}
+            disabled={props.isLoading}
           >
             <Pencil class="h-4 w-4" />
-            <span className="sr-only">{t('Edit')}</span>
+            <span class="sr-only">{t('Edit')}</span>
           </Button>
         </ModelFormPopover>
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          onClick={() => onRemove()}
-          disabled={isLoading}
+          onClick={() => props.onRemove()}
+          disabled={props.isLoading}
         >
           <Trash2 class="h-4 w-4 text-destructive" />
-          <span className="sr-only">{t('Delete')}</span>
+          <span class="sr-only">{t('Delete')}</span>
         </Button>
       </div>
     </div>
   );
 };
 
-const ModelTypeIcon = ({ modelType }: { modelType: AIProviderModelType }) => {
+const ModelTypeIcon = (props: { modelType: AIProviderModelType }) => {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
         <Show
-          when={modelType === AIProviderModelType.IMAGE}
+          when={props.modelType === AIProviderModelType.IMAGE}
           fallback={<TextIcon class="size-8" />}
         >
           <ImageIcon class="size-8" />
@@ -463,20 +478,20 @@ const ModelTypeIcon = ({ modelType }: { modelType: AIProviderModelType }) => {
       </TooltipTrigger>
       <TooltipContent>
         <Show
-          when={modelType === AIProviderModelType.IMAGE}
+          when={props.modelType === AIProviderModelType.IMAGE}
           fallback={t('Text Model')}
         >
-          t('Image Model'
+          {t('Image Model')}
         </Show>
       </TooltipContent>
     </Tooltip>
   );
 };
 
-const FieldError = ({ message }: { message?: string }) => (
-  <Show when={message}>
+const FieldError = (props: { message?: string }) => (
+  <Show when={props.message}>
     <p class="text-sm font-medium text-destructive wrap-break-word">
-      {t(message ?? '')}
+      {t(props.message ?? '')}
     </p>
   </Show>
 );
@@ -500,11 +515,11 @@ const getModels = (cfg: AIProviderConfig) =>
 const setAuth = (
   form: UpsertProviderConfigFormProps['form'],
   key: keyof AIProviderAuthConfig,
-  value: string
+  value: string,
 ) => form.set('auth', (auth) => ({ ...auth, [key]: value }));
 
 const setConfig = (
   form: UpsertProviderConfigFormProps['form'],
   key: keyof AIProviderConfig,
-  value: string | Record<string, string>
+  value: string | Record<string, string>,
 ) => form.set('config', (cfg) => ({ ...cfg, [key]: value }));

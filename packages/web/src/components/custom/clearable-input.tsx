@@ -1,31 +1,31 @@
 import { isNil } from '@activepieces/shared';
 import { t } from 'i18next';
 import { X } from 'lucide-solid';
+import { createMemo, Show, splitProps } from 'solid-js';
 
 import { Input, InputProps } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 import { SelectUtilButton } from './select-util-button';
 
-function ClearableInput({
-  onClear,
-  showClear,
-  ...inputProps
-}: ClearableInputProps) {
-  const shouldShowClear =
-    showClear ?? (!isNil(inputProps.value) && inputProps.value !== '');
+function ClearableInput(_props: ClearableInputProps) {
+  const [props, inputProps] = splitProps(_props, ['onClear', 'showClear']);
+  const clear = createMemo(
+    () =>
+      props.showClear ?? (!isNil(inputProps.value) && inputProps.value !== ''),
+  );
 
   return (
-    <div className="relative">
+    <div class="relative">
       <Input
         {...inputProps}
-        class={cn(inputProps.className, shouldShowClear && 'pr-9')}
+        class={cn(inputProps.className, clear() && 'pr-9')}
       />
-      <Show when={shouldShowClear && !inputProps.disabled}>
-        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+      <Show when={clear() && !inputProps.disabled}>
+        <div class="absolute right-2 top-1/2 -translate-y-1/2">
           <SelectUtilButton
             tooltipText={t('Clear')}
-            onClick={() => onClear()}
+            onClick={() => props.onClear()}
             Icon={X}
           />
         </div>

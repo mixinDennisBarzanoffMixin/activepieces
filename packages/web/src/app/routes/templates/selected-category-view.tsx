@@ -1,7 +1,7 @@
 import { Template } from '@activepieces/shared';
 import { t } from 'i18next';
 import { LayoutGrid } from 'lucide-solid';
-import { For, Show } from 'solid-js';
+import { For, mergeProps, Show } from 'solid-js';
 
 import {
   Empty,
@@ -19,23 +19,24 @@ type SelectedCategoryViewSkeletonProps = {
   showCategoryTitle?: boolean;
 };
 
-const SelectedCategoryViewSkeleton = ({
-  showCategoryTitle = false,
-}: SelectedCategoryViewSkeletonProps) => {
+const SelectedCategoryViewSkeleton = (
+  _props: SelectedCategoryViewSkeletonProps,
+) => {
+  const props = mergeProps({ showCategoryTitle: false }, _props);
   return (
-    <div className="space-y-4">
-      <Show when={showCategoryTitle}>
-        <div className="flex items-center gap-2">
+    <div class="space-y-4">
+      <Show when={props.showCategoryTitle}>
+        <div class="flex items-center gap-2">
           <Skeleton class="h-8 w-48" />
         </div>
       </Show>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4">
-        <For each={[...Array(6)]}>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4">
+        <For each={Array.from({ length: 6 })}>
           {(_, index) => (
             <TemplateCardSkeleton
               key={index}
-              showCategoryCarouselButton={showCategoryTitle}
+              showCategoryCarouselButton={props.showCategoryTitle}
             />
           )}
         </For>
@@ -52,55 +53,53 @@ type SelectedCategoryViewProps = {
   showCategoryTitle?: boolean;
 };
 
-export const SelectedCategoryView = ({
-  category,
-  templates,
-  onTemplateSelect,
-  isLoading = false,
-  showCategoryTitle,
-}: SelectedCategoryViewProps) => {
-  if (isLoading) {
-    return (
-      <SelectedCategoryViewSkeleton showCategoryTitle={showCategoryTitle} />
-    );
-  }
+export const SelectedCategoryView = (_props: SelectedCategoryViewProps) => {
+  const props = mergeProps({ isLoading: false }, _props);
 
   return (
-    <div className="space-y-4">
-      <Show when={showCategoryTitle}>
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl font-medium">{category}</h2>
-        </div>
-      </Show>
-
-      <Show
-        when={templates.length === 0}
-        fallback={
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4">
-            <For each={templates}>
-              {(template) => (
-                <ExploreTemplateCard
-                  key={template.id}
-                  template={template}
-                  onTemplateSelect={onTemplateSelect}
-                />
-              )}
-            </For>
+    <Show
+      when={!props.isLoading}
+      fallback={
+        <SelectedCategoryViewSkeleton
+          showCategoryTitle={props.showCategoryTitle}
+        />
+      }
+    >
+      <div class="space-y-4">
+        <Show when={props.showCategoryTitle}>
+          <div class="flex items-center gap-2">
+            <h2 class="text-xl font-medium">{props.category}</h2>
           </div>
-        }
-      >
-        <Empty class="min-h-[300px]">
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <LayoutGrid />
-            </EmptyMedia>
-            <EmptyTitle>{t('Empty category')}</EmptyTitle>
-            <EmptyDescription>
-              {t('No templates available at the moment')}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-      </Show>
-    </div>
+        </Show>
+
+        <Show
+          when={props.templates.length === 0}
+          fallback={
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 pb-4">
+              <For each={props.templates}>
+                {(template) => (
+                  <ExploreTemplateCard
+                    template={template}
+                    onTemplateSelect={props.onTemplateSelect}
+                  />
+                )}
+              </For>
+            </div>
+          }
+        >
+          <Empty class="min-h-[300px]">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <LayoutGrid />
+              </EmptyMedia>
+              <EmptyTitle>{t('Empty category')}</EmptyTitle>
+              <EmptyDescription>
+                {t('No templates available at the moment')}
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </Show>
+      </div>
+    </Show>
   );
 };

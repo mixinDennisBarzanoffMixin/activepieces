@@ -1,18 +1,21 @@
-import { CustomAuthProperty } from '@activepieces/pieces-framework';
+import {
+  CustomAuthProperty,
+  CustomAuthProps,
+} from '@activepieces/pieces-framework';
 
 import { GenericPropertiesForm } from '@/app/builder/piece-properties/generic-properties-form';
 
 type CustomAuthConnectionSettingsProps = {
-  authProperty: CustomAuthProperty<any>;
+  authProperty: CustomAuthProperty<CustomAuthProps>;
 };
 
-const CustomAuthConnectionSettings = ({
-  authProperty,
-}: CustomAuthConnectionSettingsProps) => {
+const CustomAuthConnectionSettings = (
+  props: CustomAuthConnectionSettingsProps,
+) => {
   return (
     <GenericPropertiesForm
       prefixValue="request.value.props"
-      props={authProperty.props}
+      props={props.authProperty.props}
       useMentionTextInput={false}
       propertySettings={null}
       dynamicPropsInfo={null}
@@ -20,5 +23,4 @@ const CustomAuthConnectionSettings = ({
   );
 };
 
-CustomAuthConnectionSettings.displayName = 'CustomAuthConnectionSettings';
 export { CustomAuthConnectionSettings };

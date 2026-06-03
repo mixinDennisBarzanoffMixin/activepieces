@@ -1,35 +1,38 @@
 import { isNil } from '@activepieces/shared';
-import { DragMoveEvent, useDndMonitor, useDroppable } from '@/lib/solid-dnd-kit';
-import { Handle, Position } from '../solid-flow-adapter';
 import { Plus } from 'lucide-solid';
-import { Show, createSignal } from 'solid-js';
+import { Show, createSignal, createUniqueId } from 'solid-js';
 
 import { PieceSelector } from '@/app/builder/pieces-selector';
 import { Button } from '@/components/ui/button';
+import {
+  DragMoveEvent,
+  useDndMonitor,
+  useDroppable,
+} from '@/lib/solid-dnd-kit';
 import { cn } from '@/lib/utils';
 
 import { useBuilderStateContext } from '../../builder-hooks';
+import { Handle, Position } from '../solid-flow-adapter';
 import { flowCanvasConsts } from '../utils/consts';
 import { flowCanvasUtils } from '../utils/flow-canvas-utils';
 import { ApBigAddButtonNode } from '../utils/types';
 
-const ApBigAddButtonCanvasNode = ({
-  data,
-  id,
-}: Omit<ApBigAddButtonNode, 'position'>) => {
+const ApBigAddButtonCanvasNode = (
+  props: Omit<ApBigAddButtonNode, 'position'>,
+) => {
   const [isIsStepInsideDropzone, setIsStepInsideDropzone] = createSignal(false);
   const [readonly, activeDraggingStep, isPieceSelectorOpened] =
     useBuilderStateContext((state) => [
       state.readonly,
       state.activeDraggingStep,
-      state.openedPieceSelectorStepNameOrAddButtonId === id,
+      state.openedPieceSelectorStepNameOrAddButtonId === props.id,
     ]);
-  const draggableId = useId();
+  const draggableId = createUniqueId();
   const { setNodeRef } = useDroppable({
     id: draggableId,
     data: {
       accepts: flowCanvasConsts.DRAGGED_STEP_TAG,
-      ...data,
+      ...props.data,
     },
   });
   const isShowingDropIndicator = !isNil(activeDraggingStep);
@@ -49,24 +52,24 @@ const ApBigAddButtonCanvasNode = ({
             height: `${flowCanvasConsts.AP_NODE_SIZE.STEP.height}px`,
             width: `${flowCanvasConsts.AP_NODE_SIZE.STEP.width}px`,
           }}
-          className="flex justify-center items-center "
+          class="flex justify-center items-center "
         >
-          <Show when={!readonly()}>
-            <div className="bg-builder-background">
+          <Show when={!readonly}>
+            <div class="bg-builder-background">
               <div
                 style={{
                   height: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.height}px`,
                   width: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.width}px`,
                 }}
-                className=" cursor-auto border-none flex items-center justify-center relative "
+                class=" cursor-auto border-none flex items-center justify-center relative "
               >
                 <div
                   style={{
                     height: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.height}px`,
                     width: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.width}px`,
                   }}
-                  id={id}
-                  className={cn('rounded-lg bg-background relative', {
+                  id={props.id}
+                  class={cn('rounded-lg bg-background relative', {
                     'bg-primary/80':
                       isShowingDropIndicator || isPieceSelectorOpened,
                     'shadow-add-button':
@@ -77,12 +80,12 @@ const ApBigAddButtonCanvasNode = ({
                       isShowingDropIndicator,
                   })}
                 >
-                  <Show when={!isShowingDropIndicator()}>
+                  <Show when={!isShowingDropIndicator}>
                     <PieceSelector
                       operation={flowCanvasUtils.createAddOperationFromAddButtonData(
-                        data,
+                        props.data,
                       )}
-                      id={id}
+                      id={props.id}
                     >
                       <span>
                         <Button
@@ -100,7 +103,7 @@ const ApBigAddButtonCanvasNode = ({
                     </PieceSelector>
                   </Show>
                 </div>
-                <Show when={isShowingDropIndicator()}>
+                <Show when={isShowingDropIndicator}>
                   <div
                     style={{
                       height: `${flowCanvasConsts.AP_NODE_SIZE.STEP.height}px`,
@@ -110,7 +113,7 @@ const ApBigAddButtonCanvasNode = ({
                         flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.width / 2
                       }px`,
                     }}
-                    className=" absolute "
+                    class=" absolute "
                     ref={setNodeRef}
                   >
                     {' '}
@@ -119,18 +122,18 @@ const ApBigAddButtonCanvasNode = ({
               </div>
             </div>
           </Show>
-          <Show when={readonly()}>
+          <Show when={readonly}>
             <div
               style={{
                 height: `${flowCanvasConsts.AP_NODE_SIZE.STEP.height}px`,
                 width: `${flowCanvasConsts.AP_NODE_SIZE.STEP.width}px`,
               }}
-              className=" cursor-auto  flex items-center justify-center relative "
+              class=" cursor-auto  flex items-center justify-center relative "
             >
               <svg
                 height={flowCanvasConsts.AP_NODE_SIZE.STEP.height}
                 width={flowCanvasConsts.AP_NODE_SIZE.STEP.width}
-                className="overflow-visible border-transparent "
+                class="overflow-visible border-transparent "
                 style={{
                   stroke: 'var(--xy-edge-stroke, var(--xy-edge-stroke))',
                 }}
@@ -165,5 +168,4 @@ const ApBigAddButtonCanvasNode = ({
   );
 };
 
-ApBigAddButtonCanvasNode.displayName = 'ApBigAddButtonCanvasNode';
 export { ApBigAddButtonCanvasNode };

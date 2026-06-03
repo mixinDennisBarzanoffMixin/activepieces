@@ -1,12 +1,12 @@
 import { AgentTool, isNil, mcpToolNameUtils } from '@activepieces/shared';
-import { useDebounce } from '@/lib/debounce';
 import Fuse from 'fuse.js';
 import { t } from 'i18next';
 import { Search } from 'lucide-solid';
-import React, { createMemo, createSignal } from 'solid-js';
+import { createMemo, createSignal, For, Show } from 'solid-js';
 
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useDebounce } from '@/lib/debounce';
 
 import { usePieceToolsDialogStore } from '../../stores/pieces-tools';
 
@@ -14,13 +14,13 @@ interface PieceActionsDialogProps {
   tools: AgentTool[];
 }
 
-export const PieceActionsList = ({ tools }) => {
+export const PieceActionsList = (props: PieceActionsDialogProps) => {
   const [searchQuery, setSearchQuery] = createSignal('');
   const [debouncedQuery] = useDebounce(searchQuery, 200);
   const { handleActionSelect, selectedPiece } = usePieceToolsDialogStore();
 
   const selectedActionNames = createMemo(
-    () => new Set(tools.map((tool) => tool.toolName)),
+    () => new Set(props.tools.map((tool) => tool.toolName)),
   );
 
   const fuse = createMemo(() => {
@@ -38,43 +38,43 @@ export const PieceActionsList = ({ tools }) => {
   });
 
   const filteredActions = createMemo(() => {
-    if (!debouncedQuery.trim() || isNil(fuse))
+    if (!debouncedQuery().trim() || isNil(fuse()))
       return selectedPiece?.suggestedActions || [];
 
-    return fuse.search(debouncedQuery).map((r) => r.item);
+    return fuse()
+      .search(debouncedQuery())
+      .map((r) => r.item);
   });
 
-  if (isNil(selectedPiece)) {
-    return <p>{t('No app is selected')}</p>;
-  }
-
   return (
-    <ScrollArea class="overflow-y-auto">
-      <div className="px-4 py-3 border-b">
-        <div className="relative border rounded-sm">
-          <Search class="absolute left-2 top-2.5 size-4 text-muted-foreground" />
-          <Input
-            placeholder={t('Search')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            class="pl-9 shadow-none border-none"
-          />
-        </div>
-      </div>
+    <Show when={selectedPiece} fallback={<p>{t('No app is selected')}</p>}>
+      {(piece) => (
+        <ScrollArea class="overflow-y-auto">
+          <div class="px-4 py-3 border-b">
+            <div class="relative border rounded-sm">
+              <Search class="absolute left-2 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                placeholder={t('Search')}
+                value={searchQuery}
+                onInput={(e) => setSearchQuery(e.currentTarget.value)}
+                class="pl-9 shadow-none border-none"
+              />
+            </div>
+          </div>
 
-      <div className="flex p-4 flex-col gap-2">
-        {filteredActions.map((action) => {
-          const isDisabled = selectedActionNames.has(
-            mcpToolNameUtils.createPieceToolName(
-              selectedPiece.pieceName,
-              action.name,
-            ),
-          );
+          <div class="flex p-4 flex-col gap-2">
+            <For each={filteredActions()}>
+              {(action) => {
+                const isDisabled = selectedActionNames().has(
+                  mcpToolNameUtils.createPieceToolName(
+                    piece().pieceName,
+                    action.name,
+                  ),
+                );
 
-          return (
-            <div
-              key={action.name}
-              className={`
+                return (
+                  <div
+                    class={`
                 p-2 flex items-center gap-x-2 rounded-lg transition
                 ${
                   isDisabled
@@ -82,51 +82,54 @@ export const PieceActionsList = ({ tools }) => {
                     : 'hover:bg-accent cursor-pointer'
                 }
               `}
-              onClick={() => {
-                if (!isDisabled) {
-                  handleActionSelect(action);
-                }
-              }}
-            >
-              <div className="flex gap-2">
-                <div className="size-9 flex items-center justify-center rounded-sm border bg-background">
-                  <img
-                    className="size-6 object-contain"
-                    src={selectedPiece.logoUrl}
-                    alt={selectedPiece.displayName}
-                  />
-                </div>
+                    onClick={() => {
+                      if (!isDisabled) {
+                        handleActionSelect(action);
+                      }
+                    }}
+                  >
+                    <div class="flex gap-2">
+                      <div class="size-9 flex items-center justify-center rounded-sm border bg-background">
+                        <img
+                          class="size-6 object-contain"
+                          src={piece().logoUrl}
+                          alt={piece().displayName}
+                        />
+                      </div>
 
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">
-                      {action.displayName}
-                    </span>
+                      <div class="flex-1">
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium text-sm">
+                            {action.displayName}
+                          </span>
 
-                    {isDisabled && (
-                      <span className="text-xs text-muted-foreground">
-                        {t('(Already added)')}
-                      </span>
-                    )}
-                  </div>
+                          <Show when={isDisabled}>
+                            <span class="text-xs text-muted-foreground">
+                              {t('(Already added)')}
+                            </span>
+                          </Show>
+                        </div>
 
-                  {action.description && (
-                    <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                      {action.description}
+                        <Show when={action.description}>
+                          <div class="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                            {action.description}
+                          </div>
+                        </Show>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+                  </div>
+                );
+              }}
+            </For>
 
-        {filteredActions.length === 0 && (
-          <div className="text-center text-muted-foreground py-8">
-            {t('No actions found')}
+            <Show when={filteredActions().length === 0}>
+              <div class="text-center text-muted-foreground py-8">
+                {t('No actions found')}
+              </div>
+            </Show>
           </div>
-        )}
-      </div>
-    </ScrollArea>
+        </ScrollArea>
+      )}
+    </Show>
   );
 };

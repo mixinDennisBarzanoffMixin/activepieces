@@ -1,6 +1,6 @@
 import { HttpStatusCode } from 'axios';
 import { t } from 'i18next';
-import { createSignal, createEffect } from 'solid-js';
+import { createSignal, createEffect, Show } from 'solid-js';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { internalErrorToast } from '@/components/ui/sonner';
@@ -48,30 +48,39 @@ const AcceptInvitation = () => {
     mutate(invitationToken);
   });
 
-  return isPending ? (
-    <div className="w-screen h-screen flex justify-center items-center">
-      <LoadingSpinner isLarge={true}></LoadingSpinner>
-    </div>
-  ) : (
-    <div className="container mx-auto mt-10 max-w-md">
-      {isInvitationLinkValid ? (
-        <>
-          <p className="text-2xl font-bold text-center">
-            {t('Team Invitation Accepted')}
-          </p>
-          <p className="mt-4 text-lg text-center text-gray-700">
-            {t(
-              'Thank you for accepting the invitation. We are redirecting you right now...',
-            )}
-          </p>
-        </>
-      ) : (
-        <p className="mt-4 text-lg text-center text-destructive">
-          {t('Invalid invitation token. Please try again.')}
-        </p>
-      )}
-    </div>
+  return (
+    <>
+      <Show
+        when={isPending}
+        fallback={
+          <div class="container mx-auto mt-10 max-w-md">
+            <Show
+              when={isInvitationLinkValid}
+              fallback={
+                <p class="mt-4 text-lg text-center text-destructive">
+                  {t('Invalid invitation token. Please try again.')}
+                </p>
+              }
+            >
+              <>
+                <p class="text-2xl font-bold text-center">
+                  {t('Team Invitation Accepted')}
+                </p>
+                <p class="mt-4 text-lg text-center text-gray-700">
+                  {t(
+                    'Thank you for accepting the invitation. We are redirecting you right now...',
+                  )}
+                </p>
+              </>
+            </Show>
+          </div>
+        }
+      >
+        <div class="w-screen h-screen flex justify-center items-center">
+          <LoadingSpinner isLarge={true} />
+        </div>
+      </Show>
+    </>
   );
 };
-AcceptInvitation.displayName = 'AcceptInvitation';
 export { AcceptInvitation };

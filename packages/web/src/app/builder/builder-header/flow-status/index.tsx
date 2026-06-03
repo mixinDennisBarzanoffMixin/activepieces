@@ -11,24 +11,23 @@ const BuilderFlowStatusSection = () => {
   ]);
 
   return (
-    <div className="flex items-center space-x-2">
+    <div class="flex items-center space-x-2">
       <FlowVersionStateDot
         state={flowVersion.state}
         versionId={flowVersion.id}
         publishedVersionId={flow.publishedVersionId}
-      ></FlowVersionStateDot>
+      />
       <Show
-        when={(
+        when={
           flow.publishedVersionId === flowVersion.id ||
           (flowVersion.state === FlowVersionState.DRAFT &&
             !isNil(flow.publishedVersionId))
-        )()}
+        }
       >
-        <FlowStatusToggle flow={flow}></FlowStatusToggle>
+        <FlowStatusToggle flow={flow} />
       </Show>
     </div>
   );
 };
 
-BuilderFlowStatusSection.displayName = 'BuilderFlowStatusSection';
 export { BuilderFlowStatusSection };

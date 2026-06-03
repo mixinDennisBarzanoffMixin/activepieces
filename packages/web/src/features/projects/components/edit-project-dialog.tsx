@@ -7,6 +7,7 @@ import {
 import { useQueryClient } from '@tanstack/solid-query';
 import { t } from 'i18next';
 import { createForm } from 'solid-hook-form';
+import { createEffect, createMemo, Show } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { GlobalConnectionWarning } from '@/components/custom/global-connection-utils';
@@ -39,12 +40,7 @@ interface EditProjectDialogProps {
   };
 }
 
-export function EditProjectDialog({
-  open,
-  onClose,
-  projectId,
-  initialValues,
-}: EditProjectDialogProps) {
+export function EditProjectDialog(props: EditProjectDialogProps) {
   const { platform } = platformHooks.useCurrentPlatform();
   const globalConnectionsEnabled = platform.plan.globalConnectionsEnabled;
 
@@ -57,38 +53,33 @@ export function EditProjectDialog({
   const globalConnections = globalConnectionsPage?.data ?? [];
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={props.open} onOpenChange={props.onClose}>
       <DialogContent class="max-w-md w-full">
         <DialogHeader>
           {' '}
           <DialogTitle>
-            {t('Edit')} {initialValues?.projectName}
+            {t('Edit')} {props.initialValues?.projectName}
           </DialogTitle>
         </DialogHeader>
 
-        {!globalConnectionsEnabled || !isLoadingConnections ? (
+        <Show
+          when={!globalConnectionsEnabled || !isLoadingConnections}
+          fallback={<SkeletonList numberOfItems={3} class="h-10" />}
+        >
           <EditProjectForm
-            onClose={onClose}
-            projectId={projectId}
-            initialValues={initialValues}
+            onClose={props.onClose}
+            projectId={props.projectId}
+            initialValues={props.initialValues}
             globalConnections={globalConnections}
             globalConnectionsEnabled={globalConnectionsEnabled}
           />
-        ) : (
-          <SkeletonList numberOfItems={3} class="h-10" />
-        )}
+        </Show>
       </DialogContent>
     </Dialog>
   );
 }
 
-const EditProjectForm = ({
-  onClose,
-  projectId,
-  initialValues,
-  globalConnections,
-  globalConnectionsEnabled,
-}: {
+const EditProjectForm = (props: {
   onClose: () => void;
   projectId: string;
   initialValues?: EditProjectDialogProps['initialValues'];
@@ -100,19 +91,21 @@ const EditProjectForm = ({
   const platformRole = userHooks.getCurrentUserPlatformRole();
   const queryClient = useQueryClient();
 
-  const currentConnectionExternalIds = globalConnections
-    .filter((connection) => connection.projectIds.includes(projectId))
-    .map((connection) => connection.externalId);
+  const currentConnectionExternalIds = createMemo(() =>
+    props.globalConnections
+      .filter((connection) => connection.projectIds.includes(props.projectId))
+      .map((connection) => connection.externalId),
+  );
 
   const { mutate, isPending } = projectCollectionUtils.useUpdateProject(
     () => {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: globalConnectionsQueries.getGlobalConnectionsQueryKey([]),
       });
       toast.success(t('Your changes have been saved.'), {
         duration: 3000,
       });
-      onClose();
+      props.onClose();
     },
     (error) => {
       console.error(error);
@@ -122,34 +115,55 @@ const EditProjectForm = ({
 
   const form = createForm<UpdateProjectPlatformRequest>({
     defaultValues: {
-      displayName: initialValues?.projectName ?? '',
-      externalId: initialValues?.externalId ?? '',
-      globalConnectionExternalIds: currentConnectionExternalIds,
+      displayName: props.initialValues?.projectName ?? '',
+      externalId: props.initialValues?.externalId ?? '',
+      globalConnectionExternalIds: [],
     },
   });
+  createEffect(() => {
+    form.setValue(
+      'globalConnectionExternalIds',
+      currentConnectionExternalIds(),
+    );
+  });
+  const display = form.register('displayName');
+  const external = form.register('externalId');
   const disabled = checkAccess(Permission.WRITE_PROJECT) === false;
+  const options = createMemo(() =>
+    props.globalConnections.map((connection) => ({
+      value: connection.externalId,
+      label: connection.displayName,
+    })),
+  );
+  const selected = createMemo(() =>
+    form.values().globalConnectionExternalIds
+      ? form.values().globalConnectionExternalIds
+      : [],
+  );
+  const save = (values: UpdateProjectPlatformRequest) => {
+    if (disabled) return;
+    mutate({
+      projectId: props.projectId,
+      request: {
+        displayName: values.displayName,
+        externalId: values.externalId,
+        globalConnectionExternalIds: values.globalConnectionExternalIds,
+      },
+    });
+  };
 
   return (
     <form
-      className="space-y-4"
-      onSubmit={form.handleSubmit((values) => {
-        if (!disabled) {
-          mutate({
-            projectId,
-            request: {
-              displayName: values.displayName,
-              externalId: values.externalId,
-              globalConnectionExternalIds: values.globalConnectionExternalIds,
-            },
-          });
-        }
-      })}
+      class="space-y-4"
+      onSubmit={(event) => form.handleSubmit(save)(event)}
     >
-      {globalConnectionsEnabled && <GlobalConnectionWarning />}
+      <Show when={props.globalConnectionsEnabled}>
+        <GlobalConnectionWarning />
+      </Show>
       <div>
         <Label for="displayName">{t('Project Name')}</Label>
         <Input
-          {...form.register('displayName')}
+          {...display}
           id="displayName"
           placeholder={t('Project Name')}
           class="rounded-sm"
@@ -157,48 +171,55 @@ const EditProjectForm = ({
         />
       </div>
 
-      {platform.plan.embeddingEnabled && platformRole === PlatformRole.ADMIN && (
+      <Show
+        when={
+          platform.plan.embeddingEnabled && platformRole === PlatformRole.ADMIN
+        }
+      >
         <div>
           <Label for="externalId">{t('External ID')}</Label>
           <p class="text-sm text-muted-foreground">
             {t('Used to identify the project based on your SaaS ID')}
           </p>
           <Input
-            {...form.register('externalId')}
+            {...external}
             id="externalId"
             placeholder={t('org-3412321')}
             class="rounded-sm"
             disabled={disabled}
           />
         </div>
-      )}
+      </Show>
 
-      {globalConnectionsEnabled && (
+      <Show when={props.globalConnectionsEnabled}>
         <div>
           <Label>{t('Global Connections')}</Label>
           <MultiSelectPieceProperty
             placeholder={t('Select global connections')}
-            options={globalConnections.map((connection) => ({
-              value: connection.externalId,
-              label: connection.displayName,
-            }))}
+            options={options()}
             loading={false}
-            onChange={(value) => {
-              form.setValue('globalConnectionExternalIds', value ?? []);
+            onInput={(value) => {
+              if (!value) {
+                form.setValue('globalConnectionExternalIds', []);
+                return;
+              }
+              form.setValue('globalConnectionExternalIds', value);
             }}
-            initialValues={form.values().globalConnectionExternalIds ?? []}
-            showDeselect={
-              (form.values().globalConnectionExternalIds ?? []).length > 0
-            }
+            initialValues={selected()}
+            showDeselect={selected().length > 0}
           />
         </div>
-      )}
+      </Show>
 
       <DialogFooter class="justify-end mt-6">
-        <Button type="button" variant="outline" onClick={onClose}>
+        <Button type="button" variant="outline" onClick={props.onClose}>
           {t('Cancel')}
         </Button>
-        <Button type="submit" disabled={isPending || disabled} loading={isPending}>
+        <Button
+          type="submit"
+          disabled={isPending || disabled}
+          loading={isPending}
+        >
           {t('Save')}
         </Button>
       </DialogFooter>

@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -74,7 +74,7 @@ function ChartLineIcon(
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -100,6 +100,5 @@ function ChartLineIcon(
     </div>
   );
 }
-ChartLineIcon.displayName = 'ChartLineIcon';
 
 export { ChartLineIcon };

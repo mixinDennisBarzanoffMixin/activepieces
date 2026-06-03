@@ -33,23 +33,25 @@ export const createUsersTableColumns = (): ColumnDefWithAccessorKey[] => [
   {
     accessorKey: 'identity',
     size: 320,
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Identity')}
         icon={Fingerprint}
       />
     ),
-    cell: ({ row }) => {
-      const isInvitation = row.original.type === 'invitation';
-      const externalId =
-        row.original.type === 'user' ? row.original.data.externalId : undefined;
-      const email = row.original.data.email;
-      const showEmail = email?.includes('@');
+    cell: (props) => {
+      const invite = () => props.row.original.type === 'invitation';
+      const external = () =>
+        props.row.original.type === 'user'
+          ? props.row.original.data.externalId
+          : undefined;
+      const email = () => props.row.original.data.email;
+      const show = () => email().includes('@');
 
       return (
-        <div className="flex items-center gap-2">
-          <Show when={isInvitation}>
+        <div class="flex items-center gap-2">
+          <Show when={invite()}>
             <Tooltip>
               <TooltipTrigger>
                 <Info class="h-4 w-4 text-orange-700" />
@@ -60,30 +62,28 @@ export const createUsersTableColumns = (): ColumnDefWithAccessorKey[] => [
             </Tooltip>
           </Show>
           <div
-            className={`flex flex-col gap-0.5 ${
-              isInvitation ? 'text-orange-700' : ''
-            }`}
+            class={`flex flex-col gap-0.5 ${invite() ? 'text-orange-700' : ''}`}
           >
-            <Show when={showEmail}>
-              <div className="flex items-center gap-1.5">
+            <Show when={show()}>
+              <div class="flex items-center gap-1.5">
                 <Mail class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <TruncatedColumnTextValue
-                  value={email}
+                  value={email()}
                   class="max-w-[200px] 2xl:max-w-[280px]"
                 />
               </div>
             </Show>
-            <Show when={externalId}>
-              <div className="flex items-center gap-1.5">
+            <Show when={external()}>
+              <div class="flex items-center gap-1.5">
                 <Hash class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 <TruncatedColumnTextValue
-                  value={externalId}
+                  value={external()}
                   class="max-w-[200px] 2xl:max-w-[280px]"
                 />
               </div>
             </Show>
-            <Show when={!showEmail && !externalId}>
-              <span className="text-muted-foreground">-</span>
+            <Show when={!show() && !external()}>
+              <span class="text-muted-foreground">-</span>
             </Show>
           </div>
         </div>
@@ -93,34 +93,51 @@ export const createUsersTableColumns = (): ColumnDefWithAccessorKey[] => [
   {
     accessorKey: 'name',
     size: 210,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Name')} icon={Tag} />
+    header: (props) => (
+      <DataTableColumnHeader
+        column={props.column}
+        title={t('Name')}
+        icon={Tag}
+      />
     ),
-    cell: ({ row }) => {
-      if (row.original.type === 'invitation') {
-        return <div className="text-muted-foreground">-</div>;
-      }
+    cell: (props) => {
+      const name = () =>
+        props.row.original.type === 'user'
+          ? props.row.original.data.firstName +
+            ' ' +
+            props.row.original.data.lastName
+          : '';
+
       return (
-        <TruncatedColumnTextValue
-          value={row.original.data.firstName + ' ' + row.original.data.lastName}
-          class="max-w-[160px] 2xl:max-w-[200px]"
-        />
+        <Show
+          when={props.row.original.type === 'user'}
+          fallback={<div class="text-muted-foreground">-</div>}
+        >
+          <TruncatedColumnTextValue
+            value={name()}
+            class="max-w-[160px] 2xl:max-w-[200px]"
+          />
+        </Show>
       );
     },
   },
   {
     accessorKey: 'role',
     size: 90,
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title={t('Role')} icon={Shield} />
+    header: (props) => (
+      <DataTableColumnHeader
+        column={props.column}
+        title={t('Role')}
+        icon={Shield}
+      />
     ),
-    cell: ({ row }) => {
-      const platformRole = row.original.data.platformRole;
+    cell: (props) => {
+      const role = () => props.row.original.data.platformRole;
       return (
-        <div className="text-left">
-          {platformRole === PlatformRole.ADMIN
+        <div class="text-left">
+          {role() === PlatformRole.ADMIN
             ? t('Admin')
-            : platformRole === PlatformRole.OPERATOR
+            : role() === PlatformRole.OPERATOR
             ? t('Operator')
             : t('Member')}
         </div>
@@ -130,17 +147,17 @@ export const createUsersTableColumns = (): ColumnDefWithAccessorKey[] => [
   {
     accessorKey: 'createdAt',
     size: 130,
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Created')}
         icon={Clock}
       />
     ),
-    cell: ({ row }) => {
+    cell: (props) => {
       return (
-        <div className="text-left">
-          <FormattedDate date={new Date(row.original.data.created)} />
+        <div class="text-left">
+          <FormattedDate date={new Date(props.row.original.data.created)} />
         </div>
       );
     },
@@ -148,49 +165,57 @@ export const createUsersTableColumns = (): ColumnDefWithAccessorKey[] => [
   {
     accessorKey: 'lastActiveDate',
     size: 130,
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Last Active')}
         icon={Clock}
       />
     ),
-    cell: ({ row }) => {
-      if (row.original.type === 'invitation') {
-        return <div className="text-muted-foreground">-</div>;
-      }
-      return row.original.data.lastActiveDate ? (
-        <div className="text-left">
-          <FormattedDate date={new Date(row.original.data.lastActiveDate)} />
-        </div>
-      ) : (
-        '-'
+    cell: (props) => {
+      const date = () =>
+        props.row.original.type === 'user'
+          ? props.row.original.data.lastActiveDate
+          : undefined;
+
+      return (
+        <Show
+          when={props.row.original.type === 'user' && date()}
+          fallback={<div class="text-muted-foreground">-</div>}
+        >
+          <div class="text-left">
+            {<FormattedDate date={new Date(date())} />}
+          </div>
+        </Show>
       );
     },
   },
   {
     accessorKey: 'status',
     size: 100,
-    header: ({ column }) => (
+    header: (props) => (
       <DataTableColumnHeader
-        column={column}
+        column={props.column}
         title={t('Status')}
         icon={Activity}
       />
     ),
-    cell: ({ row }) => {
-      if (row.original.type === 'invitation') {
-        return <div className="text-left text-orange-700">{t('Pending')}</div>;
-      }
+    cell: (props) => {
+      const active = () =>
+        props.row.original.type === 'user' &&
+        props.row.original.data.status === UserStatus.ACTIVE;
+
       return (
-        <div className="text-left">
-          <Show
-            when={row.original.data.status === UserStatus.ACTIVE}
-            fallback={t('Deactivated')}
-          >
-            t('Activated'
-          </Show>
-        </div>
+        <Show
+          when={props.row.original.type === 'user'}
+          fallback={<div class="text-left text-orange-700">{t('Pending')}</div>}
+        >
+          <div class="text-left">
+            <Show when={active()} fallback={t('Deactivated')}>
+              {t('Activated')}
+            </Show>
+          </div>
+        </Show>
       );
     },
   },

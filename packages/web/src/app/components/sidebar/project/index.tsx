@@ -20,25 +20,22 @@ type ProjectSideBarItemProps = {
   handleProjectSelect: (projectId: string) => void;
 };
 
-const ProjectSideBarItem = ({
-  project,
-  isCurrentProject,
-  handleProjectSelect,
-}: ProjectSideBarItemProps) => {
+const ProjectSideBarItem = (props: ProjectSideBarItemProps) => {
   const { state } = useSidebar();
 
-  const projectName = getProjectName(project);
+  const projectName = getProjectName(props.project);
 
-  const projectAvatar = isNil(project.icon) ? null : project.type ===
-    ProjectType.TEAM ? (
+  const projectAvatar = isNil(props.project.icon) ? null : props.project
+      .type === ProjectType.TEAM ? (
     <Avatar
       class="size-[18px] text-sm font-bold flex items-center justify-center rounded-[4px]"
       style={{
-        backgroundColor: PROJECT_COLOR_PALETTE[project.icon.color].color,
-        color: PROJECT_COLOR_PALETTE[project.icon.color].textColor,
+        'background-color':
+          PROJECT_COLOR_PALETTE[props.project.icon.color].color,
+        color: PROJECT_COLOR_PALETTE[props.project.icon.color].textColor,
       }}
     >
-      <span className="scale-75">{projectName.charAt(0).toUpperCase()}</span>
+      <span class="scale-75">{projectName.charAt(0).toUpperCase()}</span>
     </Avatar>
   ) : (
     <User class="size-4 " />
@@ -51,16 +48,18 @@ const ProjectSideBarItem = ({
   const isCollapsed = state === 'collapsed';
   return (
     <SidebarMenuButton
-      onClick={() => handleProjectSelect(project.id)}
+      onClick={() => props.handleProjectSelect(props.project.id)}
       class={cn('', {
-        'bg-sidebar-accent! ': isCurrentProject,
+        'bg-sidebar-accent! ': props.isCurrentProject,
       })}
     >
       {projectAvatar}
       {
         <Show when={!isCollapsed}>
           <span
-            className={cn('truncate', { 'font-semibold': isCurrentProject })}
+            class={cn('truncate', {
+              'font-semibold': props.isCurrentProject,
+            })}
           >
             {displayText}
           </span>

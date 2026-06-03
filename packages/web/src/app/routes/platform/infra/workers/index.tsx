@@ -45,11 +45,11 @@ export default function WorkersPage() {
   const fleetType = workersData?.[0]?.type;
 
   return (
-    <div className="flex flex-col w-full gap-4 px-4">
+    <div class="flex flex-col w-full gap-4 px-4">
       <DashboardPageHeader
         description={t('Check the health of your workers')}
         title={t('Workers')}
-      ></DashboardPageHeader>
+      />
       <Show when={isCloud && fleetType === WorkerMachineType.SHARED}>
         <Alert variant="primary">
           <Zap size={16} />
@@ -81,23 +81,23 @@ export default function WorkersPage() {
       </Show>
 
       <Show when={isLoading}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           <For each={[0, 1, 2]}>
             {(i) => (
               <Card key={i} class="animate-pulse">
                 <CardHeader class="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="h-4 w-28 bg-muted rounded" />
-                    <div className="h-5 w-16 bg-muted rounded-full" />
+                  <div class="flex items-center justify-between">
+                    <div class="h-4 w-28 bg-muted rounded" />
+                    <div class="h-5 w-16 bg-muted rounded-full" />
                   </div>
                 </CardHeader>
                 <CardContent class="space-y-3">
-                  <div className="h-3 w-full bg-muted rounded" />
-                  <div className="h-3 w-full bg-muted rounded" />
-                  <div className="h-3 w-full bg-muted rounded" />
+                  <div class="h-3 w-full bg-muted rounded" />
+                  <div class="h-3 w-full bg-muted rounded" />
+                  <div class="h-3 w-full bg-muted rounded" />
                 </CardContent>
                 <CardFooter>
-                  <div className="h-4 w-full bg-muted rounded" />
+                  <div class="h-4 w-full bg-muted rounded" />
                 </CardFooter>
               </Card>
             )}
@@ -106,10 +106,10 @@ export default function WorkersPage() {
       </Show>
 
       <Show when={!isLoading && (workersData ?? []).length === 0}>
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
+        <div class="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
           <Server class="size-14" />
-          <p className="font-medium text-foreground">{t('No workers found')}</p>
-          <p className="text-sm text-center max-w-sm">
+          <p class="font-medium text-foreground">{t('No workers found')}</p>
+          <p class="text-sm text-center max-w-sm">
             {t(
               "You don't have any workers yet. Spin up new workers to execute your automations",
             )}
@@ -118,7 +118,7 @@ export default function WorkersPage() {
       </Show>
 
       <Show when={!isLoading && (workersData ?? []).length > 0}>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
           <For each={workersData ?? []}>
             {(worker, index) => (
               <WorkerCard
@@ -135,40 +135,40 @@ export default function WorkersPage() {
   );
 }
 
-function StatBar({ label, value, detail }: StatBarProps) {
+function StatBar(props: StatBarProps) {
   const barColor =
-    value > 95
+    props.value > 95
       ? 'bg-destructive'
-      : value > 80
+      : props.value > 80
       ? 'bg-warning'
       : 'bg-emerald-500';
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="w-16 text-xs text-muted-foreground shrink-0 flex items-center gap-1.5">
-        {label}
+    <div class="flex items-center gap-2">
+      <span class="w-16 text-xs text-muted-foreground shrink-0 flex items-center gap-1.5">
+        {props.label}
       </span>
-      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+      <div class="flex-1 h-2 bg-muted rounded-full overflow-hidden">
         <div
-          className={cn('h-full rounded-full', barColor)}
-          style={{ width: `${Math.min(value, 100)}%` }}
+          class={cn('h-full rounded-full', barColor)}
+          style={{ width: `${Math.min(props.value, 100)}%` }}
         />
       </div>
-      <span className="text-xs font-medium w-10 text-right shrink-0">
-        {value.toFixed(1)}%
+      <span class="text-xs font-medium w-10 text-right shrink-0">
+        {props.value.toFixed(1)}%
       </span>
-      <Show when={detail}>
-        <span className="text-xs text-foreground shrink-0 w-28 text-right">
-          {detail}
+      <Show when={props.detail}>
+        <span class="text-xs text-foreground shrink-0 w-28 text-right">
+          {props.detail}
         </span>
       </Show>
     </div>
   );
 }
 
-function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
-  const timeAgo = useTimeAgo(new Date(worker.updated));
-  const isOnline = worker.status === WorkerMachineStatus.ONLINE;
+function WorkerCard(props: WorkerCardProps) {
+  const timeAgo = useTimeAgo(new Date(props.worker.updated));
+  const isOnline = props.worker.status === WorkerMachineStatus.ONLINE;
 
   const {
     diskInfo,
@@ -178,7 +178,7 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
     ip,
     workerProps,
     totalCpuCores,
-  } = worker.information;
+  } = props.worker.information;
 
   const usedRamBytes = totalAvailableRamInBytes * (ramUsagePercentage / 100);
   const usedDiskBytes = diskInfo.used;
@@ -188,41 +188,39 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
   return (
     <Card>
       <CardHeader class="pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2 min-w-0">
             <Server
               size={18}
               class={cn('shrink-0', {
                 'text-destructive': !isOnline,
               })}
             />
-            <div className="flex flex-col min-w-0">
-              <span className="text-sm font-medium truncate">
-                Machine #{index + 1}
+            <div class="flex flex-col min-w-0">
+              <span class="text-sm font-medium truncate">
+                Machine #{props.index + 1}
               </span>
-              <span className="text-xs text-muted-foreground font-mono">
-                {ip}
-              </span>
+              <span class="text-xs text-muted-foreground font-mono">{ip}</span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Show when={isCloud}>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <Show when={props.isCloud}>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Badge
                     variant={
-                      worker.type === WorkerMachineType.DEDICATED
+                      props.worker.type === WorkerMachineType.DEDICATED
                         ? 'success'
                         : 'secondary'
                     }
                   >
-                    {worker.type === WorkerMachineType.DEDICATED
+                    {props.worker.type === WorkerMachineType.DEDICATED
                       ? t('Dedicated')
                       : t('Shared')}
                   </Badge>
                 </TooltipTrigger>
                 <TooltipContent class="max-w-xs">
-                  {worker.type === WorkerMachineType.DEDICATED
+                  {props.worker.type === WorkerMachineType.DEDICATED
                     ? t(
                         'This worker runs exclusively for your platform with no sandboxing overhead.',
                       )
@@ -233,7 +231,7 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
               </Tooltip>
             </Show>
             <Badge variant={isOnline ? 'success' : 'destructive'}>
-              {t(worker.status.toLowerCase())}
+              {t(props.worker.status.toLowerCase())}
             </Badge>
             <WorkerConfigsPopover workerProps={workerProps} />
           </div>
@@ -278,13 +276,13 @@ function WorkerCard({ worker, index, isCloud }: WorkerCardProps) {
       </CardContent>
 
       <CardFooter class="justify-between pt-0 gap-2">
-        <div className="flex items-center gap-3 text-xs text-muted-foreground min-w-0">
-          <span className="flex items-center gap-1 truncate">
+        <div class="flex items-center gap-3 text-xs text-muted-foreground min-w-0">
+          <span class="flex items-center gap-1 truncate">
             <Clock size={12} class="shrink-0" />
             {t('seen')} {timeAgo}
           </span>
         </div>
-        <span className="text-xs text-muted-foreground font-mono shrink-0">
+        <span class="text-xs text-muted-foreground font-mono shrink-0">
           {version}
         </span>
       </CardFooter>

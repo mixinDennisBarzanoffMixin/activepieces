@@ -1,4 +1,5 @@
 import {
+  FlowAction,
   flowStructureUtil,
   FlowVersion,
   SampleDataFileType,
@@ -55,7 +56,7 @@ export const sampleDataHooks = {
         const singleStepSampleDataInput = await Promise.all(
           steps.map(async (step) => {
             return {
-              [step.name]: step.settings.sampleData?.sampleDataInputFileId
+              [step.name]: hasSampleInput(step)
                 ? await getSampleData(
                     flowVersion!,
                     step.name,
@@ -75,12 +76,32 @@ export const sampleDataHooks = {
     }));
   },
   invalidateSampleData: (flowVersionId: string, queryClient: QueryClient) => {
-    queryClient.invalidateQueries({ queryKey: ['sampleData', flowVersionId] });
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
+      queryKey: ['sampleData', flowVersionId],
+    });
+    void queryClient.invalidateQueries({
       queryKey: ['sampleDataInput', flowVersionId],
     });
   },
 };
+
+function hasSampleInput(step: FlowAction): boolean {
+  const settings: unknown = step.settings;
+  if (
+    !settings ||
+    typeof settings !== 'object' ||
+    !('sampleData' in settings)
+  ) {
+    return false;
+  }
+  const data = settings.sampleData;
+  return (
+    !!data &&
+    typeof data === 'object' &&
+    'sampleDataInputFileId' in data &&
+    typeof data.sampleDataInputFileId === 'string'
+  );
+}
 
 async function getSampleData(
   flowVersion: FlowVersion,

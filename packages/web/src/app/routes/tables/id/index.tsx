@@ -1,7 +1,7 @@
-import { createEffect, Show } from 'solid-js';
 import { ApFlagId, Permission } from '@activepieces/shared';
-import { nanoid } from 'nanoid';
 import { useNavigate } from '@solidjs/router';
+import { nanoid } from 'nanoid';
+import { createEffect, For, Show } from 'solid-js';
 
 import { useTheme } from '@/components/providers/theme-provider';
 import {
@@ -10,7 +10,6 @@ import {
   useTableState,
   useTableColumns,
   mapRecordsToRows,
-  Row,
   ROW_HEIGHT_MAP,
   RowHeight,
 } from '@/features/tables';
@@ -24,8 +23,6 @@ const ApTableEditorPage = () => {
   const navigate = useNavigate();
   const projectId = authenticationSession.getProjectId();
   const [
-    selectedRecords,
-    setSelectedRecords,
     selectedCell,
     setSelectedCell,
     createRecord,
@@ -34,8 +31,6 @@ const ApTableEditorPage = () => {
     table,
     setLockedByOtherUser,
   ] = useTableState((state) => [
-    state.selectedRecords,
-    state.setSelectedRecords,
     state.selectedCell,
     state.setSelectedCell,
     state.createRecord,
@@ -104,8 +99,8 @@ const ApTableEditorPage = () => {
   };
 
   return (
-    <div className="w-full flex flex-col justify-start items-start h-full">
-      <div className="flex items-center justify-between w-full pr-4 border-b">
+    <div class="w-full flex flex-col justify-start items-start h-full">
+      <div class="flex items-center justify-between w-full pr-4 border-b">
         <ApTableHeader
           onBack={handleBack}
           lockedBy={lockedBy}
@@ -113,9 +108,9 @@ const ApTableEditorPage = () => {
         />
       </div>
 
-      <div className="flex w-full flex-col flex-1 min-h-0">
-        <div className="flex-1 flex flex-col min-h-0">
-          <div className="flex-1 min-h-0">
+      <div class="flex w-full flex-col flex-1 min-h-0">
+        <div class="flex-1 flex flex-col min-h-0">
+          <div class="flex-1 min-h-0">
             <div
               ref={(el) => (gridRef = el)}
               class={cn(
@@ -125,28 +120,57 @@ const ApTableEditorPage = () => {
             >
               <div class="min-w-max">
                 <div class="sticky top-0 z-10 flex bg-background border-b">
-                  {columns.map((column, index) => (
-                    <div class="border-r" style={{ width: `${column.width ?? 207}px` }}>
-                      {column.renderHeaderCell?.() ?? column.name}
-                    </div>
-                  ))}
+                  <For each={columns}>
+                    {(column) => (
+                      <div
+                        class="border-r"
+                        style={{ width: `${column.width ?? 207}px` }}
+                      >
+                        {column.renderHeaderCell?.() ?? column.name}
+                      </div>
+                    )}
+                  </For>
                 </div>
-                {rows.map((row, rowIdx) => (
-                  <div class="flex border-b" style={{ height: `${ROW_HEIGHT_MAP[RowHeight.DEFAULT]}px` }}>
-                    {columns.map((column, columnIdx) => (
-                      <div class="border-r" style={{ width: `${column.width ?? 207}px` }}>
-                        {column.renderCell?.({ row, rowIdx, column: { key: column.key, idx: columnIdx } })}
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                <For each={rows}>
+                  {(row, rowIdx) => (
+                    <div
+                      class="flex border-b"
+                      style={{
+                        height: `${ROW_HEIGHT_MAP[RowHeight.DEFAULT]}px`,
+                      }}
+                    >
+                      <For each={columns}>
+                        {(column, columnIdx) => (
+                          <div
+                            class="border-r"
+                            style={{ width: `${column.width ?? 207}px` }}
+                          >
+                            {column.renderCell?.({
+                              row,
+                              rowIdx: rowIdx(),
+                              column: { key: column.key, idx: columnIdx() },
+                            })}
+                          </div>
+                        )}
+                      </For>
+                    </div>
+                  )}
+                </For>
                 <Show when={isAllowedToCreateRecord}>
-                  <div class="flex border-b" style={{ height: `${ROW_HEIGHT_MAP[RowHeight.DEFAULT]}px` }}>
-                    {columns.map((column) => (
-                      <div class="border-r" style={{ width: `${column.width ?? 207}px` }}>
-                        {column.renderSummaryCell?.()}
-                      </div>
-                    ))}
+                  <div
+                    class="flex border-b"
+                    style={{ height: `${ROW_HEIGHT_MAP[RowHeight.DEFAULT]}px` }}
+                  >
+                    <For each={columns}>
+                      {(column) => (
+                        <div
+                          class="border-r"
+                          style={{ width: `${column.width ?? 207}px` }}
+                        >
+                          {column.renderSummaryCell?.()}
+                        </div>
+                      )}
+                    </For>
                   </div>
                 </Show>
               </div>
@@ -161,7 +185,5 @@ const ApTableEditorPage = () => {
     </div>
   );
 };
-
-ApTableEditorPage.displayName = 'ApTableEditorPage';
 
 export { ApTableEditorPage };

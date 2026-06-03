@@ -1,4 +1,4 @@
-import { createMemo, createSignal } from 'solid-js';
+import { Accessor, createMemo, createSignal } from 'solid-js';
 
 import { authenticationSession } from '@/lib/authentication-session';
 
@@ -26,8 +26,8 @@ const DEFAULT_TIME_SAVED_RANGE: TimeSavedRangeState = {
 };
 
 export function useDetailsFilters(
-  flowDetails: FlowDetailRow[] | undefined,
-  uniqueOwners: Owner[],
+  flowDetails: Accessor<FlowDetailRow[] | undefined>,
+  uniqueOwners: Accessor<Owner[]>,
 ) {
   const [searchQuery, setSearchQuery] = createSignal('');
   const [showMyFlowsOnly, setShowMyFlowsOnly] = createSignal(false);
@@ -56,10 +56,11 @@ export function useDetailsFilters(
   };
 
   const cycleDraftTimeUnitMin = () => {
-    const idx = TIME_UNITS.indexOf(draftTimeSaved.unitMin);
+    const draft = draftTimeSaved();
+    const idx = TIME_UNITS.indexOf(draft.unitMin);
     const newMinUnit = TIME_UNITS[(idx + 1) % TIME_UNITS.length];
     const newMinIdx = TIME_UNITS.indexOf(newMinUnit);
-    const maxIdx = TIME_UNITS.indexOf(draftTimeSaved.unitMax);
+    const maxIdx = TIME_UNITS.indexOf(draft.unitMax);
     if (newMinIdx > maxIdx) {
       updateDraftTimeSaved({ unitMin: newMinUnit, unitMax: newMinUnit });
     } else {
@@ -68,10 +69,11 @@ export function useDetailsFilters(
   };
 
   const cycleDraftTimeUnitMax = () => {
-    const idx = TIME_UNITS.indexOf(draftTimeSaved.unitMax);
+    const draft = draftTimeSaved();
+    const idx = TIME_UNITS.indexOf(draft.unitMax);
     const newMaxUnit = TIME_UNITS[(idx + 1) % TIME_UNITS.length];
     const newMaxIdx = TIME_UNITS.indexOf(newMaxUnit);
-    const minIdx = TIME_UNITS.indexOf(draftTimeSaved.unitMin);
+    const minIdx = TIME_UNITS.indexOf(draft.unitMin);
     if (newMaxIdx < minIdx) {
       updateDraftTimeSaved({ unitMax: newMaxUnit, unitMin: newMaxUnit });
     } else {
@@ -81,13 +83,13 @@ export function useDetailsFilters(
 
   const handleTimeSavedPopoverOpen = (open: boolean) => {
     if (open) {
-      setDraftTimeSaved(appliedTimeSaved);
+      setDraftTimeSaved(appliedTimeSaved());
     }
     setTimeSavedPopoverOpen(open);
   };
 
   const applyTimeSavedFilter = () => {
-    setAppliedTimeSaved(draftTimeSaved);
+    setAppliedTimeSaved(draftTimeSaved());
     setTimeSavedPopoverOpen(false);
   };
 
@@ -98,13 +100,10 @@ export function useDetailsFilters(
   };
 
   const timeSavedLabel = createMemo(() => {
-    if (!appliedTimeSaved.min && !appliedTimeSaved.max) return null;
-    const min = appliedTimeSaved.min
-      ? `${appliedTimeSaved.min} ${appliedTimeSaved.unitMin}`
-      : '0';
-    const max = appliedTimeSaved.max
-      ? `${appliedTimeSaved.max} ${appliedTimeSaved.unitMax}`
-      : '∞';
+    const applied = appliedTimeSaved();
+    if (!applied.min && !applied.max) return null;
+    const min = applied.min ? `${applied.min} ${applied.unitMin}` : '0';
+    const max = applied.max ? `${applied.max} ${applied.unitMax}` : '∞';
     return `${min} – ${max}`;
   });
 
@@ -118,20 +117,25 @@ export function useDetailsFilters(
   };
 
   const filteredOwners = createMemo(() => {
-    if (!ownerFilter.searchQuery.trim()) return uniqueOwners;
-    const query = ownerFilter.searchQuery.toLowerCase();
-    return uniqueOwners.filter((o) => o.name.toLowerCase().includes(query));
+    const filter = ownerFilter();
+    if (!filter.searchQuery.trim()) return uniqueOwners();
+    const query = filter.searchQuery.toLowerCase();
+    return uniqueOwners().filter((o) => o.name.toLowerCase().includes(query));
   });
 
   const selectedOwners = createMemo(() =>
-    uniqueOwners.filter((o) => ownerFilter.selectedIds.includes(o.id)),
+    uniqueOwners().filter((o) => ownerFilter().selectedIds.includes(o.id)),
   );
 
-  const hasActiveFilters =
-    searchQuery !== '' ||
-    appliedTimeSaved.min !== '' ||
-    appliedTimeSaved.max !== '' ||
-    ownerFilter.selectedIds.length > 0;
+  const hasActiveFilters = createMemo(() => {
+    const applied = appliedTimeSaved();
+    return (
+      searchQuery() !== '' ||
+      applied.min !== '' ||
+      applied.max !== '' ||
+      ownerFilter().selectedIds.length > 0
+    );
+  });
 
   const clearAllFilters = () => {
     setSearchQuery('');
@@ -140,47 +144,42 @@ export function useDetailsFilters(
   };
 
   const filteredData = createMemo(() => {
-    if (!flowDetails) return [];
+    const details = flowDetails();
+    if (!details) return [];
 
-    let filtered = flowDetails;
+    let filtered = details;
 
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
+    if (searchQuery().trim()) {
+      const query = searchQuery().toLowerCase();
       filtered = filtered.filter((f) =>
         f.flowName.toLowerCase().includes(query),
       );
     }
 
-    if (showMyFlowsOnly) {
+    if (showMyFlowsOnly()) {
       filtered = filtered.filter((f) => f.ownerId === currentUserId);
     }
 
-    if (ownerFilter.selectedIds.length > 0) {
+    const filter = ownerFilter();
+    if (filter.selectedIds.length > 0) {
       filtered = filtered.filter(
-        (f) => f.ownerId && ownerFilter.selectedIds.includes(f.ownerId),
+        (f) => f.ownerId && filter.selectedIds.includes(f.ownerId),
       );
     }
 
-    const minValue = appliedTimeSaved.min
-      ? parseFloat(appliedTimeSaved.min)
-      : null;
-    const maxValue = appliedTimeSaved.max
-      ? parseFloat(appliedTimeSaved.max)
-      : null;
+    const applied = appliedTimeSaved();
+    const minValue = applied.min ? parseFloat(applied.min) : null;
+    const maxValue = applied.max ? parseFloat(applied.max) : null;
 
     if (minValue !== null) {
       filtered = filtered.filter(
-        (f) =>
-          f.minutesSaved >=
-          convertToSeconds(minValue, appliedTimeSaved.unitMin),
+        (f) => f.minutesSaved >= convertToSeconds(minValue, applied.unitMin),
       );
     }
 
     if (maxValue !== null) {
       filtered = filtered.filter(
-        (f) =>
-          f.minutesSaved <=
-          convertToSeconds(maxValue, appliedTimeSaved.unitMax),
+        (f) => f.minutesSaved <= convertToSeconds(maxValue, applied.unitMax),
       );
     }
 

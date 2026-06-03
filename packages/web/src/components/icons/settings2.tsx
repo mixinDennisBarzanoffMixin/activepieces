@@ -1,6 +1,6 @@
 import type { Variants } from 'motion/react';
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -71,7 +71,7 @@ function Settings2Icon(
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -107,6 +107,5 @@ function Settings2Icon(
     </div>
   );
 }
-Settings2Icon.displayName = 'Settings2Icon';
 
 export { Settings2Icon };

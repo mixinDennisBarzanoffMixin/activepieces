@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/solid-query';
-import { createWithStore } from 'solid-zustand';
 import { Socket } from 'socket.io-client';
 import { createContext, useContext } from 'solid-js';
+import { createWithStore } from 'solid-zustand';
 
 import { CanvasState, createCanvasState } from './state/canvas-state';
 import { ChatState, createChatState } from './state/chat-state';
@@ -22,7 +22,7 @@ export function useBuilderStateContext<T>(
   const store = useContext(BuilderStateContext);
   if (!store)
     throw new Error('Missing BuilderStateContext.Provider in the tree');
-  return createWithStore(store)(selector);
+  return store(selector);
 }
 
 export type BuilderState = FlowState &

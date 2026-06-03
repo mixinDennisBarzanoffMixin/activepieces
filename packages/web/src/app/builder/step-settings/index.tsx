@@ -9,7 +9,7 @@ import {
   isNil,
 } from '@activepieces/shared';
 import deepEqual from 'deep-equal';
-import { Show, createEffect, createSignal } from 'solid-js';
+import { JSX, Show, createEffect, createMemo, createSignal } from 'solid-js';
 
 import { createForm, zodResolver } from '@/app/builder/builder-form';
 import { useBuilderStateContext } from '@/app/builder/builder-hooks';
@@ -21,6 +21,7 @@ import {
   formUtils,
   PieceIcon,
   PieceStepMetadata,
+  StepMetadataWithActionOrTriggerOrAgentDisplayName,
 } from '@/features/pieces';
 import { projectCollectionUtils } from '@/features/projects';
 import { cn, GAP_SIZE_FOR_STEP_SETTINGS } from '@/lib/utils';
@@ -74,10 +75,9 @@ const StepSettingsContainer = () => {
 
   const { stepMetadata } = stepsHooks.useStepMetadata({
     step: selectedStep,
-  });
-
-  let selectedStepRef: any | undefined;
-  selectedStepRef = selectedStep;
+  }) as {
+    stepMetadata: StepMetadataWithActionOrTriggerOrAgentDisplayName | undefined;
+  };
 
   let currentValuesRef: FlowAction | FlowTrigger | undefined;
   const form = createForm<FlowAction | FlowTrigger>({
@@ -116,7 +116,7 @@ const StepSettingsContainer = () => {
         return result;
       }
       //We need to copy the object because the form is using the same object reference
-      currentValuesRef = JSON.parse(JSON.stringify(cleanedNewValues));
+      currentValuesRef = structuredClone(cleanedNewValues);
       if (cleanedNewValues.type === FlowTriggerType.PIECE) {
         applyOperation({
           type: FlowOperationType.UPDATE_TRIGGER,
@@ -138,7 +138,6 @@ const StepSettingsContainer = () => {
     },
   });
 
-  let sidebarHeaderContainerRef: HTMLDivElement | undefined;
   const modifiedStep = form.getValues();
   const isManualTrigger =
     modifiedStep.type === FlowTriggerType.PIECE &&
@@ -159,13 +158,18 @@ const StepSettingsContainer = () => {
       modifiedStep.type as FlowActionType,
     ) && !isNil(stepMetadata);
 
-  const runAgentStep =
-    modifiedStep.settings.pieceName === '@activepieces/piece-ai' &&
-    modifiedStep.settings.actionName === 'run_agent';
+  const pieceSettings = getPieceSettings(modifiedStep);
+  const runAgentStep = pieceSettings
+    ? pieceSettings.pieceName === '@activepieces/piece-ai' &&
+      pieceSettings.actionName === 'run_agent'
+    : false;
+  const metadata = createMemo(() =>
+    isPieceMetadata(stepMetadata) ? stepMetadata : undefined,
+  );
 
   createEffect(() => {
     //RHF doesn't automatically trigger validation when the form is rendered, so we need to trigger it manually
-    form.trigger();
+    void form.trigger();
   });
 
   const showTestPanel = showGenerateSampleData || showStepInputOutFromRun;
@@ -173,22 +177,19 @@ const StepSettingsContainer = () => {
   const settingsForm = (
     <ScrollArea class="h-full">
       <div
-        className={cn(
-          'flex flex-col px-4 pb-6 pt-3',
-          GAP_SIZE_FOR_STEP_SETTINGS,
-        )}
+        class={cn('flex flex-col px-4 pb-6 pt-3', GAP_SIZE_FOR_STEP_SETTINGS)}
       >
-        <Show when={modifiedStep.type === FlowActionType.LOOP_ON_ITEMS()}>
-          <LoopsSettings readonly={readonly}></LoopsSettings>
+        <Show when={modifiedStep.type === FlowActionType.LOOP_ON_ITEMS}>
+          <LoopsSettings readonly={readonly} />
         </Show>
-        <Show when={modifiedStep.type === FlowActionType.CODE()}>
-          <CodeSettings readonly={readonly}></CodeSettings>
+        <Show when={modifiedStep.type === FlowActionType.CODE}>
+          <CodeSettings readonly={readonly} />
         </Show>
         <Show
           when={
             modifiedStep.type === FlowActionType.PIECE &&
             runAgentStep &&
-            modifiedStep()
+            modifiedStep
           }
         >
           <AgentSettings
@@ -201,43 +202,35 @@ const StepSettingsContainer = () => {
           when={
             modifiedStep.type === FlowActionType.PIECE &&
             !runAgentStep &&
-            modifiedStep()
+            modifiedStep
           }
         >
           <PieceSettings
             step={modifiedStep}
             flowId={flowVersion.flowId}
             readonly={readonly}
-          ></PieceSettings>
+          />
         </Show>
         <Show
-          when={modifiedStep.type === FlowActionType.ROUTER && modifiedStep()}
+          when={modifiedStep.type === FlowActionType.ROUTER && modifiedStep}
         >
-          <RouterSettings readonly={readonly}></RouterSettings>
+          <RouterSettings readonly={readonly} />
         </Show>
         <Show
-          when={modifiedStep.type === FlowTriggerType.PIECE && modifiedStep()}
+          when={modifiedStep.type === FlowTriggerType.PIECE && modifiedStep}
         >
           <PieceSettings
             step={modifiedStep}
             flowId={flowVersion.flowId}
             readonly={readonly}
-          ></PieceSettings>
+          />
         </Show>
-        <Show when={showActionErrorHandlingForm()}>
+        <Show when={showActionErrorHandlingForm}>
           <ActionErrorHandlingForm
-            hideContinueOnFailure={
-              stepMetadata.type === FlowActionType.PIECE
-                ? stepMetadata.errorHandlingOptions?.continueOnFailure?.hide
-                : false
-            }
+            hideContinueOnFailure={getContinueOnFailureHidden(stepMetadata)}
             disabled={readonly}
-            hideRetryOnFailure={
-              stepMetadata.type === FlowActionType.PIECE
-                ? stepMetadata.errorHandlingOptions?.retryOnFailure?.hide
-                : false
-            }
-          ></ActionErrorHandlingForm>
+            hideRetryOnFailure={getRetryOnFailureHidden(stepMetadata)}
+          />
         </Show>
       </div>
     </ScrollArea>
@@ -247,13 +240,10 @@ const StepSettingsContainer = () => {
     <Form {...form}>
       <form
         onSubmit={(e) => e.preventDefault()}
-        onChange={(e) => e.preventDefault()}
-        className="w-full h-full flex flex-col"
+        onInput={(e) => e.preventDefault()}
+        class="w-full h-full flex flex-col"
       >
-        <div
-          ref={(el) => (sidebarHeaderContainerRef = el)}
-          className="relative z-10 bg-background"
-        >
+        <div class="relative z-10 bg-background">
           <SidebarHeader
             onClose={() => exitStepSettings()}
             leadingIcon={
@@ -268,20 +258,18 @@ const StepSettingsContainer = () => {
               ) : null
             }
             actions={
-              <div className="flex items-center gap-1">
+              <div class="flex items-center gap-1">
                 <Show
                   when={
-                    isPieceMetadata(stepMetadata) &&
-                    stepMetadata.pieceVersion &&
-                    (
-                      modifiedStep.type === FlowActionType.PIECE ||
-                      modifiedStep.type === FlowTriggerType.PIECE
-                    )()
+                    metadata() &&
+                    metadata()?.pieceVersion &&
+                    (modifiedStep.type === FlowActionType.PIECE ||
+                      modifiedStep.type === FlowTriggerType.PIECE)
                   }
                 >
                   <PieceVersionInHeader
                     step={modifiedStep}
-                    pieceVersion={stepMetadata.pieceVersion}
+                    pieceVersion={metadata()?.pieceVersion ?? ''}
                     readonly={readonly}
                   />
                 </Show>
@@ -302,12 +290,7 @@ const StepSettingsContainer = () => {
               }}
               readonly={readonly}
               displayName={modifiedStep.displayName}
-              branchName={
-                !isNil(selectedBranchIndex)
-                  ? modifiedStep.settings.branches?.[selectedBranchIndex]
-                      ?.branchName
-                  : undefined
-              }
+              branchName={getBranchName(modifiedStep, selectedBranchIndex)}
               setBranchName={(value) => {
                 if (!isNil(selectedBranchIndex)) {
                   form.setValue(
@@ -335,11 +318,11 @@ const StepSettingsContainer = () => {
                   ? stepMetadata.pieceVersion
                   : undefined
               }
-            ></EditableStepName>
+            />
           </SidebarHeader>
           <div
             aria-hidden
-            className="pointer-events-none absolute -bottom-3 left-0 right-0 h-3 bg-gradient-to-b from-background to-transparent"
+            class="pointer-events-none absolute -bottom-3 left-0 right-0 h-3 bg-gradient-to-b from-background to-transparent"
           />
         </div>
 
@@ -375,51 +358,46 @@ const StepSettingsContainer = () => {
     </Form>
   );
 };
-StepSettingsContainer.displayName = 'StepSettingsContainer';
+
 export { StepSettingsContainer };
 
 type StepSettingsLayoutProps = {
   isSplit: boolean;
   showTestPanel: boolean;
   isTestPanelOpen: boolean;
-  settingsForm: any;
-  testPanelHost: any;
+  settingsForm: JSX.Element;
+  testPanelHost: JSX.Element;
 };
 
-const StepSettingsLayout = ({
-  isSplit,
-  showTestPanel,
-  isTestPanelOpen,
-  settingsForm,
-  testPanelHost,
-}: StepSettingsLayoutProps) => {
-  if (isSplit) {
-    return (
-      <div className="relative flex-1 min-h-0 flex flex-row">
-        <div className="w-1/2 min-w-0 min-h-0 h-full">{settingsForm}</div>
-        <Show when={testPanelHost()}>
-          <div className="w-1/2 min-w-0 min-h-0 h-full pt-2 pl-1">
-            {testPanelHost}
+const StepSettingsLayout = (props: StepSettingsLayoutProps) => {
+  return (
+    <Show
+      when={props.isSplit}
+      fallback={
+        <div class="relative flex-1 min-h-0 flex flex-col w-full">
+          <div class="flex-1 min-h-0">{props.settingsForm}</div>
+          <Show when={props.showTestPanel && !props.isTestPanelOpen}>
+            <div class="shrink-0">
+              <TestStepCTAButton />
+            </div>
+          </Show>
+          <Show when={props.testPanelHost && props.isTestPanelOpen}>
+            <div class="absolute bottom-0 left-0 right-0 h-[60%] z-50">
+              {props.testPanelHost}
+            </div>
+          </Show>
+        </div>
+      }
+    >
+      <div class="relative flex-1 min-h-0 flex flex-row">
+        <div class="w-1/2 min-w-0 min-h-0 h-full">{props.settingsForm}</div>
+        <Show when={props.testPanelHost}>
+          <div class="w-1/2 min-w-0 min-h-0 h-full pt-2 pl-1">
+            {props.testPanelHost}
           </div>
         </Show>
       </div>
-    );
-  }
-
-  return (
-    <div className="relative flex-1 min-h-0 flex flex-col w-full">
-      <div className="flex-1 min-h-0">{settingsForm}</div>
-      <Show when={showTestPanel && !isTestPanelOpen()}>
-        <div className="shrink-0">
-          <TestStepCTAButton />
-        </div>
-      </Show>
-      <Show when={testPanelHost && isTestPanelOpen()}>
-        <div className="absolute bottom-0 left-0 right-0 h-[60%] z-50">
-          {testPanelHost}
-        </div>
-      </Show>
-    </div>
+    </Show>
   );
 };
 
@@ -429,20 +407,24 @@ type PieceVersionInHeaderProps = {
   readonly: boolean;
 };
 
-const PieceVersionInHeader = ({
-  step,
-  pieceVersion,
-  readonly,
-}: PieceVersionInHeaderProps) => {
-  const exactVersion = flowPieceUtil.getExactVersion(pieceVersion);
-  const showSwitcher =
-    !readonly &&
-    (step.type === FlowActionType.PIECE || step.type === FlowTriggerType.PIECE);
+const PieceVersionInHeader = (props: PieceVersionInHeaderProps) => {
+  const exactVersion = createMemo(() =>
+    flowPieceUtil.getExactVersion(props.pieceVersion),
+  );
+  const showSwitcher = createMemo(
+    () =>
+      !props.readonly &&
+      (props.step.type === FlowActionType.PIECE ||
+        props.step.type === FlowTriggerType.PIECE),
+  );
   return (
-    <div className="flex items-center gap-1 shrink-0">
-      <span className="text-xs text-muted-foreground">v{exactVersion}</span>
+    <div class="flex items-center gap-1 shrink-0">
+      <span class="text-xs text-muted-foreground">v{exactVersion()}</span>
       <Show when={showSwitcher()}>
-        <UpdatePieceVersionDialog step={step} currentVersion={exactVersion} />
+        <UpdatePieceVersionDialog
+          step={props.step}
+          currentVersion={exactVersion()}
+        />
       </Show>
     </div>
   );
@@ -451,33 +433,94 @@ const PieceVersionInHeader = ({
 const isFlowActionStep = (step: FlowAction | FlowTrigger): step is FlowAction =>
   flowStructureUtil.isAction(step.type);
 
-const StepTestRunnerProvider = ({
-  step,
-  children,
-}: {
+const StepTestRunnerProvider = (props: {
   step: FlowAction | FlowTrigger;
-  children: any;
+  children: JSX.Element;
 }) => {
-  if (isFlowActionStep(step)) {
-    return (
-      <ActionTestRunnerProvider step={step} key={step.name}>
-        {children}
-      </ActionTestRunnerProvider>
-    );
-  }
   return (
-    <TriggerTestRunnerProvider step={step} key={step.name}>
-      {children}
-    </TriggerTestRunnerProvider>
+    <Show
+      when={isFlowActionStep(props.step)}
+      fallback={
+        <TriggerTestRunnerProvider step={props.step} key={props.step.name}>
+          {props.children}
+        </TriggerTestRunnerProvider>
+      }
+    >
+      <ActionTestRunnerProvider
+        step={props.step as FlowAction}
+        key={props.step.name}
+      >
+        {props.children}
+      </ActionTestRunnerProvider>
+    </Show>
   );
 };
 
 const stripSampleData = (step: FlowAction | FlowTrigger) => {
-  const { sampleData: _, ...settingsWithoutSampleData } = step.settings;
-  const { lastUpdatedDate: __, ...stepWithoutMetadata } = step;
+  const stepRecord: Record<string, unknown> = step;
+  const settings = isRecord(stepRecord.settings) ? stepRecord.settings : {};
+  const { sampleData: _, ...settingsWithoutSampleData } = settings;
+  const { lastUpdatedDate: __, ...stepWithoutMetadata } = stepRecord;
 
   return { ...stepWithoutMetadata, settings: settingsWithoutSampleData };
 };
+
+function getPieceSettings(step: FlowAction | FlowTrigger) {
+  if (
+    step.type !== FlowActionType.PIECE &&
+    step.type !== FlowTriggerType.PIECE
+  ) {
+    return undefined;
+  }
+  const raw: unknown = step.settings;
+  const settings = isRecord(raw) ? raw : {};
+  if (typeof settings.pieceName !== 'string') {
+    return undefined;
+  }
+  return {
+    pieceName: settings.pieceName,
+    actionName:
+      typeof settings.actionName === 'string' ? settings.actionName : undefined,
+  };
+}
+
+function getBranchName(
+  step: FlowAction | FlowTrigger,
+  index: number | undefined,
+) {
+  if (isNil(index)) {
+    return undefined;
+  }
+  const raw: unknown = step.settings;
+  const settings = isRecord(raw) ? raw : {};
+  const branches: unknown[] = Array.isArray(settings.branches)
+    ? settings.branches
+    : [];
+  const branch = branches[index];
+  return isRecord(branch) && typeof branch.branchName === 'string'
+    ? branch.branchName
+    : undefined;
+}
+
+function getContinueOnFailureHidden(
+  metadata: StepMetadataWithActionOrTriggerOrAgentDisplayName | undefined,
+) {
+  return metadata?.type === FlowActionType.PIECE
+    ? metadata.errorHandlingOptions?.continueOnFailure.hide
+    : false;
+}
+
+function getRetryOnFailureHidden(
+  metadata: StepMetadataWithActionOrTriggerOrAgentDisplayName | undefined,
+) {
+  return metadata?.type === FlowActionType.PIECE
+    ? metadata.errorHandlingOptions?.retryOnFailure.hide
+    : false;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
 
 const isPieceMetadata = (
   metadata: { type: FlowActionType | FlowTriggerType } | undefined,

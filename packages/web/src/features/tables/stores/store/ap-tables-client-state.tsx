@@ -116,7 +116,7 @@ export const createApTableStore = (
         set({ selectedAgentRunId: agentRunId }),
       renameTable: (newName: string) =>
         set((state) => {
-          serverState.update({
+          void serverState.update({
             name: newName,
           });
           return {
@@ -241,7 +241,7 @@ export const createApTableStore = (
             state.table.status === TableAutomationStatus.ENABLED
               ? TableAutomationStatus.DISABLED
               : TableAutomationStatus.ENABLED;
-          serverState.update({
+          void serverState.update({
             status: newStatus,
           });
           return {

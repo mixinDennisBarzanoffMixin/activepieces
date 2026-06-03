@@ -1,5 +1,5 @@
 export class ApStorage {
-  private static instance: Storage;
+  private static instance: Storage | undefined;
   private constructor(value: Storage) {
     ApStorage.instance = value;
   }

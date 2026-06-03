@@ -27,23 +27,14 @@ type TestPanelHostProps = {
   saving: boolean;
 };
 
-const TestPanelHost = ({
-  mode,
-  flowId,
-  flowVersionId,
-  projectId,
-  stepType,
-  showGenerateSampleData,
-  showStepInputOutFromRun,
-  saving,
-}: TestPanelHostProps) => {
+const TestPanelHost = (props: TestPanelHostProps) => {
   const [setTestPanelOpen, isTestPanelOpen] = useBuilderStateContext(
     (state) => [state.setTestPanelOpen, state.isTestPanelOpen],
   );
   let drawerRef: HTMLDivElement | undefined;
 
   createEffect(() => {
-    if (mode !== 'drawer' || !isTestPanelOpen) return;
+    if (props.mode !== 'drawer' || !isTestPanelOpen) return;
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -58,28 +49,28 @@ const TestPanelHost = ({
   return (
     <div
       ref={(el) => (drawerRef = el)}
-      className={cn(
+      class={cn(
         'h-full w-full bg-background flex flex-col overflow-hidden border border-border',
-        mode === 'drawer' && 'rounded-t-xl shadow-lg border-b-0 border-x-0',
-        mode === 'split' && 'rounded-t-xl border-b-0',
+        props.mode === 'drawer' &&
+          'rounded-t-xl shadow-lg border-b-0 border-x-0',
+        props.mode === 'split' && 'rounded-t-xl border-b-0',
       )}
-      role={mode === 'drawer' ? 'dialog' : undefined}
+      role={props.mode === 'drawer' ? 'dialog' : undefined}
     >
-      <Show when={showGenerateSampleData && projectId()}>
+      <Show when={props.showGenerateSampleData && props.projectId}>
         <TestStepContainer
-          type={stepType}
-          flowId={flowId}
-          flowVersionId={flowVersionId}
-          projectId={projectId}
-          isSaving={saving}
+          type={props.stepType}
+          flowId={props.flowId}
+          flowVersionId={props.flowVersionId}
+          projectId={props.projectId}
+          isSaving={props.saving}
         />
       </Show>
-      <Show when={showStepInputOutFromRun()}>
+      <Show when={props.showStepInputOutFromRun}>
         <FlowStepInputOutput />
       </Show>
     </div>
   );
 };
 
-TestPanelHost.displayName = 'TestPanelHost';
 export { TestPanelHost };

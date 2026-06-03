@@ -1,5 +1,6 @@
 import { Permission } from '@activepieces/shared';
 import { useQueryClient } from '@tanstack/solid-query';
+import { JSX, splitProps, untrack } from 'solid-js';
 
 import {
   BuilderInitialState,
@@ -12,28 +13,32 @@ import { projectHooks } from '@/features/projects';
 import { useAuthorization } from '@/hooks/authorization-hooks';
 
 type BuilderStateProviderProps = Omit<
-  BuilderInitialState & { children?: any },
+  BuilderInitialState & { children?: JSX.Element },
   'socket' | 'queryClient'
 >;
 
-export function BuilderStateProvider({
-  children,
-  outputSampleData: sampleData,
-  inputSampleData: sampleDataInput,
-  ...props
-}: BuilderStateProviderProps) {
+export function BuilderStateProvider(_props: BuilderStateProviderProps) {
+  const [local, props] = splitProps(_props, [
+    'children',
+    'outputSampleData',
+    'inputSampleData',
+  ]);
   let storeRef: BuilderStore | undefined;
   const { checkAccess } = useAuthorization();
-  const readonly = !checkAccess(Permission.WRITE_FLOW) || props.readonly;
-  projectHooks.useReloadPageIfProjectIdChanged(props.flow.projectId);
+  const readonly = untrack(
+    () => !checkAccess(Permission.WRITE_FLOW) || props.readonly,
+  );
+  projectHooks.useReloadPageIfProjectIdChanged(
+    untrack(() => props.flow.projectId),
+  );
   const socket = useSocket();
   const queryClient = useQueryClient();
   if (!storeRef) {
     storeRef = createBuilderStore({
       ...props,
       readonly,
-      outputSampleData: sampleData,
-      inputSampleData: sampleDataInput,
+      outputSampleData: untrack(() => local.outputSampleData),
+      inputSampleData: untrack(() => local.inputSampleData),
       socket,
       queryClient,
     });
@@ -41,7 +46,7 @@ export function BuilderStateProvider({
 
   return (
     <BuilderStateContext.Provider value={storeRef}>
-      {children}
+      {local.children}
     </BuilderStateContext.Provider>
   );
 }

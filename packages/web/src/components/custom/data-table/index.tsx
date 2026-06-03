@@ -2,7 +2,6 @@
 
 import { apId, isNil, SeekPage } from '@activepieces/shared';
 import { useSearchParams } from '@solidjs/router';
-import { createVirtualizer } from '@tanstack/solid-virtual';
 import {
   ColumnDef as TanstackColumnDef,
   flexRender,
@@ -12,9 +11,18 @@ import {
   SortingState,
   createSolidTable,
 } from '@tanstack/solid-table';
+import { createVirtualizer } from '@tanstack/solid-virtual';
 import { t } from 'i18next';
 import { ChevronLeft, ChevronRight } from 'lucide-solid';
-import { For, Show, createSignal, createEffect, createMemo } from 'solid-js';
+import {
+  For,
+  JSX,
+  Show,
+  createSignal,
+  createEffect,
+  createMemo,
+  mergeProps,
+} from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -54,7 +62,7 @@ export const LIMIT_QUERY_PARAM = 'limit';
 
 type DataTableAction<TData extends DataWithId> = (
   row: RowDataWithActions<TData>,
-) => any;
+) => JSX.Element;
 
 type ColumnDef<TData, TValue> = TanstackColumnDef<TData, TValue> & {
   notClickable?: boolean;
@@ -74,15 +82,15 @@ interface DataTableProps<
   ) => void;
   isLoading: boolean;
   filters?: DataTableFilters<Keys>[];
-  customFilters?: any[];
+  customFilters?: JSX.Element[];
   onSelectedRowsChange?: (rows: RowDataWithActions<TData>[]) => void;
   actions?: DataTableAction<TData>[];
   hidePagination?: boolean;
   bulkActions?: BulkAction<TData>[];
-  toolbarButtons?: any[];
+  toolbarButtons?: JSX.Element[];
   emptyStateTextTitle: string;
   emptyStateTextDescription: string;
-  emptyStateIcon: any;
+  emptyStateIcon: JSX.Element;
   selectColumn?: boolean;
   initialSorting?: SortingState;
   clientPagination?: boolean;
@@ -98,34 +106,26 @@ export type BulkAction<TData extends DataWithId> = {
   render: (
     selectedRows: RowDataWithActions<TData>[],
     resetSelection: () => void,
-  ) => any;
+  ) => JSX.Element;
 };
 
 export function DataTable<
   TData extends DataWithId,
   TValue,
   Keys extends string,
->({
-  columns: columnsInitial,
-  page,
-  onRowClick,
-  filters = [],
-  actions = [],
-  isLoading,
-  onSelectedRowsChange,
-  hidePagination,
-  bulkActions = [],
-  toolbarButtons,
-  emptyStateTextTitle,
-  emptyStateTextDescription,
-  emptyStateIcon,
-  customFilters,
-  selectColumn = false,
-  initialSorting = [],
-  clientPagination = false,
-  getRowClassName,
-  virtualizeRows = false,
-}: DataTableProps<TData, TValue, Keys>) {
+>(_props: DataTableProps<TData, TValue, Keys>) {
+  const props = mergeProps(
+    {
+      filters: [],
+      actions: [],
+      bulkActions: [],
+      selectColumn: false,
+      initialSorting: [],
+      clientPagination: false,
+      virtualizeRows: false,
+    },
+    _props,
+  );
   const selectColumnDef: ColumnDef<RowDataWithActions<TData>, TValue> = {
     id: 'select',
     accessorKey: 'select',
@@ -133,58 +133,70 @@ export function DataTable<
     size: 40,
     minSize: 40,
     maxSize: 40,
-    header: ({ table }) => (
-      <div className="flex items-center h-full">
+    header: (props) => (
+      <div class="flex items-center h-full">
         <Checkbox
-          checked={table.getIsAllPageRowsSelected()}
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          checked={props.table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) =>
+            props.table.toggleAllPageRowsSelected(!!value)
+          }
         />
       </div>
     ),
-    cell: ({ row }) => (
-      <div className="flex items-center h-full">
+    cell: (props) => (
+      <div class="flex items-center h-full">
         <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          checked={props.row.getIsSelected()}
+          onCheckedChange={(value) => props.row.toggleSelected(!!value)}
         />
       </div>
     ),
   };
 
-  const columnsWithSelect = selectColumn
-    ? [selectColumnDef, ...columnsInitial]
-    : columnsInitial;
-
-  const columns =
-    actions.length > 0
-      ? columnsWithSelect.concat([
+  const columns = createMemo(() => {
+    const base = props.selectColumn
+      ? [selectColumnDef, ...props.columns]
+      : props.columns;
+    return props.actions.length > 0
+      ? base.concat([
           {
             accessorKey: '__actions',
             size: 60,
             minSize: 60,
             maxSize: 60,
-            header: ({ column }) => (
-              <DataTableColumnHeader column={column} title="" />
+            header: (ctx) => (
+              <DataTableColumnHeader column={ctx.column} title="" />
             ),
-            cell: ({ row }) => {
+            cell: (ctx) => {
               return (
-                <div className="flex justify-end gap-4">
-                  <For each={actions}>
-                    {(action, index) => <>{action(row.original)}</>}
+                <div class="flex justify-end gap-4">
+                  <For each={props.actions}>
+                    {(action) => <>{action(ctx.row.original)}</>}
                   </For>
                 </div>
               );
             },
           },
         ])
-      : columnsWithSelect;
+      : base;
+  });
 
-  const columnVisibility = columnsInitial.reduce((acc, column) => {
-    if (column.enableHiding && 'accessorKey' in column) {
-      acc[column.accessorKey as string] = false;
-    }
-    return acc;
-  }, {} as Record<string, boolean>);
+  const columnVisibility = createMemo(() =>
+    Object.fromEntries(
+      props.columns
+        .filter(
+          (
+            column,
+          ): column is ColumnDef<RowDataWithActions<TData>, TValue> & {
+            accessorKey: string;
+          } =>
+            column.enableHiding === true &&
+            'accessorKey' in column &&
+            typeof column.accessorKey === 'string',
+        )
+        .map((column) => [column.accessorKey, false]),
+    ),
+  );
 
   const [searchParams, setSearchParams] = useSearchParams();
   const startingCursor = searchParams.cursor || undefined;
@@ -193,11 +205,11 @@ export function DataTable<
     startingCursor,
   );
   const [nextPageCursor, setNextPageCursor] = createSignal<string | undefined>(
-    page?.next ?? undefined,
+    undefined,
   );
   const [previousPageCursor, setPreviousPageCursor] = createSignal<
     string | undefined
-  >(page?.previous ?? undefined);
+  >(undefined);
 
   const enrichPageData = (data: TData[]) => {
     return data.map((row, index) => ({
@@ -217,38 +229,44 @@ export function DataTable<
 
   const [deletedRows, setDeletedRows] = createSignal<TData[]>([]);
   const [tableData, setTableData] = createSignal<RowDataWithActions<TData>[]>(
-    enrichPageData(page?.data ?? []),
+    [],
   );
 
   createEffect(() => {
-    setNextPageCursor(page?.next ?? undefined);
-    setPreviousPageCursor(page?.previous ?? undefined);
-    setTableData(enrichPageData(page?.data ?? []));
+    setNextPageCursor(props.page?.next ?? undefined);
+    setPreviousPageCursor(props.page?.previous ?? undefined);
+    setTableData(enrichPageData(props.page?.data ?? []));
   });
 
   const table = createSolidTable({
-    data: tableData(),
-    columns,
-    manualPagination: virtualizeRows ? false : !clientPagination,
+    get data() {
+      return tableData();
+    },
+    get columns() {
+      return columns();
+    },
+    get manualPagination() {
+      return props.virtualizeRows ? false : !props.clientPagination;
+    },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    ...((clientPagination || virtualizeRows) && {
-      getPaginationRowModel: getPaginationRowModel(),
-    }),
+    getPaginationRowModel: getPaginationRowModel(),
     getRowId: () => apId(),
     initialState: {
       pagination: {
-        pageSize: virtualizeRows
-          ? tableData().length || 1000
-          : parseInt(startingLimit),
+        pageSize: parseInt(startingLimit),
       },
-      columnVisibility,
-      sorting: initialSorting,
+      columnVisibility: {},
+      sorting: props.initialSorting,
     },
   });
 
   createEffect(() => {
-    filters?.forEach((filter) => {
+    table.setColumnVisibility(columnVisibility());
+  });
+
+  createEffect(() => {
+    props.filters.forEach((filter) => {
       const column = table.getColumn(filter.accessorKey);
       const values = searchParams[filter.accessorKey];
       if (column && values) {
@@ -257,16 +275,15 @@ export function DataTable<
     });
   });
 
-  const rowSelection = table.getState().rowSelection;
   const selectedRowOriginals = createMemo(() =>
     table.getSelectedRowModel().rows.map((row) => row.original),
   );
   createEffect(() => {
-    onSelectedRowsChange?.(selectedRowOriginals());
+    props.onSelectedRowsChange?.(selectedRowOriginals());
   });
 
   createEffect(() => {
-    if (hidePagination) {
+    if (props.hidePagination) {
       return;
     }
     setSearchParams(
@@ -291,34 +308,43 @@ export function DataTable<
     table.toggleAllRowsSelected(false);
   };
 
+  const index = (e: MouseEvent) =>
+    e.target instanceof HTMLElement
+      ? e.target.closest('td')?.cellIndex
+      : undefined;
+
   let scrollContainerRef: HTMLDivElement | undefined;
-  const rows = table.getRowModel().rows;
+  const rows = createMemo(() => table.getRowModel().rows);
   const virtualizer = createVirtualizer({
-    count: rows.length,
+    get count() {
+      return rows().length;
+    },
     getScrollElement: () => scrollContainerRef,
     estimateSize: () => 53,
     overscan: 15,
-    enabled: virtualizeRows,
+    get enabled() {
+      return props.virtualizeRows;
+    },
   });
 
   return (
     <div
-      className={cn(
-        virtualizeRows ? 'flex flex-col flex-1 min-h-0' : undefined,
+      class={cn(
+        props.virtualizeRows ? 'flex flex-col flex-1 min-h-0' : undefined,
       )}
     >
       <Show
         when={
-          (filters && filters.length > 0) ||
-          (customFilters && customFilters.length > 0) ||
-          (toolbarButtons && toolbarButtons.length > 0)
+          props.filters.length > 0 ||
+          (props.customFilters && props.customFilters.length > 0) ||
+          (props.toolbarButtons && props.toolbarButtons.length > 0)
         }
       >
         <DataTableToolbar>
-          <div className="w-full flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Show when={filters && filters.length > 0}>
-                <For each={filters}>
+          <div class="w-full flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <Show when={props.filters.length > 0}>
+                <For each={props.filters}>
                   {(filter) => (
                     <DataTableFilter
                       column={table.getColumn(filter.accessorKey)}
@@ -327,13 +353,21 @@ export function DataTable<
                   )}
                 </For>
               </Show>
-              <Show when={customFilters && customFilters.length > 0}>
-                <For each={customFilters}>{(filter) => <>{filter}</>}</For>
+              <Show
+                when={props.customFilters && props.customFilters.length > 0}
+              >
+                <For each={props.customFilters}>
+                  {(filter) => <>{filter}</>}
+                </For>
               </Show>
             </div>
-            <Show when={toolbarButtons && toolbarButtons.length > 0}>
-              <div className="flex items-center gap-2">
-                <For each={toolbarButtons}>{(button) => <>{button}</>}</For>
+            <Show
+              when={props.toolbarButtons && props.toolbarButtons.length > 0}
+            >
+              <div class="flex items-center gap-2">
+                <For each={props.toolbarButtons}>
+                  {(button) => <>{button}</>}
+                </For>
               </div>
             </Show>
           </div>
@@ -341,15 +375,17 @@ export function DataTable<
       </Show>
 
       <div
-        ref={(el) => (scrollContainerRef = el)}
-        className={cn('mt-0', {
-          'overflow-hidden': !virtualizeRows,
-          'flex-1 min-h-0 overflow-auto': virtualizeRows,
+        ref={(el) => {
+          scrollContainerRef = el;
+        }}
+        class={cn('mt-0', {
+          'overflow-hidden': !props.virtualizeRows,
+          'flex-1 min-h-0 overflow-auto': props.virtualizeRows,
         })}
       >
         <Table class="table-fixed">
           <TableHeader
-            class={cn(virtualizeRows ? 'sticky top-0 z-10' : undefined)}
+            class={cn(props.virtualizeRows ? 'sticky top-0 z-10' : undefined)}
           >
             <For each={table.getHeaderGroups()}>
               {(headerGroup) => (
@@ -381,26 +417,26 @@ export function DataTable<
           </TableHeader>
           <TableBody>
             <Show
-              when={isLoading}
+              when={props.isLoading}
               fallback={
                 <Show
-                  when={rows.length > 0}
+                  when={rows().length > 0}
                   fallback={
                     <TableRow class="hover:bg-background">
                       <TableCell
-                        colSpan={columns.length}
+                        colSpan={columns().length}
                         class="h-[350px] text-center"
                       >
-                        <div className="flex flex-col items-center justify-center gap-2">
-                          <Show when={emptyStateIcon} fallback={<></>}>
-                            {emptyStateIcon}
+                        <div class="flex flex-col items-center justify-center gap-2">
+                          <Show when={props.emptyStateIcon} fallback={<></>}>
+                            {(icon) => icon()}
                           </Show>
-                          <p className="text-lg font-semibold">
-                            {emptyStateTextTitle}
+                          <p class="text-lg font-semibold">
+                            {props.emptyStateTextTitle}
                           </p>
-                          <Show when={emptyStateTextDescription}>
-                            <p className="text-sm text-muted-foreground ">
-                              {emptyStateTextDescription}
+                          <Show when={props.emptyStateTextDescription}>
+                            <p class="text-sm text-muted-foreground ">
+                              {props.emptyStateTextDescription}
                             </p>
                           </Show>
                         </div>
@@ -409,42 +445,39 @@ export function DataTable<
                   }
                 >
                   <Show
-                    when={virtualizeRows}
+                    when={props.virtualizeRows}
                     fallback={
-                      <For each={rows}>
+                      <For each={rows()}>
                         {(row, rowIndex) => (
                           <TableRow
                             class={cn(
                               'cursor-pointer',
                               {
-                                'hover:bg-background cursor-default':
-                                  isNil(onRowClick),
+                                'hover:bg-background cursor-default': isNil(
+                                  props.onRowClick,
+                                ),
                               },
-                              getRowClassName?.(row.original, rowIndex()),
+                              props.getRowClassName?.(row.original, rowIndex()),
                             )}
                             onClick={(e) => {
-                              const clickedCellIndex = (
-                                e.target as HTMLElement
-                              ).closest('td')?.cellIndex;
+                              const cell = index(e);
                               if (
-                                clickedCellIndex !== undefined &&
-                                columns[clickedCellIndex]?.notClickable
+                                cell !== undefined &&
+                                columns()[cell]?.notClickable
                               ) {
                                 return;
                               }
-                              onRowClick?.(row.original, e.ctrlKey, e);
+                              props.onRowClick?.(row.original, e.ctrlKey, e);
                             }}
                             onAuxClick={(e) => {
-                              const clickedCellIndex = (
-                                e.target as HTMLElement
-                              ).closest('td')?.cellIndex;
+                              const cell = index(e);
                               if (
-                                clickedCellIndex !== undefined &&
-                                columns[clickedCellIndex]?.notClickable
+                                cell !== undefined &&
+                                columns()[cell]?.notClickable
                               ) {
                                 return;
                               }
-                              onRowClick?.(row.original, true, e);
+                              props.onRowClick?.(row.original, true, e);
                             }}
                             data-state={row.getIsSelected() && 'selected'}
                           >
@@ -464,18 +497,15 @@ export function DataTable<
                                     }
                                   >
                                     <div
-                                      className={cn(
-                                        'flex w-full items-center',
-                                        {
-                                          'justify-end':
-                                            cell.column.id === 'actions',
-                                          'justify-start':
-                                            cell.column.id !== 'actions',
-                                        },
-                                      )}
+                                      class={cn('flex w-full items-center', {
+                                        'justify-end':
+                                          cell.column.id === 'actions',
+                                        'justify-start':
+                                          cell.column.id !== 'actions',
+                                      })}
                                     >
                                       <div
-                                        className="w-full"
+                                        class="w-full"
                                         onClick={(e) => {
                                           if (cell.column.id === 'select') {
                                             e.preventDefault();
@@ -503,7 +533,7 @@ export function DataTable<
                       <Show when={virtualizer.getVirtualItems().length > 0}>
                         <tr>
                           <td
-                            colSpan={columns.length}
+                            colSpan={columns().length}
                             style={{
                               height: virtualizer.getVirtualItems()[0].start,
                             }}
@@ -512,7 +542,7 @@ export function DataTable<
                       </Show>
                       <For each={virtualizer.getVirtualItems()}>
                         {(virtualRow) => {
-                          const row = rows[virtualRow.index];
+                          const row = rows()[virtualRow.index];
                           const rowIndex = virtualRow.index;
                           return (
                             <TableRow
@@ -520,34 +550,31 @@ export function DataTable<
                               class={cn(
                                 'cursor-pointer',
                                 {
-                                  'hover:bg-background cursor-default':
-                                    isNil(onRowClick),
+                                  'hover:bg-background cursor-default': isNil(
+                                    props.onRowClick,
+                                  ),
                                 },
-                                getRowClassName?.(row.original, rowIndex),
+                                props.getRowClassName?.(row.original, rowIndex),
                               )}
                               onClick={(e) => {
-                                const clickedCellIndex = (
-                                  e.target as HTMLElement
-                                ).closest('td')?.cellIndex;
+                                const cell = index(e);
                                 if (
-                                  clickedCellIndex !== undefined &&
-                                  columns[clickedCellIndex]?.notClickable
+                                  cell !== undefined &&
+                                  columns()[cell]?.notClickable
                                 ) {
                                   return;
                                 }
-                                onRowClick?.(row.original, e.ctrlKey, e);
+                                props.onRowClick?.(row.original, e.ctrlKey, e);
                               }}
                               onAuxClick={(e) => {
-                                const clickedCellIndex = (
-                                  e.target as HTMLElement
-                                ).closest('td')?.cellIndex;
+                                const cell = index(e);
                                 if (
-                                  clickedCellIndex !== undefined &&
-                                  columns[clickedCellIndex]?.notClickable
+                                  cell !== undefined &&
+                                  columns()[cell]?.notClickable
                                 ) {
                                   return;
                                 }
-                                onRowClick?.(row.original, true, e);
+                                props.onRowClick?.(row.original, true, e);
                               }}
                               data-state={row.getIsSelected() && 'selected'}
                             >
@@ -567,18 +594,15 @@ export function DataTable<
                                       }
                                     >
                                       <div
-                                        className={cn(
-                                          'flex w-full items-center',
-                                          {
-                                            'justify-end':
-                                              cell.column.id === 'actions',
-                                            'justify-start':
-                                              cell.column.id !== 'actions',
-                                          },
-                                        )}
+                                        class={cn('flex w-full items-center', {
+                                          'justify-end':
+                                            cell.column.id === 'actions',
+                                          'justify-start':
+                                            cell.column.id !== 'actions',
+                                        })}
                                       >
                                         <div
-                                          className="w-full"
+                                          class="w-full"
                                           onClick={(e) => {
                                             if (cell.column.id === 'select') {
                                               e.preventDefault();
@@ -604,7 +628,7 @@ export function DataTable<
                       <Show when={virtualizer.getVirtualItems().length > 0}>
                         <tr>
                           <td
-                            colSpan={columns.length}
+                            colSpan={columns().length}
                             style={{
                               height:
                                 virtualizer.getTotalSize() -
@@ -620,7 +644,7 @@ export function DataTable<
               }
             >
               <TableRow class="hover:bg-background">
-                <TableCell colSpan={columns.length} class="h-24 text-center">
+                <TableCell colSpan={columns().length} class="h-24 text-center">
                   <DataTableSkeleton />
                 </TableCell>
               </TableRow>
@@ -628,15 +652,15 @@ export function DataTable<
           </TableBody>
         </Table>
       </div>
-      <Show when={!hidePagination && !virtualizeRows}>
-        <div className="flex items-center justify-end gap-4 px-2 py-4 text-sm">
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground">{t('Rows per page')}</span>
+      <Show when={!props.hidePagination && !props.virtualizeRows}>
+        <div class="flex items-center justify-end gap-4 px-2 py-4 text-sm">
+          <div class="flex items-center gap-2">
+            <span class="text-muted-foreground">{t('Rows per page')}</span>
             <Select
               value={`${table.getState().pagination.pageSize}`}
               onValueChange={(value) => {
                 table.setPageSize(Number(value));
-                if (!clientPagination) {
+                if (!props.clientPagination) {
                   setCurrentCursor(undefined);
                 }
               }}
@@ -660,14 +684,14 @@ export function DataTable<
             size="sm"
             class="gap-1"
             onClick={() => {
-              if (clientPagination) {
+              if (props.clientPagination) {
                 table.previousPage();
               } else {
                 setCurrentCursor(previousPageCursor());
               }
             }}
             disabled={
-              clientPagination
+              props.clientPagination
                 ? !table.getCanPreviousPage()
                 : !previousPageCursor()
             }
@@ -680,14 +704,16 @@ export function DataTable<
             size="sm"
             class="gap-1"
             onClick={() => {
-              if (clientPagination) {
+              if (props.clientPagination) {
                 table.nextPage();
               } else {
                 setCurrentCursor(nextPageCursor());
               }
             }}
             disabled={
-              clientPagination ? !table.getCanNextPage() : !nextPageCursor()
+              props.clientPagination
+                ? !table.getCanNextPage()
+                : !nextPageCursor()
             }
           >
             {t('Next')}
@@ -695,10 +721,10 @@ export function DataTable<
           </Button>
         </div>
       </Show>
-      <Show when={bulkActions.length > 0}>
+      <Show when={props.bulkActions.length > 0}>
         <DataTableBulkActions
           selectedRows={selectedRowOriginals()}
-          actions={bulkActions}
+          actions={props.bulkActions}
           resetSelection={resetSelection}
         />
       </Show>

@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
+import { splitProps, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -24,58 +25,71 @@ const alertVariants = cva(
   },
 );
 
-function Alert({
-  className,
-  variant,
-  ...props
-}: JSX.IntrinsicElements['div'] & VariantProps<typeof alertVariants>) {
+function Alert(props: AlertProps) {
+  const [local, rest] = splitProps(props, ['class', 'className', 'variant']);
+
   return (
     <div
       data-slot="alert"
       role="alert"
-      className={cn(alertVariants({ variant }), className)}
-      {...props}
+      class={cn(
+        alertVariants({ variant: local.variant }),
+        local.class,
+        local.className,
+      )}
+      {...rest}
     />
   );
 }
 
-function AlertTitle({ className, ...props }: JSX.IntrinsicElements['div']) {
+function AlertTitle(props: AlertBaseProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="alert-title"
-      className={cn(
+      class={cn(
         'font-medium group-has-[>svg]/alert:col-start-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function AlertDescription({
-  className,
-  ...props
-}: JSX.IntrinsicElements['div']) {
+function AlertDescription(props: AlertBaseProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="alert-description"
-      className={cn(
+      class={cn(
         'text-sm text-balance md:text-pretty  [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground',
-        className,
+        local.class,
+        local.className,
       )}
-      {...props}
+      {...rest}
     />
   );
 }
 
-function AlertAction({ className, ...props }: JSX.IntrinsicElements['div']) {
+function AlertAction(props: AlertBaseProps) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
+
   return (
     <div
       data-slot="alert-action"
-      className={cn('absolute top-2 right-2', className)}
-      {...props}
+      class={cn('absolute top-2 right-2', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
 export { Alert, AlertTitle, AlertDescription, AlertAction };
+
+type AlertBaseProps = JSX.IntrinsicElements['div'] & {
+  className?: string;
+};
+
+type AlertProps = AlertBaseProps & VariantProps<typeof alertVariants>;

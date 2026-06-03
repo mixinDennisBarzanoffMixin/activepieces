@@ -1,10 +1,6 @@
-import { flowStructureUtil, isNil } from '@activepieces/shared';
-import { createMemo } from 'solid-js';
+import { isNil } from '@activepieces/shared';
 
 import { inputClass } from '@/components/ui/input';
-import { stepsHooks } from '@/features/pieces';
-import { variablesQueries } from '@/features/variables/hooks/variables-hooks';
-import { authenticationSession } from '@/lib/authentication-session';
 import { cn } from '@/lib/utils';
 
 import { useBuilderStateContext } from '../../builder-hooks';
@@ -33,64 +29,30 @@ function convertToText(value: unknown): string {
   return JSON.stringify(value);
 }
 
-export const TextInputWithMentions = ({
-  className,
-  initialValue,
-  onChange,
-  disabled,
-  placeholder,
-}: TextInputWithMentionsProps) => {
-  const steps = useBuilderStateContext((state) =>
-    flowStructureUtil.getAllSteps(state.flowVersion.trigger)
-  );
-  const stepsMetadata = stepsHooks
-    .useStepsMetadata(steps)
-    .map(({ data: metadata }, index) => {
-      if (metadata) {
-        return {
-          ...metadata,
-          stepDisplayName: steps[index].displayName,
-        };
-      }
-      return undefined;
-    });
-
-  const projectId = authenticationSession.getProjectId();
-  const { data: variablesPage } = variablesQueries.useVariables({
-    request: {
-      projectId: projectId ?? '',
-      limit: 100,
-    },
-    extraKeys: ['mention-resolver-variables', projectId ?? ''],
-    enabled: !!projectId,
-  });
-  const variableByName = createMemo(
-    () => new Map((variablesPage?.data ?? []).map((v) => [v.name, v.name]))
-  );
-
-  const setInsertMentionHandler = useBuilderStateContext(
-    (state) => state.setInsertMentionHandler
-  );
+export const TextInputWithMentions = (props: TextInputWithMentionsProps) => {
+  const setInsertMentionHandler = useBuilderStateContext((state) => ({
+    value: state.setInsertMentionHandler,
+  })).value;
 
   const insertMention = (propertyPath: string) => {
-    onChange(`${convertToText(initialValue)}{{${propertyPath}}}`);
-  }
+    props.onChange(`${convertToText(props.initialValue)}{{${propertyPath}}}`);
+  };
 
   return (
-    <div className="w-full">
+    <div class="w-full">
       <textarea
         class={cn(
-          className ?? cn(inputClass, 'py-2 h-[unset] block min-h-9'),
+          props.className ?? cn(inputClass, 'py-2 h-[unset] block min-h-9'),
           textMentionUtils.inputWithMentionsCssClass,
           {
-            'cursor-not-allowed opacity-50': disabled,
-          }
+            'cursor-not-allowed opacity-50': props.disabled,
+          },
         )}
-        disabled={disabled}
-        placeholder={placeholder}
-        value={convertToText(initialValue)}
+        disabled={props.disabled}
+        placeholder={props.placeholder}
+        value={convertToText(props.initialValue)}
         onFocus={() => setInsertMentionHandler(insertMention)}
-        onInput={(e) => onChange(e.currentTarget.value)}
+        onInput={(e) => props.onChange(e.currentTarget.value)}
       />
     </div>
   );

@@ -1,5 +1,5 @@
 import { ErrorCode, isNil } from '@activepieces/shared';
-import { useLocation, useNavigate } from '@solidjs/router';
+import { useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
 import { createEffect } from 'solid-js';
 import { toast } from 'solid-sonner';
@@ -17,7 +17,6 @@ import {
 } from '@/lib/navigation-utils';
 
 const RedirectPage = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   let hasCheckedParams = false;
   createEffect(() => {
@@ -26,12 +25,16 @@ const RedirectPage = () => {
     }
     console.log('redirection works, redirecting....');
     hasCheckedParams = true;
-    const params = new URLSearchParams(location.search);
+    const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const state = tryParseState(params.get(STATE_QUERY_PARAM));
     if (state && state[LOGIN_QUERY_PARAM] && code) {
       const providerName = state[PROVIDER_NAME_QUERY_PARAM];
       const from = state[FROM_QUERY_PARAM];
+      if (!providerName || !from) {
+        void navigate('/sign-in');
+        return;
+      }
       const handleThirdPartyLogin = async () => {
         try {
           const data = await authenticationApi.claimThirdPartyRequest({
@@ -40,14 +43,14 @@ const RedirectPage = () => {
           });
           authenticationSession.saveResponse(data, false);
           if (isNil(data.projectId)) {
-            navigate('/create-platform');
+            void navigate('/create-platform');
             return;
           }
-          navigate(from);
+          void navigate(from);
         } catch (e) {
           if (
             api.isError(e) &&
-            (e.response?.data as { code: ErrorCode })?.code ===
+            (e.response?.data as { code: ErrorCode }).code ===
               ErrorCode.INVITATION_ONLY_SIGN_UP
           ) {
             toast(t('Invitation only sign up'), {
@@ -60,14 +63,15 @@ const RedirectPage = () => {
           }
           console.error(e);
 
-          navigate('/sign-in');
+          void navigate('/sign-in');
         }
       };
-      handleThirdPartyLogin();
+      void handleThirdPartyLogin();
     }
 
-    if (window.opener && code) {
-      window.opener.postMessage(
+    const opener: unknown = window.opener;
+    if (isWindow(opener) && code) {
+      opener.postMessage(
         {
           code: code,
         },
@@ -75,22 +79,33 @@ const RedirectPage = () => {
       );
     }
     if (!window.opener && !code) {
-      navigate('/');
+      void navigate('/');
     }
   });
 
   return <LoadingScreen />;
 };
 
-RedirectPage.displayName = 'RedirectPage';
-const tryParseState = (state: string | null) => {
+const tryParseState = (state: string | null): Record<string, string> | null => {
   if (!state) {
     return null;
   }
   try {
-    return JSON.parse(state);
+    const parsed: unknown = JSON.parse(state);
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+    return Object.fromEntries(
+      Object.entries(parsed).filter(
+        (entry): entry is [string, string] => typeof entry[1] === 'string',
+      ),
+    );
   } catch (e) {
     return null;
   }
+};
+
+const isWindow = (value: unknown): value is Window => {
+  return !!value && typeof value === 'object' && 'postMessage' in value;
 };
 export { RedirectPage };

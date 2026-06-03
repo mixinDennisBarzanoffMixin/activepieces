@@ -97,7 +97,9 @@ const ApRouter = () => {
   return (
     <Router source={source}>
       <For each={routes}>
-        {(route) => <Route path={route.path} component={routeComponent(route)} />}
+        {(route) => (
+          <Route path={route.path} component={routeComponent(route)} />
+        )}
       </For>
     </Router>
   );

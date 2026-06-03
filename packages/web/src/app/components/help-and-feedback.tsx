@@ -30,7 +30,7 @@ export const HelpAndFeedback = () => {
             rel="noopener noreferrer"
             class="flex justify-between w-full"
           >
-            <div className="flex items-center gap-2">
+            <div class="flex items-center gap-2">
               <BookOpen class="size-4" />
               <span>Documentation</span>
             </div>
@@ -44,7 +44,7 @@ export const HelpAndFeedback = () => {
             rel="noopener noreferrer"
             class="flex justify-between w-full"
           >
-            <div className="flex items-center gap-2">
+            <div class="flex items-center gap-2">
               <History class="size-4" />
               <span>{t('Changelog')}</span>
             </div>
@@ -54,7 +54,7 @@ export const HelpAndFeedback = () => {
         {
           <Show when={showCommunity}>
             <>
-              <div className="flex text-xs text-muted-foreground items-center gap-2 px-2 py-1">
+              <div class="flex text-xs text-muted-foreground items-center gap-2 px-2 py-1">
                 <span>Need Help?</span>
               </div>
               <DropdownMenuItem asChild>
@@ -64,7 +64,7 @@ export const HelpAndFeedback = () => {
                   rel="noopener noreferrer"
                   class="flex justify-between w-full"
                 >
-                  <div className="flex items-center gap-2">
+                  <div class="flex items-center gap-2">
                     <CircleHelp class="size-4" />
                     <span>{t('Community Support')}</span>
                   </div>

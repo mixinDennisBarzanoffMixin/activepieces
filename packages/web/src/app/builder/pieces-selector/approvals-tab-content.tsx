@@ -47,11 +47,7 @@ const APPROVAL_PIECES_CONFIG = [
   },
 ];
 
-const ApprovalsTabContent = ({
-  operation,
-}: {
-  operation: PieceSelectorOperation;
-}) => {
+const ApprovalsTabContent = (props: { operation: PieceSelectorOperation }) => {
   const { selectedTab } = usePieceSelectorTabs();
   const [handleAddingOrUpdatingStep] = useBuilderStateContext((state) => [
     state.handleAddingOrUpdatingStep,
@@ -69,7 +65,7 @@ const ApprovalsTabContent = ({
   if (
     selectedTab !== PieceSelectorTabType.APPROVALS ||
     ![FlowOperationType.ADD_ACTION, FlowOperationType.UPDATE_ACTION].includes(
-      operation.type,
+      props.operation.type,
     )
   ) {
     return null;
@@ -77,7 +73,7 @@ const ApprovalsTabContent = ({
 
   if (isLoading || !allPiecesLoaded) {
     return (
-      <div className="flex flex-col gap-2 w-full p-2">
+      <div class="flex flex-col gap-2 w-full p-2">
         <CardListItemSkeleton numberOfCards={3} withCircle={false} />
       </div>
     );
@@ -131,7 +127,7 @@ const ApprovalsTabContent = ({
                   type: FlowActionType.PIECE,
                   pieceMetadata: item.pieceMetadata,
                 },
-                operation,
+                operation: props.operation,
                 selectStepAfter: true,
               });
             }}

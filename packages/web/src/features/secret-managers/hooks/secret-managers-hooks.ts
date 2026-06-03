@@ -1,7 +1,4 @@
-import {
-  ConnectSecretManagerRequest,
-  SecretManagerConnectionWithStatus,
-} from '@activepieces/shared';
+import { SecretManagerConnectionWithStatus } from '@activepieces/shared';
 import {
   createMutation,
   createQuery,
@@ -29,13 +26,13 @@ export const secretManagersHooks = {
     const projectId = listForPlatform
       ? undefined
       : authenticationSession.getProjectId()!;
-    return createQuery<SecretManagerConnectionWithStatus[]>({
+    return createQuery<SecretManagerConnectionWithStatus[]>(() => ({
       queryKey: ['secret-managers', projectId],
       queryFn: async () => {
         const result = await secretManagersApi.list({ projectId });
         if (connectedOnly) {
           return result.data.filter(
-            (connection) => connection.connection?.connected,
+            (connection) => connection.connection.connected,
           );
         }
         return result.data;
@@ -44,7 +41,7 @@ export const secretManagersHooks = {
       meta: showErrorDialog
         ? { showErrorDialog: true, loadSubsetOptions: {} }
         : undefined,
-    });
+    }));
   },
   useCreateSecretManagerConnection: ({
     onSuccess,
@@ -54,19 +51,15 @@ export const secretManagersHooks = {
     onError: (error: Error) => void;
   }) => {
     const queryClient = useQueryClient();
-    return createMutation<
-      SecretManagerConnectionWithStatus,
-      Error,
-      ConnectSecretManagerRequest
-    >({
-      mutationFn: secretManagersApi.create,
+    return createMutation(() => ({
+      mutationFn: (request) => secretManagersApi.create(request),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['secret-managers'] });
+        void queryClient.invalidateQueries({ queryKey: ['secret-managers'] });
         toast.success(t('Connected successfully'));
         onSuccess();
       },
       onError,
-    });
+    }));
   },
   useUpdateSecretManagerConnection: ({
     onSuccess,
@@ -76,38 +69,37 @@ export const secretManagersHooks = {
     onError: (error: Error) => void;
   }) => {
     const queryClient = useQueryClient();
-    return createMutation<
-      SecretManagerConnectionWithStatus,
-      Error,
-      { id: string; config: ConnectSecretManagerRequest }
-    >({
-      mutationFn: ({ id, config }) => secretManagersApi.update(id, config),
+    return createMutation(() => ({
+      mutationFn: (params: {
+        id: string;
+        config: Parameters<typeof secretManagersApi.update>[1];
+      }) => secretManagersApi.update(params.id, params.config),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['secret-managers'] });
+        void queryClient.invalidateQueries({ queryKey: ['secret-managers'] });
         toast.success(t('Updated successfully'));
         onSuccess();
       },
       onError,
-    });
+    }));
   },
   useDeleteSecretManagerConnection: () => {
     const queryClient = useQueryClient();
-    return createMutation<void, Error, string>({
+    return createMutation(() => ({
       mutationFn: (id) => secretManagersApi.delete(id),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['secret-managers'] });
+        void queryClient.invalidateQueries({ queryKey: ['secret-managers'] });
         toast.success(t('Deleted successfully'));
       },
-    });
+    }));
   },
   useClearCache: () => {
     const queryClient = useQueryClient();
-    return createMutation<void, Error, string | undefined>({
+    return createMutation(() => ({
       mutationFn: (connectionId) => secretManagersApi.clearCache(connectionId),
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['secret-managers'] });
+        void queryClient.invalidateQueries({ queryKey: ['secret-managers'] });
         toast.success(t('Cache cleared successfully'));
       },
-    });
+    }));
   },
 };

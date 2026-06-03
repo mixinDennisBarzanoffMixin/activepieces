@@ -9,7 +9,6 @@ import {
 import { DataSelectorNodeContent } from './data-selector-node-content';
 import { TestStepSection } from './test-step-section';
 import { DataSelectorTreeNode } from './type';
-import { dataSelectorUtils } from './utils';
 
 type DataSelectorNodeProps = {
   node: DataSelectorTreeNode;
@@ -17,24 +16,19 @@ type DataSelectorNodeProps = {
   searchTerm: string;
 };
 
-const DataSelectorNode = ({
-  node,
-  depth,
-  searchTerm,
-}: DataSelectorNodeProps) => {
-  const [expanded, setExpanded] = createSignal(depth === 0);
+const DataSelectorNode = (props: DataSelectorNodeProps) => {
+  const [expanded, setExpanded] = createSignal(props.depth === 0);
 
   createEffect(() => {
-    if (searchTerm) {
+    if (props.searchTerm) {
       setExpanded(true);
     } else {
-      setExpanded(depth === 0);
+      setExpanded(props.depth === 0);
     }
   });
 
-  const isTestStepNode = dataSelectorUtils.isTestStepNode(node);
-  if (isTestStepNode) {
-    return <TestStepSection stepName={node.data.stepName}></TestStepSection>;
+  if (props.node.data.type === 'test') {
+    return <TestStepSection stepName={props.node.data.stepName} />;
   }
 
   return (
@@ -42,23 +36,23 @@ const DataSelectorNode = ({
       <>
         <CollapsibleTrigger asChild={true} class="w-full relative">
           <DataSelectorNodeContent
-            node={node}
+            node={props.node}
             expanded={expanded}
             setExpanded={setExpanded}
-            depth={depth}
-          ></DataSelectorNodeContent>
+            depth={props.depth}
+          />
         </CollapsibleTrigger>
         <CollapsibleContent class="w-full">
-          <Show when={node.children && node.children.length > 0()}>
-            <div className="flex flex-col ">
-              <For each={node.children}>
+          <Show when={props.node.children && props.node.children.length > 0}>
+            <div class="flex flex-col ">
+              <For each={props.node.children}>
                 {(node) => (
                   <DataSelectorNode
-                    depth={depth + 1}
+                    depth={props.depth + 1}
                     node={node}
                     key={node.key}
-                    searchTerm={searchTerm}
-                  ></DataSelectorNode>
+                    searchTerm={props.searchTerm}
+                  />
                 )}
               </For>
             </div>
@@ -68,5 +62,5 @@ const DataSelectorNode = ({
     </Collapsible>
   );
 };
-DataSelectorNode.displayName = 'DataSelectorNode';
+
 export { DataSelectorNode };

@@ -7,17 +7,14 @@ type DataTableToolbarProps = {
 const DataTableToolbar = (params: DataTableToolbarProps) => {
   return (
     <div
-      className={cn(
+      class={cn(
         'flex items-center justify-between py-3 overflow-auto',
         DASHBOARD_CONTENT_PADDING_X,
       )}
     >
-      <div className="flex flex-1 items-center space-x-2">
-        {params.children}
-      </div>
+      <div class="flex flex-1 items-center space-x-2">{params.children}</div>
     </div>
   );
 };
-DataTableToolbar.displayName = 'DataTableToolbar';
 
 export { DataTableToolbar };

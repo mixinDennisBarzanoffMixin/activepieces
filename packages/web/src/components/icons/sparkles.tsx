@@ -1,5 +1,5 @@
-import { createSignal } from 'solid-js';
 import { motion } from 'motion/react';
+import { createSignal, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,7 @@ function SparklesIcon(props: SparklesIconProps & { ref?: SparklesIconHandle }) {
 
   return (
     <div
-      className={cn(className)}
+      class={cn(className)}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       {...divProps}
@@ -105,7 +105,6 @@ function SparklesIcon(props: SparklesIconProps & { ref?: SparklesIconHandle }) {
     </div>
   );
 }
-SparklesIcon.displayName = 'SparklesIcon';
 
 export { SparklesIcon };
 export type { SparklesIconHandle };

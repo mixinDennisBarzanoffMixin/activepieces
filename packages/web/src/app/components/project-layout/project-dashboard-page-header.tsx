@@ -3,13 +3,14 @@ import {
   isNil,
   Permission,
   PlatformRole,
+  ProjectMemberWithUser,
   ProjectType,
   UserStatus,
 } from '@activepieces/shared';
 import { useLocation } from '@solidjs/router';
 import { t } from 'i18next';
 import { UsersRound, Lock } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { createSignal, Show, type JSX } from 'solid-js';
 
 import { AnimatedIconButton } from '@/components/custom/animated-icon-button';
 import { PageHeader } from '@/components/custom/page-header';
@@ -32,10 +33,7 @@ import { userHooks } from '@/hooks/user-hooks';
 
 import { ProjectSettingsDialog } from '../project-settings';
 
-export const ProjectDashboardPageHeader = ({
-  children,
-  description,
-}: {
+export const ProjectDashboardPageHeader = (props: {
   children?: JSX.Element;
   description?: JSX.Element;
 }) => {
@@ -47,7 +45,10 @@ export const ProjectDashboardPageHeader = ({
     'general' | 'members' | 'alerts' | 'pieces' | 'environment'
   >('general');
   const location = useLocation();
-  const { projectMembers } = projectMembersHooks.useProjectMembers();
+  const {
+    projectMembers,
+  }: { projectMembers: ProjectMemberWithUser[] | undefined } =
+    projectMembersHooks.useProjectMembers();
   const activeProjectMembers = projectMembers?.filter(
     (member) => member.user.status === UserStatus.ACTIVE,
   );
@@ -102,7 +103,7 @@ export const ProjectDashboardPageHeader = ({
   };
 
   const titleContent = (
-    <div className="flex items-center gap-1">
+    <div class="flex items-center gap-1">
       <ApProjectDisplay
         title={getProjectName(project)}
         maxLengthToNotShowTooltip={30}
@@ -131,7 +132,7 @@ export const ProjectDashboardPageHeader = ({
   );
 
   const rightContent = isProjectPage ? (
-    <div className="flex items-center gap-3">
+    <div class="flex items-center gap-3">
       {
         <Show when={showProjectMembersIcons}>
           <Button
@@ -146,7 +147,7 @@ export const ProjectDashboardPageHeader = ({
             }}
           >
             <UsersRound class="w-4 h-4" />
-            <span className="text-sm font-medium">
+            <span class="text-sm font-medium">
               {activeProjectMembers?.length}
             </span>
           </Button>
@@ -161,7 +162,7 @@ export const ProjectDashboardPageHeader = ({
             size="sm"
             onClick={() => setInviteOpen(true)}
           >
-            <span className="text-sm font-medium">{t('Add Members')}</span>
+            <span class="text-sm font-medium">{t('Add Members')}</span>
           </AnimatedIconButton>
         </Show>
       }
@@ -178,14 +179,14 @@ export const ProjectDashboardPageHeader = ({
       />
     </div>
   ) : (
-    children
+    props.children
   );
 
   return (
     <>
       <PageHeader
         title={titleContent}
-        description={description}
+        description={props.description}
         rightContent={rightContent}
         showSidebarToggle={true}
         class="min-w-full"

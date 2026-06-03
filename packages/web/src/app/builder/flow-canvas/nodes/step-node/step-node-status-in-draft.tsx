@@ -28,7 +28,7 @@ type DraftStepStatus =
   | 'tested'
   | 'untested';
 
-const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
+const ApStepNodeStatusInDraft = (props: { stepName: string }) => {
   const [
     run,
     isBeingTested,
@@ -41,26 +41,45 @@ const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
     isManualTrigger,
     isSkipped,
   ] = useBuilderStateContext((state) => {
-    const step = flowStructureUtil.getStep(stepName, state.flowVersion.trigger);
+    const step = flowStructureUtil.getStep(
+      props.stepName,
+      state.flowVersion.trigger,
+    );
     const isManualTrigger =
       step?.type === FlowTriggerType.PIECE &&
       pieceSelectorUtils.isManualTrigger({
-        pieceName: step?.settings.pieceName,
-        triggerName: step?.settings.triggerName ?? '',
+        pieceName: step.settings.pieceName,
+        triggerName: step.settings.triggerName ?? '',
       });
     return [
       state.run,
-      state.isStepBeingTested(stepName),
-      !isNil(state.errorLogs[stepName]),
-      step?.settings?.sampleData?.lastTestDate as string | undefined,
+      state.isStepBeingTested(props.stepName),
+      !isNil(state.errorLogs[props.stepName]),
+      getLastTestDate(step?.settings),
       step?.lastUpdatedDate ?? '',
       step?.type,
       state.flowVersion.state === FlowVersionState.DRAFT,
       !!step?.valid,
       isManualTrigger,
-      flowCanvasUtils.isSkipped(stepName, state.flowVersion.trigger),
+      flowCanvasUtils.isSkipped(props.stepName, state.flowVersion.trigger),
     ];
   });
+
+  function getLastTestDate(settings: unknown) {
+    if (
+      typeof settings !== 'object' ||
+      settings === null ||
+      !('sampleData' in settings) ||
+      typeof settings.sampleData !== 'object' ||
+      settings.sampleData === null ||
+      !('lastTestDate' in settings.sampleData)
+    ) {
+      return undefined;
+    }
+    return typeof settings.sampleData.lastTestDate === 'string'
+      ? settings.sampleData.lastTestDate
+      : undefined;
+  }
 
   const draftStatusConfig: Record<
     DraftStepStatus,
@@ -119,7 +138,7 @@ const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
       ),
     },
   };
-  const status: DraftStepStatus = createMemo(() => {
+  const status = createMemo<DraftStepStatus>(() => {
     if (!isStepValid) return 'invalid';
     if (isBeingTested) return 'testing';
 
@@ -146,27 +165,27 @@ const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
     return null;
   }
 
-  const config = draftStatusConfig[status];
+  const config = draftStatusConfig[status()];
   const badgeClassName = flowRunUtils.getStatusContainerClassName(
     config.variant,
     true,
   );
 
   return (
-    <div className="absolute right-[1px] h-[20px] -top-[28px]">
+    <div class="absolute right-[1px] h-[20px] -top-[28px]">
       <Tooltip>
         <TooltipTrigger asChild>
-          <div className={badgeClassName}>
+          <div class={badgeClassName}>
             {config.icon}
             <div>{config.text}</div>
           </div>
         </TooltipTrigger>
-        <Show when={status === 'untested'()}>
+        <Show when={status() === 'untested'}>
           <TooltipContent>
             {t('This step has not been tested yet')}
           </TooltipContent>
         </Show>
-        <Show when={status === 'needs-test'()}>
+        <Show when={status() === 'needs-test'}>
           <TooltipContent>
             {t('This step has been updated since the last test')}
           </TooltipContent>
@@ -176,5 +195,4 @@ const ApStepNodeStatusInDraft = ({ stepName }: { stepName: string }) => {
   );
 };
 
-ApStepNodeStatusInDraft.displayName = 'ApStepNodeStatusInDraft';
 export { ApStepNodeStatusInDraft };

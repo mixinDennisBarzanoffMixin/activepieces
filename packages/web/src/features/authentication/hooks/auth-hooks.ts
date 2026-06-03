@@ -7,10 +7,9 @@ import {
   UserIdentity,
   VerifyEmailRequestBody,
 } from '@activepieces/shared';
-import { createMutation } from "@tanstack/solid-query";
+import { createMutation, useQueryClient } from '@tanstack/solid-query';
 
 import { authenticationApi } from '@/api/authentication-api';
-import { queryClient } from '@/app/query-client';
 import { HttpError } from '@/lib/api';
 
 export const authMutations = {
@@ -21,9 +20,10 @@ export const authMutations = {
     onSuccess: (data: AuthenticationResponse) => void;
     onError: (error: HttpError) => void;
   }) => {
+    const queryClient = useQueryClient();
     return createMutation<AuthenticationResponse, HttpError, SignInRequest>(
       () => ({
-        mutationFn: authenticationApi.signIn,
+        mutationFn: (request) => authenticationApi.signIn(request),
         onSuccess,
         onError,
       }),
@@ -37,9 +37,10 @@ export const authMutations = {
     onSuccess: (data: AuthenticationResponse) => void;
     onError: (error: HttpError) => void;
   }) => {
+    const queryClient = useQueryClient();
     return createMutation<AuthenticationResponse, HttpError, SignUpRequest>(
       () => ({
-        mutationFn: authenticationApi.signUp,
+        mutationFn: (request) => authenticationApi.signUp(request),
         onSuccess,
         onError,
       }),
@@ -47,9 +48,10 @@ export const authMutations = {
     );
   },
   useSendOtpEmail: ({ onSuccess }: { onSuccess?: () => void }) => {
+    const queryClient = useQueryClient();
     return createMutation<void, HttpError, CreateOtpRequestBody>(
       () => ({
-        mutationFn: authenticationApi.sendOtpEmail,
+        mutationFn: (request) => authenticationApi.sendOtpEmail(request),
         onSuccess,
       }),
       () => queryClient,
@@ -62,9 +64,10 @@ export const authMutations = {
     onSuccess: () => void;
     onError: (error: HttpError) => void;
   }) => {
+    const queryClient = useQueryClient();
     return createMutation<void, HttpError, ResetPasswordRequestBody>(
       () => ({
-        mutationFn: authenticationApi.resetPassword,
+        mutationFn: (request) => authenticationApi.resetPassword(request),
         onSuccess,
         onError,
       }),
@@ -78,6 +81,7 @@ export const authMutations = {
     onSuccess: (data: UserIdentity) => void;
     onError: (error: unknown) => void;
   }) => {
+    const queryClient = useQueryClient();
     return createMutation(
       () => ({
         mutationFn: (request: VerifyEmailRequestBody) =>

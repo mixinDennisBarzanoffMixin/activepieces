@@ -1,5 +1,6 @@
 import { t } from 'i18next';
 import { Download } from 'lucide-solid';
+import { splitProps } from 'solid-js';
 
 import { Button, ButtonProps } from '@/components/ui/button';
 
@@ -8,24 +9,24 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '../ui/tooltip';
 interface DownloadButtonProps extends ButtonProps {
   fileName: string;
   textToDownload: string;
-  tooltipSide?: any;
+  tooltipSide?: TooltipSide;
 }
 
-export const DownloadButton = ({
-  fileName,
-  className,
-  textToDownload,
-  tooltipSide,
-  ...props
-}: DownloadButtonProps) => {
+export const DownloadButton = (_props: DownloadButtonProps) => {
+  const [local, rest] = splitProps(_props, [
+    'fileName',
+    'className',
+    'textToDownload',
+    'tooltipSide',
+  ]);
   const downloadFile = () => {
-    const blob = new Blob([textToDownload], {
+    const blob = new Blob([local.textToDownload], {
       type: 'text/plain',
     });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${fileName}.txt`;
+    link.download = `${local.fileName}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -38,14 +39,16 @@ export const DownloadButton = ({
         <Button
           variant="outline"
           size="icon"
-          class={className}
+          class={local.className}
           onClick={() => downloadFile()}
-          {...props}
+          {...rest}
         >
-          <Download class="h-4 w-4"></Download>
+          <Download class="h-4 w-4" />
         </Button>
       </TooltipTrigger>
-      <TooltipContent side={tooltipSide}>{t('Download')}</TooltipContent>
+      <TooltipContent side={local.tooltipSide}>{t('Download')}</TooltipContent>
     </Tooltip>
   );
 };
+
+type TooltipSide = 'top' | 'right' | 'bottom' | 'left';

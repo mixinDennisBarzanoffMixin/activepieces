@@ -1,4 +1,5 @@
 import { TriggerStatusReport } from '@activepieces/shared';
+import { ColumnDef } from '@tanstack/solid-table';
 import dayjs from 'dayjs';
 import { t } from 'i18next';
 import {
@@ -13,7 +14,7 @@ import {
 } from 'lucide-solid';
 
 import { DashboardPageHeader } from '@/app/components/dashboard-page-header';
-import { DataTable } from '@/components/custom/data-table';
+import { DataTable, RowDataWithActions } from '@/components/custom/data-table';
 import { DataTableColumnHeader } from '@/components/custom/data-table/data-table-column-header';
 import {
   Tooltip,
@@ -57,11 +58,11 @@ const percentageForLastXDays = (
 ) => {
   const lastXDays = generateLastXDays(days);
   const successRuns = lastXDays.reduce(
-    (acc, day) => acc + (pieceData.dailyStats[day]?.success ?? 0),
+    (acc, day) => acc + (pieceData.dailyStats[day].success ?? 0),
     0,
   );
   const failureRuns = lastXDays.reduce(
-    (acc, day) => acc + (pieceData.dailyStats[day]?.failure ?? 0),
+    (acc, day) => acc + (pieceData.dailyStats[day].failure ?? 0),
     0,
   );
   const percentage =
@@ -98,8 +99,8 @@ export default function TriggerHealthPage() {
           last7Days,
           last14Days,
           lastResults: generateLastXDays(14).map((day) => {
-            const success = pieceData.dailyStats[day]?.success ?? 0;
-            const failure = pieceData.dailyStats[day]?.failure ?? 0;
+            const success = pieceData.dailyStats[day].success ?? 0;
+            const failure = pieceData.dailyStats[day].failure ?? 0;
             const totalRuns = success + failure;
             return {
               date: day,
@@ -144,41 +145,46 @@ export default function TriggerHealthPage() {
     return STATUS_TOOLTIPS[statusType] || 'Unknown status';
   };
 
-  const columns = [
+  const columns: ColumnDef<RowDataWithActions<TriggerHealthRow>>[] = [
     {
       accessorKey: 'pieceDisplayName',
       size: 220,
-      header: ({ column }: any) => (
-        <DataTableColumnHeader column={column} title="Piece" icon={Puzzle} />
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title="Piece"
+          icon={Puzzle}
+        />
       ),
-      cell: ({ row }: any) => {
-        const status = row.original.status;
+      cell: (props) => {
         return (
-          <div className="flex items-center gap-2">
+          <div class="flex items-center gap-2">
             <PieceIconWithPieceName
-              pieceName={row.original.id}
+              pieceName={props.row.original.id}
               showTooltip={false}
               size="md"
             />
-            <div className="flex flex-col">
-              <div className="font-medium flex items-center gap-2">
-                <PieceDisplayName pieceName={row.original.id} />
+            <div class="flex flex-col">
+              <div class="font-medium flex items-center gap-2">
+                <PieceDisplayName pieceName={props.row.original.id} />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span
-                      className={cn(
+                      class={cn(
                         'flex items-center ml-2',
-                        getStatusColor(status.type),
+                        getStatusColor(props.row.original.status.type),
                       )}
                       tabIndex={0}
-                      aria-label={getStatusTooltip(status.type)}
+                      aria-label={getStatusTooltip(
+                        props.row.original.status.type,
+                      )}
                       style={{ cursor: 'pointer' }}
                     >
-                      {getStatusIcon(status.type)}
+                      {getStatusIcon(props.row.original.status.type)}
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {getStatusTooltip(status.type)}
+                    {getStatusTooltip(props.row.original.status.type)}
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -190,68 +196,80 @@ export default function TriggerHealthPage() {
     {
       accessorKey: 'runs',
       size: 160,
-      header: ({ column }: any) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title="Total Runs (14D)"
           icon={Hash}
         />
       ),
-      cell: ({ row }: any) => (
-        <div className="font-medium">{row.original.runs.toLocaleString()}</div>
+      cell: (props) => (
+        <div class="font-medium">
+          {props.row.original.runs.toLocaleString()}
+        </div>
       ),
     },
     {
       accessorKey: 'lastResults',
       size: 190,
-      header: ({ column }: any) => (
+      header: (props) => (
         <DataTableColumnHeader
-          column={column}
+          column={props.column}
           title="Last Results"
           icon={BarChart3}
         />
       ),
-      cell: ({ row }: any) => (
-        <StatusProgressBar days={row.original.lastResults} />
+      cell: (props) => (
+        <StatusProgressBar days={props.row.original.lastResults} />
       ),
     },
     {
       accessorKey: 'last24Hours',
       size: 70,
-      header: ({ column }: any) => (
-        <DataTableColumnHeader column={column} title="24H" icon={Clock} />
+      header: (props) => (
+        <DataTableColumnHeader column={props.column} title="24H" icon={Clock} />
       ),
-      cell: ({ row }: any) => (
-        <div className={cn('font-medium')}>{row.original.last24Hours}%</div>
+      cell: (props) => (
+        <div class={cn('font-medium')}>{props.row.original.last24Hours}%</div>
       ),
     },
     {
       accessorKey: 'last7Days',
       size: 65,
-      header: ({ column }: any) => (
-        <DataTableColumnHeader column={column} title="7D" icon={Calendar} />
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title="7D"
+          icon={Calendar}
+        />
       ),
-      cell: ({ row }: any) => (
-        <div className={cn('font-medium')}>{row.original.last7Days}%</div>
+      cell: (props) => (
+        <div class={cn('font-medium')}>{props.row.original.last7Days}%</div>
       ),
     },
     {
       accessorKey: 'last14Days',
       size: 65,
-      header: ({ column }: any) => (
-        <DataTableColumnHeader column={column} title="14D" icon={Calendar} />
+      header: (props) => (
+        <DataTableColumnHeader
+          column={props.column}
+          title="14D"
+          icon={Calendar}
+        />
       ),
-      cell: ({ row }: any) => (
-        <div className={cn('font-medium')}>{row.original.last14Days}%</div>
+      cell: (props) => (
+        <div class={cn('font-medium')}>{props.row.original.last14Days}%</div>
       ),
     },
   ];
 
   return (
-    <div className="flex flex-col w-full gap-4">
+    <div class="flex flex-col w-full gap-4">
       <DashboardPageHeader
-        title={t('Trigger Health Status')}
-        description={t('Monitor the health and performance of your triggers')}
+        title={String(t('Trigger Health Status'))}
+        description={String(
+          t('Monitor the health and performance of your triggers'),
+        )}
       />
       <DataTable
         emptyStateTextTitle={t('No trigger data available')}

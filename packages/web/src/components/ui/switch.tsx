@@ -1,60 +1,67 @@
 import * as SwitchPrimitive from '@kobalte/core/switch';
-import { Show, createSignal } from 'solid-js';
+import { Show, createSignal, splitProps, type JSX } from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
-function Switch({
-  className,
-  checkedIcon,
-  uncheckedIcon,
-  onCheckedChange,
-  variant = 'default',
-  size = 'default',
-  color = 'default',
-  ...props
-}: SwitchProps) {
-  const isControlled = props.checked !== undefined;
+function Switch(props: SwitchProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'checkedIcon',
+    'uncheckedIcon',
+    'onCheckedChange',
+    'variant',
+    'size',
+    'color',
+    'checked',
+    'defaultChecked',
+  ]);
+  const isControlled = () => local.checked !== undefined;
+  const variant = () => local.variant ?? 'default';
+  const size = () => local.size ?? 'default';
+  const color = () => local.color ?? 'default';
 
   const [internalChecked, setInternalChecked] = createSignal(
-    props.defaultChecked ?? false,
+    local.defaultChecked ?? false,
   );
-  const isChecked = isControlled ? props.checked : internalChecked;
+  const isChecked = () =>
+    isControlled() ? Boolean(local.checked) : internalChecked();
 
-  const effectiveCheckedIcon = checkedIcon;
-  const effectiveUncheckedIcon = uncheckedIcon || checkedIcon;
-  const icon = isChecked ? effectiveCheckedIcon : effectiveUncheckedIcon;
+  const icon = () =>
+    isChecked() ? local.checkedIcon : local.uncheckedIcon || local.checkedIcon;
 
   return (
     <SwitchPrimitive.Root
       data-slot="switch"
       class={cn(
         'peer inline-flex shrink-0 cursor-pointer items-center border-2 border-transparent transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50',
-        COLOR_CLASSES[color],
-        variant === 'square' ? 'rounded-md' : 'rounded-full',
-        SIZE_CLASSES[size],
-        className,
+        COLOR_CLASSES[color()],
+        variant() === 'square' ? 'rounded-md' : 'rounded-full',
+        SIZE_CLASSES[size()],
+        local.class,
+        local.className,
       )}
-      onCheckedChange={(checked) =>
-        handleCheckedChange(
+      onCheckedChange={(checked: boolean) =>
+        handleCheckedChange({
           checked,
-          isControlled,
-          setInternalChecked,
-          onCheckedChange,
-        )
+          controlled: isControlled(),
+          set: setInternalChecked,
+          change: local.onCheckedChange,
+        })
       }
-      {...props}
-      checked={isChecked}
+      {...rest}
+      checked={isChecked()}
     >
       <SwitchPrimitive.Thumb
         data-slot="switch-thumb"
         class={cn(
           'pointer-events-none flex items-center justify-center bg-background dark:bg-foreground shadow-lg ring-0 transition-transform data-[state=unchecked]:translate-x-0',
-          variant === 'square' ? 'rounded-sm' : 'rounded-full',
-          THUMB_SIZE_CLASSES[size],
+          variant() === 'square' ? 'rounded-sm' : 'rounded-full',
+          THUMB_SIZE_CLASSES[size()],
         )}
       >
-        <Show when={icon}>
-          <span className="flex items-center justify-center">{icon}</span>
+        <Show when={icon()}>
+          <span class="flex items-center justify-center">{icon()}</span>
         </Show>
       </SwitchPrimitive.Thumb>
     </SwitchPrimitive.Root>
@@ -85,23 +92,29 @@ const COLOR_CLASSES: Record<NonNullable<SwitchProps['color']>, string> = {
 
 // Helper functions
 
-function handleCheckedChange(
-  checked: boolean,
-  isControlled: boolean,
-  setInternalChecked: (value: boolean) => void,
-  onCheckedChange?: (checked: boolean) => void,
-) {
-  if (!isControlled) {
-    setInternalChecked(checked);
+function handleCheckedChange(opts: {
+  checked: boolean;
+  controlled: boolean;
+  set: (value: boolean) => void;
+  change?: (checked: boolean) => void;
+}) {
+  if (!opts.controlled) {
+    opts.set(opts.checked);
   }
-  if (onCheckedChange) {
-    onCheckedChange(checked);
+  if (opts.change) {
+    opts.change(opts.checked);
   }
 }
 
 // Type definitions
 
-type SwitchProps = ComponentProps<typeof SwitchPrimitive.Root> & {
+type SwitchProps = Omit<JSX.IntrinsicElements['div'], 'onChange'> & {
+  class?: string;
+  className?: string;
+  checked?: boolean;
+  defaultChecked?: boolean;
+  disabled?: boolean;
+  onCheckedChange?: (checked: boolean) => void;
   checkedIcon?: JSX.Element;
   uncheckedIcon?: JSX.Element;
   variant?: 'default' | 'square';

@@ -10,11 +10,11 @@ const PieceSearchContext = createContext<PieceSearchContextState>({
   setSearchQuery: () => {},
 });
 
-export const PieceSearchProvider = ({ children }: { children }) => {
+export const PieceSearchProvider = (props: { children }) => {
   const [searchQuery, setSearchQuery] = createSignal('');
   return (
     <PieceSearchContext.Provider value={{ searchQuery, setSearchQuery }}>
-      {children}
+      {props.children}
     </PieceSearchContext.Provider>
   );
 };

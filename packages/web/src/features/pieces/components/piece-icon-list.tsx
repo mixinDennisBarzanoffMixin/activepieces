@@ -1,4 +1,3 @@
-import { createMemo } from 'solid-js';
 import {
   FlowTrigger,
   FlowActionType,
@@ -7,6 +6,7 @@ import {
 } from '@activepieces/shared';
 import { cva } from 'class-variance-authority';
 import { t } from 'i18next';
+import { createMemo, For, mergeProps, Show } from 'solid-js';
 
 import {
   Tooltip,
@@ -35,14 +35,7 @@ const extraIconVariants = cva(
   },
 );
 
-export function PieceIconList({
-  maxNumberOfIconsToShow,
-  trigger,
-  size,
-  className,
-  background,
-  excludeCore = false,
-}: {
+export function PieceIconList(_props: {
   trigger: FlowTrigger;
   maxNumberOfIconsToShow: number;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
@@ -50,28 +43,28 @@ export function PieceIconList({
   background?: string;
   excludeCore?: boolean;
 }) {
-  const steps = flowStructureUtil.getAllSteps(trigger);
+  const props = mergeProps({ excludeCore: false }, _props);
+  const steps = flowStructureUtil.getAllSteps(props.trigger);
 
-  const { pieceNames, coreMetadata } = createMemo(
-    () => extractPieceNamesAndCoreMetadata(steps, excludeCore),
-    [steps, excludeCore],
+  const metadata = createMemo(() =>
+    extractPieceNamesAndCoreMetadata(steps, props.excludeCore),
   );
 
   const { summaries } = piecesHooks.usePieceSummariesByNames({
-    names: pieceNames,
+    names: metadata().pieceNames,
   });
 
-  const stepsMetadata: StepMetadata[] = createMemo(() => {
-    const pieceMetadata: StepMetadata[] = summaries
+  const stepsMetadata = createMemo<StepMetadata[]>(() => {
+    const pieceMetadata = summaries()
       .filter(
         (piece) =>
-          !excludeCore || !piece.categories?.includes(PieceCategory.CORE),
+          !props.excludeCore || !piece.categories?.includes(PieceCategory.CORE),
       )
       .map((piece) => ({
         displayName: piece.displayName,
         logoUrl: piece.logoUrl,
         description: piece.description,
-        type: FlowActionType.PIECE as const,
+        type: FlowActionType.PIECE,
         pieceType: piece.pieceType,
         pieceName: piece.name,
         pieceVersion: piece.version,
@@ -79,43 +72,44 @@ export function PieceIconList({
         packageType: piece.packageType,
         auth: piece.auth,
       }));
-    return [...coreMetadata, ...pieceMetadata];
-  }, [summaries, coreMetadata, excludeCore]);
+    return [...metadata().coreMetadata, ...pieceMetadata];
+  });
 
-  const uniqueMetadata: StepMetadata[] = stepsMetadata.filter(
+  const uniqueMetadata: StepMetadata[] = stepsMetadata().filter(
     (item, index, self) =>
       self.findIndex(
         (secondItem) => item.displayName === secondItem.displayName,
       ) === index,
   );
-  const visibleMetadata = uniqueMetadata.slice(0, maxNumberOfIconsToShow);
+  const visibleMetadata = uniqueMetadata.slice(0, props.maxNumberOfIconsToShow);
   const extraPieces = uniqueMetadata.length - visibleMetadata.length;
-  const extraMetadata = uniqueMetadata.slice(maxNumberOfIconsToShow);
+  const extraMetadata = uniqueMetadata.slice(props.maxNumberOfIconsToShow);
 
   return (
-    <div class={className || 'flex gap-0.5 '}>
-      {visibleMetadata.map((metadata) => (
-        <PieceIcon
-          logoUrl={metadata.logoUrl}
-          showTooltip={true}
-          size={size ?? 'md'}
-          border={true}
-          displayName={metadata.displayName}
-          key={metadata.displayName}
-          background={background}
-        />
-      ))}
-      {extraPieces > 0 && (
+    <div class={props.className || 'flex gap-0.5 '}>
+      <For each={visibleMetadata}>
+        {(metadata) => (
+          <PieceIcon
+            logoUrl={metadata.logoUrl}
+            showTooltip={true}
+            size={props.size ?? 'md'}
+            border={true}
+            displayName={metadata.displayName}
+            background={props.background}
+          />
+        )}
+      </For>
+      <Show when={extraPieces > 0}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <div class={extraIconVariants({ size: size ?? 'xs' })}>
+            <div class={extraIconVariants({ size: props.size ?? 'xs' })}>
               +{extraPieces}
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom">
             {extraMetadata.length > 1 &&
               extraMetadata
-                .map((m) => m?.displayName || '')
+                .map((m) => m.displayName || '')
                 .slice(0, -1)
                 .join(', ') +
                 ` ${t('and')} ${
@@ -124,7 +118,7 @@ export function PieceIconList({
             {extraMetadata.length === 1 && extraMetadata[0].displayName}
           </TooltipContent>
         </Tooltip>
-      )}
+      </Show>
     </div>
   );
 }

@@ -1,4 +1,11 @@
-import { createContext, createSignal, Show, useContext } from 'solid-js';
+import {
+  createContext,
+  createSignal,
+  Show,
+  splitProps,
+  useContext,
+  type JSX,
+} from 'solid-js';
 
 import { cn } from '@/lib/utils';
 
@@ -9,25 +16,33 @@ type PopoverState = {
 
 const PopoverContext = createContext<PopoverState>();
 
-function Popover(props: JSX.IntrinsicElements['div'] & {
-  open?: boolean;
-  defaultOpen?: boolean;
-  modal?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}) {
-  const [open, set] = createSignal(!!props.defaultOpen);
+function Popover(props: PopoverProps) {
+  const [local, rest] = splitProps(props, [
+    'children',
+    'class',
+    'className',
+    'defaultOpen',
+    'open',
+    'onOpenChange',
+    'modal',
+  ]);
+  const [open, set] = createSignal(!!local.defaultOpen);
   const state = {
-    open: () => props.open ?? open(),
+    open: () => local.open ?? open(),
     setOpen: (value: boolean) => {
       set(value);
-      props.onOpenChange?.(value);
+      local.onOpenChange?.(value);
     },
   };
 
   return (
     <PopoverContext.Provider value={state}>
-      <div data-slot="popover" class={props.class} className={props.className}>
-        {props.children}
+      <div
+        data-slot="popover"
+        class={cn(local.class, local.className)}
+        {...rest}
+      >
+        {local.children}
       </div>
     </PopoverContext.Provider>
   );
@@ -41,40 +56,49 @@ function usePopover() {
   return state;
 }
 
-function PopoverTrigger(props: JSX.IntrinsicElements['button'] & { asChild?: boolean }) {
+function PopoverTrigger(
+  props: JSX.IntrinsicElements['button'] & { asChild?: boolean },
+) {
+  const [local, rest] = splitProps(props, ['asChild', 'children', 'onClick']);
   const state = usePopover();
   const click = (event: MouseEvent) => {
-    props.onClick?.(event);
+    local.onClick?.(event);
     if (!event.defaultPrevented) {
       state.setOpen(!state.open());
     }
   };
 
-  if (props.asChild) {
-    return (
-      <span data-slot="popover-trigger" onClick={click}>
-        {props.children}
-      </span>
-    );
-  }
-
   return (
-    <button data-slot="popover-trigger" {...props} onClick={click}>
-      {props.children}
-    </button>
+    <Show
+      when={local.asChild}
+      fallback={
+        <button data-slot="popover-trigger" {...rest} onClick={click}>
+          {local.children}
+        </button>
+      }
+    >
+      <span data-slot="popover-trigger" onClick={click}>
+        {local.children}
+      </span>
+    </Show>
   );
 }
 
-function PopoverContent(props: JSX.IntrinsicElements['div'] & {
-  align?: 'start' | 'center' | 'end';
-  side?: 'top' | 'right' | 'bottom' | 'left';
-  sideOffset?: number;
-  onOpenAutoFocus?: (event: Event) => void;
-}) {
+function PopoverContent(props: PopoverContentProps) {
+  const [local, rest] = splitProps(props, [
+    'align',
+    'children',
+    'class',
+    'className',
+    'side',
+    'sideOffset',
+    'style',
+    'onOpenAutoFocus',
+  ]);
   const state = usePopover();
-  const side = () => props.side ?? 'bottom';
-  const align = () => props.align ?? 'center';
-  const offset = () => `${props.sideOffset ?? 4}px`;
+  const side = () => local.side ?? 'bottom';
+  const align = () => local.align ?? 'center';
+  const offset = () => `${local.sideOffset ?? 4}px`;
 
   return (
     <Show when={state.open()}>
@@ -86,63 +110,80 @@ function PopoverContent(props: JSX.IntrinsicElements['div'] & {
           side() === 'top' && 'bottom-full',
           side() === 'right' && 'left-full top-1/2 -translate-y-1/2',
           side() === 'left' && 'right-full top-1/2 -translate-y-1/2',
-          align() === 'start' && (side() === 'top' || side() === 'bottom') && 'left-0',
-          align() === 'center' && (side() === 'top' || side() === 'bottom') && 'left-1/2 -translate-x-1/2',
-          align() === 'end' && (side() === 'top' || side() === 'bottom') && 'right-0',
-          props.class,
-          props.className,
+          align() === 'start' &&
+            (side() === 'top' || side() === 'bottom') &&
+            'left-0',
+          align() === 'center' &&
+            (side() === 'top' || side() === 'bottom') &&
+            'left-1/2 -translate-x-1/2',
+          align() === 'end' &&
+            (side() === 'top' || side() === 'bottom') &&
+            'right-0',
+          local.class,
+          local.className,
         )}
         style={{
           'margin-top': side() === 'bottom' ? offset() : undefined,
           'margin-bottom': side() === 'top' ? offset() : undefined,
           'margin-left': side() === 'right' ? offset() : undefined,
           'margin-right': side() === 'left' ? offset() : undefined,
-          ...props.style,
+          ...local.style,
         }}
+        {...rest}
       >
-        {props.children}
+        {local.children}
       </div>
     </Show>
   );
 }
 
-function PopoverAnchor(props: JSX.IntrinsicElements['div'] & { asChild?: boolean }) {
-  if (props.asChild) {
-    return <>{props.children}</>;
-  }
+function PopoverAnchor(
+  props: JSX.IntrinsicElements['div'] & { asChild?: boolean },
+) {
+  const [local, rest] = splitProps(props, ['asChild', 'children']);
   return (
-    <div data-slot="popover-anchor" {...props}>
-      {props.children}
-    </div>
+    <Show
+      when={local.asChild}
+      fallback={
+        <div data-slot="popover-anchor" {...rest}>
+          {local.children}
+        </div>
+      }
+    >
+      {local.children}
+    </Show>
   );
 }
 
-function PopoverHeader(props: JSX.IntrinsicElements['div']) {
+function PopoverHeader(props: ClassName<JSX.IntrinsicElements['div']>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <div
       data-slot="popover-header"
-      className={cn('flex flex-col gap-1 text-sm', props.class, props.className)}
-      {...props}
+      class={cn('flex flex-col gap-1 text-sm', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function PopoverTitle(props: JSX.IntrinsicElements['h2']) {
+function PopoverTitle(props: ClassName<JSX.IntrinsicElements['h2']>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <div
       data-slot="popover-title"
-      className={cn('font-medium', props.class, props.className)}
-      {...props}
+      class={cn('font-medium', local.class, local.className)}
+      {...rest}
     />
   );
 }
 
-function PopoverDescription(props: JSX.IntrinsicElements['p']) {
+function PopoverDescription(props: ClassName<JSX.IntrinsicElements['p']>) {
+  const [local, rest] = splitProps(props, ['class', 'className']);
   return (
     <p
       data-slot="popover-description"
-      className={cn('text-muted-foreground', props.class, props.className)}
-      {...props}
+      class={cn('text-muted-foreground', local.class, local.className)}
+      {...rest}
     />
   );
 }
@@ -155,4 +196,26 @@ export {
   PopoverHeader,
   PopoverTitle,
   PopoverDescription,
+};
+
+type ClassName<T> = Omit<T, 'class' | 'className'> & {
+  class?: string;
+  className?: string;
+};
+
+type PopoverProps = ClassName<JSX.IntrinsicElements['div']> & {
+  open?: boolean;
+  defaultOpen?: boolean;
+  modal?: boolean;
+  onOpenChange?: (open: boolean) => void;
+};
+
+type PopoverContentProps = ClassName<
+  Omit<JSX.IntrinsicElements['div'], 'style'>
+> & {
+  align?: 'start' | 'center' | 'end';
+  side?: 'top' | 'right' | 'bottom' | 'left';
+  sideOffset?: number;
+  onOpenAutoFocus?: (event: Event) => void;
+  style?: JSX.CSSProperties;
 };

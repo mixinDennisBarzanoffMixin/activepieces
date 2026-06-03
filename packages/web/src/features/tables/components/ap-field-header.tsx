@@ -1,6 +1,6 @@
 import { Permission } from '@activepieces/shared';
 import { ChevronDown } from 'lucide-solid';
-import { createSignal, JSX } from 'solid-js';
+import { For, Show, createSignal, JSX } from 'solid-js';
 
 import {
   DropdownMenu,
@@ -27,7 +27,7 @@ type ApFieldHeaderProps = {
   field: ClientField & { index: number };
 };
 
-export function ApFieldHeader({ field }: ApFieldHeaderProps) {
+export function ApFieldHeader(props: ApFieldHeaderProps) {
   const [isPopoverOpen, setIsPopoverOpen] = createSignal(false);
   const [popoverContent, setPopoverContent] = createSignal<
     JSX.Element | string | number | null | undefined
@@ -46,47 +46,55 @@ export function ApFieldHeader({ field }: ApFieldHeaderProps) {
       value={{
         setIsPopoverOpen,
         setPopoverContent,
-        field,
+        get field() {
+          return props.field;
+        },
         userHasTableWritePermission: canEdit,
       }}
     >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <div
-            className={cn(
+            class={cn(
               'h-full w-full flex items-center justify-between gap-2 py-2.5 px-3 bg-muted/50  font-normal',
               'hover:bg-muted cursor-pointer',
               'data-[state=open]:bg-muted',
             )}
           >
-            <div className="flex items-center gap-2">
-              {tablesUtils.getColumnIcon(field.type)}
-              <span className="text-sm">{field.name}</span>
+            <div class="flex items-center gap-2">
+              {tablesUtils.getColumnIcon(props.field.type)}
+              <span class="text-sm">{props.field.name}</span>
             </div>
-            {actions && actions.length > 0 && <ChevronDown class="h-4 w-4" />}
+            <Show when={actions.length > 0}>
+              <ChevronDown class="h-4 w-4" />
+            </Show>
           </div>
         </DropdownMenuTrigger>
-        {actions && actions.length > 0 && (
+        <Show when={actions.length > 0}>
           <DropdownMenuContent
             noAnimationOnOut={true}
-            onCloseAutoFocus={(e) => e.preventDefault()}
+            onCloseAutoFocus={(e: Event) => {
+              e.preventDefault();
+            }}
             align="start"
             class="w-56 rounded-sm"
           >
-            {actions.map((action, index) => (
-              <div key={index}>
-                {<ApFieldActionMenuItemRenderer action={action} />}
-              </div>
-            ))}
+            <For each={actions}>
+              {(action) => (
+                <div>
+                  <ApFieldActionMenuItemRenderer action={action} />
+                </div>
+              )}
+            </For>
           </DropdownMenuContent>
-        )}
+        </Show>
       </DropdownMenu>
       <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
         <PopoverTrigger asChild>
-          <div className="w-full h-full -mt-[40px] pointer-events-none"></div>
+          <div class="w-full h-full -mt-[40px] pointer-events-none" />
         </PopoverTrigger>
         <PopoverContent align="start" class="p-3">
-          {popoverContent}
+          {popoverContent()}
         </PopoverContent>
       </Popover>
     </FieldHeaderContext.Provider>

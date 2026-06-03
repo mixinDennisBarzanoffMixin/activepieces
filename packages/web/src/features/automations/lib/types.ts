@@ -11,16 +11,32 @@ export type SelectableItemType = 'folder' | 'flow' | 'table';
 
 export type SelectedItemsMap = Map<string, SelectableItemType>;
 
-export type TreeItem = {
+type TreeItemBase = {
   id: string;
-  type: TreeItemType;
   name: string;
-  data: FolderDto | PopulatedFlow | Table | null;
   depth: number;
   folderId: string | null;
-  childCount?: number;
-  loadMoreCount?: number;
 };
+
+export type TreeItem =
+  | (TreeItemBase & {
+      type: 'folder';
+      data: FolderDto;
+      childCount: number;
+    })
+  | (TreeItemBase & {
+      type: 'flow';
+      data: PopulatedFlow;
+    })
+  | (TreeItemBase & {
+      type: 'table';
+      data: Table;
+    })
+  | (TreeItemBase & {
+      type: 'load-more-folder';
+      data: null;
+      loadMoreCount: number;
+    });
 
 export type AutomationsFilters = {
   searchTerm: string;

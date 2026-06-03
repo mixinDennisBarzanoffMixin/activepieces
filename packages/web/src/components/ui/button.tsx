@@ -1,5 +1,5 @@
 import { cva, type VariantProps } from 'class-variance-authority';
-import { createEffect, onCleanup } from 'solid-js';
+import { createEffect, onCleanup, splitProps, type JSX } from 'solid-js';
 import { Dynamic } from 'solid-js/web';
 
 import { Shortcut } from '@/components/custom/shortcut';
@@ -54,27 +54,28 @@ const buttonVariants = cva(
 );
 
 function useKeyboardShortcut(
-  keyboardShortcut: string | undefined,
-  disabled: boolean | undefined,
-  onKeyboardShortcut: (() => void) | undefined,
+  keyboardShortcut: () => string | undefined,
+  disabled: () => boolean | undefined,
+  onKeyboardShortcut: () => (() => void) | undefined,
 ) {
   createEffect(() => {
-    if (!keyboardShortcut) return;
+    const shortcut = keyboardShortcut();
+    if (!shortcut) return;
 
     const isMac = /(Mac)/i.test(navigator.userAgent);
-    const isEscape = keyboardShortcut.toLocaleLowerCase() === 'esc';
+    const isEscape = shortcut.toLocaleLowerCase() === 'esc';
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const isEscapePressed = event.key === 'Escape' && isEscape;
       const isCtrlWithShortcut =
-        event.key === keyboardShortcut.toLocaleLowerCase() &&
+        event.key === shortcut.toLocaleLowerCase() &&
         (isMac ? event.metaKey : event.ctrlKey);
 
       if (isEscapePressed || isCtrlWithShortcut) {
         event.preventDefault();
         event.stopPropagation();
-        if (onKeyboardShortcut && !disabled) {
-          onKeyboardShortcut();
+        if (onKeyboardShortcut() && !disabled()) {
+          onKeyboardShortcut()?.();
         }
       }
     };
@@ -105,7 +106,7 @@ function renderButtonContent(
 
   if (keyboardShortcut) {
     return (
-      <div className="flex justify-center items-center gap-2">
+      <div class="flex justify-center items-center gap-2">
         {children}
         <Shortcut shortcutKey={keyboardShortcut} withCtrl={true} />
       </div>
@@ -115,40 +116,60 @@ function renderButtonContent(
   return children;
 }
 
-function Button({
-  className,
-  variant = 'default',
-  size = 'default',
-  asChild = false,
-  loading = false,
-  keyboardShortcut,
-  onKeyboardShortcut,
-  disabled,
-  children,
-  ...props
-}: ButtonProps) {
-  const Comp = asChild ? Slot.Root : 'button';
+function Button(props: ButtonProps) {
+  const [local, rest] = splitProps(props, [
+    'class',
+    'className',
+    'variant',
+    'size',
+    'asChild',
+    'loading',
+    'keyboardShortcut',
+    'onKeyboardShortcut',
+    'disabled',
+    'children',
+    'onClick',
+  ]);
+  const variant = () => local.variant ?? 'default';
+  const size = () => local.size ?? 'default';
+  const loading = () => local.loading ?? false;
+  const Comp = () => (local.asChild ? Slot.Root : 'button');
 
-  useKeyboardShortcut(keyboardShortcut, disabled, onKeyboardShortcut);
+  useKeyboardShortcut(
+    () => local.keyboardShortcut,
+    () => local.disabled,
+    () => local.onKeyboardShortcut,
+  );
 
   return (
     <Dynamic
-      component={Comp}
+      component={Comp()}
       data-slot="button"
-      data-variant={variant}
-      data-size={size}
-      class={cn(buttonVariants({ variant, size, className }))}
-      disabled={disabled || loading}
-      {...props}
+      data-variant={variant()}
+      data-size={size()}
+      class={cn(
+        buttonVariants({
+          variant: variant(),
+          size: size(),
+          className: cn(local.class, local.className),
+        }),
+      )}
+      disabled={local.disabled || loading()}
+      {...rest}
       onClick={(e: MouseEvent) => {
-        if (loading) {
+        if (loading()) {
           e.stopPropagation();
-        } else if (props.onClick) {
-          props.onClick(e);
+        } else if (local.onClick) {
+          local.onClick(e);
         }
       }}
     >
-      {renderButtonContent(loading, variant, keyboardShortcut, children)}
+      {renderButtonContent(
+        loading(),
+        variant(),
+        local.keyboardShortcut,
+        local.children,
+      )}
     </Dynamic>
   );
 }
@@ -158,6 +179,7 @@ export type { ButtonProps };
 
 type ButtonProps = JSX.IntrinsicElements['button'] &
   VariantProps<typeof buttonVariants> & {
+    className?: string;
     asChild?: boolean;
     loading?: boolean;
     keyboardShortcut?: string;

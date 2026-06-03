@@ -10,7 +10,7 @@ import { flowsApi } from '../api/flows-api';
 
 const downloadFlow = async (flowId: string) => {
   const template = await flowsApi.getTemplate(flowId, {});
-  downloadFile({
+  void downloadFile({
     obj: JSON.stringify(template, null, 2),
     fileName: template.name,
     extension: 'json',
@@ -34,7 +34,7 @@ export const flowsUtils = {
   zipFlows,
   flowStatusToolTipRenderer: (flow: PopulatedFlow) => {
     const trigger = flow.version.trigger;
-    switch (trigger?.type) {
+    switch (trigger.type) {
       case FlowTriggerType.PIECE: {
         const cronExpression = flow.triggerSource?.schedule?.cronExpression;
         return cronExpression
@@ -54,7 +54,7 @@ export const flowsUtils = {
   },
   flowStatusIconRenderer: (flow: PopulatedFlow) => {
     const trigger = flow.version.trigger;
-    switch (trigger?.type) {
+    switch (trigger.type) {
       case FlowTriggerType.PIECE: {
         const cronExpression = flow.triggerSource?.schedule?.cronExpression;
         if (cronExpression) {

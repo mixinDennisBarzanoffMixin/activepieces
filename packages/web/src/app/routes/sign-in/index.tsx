@@ -1,9 +1,9 @@
+import type { Component } from 'solid-js';
+
 import { AuthFormTemplate } from '@/features/authentication';
 
-const SignInPage: any = () => {
+const SignInPage: Component = () => {
   return <AuthFormTemplate form={'signin'} />;
 };
-
-SignInPage.displayName = 'SignInPage';
 
 export { SignInPage };

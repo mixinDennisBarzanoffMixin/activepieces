@@ -1,12 +1,12 @@
-import { isNil, UserWithBadges } from '@activepieces/shared';
+import { isNil } from '@activepieces/shared';
 import {
   QueryClient,
   createMutation,
   createQuery,
 } from '@tanstack/solid-query';
 
-import { queryClient } from '@/app/query-client';
 import { userApi } from '@/api/user-api';
+import { queryClient } from '@/app/query-client';
 import { authenticationSession } from '@/lib/authentication-session';
 
 export const userHooks = {
@@ -58,7 +58,7 @@ export const userHooks = {
   },
   invalidateCurrentUser: (queryClient: QueryClient) => {
     const userId = authenticationSession.getCurrentUserId();
-    queryClient.invalidateQueries({ queryKey: ['currentUser', userId] });
+    void queryClient.invalidateQueries({ queryKey: ['currentUser', userId] });
   },
   getCurrentUserPlatformRole: () => {
     const { data: user } = userHooks.useCurrentUser();

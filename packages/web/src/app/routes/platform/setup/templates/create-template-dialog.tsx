@@ -36,10 +36,7 @@ const CreateFlowTemplateSchema = z.object({
   categories: z.array(z.string()).optional(),
 });
 
-export const CreateTemplateDialog = ({
-  children,
-  onDone,
-}: {
+export const CreateTemplateDialog = (props: {
   children: JSX.Element;
   onDone: () => void;
 }) => {
@@ -71,7 +68,7 @@ export const CreateTemplateDialog = ({
     setErrors({});
   };
 
-  const { mutate, isPending } = createMutation({
+  const { mutate, isPending } = createMutation(() => ({
     mutationKey: ['create-template'],
     mutationFn: () => {
       const formValue = values();
@@ -104,7 +101,7 @@ export const CreateTemplateDialog = ({
       });
     },
     onSuccess: () => {
-      onDone();
+      props.onDone();
       setOpen(false);
     },
     onError: (error) => {
@@ -112,7 +109,7 @@ export const CreateTemplateDialog = ({
         setErrors({ template: error.message });
       }
     },
-  });
+  }));
 
   const onSubmit = () => {
     const parsed = CreateFlowTemplateSchema.safeParse(values());
@@ -136,40 +133,71 @@ export const CreateTemplateDialog = ({
         reset();
       }}
     >
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>{props.children}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t('Create New Template')}</DialogTitle>
         </DialogHeader>
-        <form className="grid space-y-4" onSubmit={(e) => e.preventDefault()}>
+        <form class="grid space-y-4" onSubmit={(e) => e.preventDefault()}>
           <div class="grid space-y-2">
-            <Label for="name" showRequiredIndicator>{t('Name')}</Label>
-            <Input required id="name" value={displayName()} onInput={(e) => setDisplayName(e.currentTarget.value)} placeholder={t('Template Name')} class="rounded-sm" />
+            <Label for="name" showRequiredIndicator>
+              {t('Name')}
+            </Label>
+            <Input
+              required
+              id="name"
+              value={displayName()}
+              onInput={(e) => setDisplayName(e.currentTarget.value)}
+              placeholder={t('Template Name')}
+              class="rounded-sm"
+            />
             <Error message={errors().displayName} />
           </div>
           <div class="grid space-y-2">
             <Label for="summary">{t('Summary')}</Label>
-            <Input id="summary" value={summary()} onInput={(e) => setSummary(e.currentTarget.value)} placeholder={t('Template Summary')} class="rounded-sm" />
+            <Input
+              id="summary"
+              value={summary()}
+              onInput={(e) => setSummary(e.currentTarget.value)}
+              placeholder={t('Template Summary')}
+              class="rounded-sm"
+            />
             <Error message={errors().summary} />
           </div>
           <div class="grid space-y-2">
             <Label for="description">{t('Description')}</Label>
-            <Textarea required id="description" value={description()} onInput={(e) => setDescription(e.currentTarget.value)} class="rounded-sm" placeholder={t('Template Description')} />
+            <Textarea
+              required
+              id="description"
+              value={description()}
+              onInput={(e) => setDescription(e.currentTarget.value)}
+              class="rounded-sm"
+              placeholder={t('Template Description')}
+            />
             <Error message={errors().description} />
           </div>
           <div class="grid space-y-2">
             <Label for="blogUrl">{t('Blog URL')}</Label>
-            <Input required id="blogUrl" value={blogUrl()} onInput={(e) => setBlogUrl(e.currentTarget.value)} placeholder={t('Template Blog URL')} class="rounded-sm" />
+            <Input
+              required
+              id="blogUrl"
+              value={blogUrl()}
+              onInput={(e) => setBlogUrl(e.currentTarget.value)}
+              placeholder={t('Template Blog URL')}
+              class="rounded-sm"
+            />
             <Error message={errors().blogUrl} />
           </div>
           <div class="grid space-y-2">
-            <Label for="template" showRequiredIndicator>{t('Template')}</Label>
+            <Label for="template" showRequiredIndicator>
+              {t('Template')}
+            </Label>
             <Input
               type="file"
               accept=".json"
               onChange={(e) => {
-                e.target.files &&
-                  e.target.files[0].text().then((text) => {
+                if (e.target.files) {
+                  void e.target.files[0].text().then((text) => {
                     const flowTemplate = templateUtils.extractFlow(text);
                     if (flowTemplate) {
                       setTemplate(flowTemplate);
@@ -178,6 +206,7 @@ export const CreateTemplateDialog = ({
                       setErrors({ ...errors(), template: t('Invalid JSON') });
                     }
                   });
+                }
               }}
               required
               id="template"
@@ -215,10 +244,10 @@ export const CreateTemplateDialog = ({
   );
 };
 
-const Error = ({ message }: { message: string | undefined }) => (
-  <Show when={message}>
+const Error = (props: { message: string | undefined }) => (
+  <Show when={props.message}>
     <p class="text-sm font-medium text-destructive wrap-break-word">
-      {message}
+      {props.message}
     </p>
   </Show>
 );
