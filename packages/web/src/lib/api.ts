@@ -11,6 +11,12 @@ import qs from 'qs';
 import { authenticationSession } from '@/lib/authentication-session';
 export const isRunningCloudInDevMode = import.meta.env.MODE === 'cloud';
 
+let veritlyProjectId: string | undefined;
+
+export function setVeritlyProjectId(projectId: string) {
+  veritlyProjectId = projectId;
+}
+
 export const API_BASE_URL = isRunningCloudInDevMode
   ? 'https://cloud.activepieces.com'
   : window.location.origin;
@@ -35,6 +41,15 @@ function isUrlRelative(url: string) {
   return !url.startsWith('http') && !url.startsWith('https');
 }
 
+export function apiBaseUrl() {
+  const env = import.meta.env.VITE_ACTIVEPIECES_API_URL?.trim();
+  return env || (import.meta.env.DEV ? '/activepieces-api' : API_BASE_URL);
+}
+
+function apiUrl() {
+  return `${apiBaseUrl().replace(/\/+$/, '')}/api`;
+}
+
 function globalErrorHandler(error: AxiosError) {
   if (api.isError(error)) {
     const errorCode: ErrorCode | undefined = (
@@ -55,10 +70,11 @@ function request<TResponse>(
   url: string,
   config: AxiosRequestConfig = {},
 ): Promise<TResponse> {
-  const resolvedUrl = !isUrlRelative(url) ? url : `${API_URL}${url}`;
-  const isApWebsite = resolvedUrl.startsWith(API_URL);
+  const root = apiUrl();
+  const resolvedUrl = !isUrlRelative(url) ? url : `${root}${url}`;
+  const isApWebsite = resolvedUrl.startsWith(root);
   const unAuthenticated = disallowedRoutes.some((route) =>
-    resolvedUrl.replace(API_URL, '').startsWith(route),
+    resolvedUrl.replace(root, '').startsWith(route),
   );
 
   return axios({
@@ -66,6 +82,7 @@ function request<TResponse>(
     ...config,
     headers: {
       ...config.headers,
+      ...(veritlyProjectId ? { 'x-veritly-project-id': veritlyProjectId } : {}),
       Authorization: getToken(
         unAuthenticated,
         isApWebsite,

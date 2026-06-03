@@ -2,10 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { toast } from 'sonner';
 
-import { API_BASE_URL } from '@/lib/api';
+import { apiBaseUrl } from '@/lib/api';
 import { authenticationSession } from '@/lib/authentication-session';
 
-const socket = io(API_BASE_URL, {
+const socket = io(apiBaseUrl(), {
   transports: ['websocket'],
   path: '/api/socket.io',
   autoConnect: false,

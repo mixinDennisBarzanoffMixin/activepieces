@@ -95,6 +95,7 @@ import { userBadgeModule } from './user/badges/badge-module'
 import { platformUserModule } from './user/platform/platform-user-module'
 import { invitationModule } from './user-invitations/user-invitation.module'
 import { variableModule } from './variable/variable.module'
+import { veritlyModule } from './veritly/veritly.module'
 import { webhookModule } from './webhooks/webhook-module'
 import { engineResponseWatcher } from './workers/engine-response-watcher'
 
@@ -212,6 +213,7 @@ export const setupApp = async (app: FastifyInstance): Promise<FastifyInstance> =
     await app.register(templateModule)
     await app.register(userBadgeModule)
     await app.register(platformAnalyticsModule)
+    await app.register(veritlyModule)
     systemJobHandlers.registerJobHandler(SystemJobName.DELETE_FLOW, (data) => flowBackgroundJobs(app.log).deleteFlowHandler(data))
     systemJobHandlers.registerJobHandler(SystemJobName.HARD_DELETE_PROJECT, (data) => platformProjectBackgroundJobs(app.log).hardDeleteProjectHandler(data))
 
