@@ -6,6 +6,7 @@ import { isNil, PopulatedFlow } from '@activepieces/shared';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { ReactFlowProvider } from '@xyflow/react';
 import React, { StrictMode, useEffect } from 'react';
+import { MemoryRouter } from 'react-router-dom';
 
 import { BuilderPage } from '@/app/builder';
 import { BuilderStateProvider } from '@/app/builder/state/builder-state-provider';
@@ -90,15 +91,19 @@ export default function VeritlyAutomationEditorRoot(
 ) {
   return (
     <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <SocketProvider>
-          <TooltipProvider>
-            <VeritlyAutomationEditor {...props} />
-            <Toaster position="bottom-right" />
-            <ApErrorDialog />
-          </TooltipProvider>
-        </SocketProvider>
-      </QueryClientProvider>
+      <MemoryRouter
+        initialEntries={[`/projects/${props.projectId}/flows/${props.flowId}`]}
+      >
+        <QueryClientProvider client={queryClient}>
+          <SocketProvider>
+            <TooltipProvider>
+              <VeritlyAutomationEditor {...props} />
+              <Toaster position="bottom-right" />
+              <ApErrorDialog />
+            </TooltipProvider>
+          </SocketProvider>
+        </QueryClientProvider>
+      </MemoryRouter>
     </StrictMode>
   );
 }
