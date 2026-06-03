@@ -7,8 +7,9 @@ import type { Plugin } from 'vite';
 const root = fileURLToPath(new URL('.', import.meta.url));
 const repo = path.resolve(root, '../..');
 const src = path.join(root, 'src');
-const deps = path.join(root, 'node_modules');
 const ext = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx'];
+const reactId = '\0activepieces-web/react';
+const domId = '\0activepieces-web/react-dom-client';
 
 function file(source: string) {
   const target = path.join(src, source);
@@ -25,16 +26,6 @@ function active(importer: string | undefined) {
   return importer && path.normalize(importer).includes(src);
 }
 
-function dep(source: string) {
-  return path.join(deps, source);
-}
-
-function react(source: string) {
-  if (source === 'react') return dep('react/index.js');
-  if (source === 'react-dom') return dep('react-dom/index.js');
-  return dep(`${source}.js`);
-}
-
 function webPlugin(appSrc?: string): Plugin {
   return {
     name: 'veritly-activepieces-web',
@@ -44,21 +35,10 @@ function webPlugin(appSrc?: string): Plugin {
         return path.join(src, 'veritly-editor.tsx');
       }
       if (source === 'activepieces-web/react') {
-        return dep('react/index.js');
+        return reactId;
       }
       if (source === 'activepieces-web/react-dom-client') {
-        return dep('react-dom/client.js');
-      }
-      if (
-        active(importer) &&
-        (source === 'react' ||
-          source === 'react/jsx-runtime' ||
-          source === 'react/jsx-dev-runtime' ||
-          source === 'react-dom' ||
-          source === 'react-dom/client' ||
-          source === 'react-dom/server')
-      ) {
-        return react(source);
+        return domId;
       }
       if (source === '@activepieces/shared') {
         return path.join(repo, 'packages/shared/src/index.ts');
@@ -75,6 +55,14 @@ function webPlugin(appSrc?: string): Plugin {
       }
       if (!source.startsWith('@/')) return;
       return file(source.slice(2));
+    },
+    load(id) {
+      if (id === reactId) {
+        return 'import React from "react"; const createElement = React.createElement; export { createElement }; export default React;';
+      }
+      if (id === domId) {
+        return 'import { createRoot, hydrateRoot } from "react-dom/client"; export { createRoot, hydrateRoot };';
+      }
     },
   };
 }
