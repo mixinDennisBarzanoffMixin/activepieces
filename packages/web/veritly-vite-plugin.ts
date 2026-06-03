@@ -29,6 +29,12 @@ function dep(source: string) {
   return path.join(deps, source);
 }
 
+function react(source: string) {
+  if (source === 'react') return dep('react/index.js');
+  if (source === 'react-dom') return dep('react-dom/index.js');
+  return dep(`${source}.js`);
+}
+
 function webPlugin(appSrc?: string): Plugin {
   return {
     name: 'veritly-activepieces-web',
@@ -52,7 +58,7 @@ function webPlugin(appSrc?: string): Plugin {
           source === 'react-dom/client' ||
           source === 'react-dom/server')
       ) {
-        return dep(`${source}.js`);
+        return react(source);
       }
       if (source === '@activepieces/shared') {
         return path.join(repo, 'packages/shared/src/index.ts');
