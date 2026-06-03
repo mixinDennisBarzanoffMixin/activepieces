@@ -62,7 +62,7 @@ const EmbeddingProvider = ({ children }: EmbeddingProviderProps) => {
       value={{ embedState: state, setEmbedState: setState }}
     >
       <div
-        className={cn({
+        className={cn('h-full min-h-0 w-full', {
           'bg-black/80 h-screen w-screen':
             state.useDarkBackground && state.isEmbedded,
         })}
