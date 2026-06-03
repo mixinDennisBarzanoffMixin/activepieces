@@ -63,7 +63,7 @@ const InstallPieceDialog = (props: InstallPieceDialogProps) => {
 
   const handleArchiveUpload = async (file: File) => {
     setErrors({});
-    if (file && file.name.endsWith('.tgz')) {
+    if (file.name.endsWith('.tgz')) {
       try {
         const fileBuffer = await file.arrayBuffer();
         const decompressedData = pako.ungzip(new Uint8Array(fileBuffer));

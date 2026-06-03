@@ -1,7 +1,4 @@
-import {
-  PropertyType,
-  PieceMetadataModelSummary,
-} from '@activepieces/pieces-framework';
+import { PropertyType } from '@activepieces/pieces-framework';
 import {
   FieldControlMode,
   isNil,
@@ -54,10 +51,7 @@ export const PredefinedInputsForm = () => {
     selectedAction,
     selectedPiece: piece,
   } = usePieceToolsDialogStore();
-  const usePieces = piecesHooks.usePieces as (props: Record<string, never>) => {
-    pieces: PieceMetadataModelSummary[] | undefined;
-  };
-  const { pieces } = usePieces({});
+  const { pieces } = piecesHooks.usePieces({});
   const selectedPiece = createMemo(() =>
     pieces?.find((p) => p.name === piece?.pieceName),
   );
@@ -95,8 +89,10 @@ export const PredefinedInputsForm = () => {
     mode: 'onChange',
     reValidateMode: 'onChange',
   });
+  // eslint-disable-next-line warn-casts
   const getValue = form.getValues as (name: string) => unknown;
   createEffect(() => {
+    // eslint-disable-next-line warn-casts
     const watch = form.watch as (
       callback: (
         values: PredefinedInputsFormValues,
@@ -293,9 +289,13 @@ export const PredefinedInputsForm = () => {
 };
 
 function getFieldControlMode(value: unknown) {
-  return Object.values(FieldControlMode).includes(value as FieldControlMode)
-    ? (value as FieldControlMode)
-    : FieldControlMode.AGENT_DECIDE;
+  if (value === 'choose-yourself') {
+    return FieldControlMode.CHOOSE_YOURSELF;
+  }
+  if (value === 'leave-empty') {
+    return FieldControlMode.LEAVE_EMPTY;
+  }
+  return FieldControlMode.AGENT_DECIDE;
 }
 
 function getStringOrNull(value: unknown) {

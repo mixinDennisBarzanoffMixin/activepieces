@@ -75,9 +75,7 @@ const StepSettingsContainer = () => {
 
   const { stepMetadata } = stepsHooks.useStepMetadata({
     step: selectedStep,
-  }) as {
-    stepMetadata: StepMetadataWithActionOrTriggerOrAgentDisplayName | undefined;
-  };
+  });
 
   let currentValuesRef: FlowAction | FlowTrigger | undefined;
   const form = createForm<FlowAction | FlowTrigger>({
@@ -89,10 +87,10 @@ const StepSettingsContainer = () => {
       keepDefaultValues: false,
       keepDirtyValues: true,
     },
-    resolver: async (values, context, options) => {
-      const result = await (
-        zodResolver(formSchema) as unknown as BuilderResolver
-      )(values, context, options);
+    resolver: async (values, _context, _options) => {
+      const result = await zodResolver<FlowAction | FlowTrigger>(formSchema)(
+        values,
+      );
 
       const cleanedNewValues = formUtils.removeUndefinedFromInput(values);
       const cleanedCurrentValues =
@@ -154,9 +152,7 @@ const StepSettingsContainer = () => {
   const [isEditingStepOrBranchName, setIsEditingStepOrBranchName] =
     createSignal(false);
   const showActionErrorHandlingForm =
-    [FlowActionType.CODE, FlowActionType.PIECE].includes(
-      modifiedStep.type as FlowActionType,
-    ) && !isNil(stepMetadata);
+    isActionErrorHandlingStep(modifiedStep) && !isNil(stepMetadata);
 
   const pieceSettings = getPieceSettings(modifiedStep);
   const runAgentStep = pieceSettings
@@ -437,21 +433,32 @@ const StepTestRunnerProvider = (props: {
   step: FlowAction | FlowTrigger;
   children: JSX.Element;
 }) => {
+  const action = createMemo(() =>
+    isFlowActionStep(props.step) ? props.step : undefined,
+  );
+  const trigger = createMemo(() =>
+    isFlowActionStep(props.step) ? undefined : props.step,
+  );
+
   return (
     <Show
-      when={isFlowActionStep(props.step)}
+      when={action()}
+      keyed
       fallback={
-        <TriggerTestRunnerProvider step={props.step} key={props.step.name}>
-          {props.children}
-        </TriggerTestRunnerProvider>
+        <Show when={trigger()} keyed>
+          {(step) => (
+            <TriggerTestRunnerProvider step={step} key={step.name}>
+              {props.children}
+            </TriggerTestRunnerProvider>
+          )}
+        </Show>
       }
     >
-      <ActionTestRunnerProvider
-        step={props.step as FlowAction}
-        key={props.step.name}
-      >
-        {props.children}
-      </ActionTestRunnerProvider>
+      {(step) => (
+        <ActionTestRunnerProvider step={step} key={step.name}>
+          {props.children}
+        </ActionTestRunnerProvider>
+      )}
     </Show>
   );
 };
@@ -518,6 +525,12 @@ function getRetryOnFailureHidden(
     : false;
 }
 
+function isActionErrorHandlingStep(step: FlowAction | FlowTrigger) {
+  return (
+    step.type === FlowActionType.CODE || step.type === FlowActionType.PIECE
+  );
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -527,9 +540,3 @@ const isPieceMetadata = (
 ): metadata is PieceStepMetadata =>
   metadata?.type === FlowActionType.PIECE ||
   metadata?.type === FlowTriggerType.PIECE;
-
-type BuilderResolver = (
-  values: FlowAction | FlowTrigger,
-  context: unknown,
-  options: unknown,
-) => Promise<{ errors: Record<string, unknown> }>;

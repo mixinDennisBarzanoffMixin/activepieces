@@ -30,9 +30,9 @@ export const LanguageToggle = () => {
   const { data: showCommunity } = flagsHooks.useFlag<boolean>(
     ApFlagId.SHOW_COMMUNITY,
   );
-  const [selectedLanguage, setSelectedLanguage] = createSignal<
-    string | undefined
-  >(i18n.language ?? 'en');
+  const [selectedLanguage, setSelectedLanguage] = createSignal(
+    Object.entries(localesMap).find(([value]) => value === i18n.language)?.[0],
+  );
 
   const { mutate, isPending } = createMutation(() => ({
     mutationFn: (value: string) => {
@@ -43,6 +43,13 @@ export const LanguageToggle = () => {
       setIsOpen(false);
     },
   }));
+  const label = () => {
+    const lang = selectedLanguage();
+    if (!lang) return t('Select language');
+    const item = Object.entries(localesMap).find(([value]) => value === lang);
+    if (!item) throw new Error(`Unsupported language: ${lang}`);
+    return item[1];
+  };
 
   return (
     <div class="space-y-2">
@@ -57,22 +64,13 @@ export const LanguageToggle = () => {
             role="combobox"
             class={cn(
               'w-full justify-between font-normal',
-              !selectedLanguage && 'text-muted-foreground',
+              !selectedLanguage() && 'text-muted-foreground',
             )}
             disabled={isPending}
           >
-            {
-              <Show
-                when={isPending}
-                fallback={
-                  selectedLanguage
-                    ? localesMap[selectedLanguage as keyof typeof localesMap]
-                    : t('Select language')
-                }
-              >
-                <LoadingSpinner class="w-4 h-4" />
-              </Show>
-            }
+            <Show when={isPending} fallback={label()}>
+              <LoadingSpinner class="w-4 h-4" />
+            </Show>
             <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
@@ -100,7 +98,7 @@ export const LanguageToggle = () => {
                           <Check
                             class={cn(
                               'h-4 w-4',
-                              value === selectedLanguage
+                              value === selectedLanguage()
                                 ? 'opacity-100'
                                 : 'opacity-0',
                             )}

@@ -25,7 +25,7 @@ import { authenticationSession } from '@/lib/authentication-session';
 import { flowRunsApi } from '../api/flow-runs-api';
 
 export const flowRunKeys = {
-  detail: (runId: string) => ['flow-run', runId] as const,
+  detail: (runId: string) => ['flow-run', runId] satisfies [string, string],
 };
 
 const STATUS_CATEGORIES = [
@@ -66,7 +66,52 @@ const STATUS_CATEGORIES = [
     statuses: [FlowRunStatus.CANCELED],
     color: 'var(--muted-foreground)',
   },
-] as const;
+] satisfies {
+  label: string;
+  statuses: FlowRunStatus[];
+  color: string;
+}[];
+
+type Retention = Extract<
+  ApErrorParams,
+  { code: ErrorCode.FLOW_RUN_RETRY_OUTSIDE_RETENTION }
+>;
+
+function record(data: unknown): data is Record<string, unknown> {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+  return true;
+}
+
+function retention(data: unknown): data is Retention {
+  if (!record(data)) {
+    return false;
+  }
+  if (!Object.hasOwn(data, 'code')) {
+    return false;
+  }
+  if (data.code !== ErrorCode.FLOW_RUN_RETRY_OUTSIDE_RETENTION) {
+    return false;
+  }
+  if (!Object.hasOwn(data, 'params')) {
+    return false;
+  }
+  if (!record(data.params)) {
+    return false;
+  }
+  return typeof data.params.failedJobRetentionDays === 'number';
+}
+
+function succeeded(run: FlowRunWithRetryError): run is FlowRun {
+  return !run.error;
+}
+
+function failed(
+  run: FlowRunWithRetryError,
+): run is Required<FlowRunWithRetryError> {
+  return !!run.error;
+}
 
 function groupByCategory(data: FlowRunCountByStatus[]) {
   const statusToCount = new Map(data.map((d) => [d.status, d.count]));
@@ -146,13 +191,13 @@ export const flowRunMutations = {
       onSuccess,
       onError: (error: unknown) => {
         if (api.isError(error)) {
-          const apError = error.response?.data as ApErrorParams;
-          if (apError.code === ErrorCode.FLOW_RUN_RETRY_OUTSIDE_RETENTION) {
+          const data = error.response?.data;
+          if (retention(data)) {
             toast.error(t('Retry failed'), {
               description: t(
                 'Retry is only available for {failedJobRetentionDays} after a run fails.',
                 {
-                  failedJobRetentionDays: apError.params.failedJobRetentionDays,
+                  failedJobRetentionDays: data.params.failedJobRetentionDays,
                 },
               ),
               duration: 5000,
@@ -177,10 +222,8 @@ export const flowRunMutations = {
       mutationFn: (request: BulkActionOnRunsRequestBody) =>
         flowRunsApi.bulkRetry(request),
       onSuccess: (runs) => {
-        const succeededRuns = runs.filter((r) => !r.error) as FlowRun[];
-        const failedRuns = runs.filter(
-          (r) => !!r.error,
-        ) as Required<FlowRunWithRetryError>[];
+        const succeededRuns = runs.filter(succeeded);
+        const failedRuns = runs.filter(failed);
         onSuccess(succeededRuns);
         if (failedRuns.length > 0) {
           onPartialFailure?.(failedRuns);
