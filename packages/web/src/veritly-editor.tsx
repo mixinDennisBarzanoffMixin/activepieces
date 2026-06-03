@@ -1,6 +1,5 @@
 import './polyfills';
 import './i18n';
-import './styles.css';
 
 import { AuthenticationResponse, isNil, PopulatedFlow } from '@activepieces/shared';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
@@ -164,7 +163,7 @@ export default function VeritlyAutomationEditorRoot(
     <StrictMode>
       <EmbeddingProvider>
         <VeritlyEmbedding>
-          <div className="veritly-automation-editor relative h-full min-h-0 w-full overflow-hidden bg-background text-foreground">
+          <div className="veritly-automation-editor ap-light light relative h-full min-h-0 w-full overflow-hidden bg-background text-foreground">
             <MemoryRouter
               initialEntries={[`/projects/${props.projectId}/flows/${props.flowId}`]}
             >

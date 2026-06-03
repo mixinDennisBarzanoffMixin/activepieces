@@ -59,7 +59,7 @@ export function ThemeProvider({
       : theme === 'system'
       ? 'light'
       : theme;
-    root.classList.remove('light', 'dark');
+    root.classList.remove('light', 'dark', 'ap-light', 'ap-dark');
     document.title = branding.websiteName;
     document.documentElement.style.setProperty(
       '--primary',
@@ -94,7 +94,7 @@ export function ThemeProvider({
         break;
     }
 
-    root.classList.add(resolvedTheme);
+    root.classList.add(resolvedTheme, `ap-${resolvedTheme}`);
   }, [theme, branding, forceLightMode]);
 
   const value = {

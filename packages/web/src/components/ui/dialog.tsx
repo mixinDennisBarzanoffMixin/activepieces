@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { embedded } from './portal-container';
 
 function Dialog({
   ...props
@@ -20,15 +21,10 @@ function DialogTrigger({
 function DialogPortal({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
-  const container =
-    typeof document === 'undefined'
-      ? undefined
-      : document.querySelector<HTMLElement>('.veritly-automation-editor') ??
-        undefined;
   return (
     <DialogPrimitive.Portal
       data-slot="dialog-portal"
-      container={container}
+      container={embedded()}
       {...props}
     />
   );

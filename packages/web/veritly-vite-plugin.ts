@@ -10,6 +10,7 @@ const src = path.join(root, 'src');
 const ext = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx'];
 const reactId = '\0activepieces-web/react';
 const domId = '\0activepieces-web/react-dom-client';
+const stylesId = '\0activepieces-web/styles';
 
 function file(source: string) {
   const target = path.join(src, source);
@@ -40,6 +41,9 @@ function webPlugin(appSrc?: string): Plugin {
       if (source === 'activepieces-web/react-dom-client') {
         return domId;
       }
+      if (source === 'activepieces-web/styles') {
+        return stylesId;
+      }
       if (source === '@activepieces/shared') {
         return path.join(repo, 'packages/shared/src/index.ts');
       }
@@ -62,6 +66,11 @@ function webPlugin(appSrc?: string): Plugin {
       }
       if (id === domId) {
         return 'import { createRoot, hydrateRoot } from "react-dom/client"; export { createRoot, hydrateRoot };';
+      }
+      if (id === stylesId) {
+        return `import css from ${JSON.stringify(
+          path.join(src, 'styles.css') + '?inline',
+        )}; export default css;`;
       }
     },
   };

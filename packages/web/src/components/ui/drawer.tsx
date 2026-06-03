@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Drawer as DrawerPrimitive } from 'vaul';
 
 import { cn } from '@/lib/utils';
+import { embedded } from './portal-container';
 
 function Drawer({
   onOpenChange,
@@ -41,7 +42,13 @@ function DrawerTrigger({
 function DrawerPortal({
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Portal>) {
-  return <DrawerPrimitive.Portal data-slot="drawer-portal" {...props} />;
+  return (
+    <DrawerPrimitive.Portal
+      data-slot="drawer-portal"
+      container={embedded()}
+      {...props}
+    />
+  );
 }
 
 function DrawerClose({

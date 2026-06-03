@@ -5,6 +5,7 @@ import { Dialog as SheetPrimitive } from 'radix-ui';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
+import { embedded } from './portal-container';
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />;
@@ -25,15 +26,10 @@ function SheetClose({
 function SheetPortal({
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Portal>) {
-  const container =
-    typeof document === 'undefined'
-      ? undefined
-      : document.querySelector<HTMLElement>('.veritly-automation-editor') ??
-        undefined;
   return (
     <SheetPrimitive.Portal
       data-slot="sheet-portal"
-      container={container}
+      container={embedded()}
       {...props}
     />
   );
