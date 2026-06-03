@@ -1,4 +1,4 @@
-import { isNil } from '@activepieces/shared';
+import { Show } from 'solid-js';
 
 import { ResourceLockWidget } from '@/components/custom/resource-lock-widget';
 
@@ -13,23 +13,32 @@ const BuilderBanner = () => {
   const { lockedBy, takeOver } = useFlowLock();
   const run = useBuilderStateContext((state) => ({ value: state.run })).value;
 
-  if (lockedBy) {
-    return (
-      <ResourceLockWidget
-        lockedBy={lockedBy}
-        takeOver={takeOver}
-        resourceLabel="flow"
-      />
-    );
-  }
-  if (!isNil(run)) {
-    return <RunInfoWidget />;
-  }
   return (
-    <>
-      <ViewingOldVersionWidget />
-      <PublishFlowReminderWidget />
-    </>
+    <Show
+      when={lockedBy()}
+      keyed
+      fallback={
+        <Show
+          when={run}
+          fallback={
+            <>
+              <ViewingOldVersionWidget />
+              <PublishFlowReminderWidget />
+            </>
+          }
+        >
+          <RunInfoWidget />
+        </Show>
+      }
+    >
+      {(lock) => (
+        <ResourceLockWidget
+          lockedBy={lock}
+          takeOver={takeOver}
+          resourceLabel="flow"
+        />
+      )}
+    </Show>
   );
 };
 

@@ -1,6 +1,6 @@
 import { isNil } from '@activepieces/shared';
 import { Plus } from 'lucide-solid';
-import { Show, createSignal, createUniqueId } from 'solid-js';
+import { Show, createSignal, createUniqueId, untrack } from 'solid-js';
 
 import { PieceSelector } from '@/app/builder/pieces-selector';
 import { Button } from '@/components/ui/button';
@@ -30,10 +30,10 @@ const ApBigAddButtonCanvasNode = (
   const draggableId = createUniqueId();
   const { setNodeRef } = useDroppable({
     id: draggableId,
-    data: {
+    data: untrack(() => ({
       accepts: flowCanvasConsts.DRAGGED_STEP_TAG,
       ...props.data,
-    },
+    })),
   });
   const isShowingDropIndicator = !isNil(activeDraggingStep);
   useDndMonitor({
@@ -73,9 +73,9 @@ const ApBigAddButtonCanvasNode = (
                     'bg-primary/80':
                       isShowingDropIndicator || isPieceSelectorOpened,
                     'shadow-add-button':
-                      isIsStepInsideDropzone || isPieceSelectorOpened,
+                      isIsStepInsideDropzone() || isPieceSelectorOpened,
                     'transition-all':
-                      isIsStepInsideDropzone ||
+                      isIsStepInsideDropzone() ||
                       isPieceSelectorOpened ||
                       isShowingDropIndicator,
                   })}

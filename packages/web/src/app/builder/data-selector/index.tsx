@@ -24,7 +24,7 @@ const buildDataSelectorStructure = (
   state: BuilderState,
 ): DataSelectorTreeNode[] => {
   const { selectedStep, flowVersion } = state;
-  if (!selectedStep || !flowVersion || !flowVersion.trigger) {
+  if (!selectedStep) {
     return [];
   }
   const pathToTargetStep = flowStructureUtil.findPathToStep(
@@ -67,7 +67,7 @@ const doesElementHaveAnInputThatUsesMentions = (
   }
   const parent = element.parentElement;
   if (parent) {
-    return parent && doesElementHaveAnInputThatUsesMentions(parent);
+    return doesElementHaveAnInputThatUsesMentions(parent);
   }
   return false;
 };

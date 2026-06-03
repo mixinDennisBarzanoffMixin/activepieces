@@ -2,7 +2,7 @@ import { FlowVersionState, Permission } from '@activepieces/shared';
 import { useLocation, useNavigate } from '@solidjs/router';
 import { t } from 'i18next';
 import { EyeIcon, PencilIcon } from 'lucide-solid';
-import { Show } from 'solid-js';
+import { Show, createMemo } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 import { useAuthorization } from '@/hooks/authorization-hooks';
@@ -22,28 +22,23 @@ const EditFlowOrViewDraftButton = (props: { onCanvas: boolean }) => {
   );
   const isViewingDraft = flowVersion.state === FlowVersionState.DRAFT;
   const permissionToEditFlow = checkAccess(Permission.WRITE_FLOW);
-  if (!readonly || (isViewingDraft && !run)) {
-    return null;
-  }
+  const button = createMemo(() => getButtonTextAndIcon(permissionToEditFlow));
   const handleClick = () => {
     if (location.pathname.includes('/runs')) {
       navigate(`/flows/${flowId}`);
-    } else {
-      switchToDraft();
+      return;
     }
+    switchToDraft();
   };
-  const { text, icon } = getButtonTextAndIcon({
-    hasPermissionToEditFlow: permissionToEditFlow,
-  });
 
   return (
-    <>
+    <Show when={readonly && (!isViewingDraft || run)}>
       <Show when={props.onCanvas}>
         <AboveTriggerButton
           shortCutIsEscape={true}
           showPrimaryBg={false}
           onClick={handleClick}
-          text={text}
+          text={button().text}
         />
       </Show>
 
@@ -53,27 +48,21 @@ const EditFlowOrViewDraftButton = (props: { onCanvas: boolean }) => {
           variant={'basic'}
           loading={isSwitchingToDraftPending}
           class="gap-2"
-          onClick={() => {
-            if (location.pathname.includes('/runs')) {
-              navigate(`/flows/${flowId}`);
-            } else {
-              switchToDraft();
-            }
-          }}
+          onClick={handleClick}
         >
-          {icon}
-          {text}
+          {button().icon}
+          {button().text}
         </Button>
       </Show>
-    </>
+    </Show>
   );
 };
 
 export { EditFlowOrViewDraftButton };
-function getButtonTextAndIcon(props: { hasPermissionToEditFlow: boolean }) {
-  const text = props.hasPermissionToEditFlow ? t('Edit flow') : t('View draft');
+function getButtonTextAndIcon(permission: boolean) {
+  const text = permission ? t('Edit flow') : t('View draft');
 
-  if (props.hasPermissionToEditFlow) {
+  if (permission) {
     return {
       icon: <PencilIcon class="size-4" />,
       text,

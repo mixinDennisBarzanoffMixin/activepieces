@@ -31,9 +31,9 @@ const VariablesTab = () => {
     request: {
       projectId: projectId ?? '',
       limit: 50,
-      name: debouncedSearch || undefined,
+      name: debouncedSearch() || undefined,
     },
-    extraKeys: ['data-selector-variables', projectId ?? '', debouncedSearch],
+    extraKeys: ['data-selector-variables', projectId ?? '', debouncedSearch()],
     enabled: !!projectId && canRead,
   });
 

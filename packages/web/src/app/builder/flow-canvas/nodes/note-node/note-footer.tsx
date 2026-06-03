@@ -8,22 +8,21 @@ export const NoteFooter = (props: NoteFooterProps) => {
   const {
     embedState: { isEmbedded },
   } = useEmbedding();
-  if (isEmbedded) {
-    return null;
-  }
   return (
-    <div class="flex items-center justify-between gap-2 cursor-grabbing overflow-hidden">
-      <div class="grow">
-        <Show when={!isNil(props.creatorId)}>
-          <ApAvatar
-            size="xsmall"
-            id={props.creatorId}
-            includeName={true}
-            hideHover={props.isDragging}
-          />
-        </Show>
+    <Show when={!isEmbedded}>
+      <div class="flex items-center justify-between gap-2 cursor-grabbing overflow-hidden">
+        <div class="grow">
+          <Show when={!isNil(props.creatorId)}>
+            <ApAvatar
+              size="xsmall"
+              id={props.creatorId}
+              includeName={true}
+              hideHover={props.isDragging}
+            />
+          </Show>
+        </div>
       </div>
-    </div>
+    </Show>
   );
 };
 
