@@ -1,6 +1,6 @@
 import { FlowAction, FlowTrigger } from '@activepieces/shared';
 import { t } from 'i18next';
-import { createSignal } from 'solid-js';
+import { createSignal, untrack } from 'solid-js';
 
 import { SIDEBAR_ID } from '@/app/components/sidebar/dashboard';
 import { stepsHooks } from '@/features/pieces';
@@ -16,17 +16,17 @@ const StepDragOverlay = (props: { step: FlowAction | FlowTrigger }) => {
   const [overlayPosition, setOverlayPosition] =
     createSignal<typeof cursorPosition>(cursorPosition);
   const sidebar = document.getElementById(SIDEBAR_ID);
-  const sidebarWidth = sidebar?.clientWidth ?? 0;
-  const left = `${
-    overlayPosition.x -
-    flowCanvasConsts.STEP_DRAG_OVERLAY_WIDTH / 2 -
-    sidebarWidth
-  }px`;
-  const top = `${
-    overlayPosition.y - flowCanvasConsts.STEP_DRAG_OVERLAY_HEIGHT - 20
-  }px`;
+  const sidebarWidth = sidebar ? sidebar.clientWidth : 0;
+  const left = () =>
+    `${
+      overlayPosition().x -
+      flowCanvasConsts.STEP_DRAG_OVERLAY_WIDTH / 2 -
+      sidebarWidth
+    }px`;
+  const top = () =>
+    `${overlayPosition().y - flowCanvasConsts.STEP_DRAG_OVERLAY_HEIGHT - 20}px`;
   const { stepMetadata } = stepsHooks.useStepMetadata({
-    step: props.step,
+    step: untrack(() => props.step),
   });
   useCursorPositionEffect((position) => {
     setOverlayPosition(position);
@@ -37,8 +37,8 @@ const StepDragOverlay = (props: { step: FlowAction | FlowTrigger }) => {
         'p-4 absolute left-0 top-0 cursor-grabbing z-50  opacity-75  flex items-center justify-center rounded-2xl border border-solid border bg-background cursor-grabbing'
       }
       style={{
-        left,
-        top,
+        left: left(),
+        top: top(),
         height: `${flowCanvasConsts.STEP_DRAG_OVERLAY_HEIGHT}px`,
         width: `${flowCanvasConsts.STEP_DRAG_OVERLAY_WIDTH}px`,
         'z-index': 99999,
@@ -57,15 +57,21 @@ const StepDragOverlay = (props: { step: FlowAction | FlowTrigger }) => {
 
 function getLogoUrl(settings: unknown, metadata: unknown) {
   const custom = getStringProperty(settings, 'customLogoUrl');
-  return custom ?? getStringProperty(metadata, 'logoUrl');
+  if (custom) {
+    return custom;
+  }
+  return getStringProperty(metadata, 'logoUrl');
 }
 
 function getStringProperty(value: unknown, key: string) {
-  if (typeof value !== 'object' || value === null || !(key in value)) {
+  if (!isRecord(value) || !(key in value)) {
     return undefined;
   }
-  const property = value[key as keyof typeof value];
-  return typeof property === 'string' ? property : undefined;
+  return typeof value[key] === 'string' ? value[key] : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
 }
 
 export default StepDragOverlay;

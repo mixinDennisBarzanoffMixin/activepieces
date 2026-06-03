@@ -17,11 +17,11 @@ function useFlowLock() {
   });
 
   createEffect(() => {
-    if (lockedBy && !readonly) {
+    if (lockedBy() && !readonly) {
       readonlySetByLock = true;
       setReadOnly(true);
     }
-    if (!lockedBy && readonlySetByLock) {
+    if (!lockedBy() && readonlySetByLock) {
       readonlySetByLock = false;
       setReadOnly(false);
     }

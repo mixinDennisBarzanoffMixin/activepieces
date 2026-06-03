@@ -1,5 +1,6 @@
 import { isNil } from '@activepieces/shared';
 import { t } from 'i18next';
+import { createMemo } from 'solid-js';
 
 import { projectCollectionUtils } from '@/features/projects/stores/project-collection';
 
@@ -9,19 +10,20 @@ import { Label } from '../../../components/ui/label';
 
 export const ProjectSelector = (props: ProjectSelectorProps) => {
   const { data: projects } = projectCollectionUtils.useAll();
+  const options = createMemo(() =>
+    projects.map((project) => ({
+      value: project.id,
+      label: project.displayName,
+    })),
+  );
   return (
     <FormItem class="flex flex-col gap-2">
       <Label>{t('Available for Projects')}</Label>
       <MultiSelectPieceProperty
         placeholder={t('Select projects')}
-        options={
-          projects.map((project) => ({
-            value: project.id,
-            label: project.displayName,
-          })) ?? []
-        }
+        options={options()}
         loading={!projects}
-        onInput={(value) => {
+        onChange={(value) => {
           props.onInput(isNil(value) ? [] : value.filter(isString));
         }}
         initialValues={props.value}

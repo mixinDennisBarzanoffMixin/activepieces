@@ -161,37 +161,34 @@ const ApStepNodeStatusInDraft = (props: { stepName: string }) => {
     !isManualTrigger &&
     !isSkipped;
 
-  if (!shouldShowDraftStatusBadge) {
-    return null;
-  }
-
-  const config = draftStatusConfig[status()];
-  const badgeClassName = flowRunUtils.getStatusContainerClassName(
-    config.variant,
-    true,
-  );
-
   return (
-    <div class="absolute right-[1px] h-[20px] -top-[28px]">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div class={badgeClassName}>
-            {config.icon}
-            <div>{config.text}</div>
-          </div>
-        </TooltipTrigger>
-        <Show when={status() === 'untested'}>
-          <TooltipContent>
-            {t('This step has not been tested yet')}
-          </TooltipContent>
-        </Show>
-        <Show when={status() === 'needs-test'}>
-          <TooltipContent>
-            {t('This step has been updated since the last test')}
-          </TooltipContent>
-        </Show>
-      </Tooltip>
-    </div>
+    <Show when={shouldShowDraftStatusBadge}>
+      <div class="absolute right-[1px] h-[20px] -top-[28px]">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              class={flowRunUtils.getStatusContainerClassName(
+                draftStatusConfig[status()].variant,
+                true,
+              )}
+            >
+              {draftStatusConfig[status()].icon}
+              <div>{draftStatusConfig[status()].text}</div>
+            </div>
+          </TooltipTrigger>
+          <Show when={status() === 'untested'}>
+            <TooltipContent>
+              {t('This step has not been tested yet')}
+            </TooltipContent>
+          </Show>
+          <Show when={status() === 'needs-test'}>
+            <TooltipContent>
+              {t('This step has been updated since the last test')}
+            </TooltipContent>
+          </Show>
+        </Tooltip>
+      </div>
+    </Show>
   );
 };
 
