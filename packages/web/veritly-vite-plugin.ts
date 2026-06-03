@@ -7,6 +7,7 @@ import type { Plugin } from 'vite';
 const root = fileURLToPath(new URL('.', import.meta.url));
 const repo = path.resolve(root, '../..');
 const src = path.join(root, 'src');
+const deps = path.join(root, 'node_modules');
 const ext = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx'];
 
 function file(source: string) {
@@ -24,6 +25,10 @@ function active(importer: string | undefined) {
   return importer && path.normalize(importer).includes(src);
 }
 
+function dep(source: string) {
+  return path.join(deps, source);
+}
+
 function webPlugin(appSrc?: string): Plugin {
   return {
     name: 'veritly-activepieces-web',
@@ -31,6 +36,23 @@ function webPlugin(appSrc?: string): Plugin {
     resolveId(source, importer) {
       if (source === 'activepieces-web/veritly-editor') {
         return path.join(src, 'veritly-editor.tsx');
+      }
+      if (source === 'activepieces-web/react') {
+        return dep('react/index.js');
+      }
+      if (source === 'activepieces-web/react-dom-client') {
+        return dep('react-dom/client.js');
+      }
+      if (
+        active(importer) &&
+        (source === 'react' ||
+          source === 'react/jsx-runtime' ||
+          source === 'react/jsx-dev-runtime' ||
+          source === 'react-dom' ||
+          source === 'react-dom/client' ||
+          source === 'react-dom/server')
+      ) {
+        return dep(`${source}.js`);
       }
       if (source === '@activepieces/shared') {
         return path.join(repo, 'packages/shared/src/index.ts');
