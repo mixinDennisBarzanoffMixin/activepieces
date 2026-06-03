@@ -395,7 +395,6 @@
     "packages/server/worker",
     "packages/ee/embed-sdk",
     "packages/tests-e2e",
-    "packages/veritly/auth-shared",
     "packages/pieces/framework",
     "packages/pieces/common",
     "packages/pieces/core/*",
