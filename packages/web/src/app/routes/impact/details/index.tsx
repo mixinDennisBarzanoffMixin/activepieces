@@ -115,12 +115,14 @@ export function FlowsDetails(props: FlowsDetailsProps) {
           />
         ),
         cell: (cell) => {
-          const override = timeSavedPerRunOverrides[cell.row.original.flowId];
-          const timeSavedPerRun =
-            override.value ?? cell.row.original.timeSavedPerRun;
-          const hasValue = timeSavedPerRun && timeSavedPerRun > 0;
+          const override = timeSavedPerRunOverrides()[cell.row.original.flowId];
+          const value =
+            override.value !== null
+              ? override.value
+              : cell.row.original.timeSavedPerRun;
+          const hasValue = value !== null && value > 0;
           const displayValue = hasValue
-            ? formatUtils.formatToHoursAndMinutes(timeSavedPerRun)
+            ? formatUtils.formatToHoursAndMinutes(value)
             : null;
 
           const userHasAccessToProject = props.projects?.some(
@@ -149,7 +151,7 @@ export function FlowsDetails(props: FlowsDetailsProps) {
                 fallback={
                   <EditTimeSavedPopover
                     flowId={cell.row.original.flowId}
-                    currentValue={timeSavedPerRun}
+                    currentValue={value}
                   >
                     <div class="flex items-center gap-1.5 cursor-pointer text-primary hover:underline">
                       <Plus class="h-3.5 w-3.5" />
@@ -163,7 +165,7 @@ export function FlowsDetails(props: FlowsDetailsProps) {
                   <span class="inline-flex opacity-0 group-hover/cell:opacity-100 transition-opacity">
                     <EditTimeSavedPopover
                       flowId={cell.row.original.flowId}
-                      currentValue={timeSavedPerRun}
+                      currentValue={value}
                     >
                       <Button variant="link" size="xs">
                         <Pencil class="size-3! mr-1" />

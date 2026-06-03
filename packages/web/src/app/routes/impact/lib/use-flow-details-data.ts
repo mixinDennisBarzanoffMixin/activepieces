@@ -21,14 +21,14 @@ export function useFlowDetailsData(
   const runsMap = createMemo(() => {
     const data = report();
     if (!data) return new Map<string, number>();
-    return new Map(data.runs.map((run) => [run.flowId, run.runs ?? 0]));
+    return new Map(data.runs.map((run) => [run.flowId, run.runs]));
   });
 
   const flowDetails = createMemo((): FlowDetailRow[] | undefined => {
     const data = report();
     if (!data) return undefined;
     return data.flows.map((flow) => {
-      const override = timeSavedPerRunOverrides[flow.flowId];
+      const override = timeSavedPerRunOverrides()[flow.flowId];
       const timeSavedPerRun = override.value ?? flow.timeSavedPerRun;
       const runs = runsMap().get(flow.flowId) ?? 0;
       return {

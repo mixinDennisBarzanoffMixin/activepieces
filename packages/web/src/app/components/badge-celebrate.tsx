@@ -6,7 +6,7 @@ import {
 } from '@activepieces/shared';
 import confetti from 'canvas-confetti';
 import { Trophy } from 'lucide-solid';
-import { createSignal, createEffect, type JSX } from 'solid-js';
+import { createSignal, createEffect, onCleanup, type JSX } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { useSocket } from '@/components/providers/socket-provider';
@@ -18,7 +18,6 @@ import { AccountSettingsDialog } from './account-settings';
 export const BadgeCelebrate = () => {
   const socket = useSocket();
   const { refetch } = userHooks.useCurrentUser();
-  let cleanupRef: (() => void) | undefined;
   const { data: showBadges } = flagsHooks.useFlag<boolean>(
     ApFlagId.SHOW_BADGES,
   );
@@ -28,17 +27,14 @@ export const BadgeCelebrate = () => {
   const openAccountSettingsRef = () => setShowAccountSettings(true);
 
   createEffect(() => {
-    if (!socket || !showBadges) return;
-    if (cleanupRef) {
-      cleanupRef();
-    }
+    if (!showBadges) return;
 
     const handleBadgeAwarded = (data: BadgeAwarded) => {
-      const badge = BADGES[data.badge as keyof typeof BADGES];
-      if (!badge) {
+      if (!valid(data.badge)) {
         return;
       }
 
+      const badge = BADGES[data.badge];
       const badgeTitle = badge.title;
       const badgeDescription = badge.description;
       const badgeImageUrl = badge.imageUrl;
@@ -106,16 +102,14 @@ export const BadgeCelebrate = () => {
 
     socket.on(WebsocketClientEvent.BADGE_AWARDED, handleBadgeAwarded);
 
-    cleanupRef = () => {
+    onCleanup(() => {
       socket.off(WebsocketClientEvent.BADGE_AWARDED, handleBadgeAwarded);
       isCelebrating = false;
       if (celebrationTimeout) {
         clearTimeout(celebrationTimeout);
         celebrationTimeout = undefined;
       }
-    };
-
-    return cleanupRef;
+    });
   });
 
   return (
@@ -130,6 +124,10 @@ function randomInRange(min: number, max: number) {
   return Math.random() * (max - min) + min;
 }
 
+type Name = keyof typeof BADGES;
+
+const valid = (name: string): name is Name => name in BADGES;
+
 const BadgeToast = (props: {
   imageUrl: string;
   title: string;
@@ -138,7 +136,7 @@ const BadgeToast = (props: {
 }): JSX.Element => (
   <div
     class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-    onClick={props.onClick}
+    onClick={() => props.onClick()}
   >
     <img
       src={props.imageUrl}

@@ -86,16 +86,14 @@ function FlowActionMenu(props: FlowActionMenuProps) {
   const isDevelopmentBranch =
     gitSync && gitSync.branchType === GitBranchType.DEVELOPMENT;
   const [open, setOpen] = createSignal<boolean>(false);
-  const allowPush =
+  const allowPush = () =>
     props.flow.publishedVersionId !== null &&
     props.flow.version.state === FlowVersionState.LOCKED;
   const { projectMembers } = projectMembersHooks.useProjectMembers();
   const hasProjectMembers = projectMembers && projectMembers.length > 0;
 
   const [isRenameOpen, setIsRenameOpen] = createSignal<boolean>(false);
-  const [renameValue, setRenameValue] = createSignal<string>(
-    props.flowVersion.displayName,
-  );
+  const [renameValue, setRenameValue] = createSignal<string>('');
   const [isMoveOpen, setIsMoveOpen] = createSignal<boolean>(false);
   const [folderToMoveId, setFolderToMoveId] = createSignal<string>('');
   const { folders } = foldersHooks.useFolders();
@@ -159,6 +157,11 @@ function FlowActionMenu(props: FlowActionMenuProps) {
 
   const { mutate: exportFlow, isPending: isExportPending } =
     flowHooks.useExportFlows();
+  const remove = async () => {
+    await flowsApi.delete(props.flow.id);
+    props.onDelete();
+  };
+
   return (
     <>
       <DropdownMenu open={open()} onOpenChange={setOpen}>
@@ -212,10 +215,10 @@ function FlowActionMenu(props: FlowActionMenuProps) {
           }
 
           <PermissionNeededTooltip hasPermission={userHasPermissionToPushToGit}>
-            <PublishedNeededTooltip allowPush={allowPush}>
+            <PublishedNeededTooltip allowPush={allowPush()}>
               <PushToGitDialog type="flow" flows={[props.flow]}>
                 <DropdownMenuItem
-                  disabled={!userHasPermissionToPushToGit || !allowPush}
+                  disabled={!userHasPermissionToPushToGit || !allowPush()}
                   onSelect={prevent}
                   onClick={stop}
                 >
@@ -415,10 +418,7 @@ function FlowActionMenu(props: FlowActionMenuProps) {
                       }
                     </>
                   }
-                  mutationFn={async () => {
-                    await flowsApi.delete(props.flow.id);
-                    props.onDelete();
-                  }}
+                  mutationFn={remove}
                   entityName={t('flow')}
                   buttonText={t('Delete')}
                 >
