@@ -72,12 +72,12 @@ function mergeUniqueKeys(
 ): Record<string, Node> {
   const result: Record<string, Node> = { ...obj };
   for (const [key, values] of Object.entries(obj2)) {
-    const properties = mergeUniqueKeys(
-      result[key].properties || {},
-      values.properties,
-    );
+    const node = Object.hasOwn(result, key)
+      ? result[key]
+      : { values: [], properties: {} };
+    const properties = mergeUniqueKeys(node.properties, values.properties);
     result[key] = {
-      values: [...(result[key].values || []), ...values.values],
+      values: [...node.values, ...values.values],
       properties,
     };
   }
@@ -88,7 +88,7 @@ function extractUniqueKeys(obj: unknown): Record<string, Node> {
   let result: Record<string, Node> = {};
   if (isRecord(obj)) {
     for (const [entryKey, entryValue] of Object.entries(obj)) {
-      const resultValue = result[entryKey].values || [];
+      const resultValue: unknown[] = [];
       if (isUnknownArray(entryValue)) {
         const filteredValues = entryValue.filter(
           (v) => !isRecord(v) && !Array.isArray(v),
@@ -149,13 +149,13 @@ function convertArrayToZippedView(
 function buildJsonPath(propertyPath: PathSegment[]): string {
   const propertyPathWithoutStepName = propertyPath.slice(1);
   //need array indexes to not be quoted so we can add 1 to them when displaying the path in mention
-  return propertyPathWithoutStepName.reduce((acc, segment) => {
+  return propertyPathWithoutStepName.reduce<string>((acc, segment) => {
     return `${acc}[${
       typeof segment === 'string'
         ? `'${escapeMentionKey(String(segment))}'`
         : segment
     }]`;
-  }, `${propertyPath[0]}`) as string;
+  }, `${propertyPath[0]}`);
 }
 
 function buildDataSelectorNode(

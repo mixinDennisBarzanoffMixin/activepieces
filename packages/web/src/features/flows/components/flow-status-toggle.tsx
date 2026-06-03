@@ -5,7 +5,7 @@ import {
   isNil,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { createSignal, createEffect, Show } from 'solid-js';
+import { createSignal, createEffect, Show, untrack } from 'solid-js';
 
 import { LoadingSpinner } from '@/components/custom/spinner';
 import { useAuthorization } from '@/hooks/authorization-hooks';
@@ -24,8 +24,9 @@ type FlowStatusToggleProps = {
 };
 
 const FlowStatusToggle = (props: FlowStatusToggleProps) => {
+  const init = untrack(() => props.flow);
   const [isFlowPublished, setIsFlowPublished] = createSignal(
-    props.flow.status === FlowStatus.ENABLED,
+    init.status === FlowStatus.ENABLED,
   );
 
   createEffect(() => {
@@ -39,8 +40,11 @@ const FlowStatusToggle = (props: FlowStatusToggleProps) => {
 
   const { mutate: changeStatus, isPending: isLoading } =
     flowHooks.useChangeFlowStatus({
-      flowId: props.flow.id,
-      change: isFlowPublished ? FlowStatus.DISABLED : FlowStatus.ENABLED,
+      flowId: init.id,
+      change:
+        init.status === FlowStatus.ENABLED
+          ? FlowStatus.DISABLED
+          : FlowStatus.ENABLED,
       onSuccess: (updatedFlow: PopulatedFlow) => {
         setIsFlowPublished(updatedFlow.status === FlowStatus.ENABLED);
       },
@@ -52,10 +56,10 @@ const FlowStatusToggle = (props: FlowStatusToggleProps) => {
         <TooltipTrigger asChild>
           <div class="flex items-center justify-center">
             <Switch
-              checked={isFlowPublished}
+              checked={isFlowPublished()}
               onCheckedChange={() => changeStatus()}
               disabled={
-                isLoading ||
+                Boolean(isLoading()) ||
                 !userHasPermissionToToggleFlowStatus ||
                 isNil(props.flow.publishedVersionId)
               }
@@ -66,16 +70,16 @@ const FlowStatusToggle = (props: FlowStatusToggleProps) => {
           {userHasPermissionToToggleFlowStatus
             ? isNil(props.flow.publishedVersionId)
               ? t('Please publish flow first')
-              : isFlowPublished
+              : isFlowPublished()
               ? t('Flow is on')
               : t('Flow is off')
             : t('Permission Needed')}
         </TooltipContent>
       </Tooltip>
       <Show
-        when={isLoading}
+        when={Boolean(isLoading())}
         fallback={
-          isFlowPublished && (
+          isFlowPublished() && (
             <Tooltip>
               <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
                 <div class="p-2 rounded-full ">

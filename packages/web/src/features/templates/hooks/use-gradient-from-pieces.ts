@@ -59,15 +59,6 @@ const buildColorMap = (pixels: Uint8ClampedArray) => {
     const b = pixels[i + 2];
     const a = pixels[i + 3];
 
-    if (
-      r === undefined ||
-      g === undefined ||
-      b === undefined ||
-      a === undefined
-    ) {
-      continue;
-    }
-
     if (shouldSkipPixel(r, g, b, a)) continue;
 
     const key = `${r},${g},${b}`;
@@ -215,7 +206,7 @@ export const useGradientFromPieces = (
       return '';
     }
 
-    const allColors = colorQueries.map((query) => query.data || []).flat();
+    const allColors = colorQueries.flatMap((query) => query.data);
 
     return buildGradientFromColors(allColors);
   });

@@ -3,6 +3,12 @@ import { createMemo, createSignal } from 'solid-js';
 import { SelectableItemType, SelectedItemsMap, TreeItem } from '../lib/types';
 import { getItemKey } from '../lib/utils';
 
+function selectable(item: TreeItem): item is TreeItem & {
+  type: SelectableItemType;
+} {
+  return item.type !== 'load-more-folder';
+}
+
 export function useAutomationsSelection(treeItems: TreeItem[]) {
   const [selectedItems, setSelectedItems] = createSignal<SelectedItemsMap>(
     new Map(),
@@ -10,7 +16,7 @@ export function useAutomationsSelection(treeItems: TreeItem[]) {
 
   const childrenByFolder = createMemo(() => {
     return treeItems.reduce((map, item) => {
-      if (item.folderId && item.type !== 'load-more-folder') {
+      if (item.folderId && selectable(item)) {
         const list = map.get(item.folderId) ?? [];
         list.push(item);
         map.set(item.folderId, list);
@@ -31,31 +37,23 @@ export function useAutomationsSelection(treeItems: TreeItem[]) {
           children.forEach((child) => next.delete(getItemKey(child)));
         } else {
           next.set(key, 'folder');
-          children.forEach((child) =>
-            next.set(getItemKey(child), child.type as SelectableItemType),
-          );
+          children.forEach((child) => next.set(getItemKey(child), child.type));
         }
-      } else {
-        const itemType = item.type as SelectableItemType;
+      } else if (selectable(item)) {
         if (next.has(key)) {
           next.delete(key);
           if (item.folderId) {
-            next.delete(
-              getItemKey({ type: 'folder', id: item.folderId } as TreeItem),
-            );
+            next.delete(`folder-${item.folderId}`);
           }
         } else {
-          next.set(key, itemType);
+          next.set(key, item.type);
           if (item.folderId) {
             const siblings = childrenByFolder().get(item.folderId) ?? [];
             const allSelected = siblings.every(
               (s) => getItemKey(s) === key || next.has(getItemKey(s)),
             );
             if (allSelected) {
-              next.set(
-                getItemKey({ type: 'folder', id: item.folderId } as TreeItem),
-                'folder',
-              );
+              next.set(`folder-${item.folderId}`, 'folder');
             }
           }
         }
@@ -65,9 +63,7 @@ export function useAutomationsSelection(treeItems: TreeItem[]) {
     });
   };
 
-  const selectableItems = createMemo(() =>
-    treeItems.filter((item) => item.type !== 'load-more-folder'),
-  );
+  const selectableItems = createMemo(() => treeItems.filter(selectable));
 
   const toggleAllSelection = () => {
     if (
@@ -77,12 +73,7 @@ export function useAutomationsSelection(treeItems: TreeItem[]) {
       setSelectedItems(new Map());
     } else {
       setSelectedItems(
-        new Map(
-          selectableItems().map((item) => [
-            getItemKey(item),
-            item.type as SelectableItemType,
-          ]),
-        ),
+        new Map(selectableItems().map((item) => [getItemKey(item), item.type])),
       );
     }
   };

@@ -1,5 +1,5 @@
 import { flowStructureUtil, Step } from '@activepieces/shared';
-import { Show } from 'solid-js';
+import { Show, createMemo, untrack } from 'solid-js';
 
 import { useTheme } from '@/components/providers/theme-provider';
 import { stepsHooks, StepMetadata } from '@/features/pieces';
@@ -37,7 +37,7 @@ const MinimapNodeContent = (props: {
   node: MiniMapNodeProps;
 }) => {
   const nodeColor = colorsUtils.useAverageColorInImage({
-    imgUrl: props.stepMetadata.logoUrl ?? '',
+    imgUrl: untrack(() => props.stepMetadata.logoUrl),
     transparency: 50,
   });
   const defaultColor = 'oklch(92.8% 0.006 264.531)';
@@ -55,7 +55,7 @@ const MinimapNodeContent = (props: {
 
 const MinimapContentGuard = (props: { step: Step; node: MiniMapNodeProps }) => {
   const { stepMetadata } = stepsHooks.useStepMetadata({
-    step: props.step,
+    step: untrack(() => props.step),
   });
   return (
     <Show when={stepMetadata} keyed>
@@ -70,10 +70,12 @@ const MinimapNode = (props: { node: MiniMapNodeProps }) => {
   const [trigger] = useBuilderStateContext((state) => [
     state.flowVersion.trigger,
   ]);
-  const step = flowStructureUtil.getStep(props.node.id, trigger);
+  const step = createMemo(() =>
+    flowStructureUtil.getStep(props.node.id, trigger),
+  );
 
   return (
-    <Show when={step} keyed>
+    <Show when={step()} keyed>
       {(value) => <MinimapContentGuard step={value} node={props.node} />}
     </Show>
   );

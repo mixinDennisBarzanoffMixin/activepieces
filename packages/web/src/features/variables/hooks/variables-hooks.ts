@@ -38,9 +38,9 @@ export const variablesQueries = {
   },
 
   useListSearchParams: () => {
-    const { search } = useLocation();
-    return createMemo(() => {
-      const sp = new URLSearchParams(search);
+    const location = useLocation();
+    const params = createMemo(() => {
+      const sp = new URLSearchParams(location.search);
       const limitParam = sp.get(LIMIT_QUERY_PARAM);
       return {
         cursor: sp.get(CURSOR_QUERY_PARAM) ?? undefined,
@@ -49,6 +49,7 @@ export const variablesQueries = {
         ownerEmails: sp.getAll('owner'),
       };
     });
+    return params;
   },
 
   useVariableOwners: (projectId: string) => {

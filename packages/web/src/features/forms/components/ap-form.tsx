@@ -120,8 +120,9 @@ const ApForm = (props: ApFormProps) => {
   const defaultValues = createMemo(() => {
     const values = { ...schema().defaultValues };
     inputs().forEach((input) => {
-      const queryValue = queryParamsLowerCase[input.name.toLowerCase()];
-      if (queryValue !== undefined) {
+      const key = input.name.toLowerCase();
+      if (key in queryParamsLowerCase) {
+        const queryValue = queryParamsLowerCase[key];
         values[input.name] =
           input.type === FormInputType.TOGGLE
             ? queryValue.toLowerCase() === 'true'
@@ -248,7 +249,7 @@ const ApForm = (props: ApFormProps) => {
                               {input.displayName}
                             </label>
                           </div>
-                          <ReadMoreDescription text={input.description ?? ''} />
+                          <ReadMoreDescription text={input.description} />
                         </>
                       </Show>
                       <Show when={input.type !== FormInputType.TOGGLE}>
@@ -300,9 +301,7 @@ const ApForm = (props: ApFormProps) => {
                                 type="file"
                               />
                             </Show>
-                            <ReadMoreDescription
-                              text={input.description ?? ''}
-                            />
+                            <ReadMoreDescription text={input.description} />
                             <Show when={errors()[input.name]}>
                               <p class="text-sm font-medium text-destructive wrap-break-word">
                                 {errors()[input.name]}

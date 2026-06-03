@@ -49,23 +49,24 @@ function CreatePlatformDialogForm(props: {
     setErr('');
     mutate({ name: data.name.trim() });
   };
+  const name = form.register('name', {
+    required: t('Platform name is required'),
+    maxLength: {
+      value: 100,
+      message: t('Platform name is too long'),
+    },
+    pattern: {
+      value: new RegExp(SAFE_STRING_PATTERN),
+      message: t('Platform name cannot contain "." or "/"'),
+    },
+  });
 
   return (
     <form class="grid space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
       <div class="grid space-y-2">
         <Label for="createPlatformName">{t('Platform Name')}</Label>
         <Input
-          {...form.register('name', {
-            required: t('Platform name is required'),
-            maxLength: {
-              value: 100,
-              message: t('Platform name is too long'),
-            },
-            pattern: {
-              value: new RegExp(SAFE_STRING_PATTERN),
-              message: t('Platform name cannot contain "." or "/"'),
-            },
-          })}
+          {...name}
           required
           id="createPlatformName"
           type="text"

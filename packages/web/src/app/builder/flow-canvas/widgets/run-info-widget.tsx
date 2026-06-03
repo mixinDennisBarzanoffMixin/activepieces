@@ -5,7 +5,7 @@ import {
   StepOutputStatus,
 } from '@activepieces/shared';
 import { t } from 'i18next';
-import { ArrowRight, CircleHelp, Magnet } from 'lucide-solid';
+import { ArrowRight, Magnet } from 'lucide-solid';
 import { Show } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
@@ -82,9 +82,7 @@ const RunInfoWidget = () => {
   return (
     <Show when={run} keyed>
       {(value) => {
-        const icon = value
-          ? flowRunUtils.getStatusIcon(value.status)
-          : { variant: 'default' as const, Icon: CircleHelp };
+        const icon = flowRunUtils.getStatusIcon(value.status);
         const terminal = isFlowRunStateTerminal({
           status: value.status,
           ignoreInternalError: false,
@@ -192,13 +190,9 @@ const JumpToFailedStepButton = (props: { failedStepName: string }) => {
   const { fitView } = useReactFlow();
   const selectedStepOutput =
     run && selectedStep
-      ? flowRunUtils.extractStepOutput(
-          selectedStep,
-          loopsIndexes,
-          run.steps ?? {},
-        )
+      ? flowRunUtils.extractStepOutput(selectedStep, loopsIndexes, run.steps)
       : null;
-  const selectedFailedStep =
+  const failed = () =>
     selectedStep === props.failedStepName &&
     selectedStepOutput?.status === StepOutputStatus.FAILED;
   const handleClick = () => {
@@ -208,7 +202,7 @@ const JumpToFailedStepButton = (props: { failedStepName: string }) => {
     );
   };
   return (
-    <Show when={!selectedFailedStep}>
+    <Show when={!failed()}>
       <Button
         variant="ghost"
         size="sm"

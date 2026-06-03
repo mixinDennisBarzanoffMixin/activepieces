@@ -6,7 +6,7 @@ import {
 } from '@activepieces/shared';
 import { cva } from 'class-variance-authority';
 import { t } from 'i18next';
-import { createMemo, For, mergeProps, Show } from 'solid-js';
+import { createMemo, For, mergeProps, Show, untrack } from 'solid-js';
 
 import {
   Tooltip,
@@ -44,14 +44,14 @@ export function PieceIconList(_props: {
   excludeCore?: boolean;
 }) {
   const props = mergeProps({ excludeCore: false }, _props);
-  const steps = flowStructureUtil.getAllSteps(props.trigger);
+  const steps = createMemo(() => flowStructureUtil.getAllSteps(props.trigger));
 
   const metadata = createMemo(() =>
-    extractPieceNamesAndCoreMetadata(steps, props.excludeCore),
+    extractPieceNamesAndCoreMetadata(steps(), props.excludeCore),
   );
 
   const { summaries } = piecesHooks.usePieceSummariesByNames({
-    names: metadata().pieceNames,
+    names: untrack(() => metadata().pieceNames),
   });
 
   const stepsMetadata = createMemo<StepMetadata[]>(() => {
@@ -75,19 +75,27 @@ export function PieceIconList(_props: {
     return [...metadata().coreMetadata, ...pieceMetadata];
   });
 
-  const uniqueMetadata: StepMetadata[] = stepsMetadata().filter(
-    (item, index, self) =>
-      self.findIndex(
-        (secondItem) => item.displayName === secondItem.displayName,
-      ) === index,
+  const uniqueMetadata = createMemo<StepMetadata[]>(() =>
+    stepsMetadata().filter(
+      (item, index, self) =>
+        self.findIndex(
+          (secondItem) => item.displayName === secondItem.displayName,
+        ) === index,
+    ),
   );
-  const visibleMetadata = uniqueMetadata.slice(0, props.maxNumberOfIconsToShow);
-  const extraPieces = uniqueMetadata.length - visibleMetadata.length;
-  const extraMetadata = uniqueMetadata.slice(props.maxNumberOfIconsToShow);
+  const visibleMetadata = createMemo(() =>
+    uniqueMetadata().slice(0, props.maxNumberOfIconsToShow),
+  );
+  const extraPieces = createMemo(
+    () => uniqueMetadata().length - visibleMetadata().length,
+  );
+  const extraMetadata = createMemo(() =>
+    uniqueMetadata().slice(props.maxNumberOfIconsToShow),
+  );
 
   return (
     <div class={props.className || 'flex gap-0.5 '}>
-      <For each={visibleMetadata}>
+      <For each={visibleMetadata()}>
         {(metadata) => (
           <PieceIcon
             logoUrl={metadata.logoUrl}
@@ -99,23 +107,23 @@ export function PieceIconList(_props: {
           />
         )}
       </For>
-      <Show when={extraPieces > 0}>
+      <Show when={extraPieces() > 0}>
         <Tooltip>
           <TooltipTrigger asChild>
             <div class={extraIconVariants({ size: props.size ?? 'xs' })}>
-              +{extraPieces}
+              +{extraPieces()}
             </div>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            {extraMetadata.length > 1 &&
-              extraMetadata
+            {extraMetadata().length > 1 &&
+              extraMetadata()
                 .map((m) => m.displayName || '')
                 .slice(0, -1)
                 .join(', ') +
                 ` ${t('and')} ${
-                  extraMetadata[extraMetadata.length - 1].displayName
+                  extraMetadata()[extraMetadata().length - 1].displayName
                 }`}
-            {extraMetadata.length === 1 && extraMetadata[0].displayName}
+            {extraMetadata().length === 1 && extraMetadata()[0].displayName}
           </TooltipContent>
         </Tooltip>
       </Show>

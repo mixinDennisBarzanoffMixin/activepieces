@@ -58,18 +58,11 @@ const BranchLabel = (props: BaseBranchLabel) => {
     return value?.type === FlowActionType.ROUTER ? value : undefined;
   });
   const isFallbackBranch = () =>
-    props.stepLocationRelativeToParent ===
-      StepLocationRelativeToParent.INSIDE_BRANCH &&
     router()?.settings.branches[props.branchIndex]?.branchType ===
-      BranchExecutionType.FALLBACK;
-  const isNotInsideRoute = () =>
-    props.stepLocationRelativeToParent !==
-    StepLocationRelativeToParent.INSIDE_BRANCH;
-  const isOtherwiseBranch = () => isNotInsideRoute() || isFallbackBranch();
+    BranchExecutionType.FALLBACK;
+  const isOtherwiseBranch = () => isFallbackBranch();
   const isBranchSelected = () =>
     selectedStep === props.sourceNodeName &&
-    props.stepLocationRelativeToParent ===
-      StepLocationRelativeToParent.INSIDE_BRANCH &&
     props.branchIndex === selectedBranchIndex;
   const { fitView } = useReactFlow();
   const [isDropdownMenuOpen, setIsDropdownMenuOpen] = createSignal(false);
@@ -106,19 +99,14 @@ const BranchLabel = (props: BaseBranchLabel) => {
               'max-width': flowCanvasConsts.AP_NODE_SIZE.STEP.width - 10 + 'px',
             }}
             onClick={() => {
-              if (
-                props.stepLocationRelativeToParent ===
-                  StepLocationRelativeToParent.INSIDE_BRANCH &&
-                !isOtherwiseBranch()
-              ) {
-                selectStepByName(props.sourceNodeName);
-                setSelectedBranchIndex(props.branchIndex);
-                void fitView(
-                  flowCanvasUtils.createFocusStepInGraphParams(
-                    props.targetNodeName,
-                  ),
-                );
-              }
+              if (isOtherwiseBranch()) return;
+              selectStepByName(props.sourceNodeName);
+              setSelectedBranchIndex(props.branchIndex);
+              void fitView(
+                flowCanvasUtils.createFocusStepInGraphParams(
+                  props.targetNodeName,
+                ),
+              );
             }}
           >
             <div class="truncate">

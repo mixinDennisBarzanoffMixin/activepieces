@@ -1,6 +1,6 @@
 import { t } from 'i18next';
 import { Copy, Download } from 'lucide-solid';
-import { Show, mergeProps } from 'solid-js';
+import { Show, createMemo, mergeProps } from 'solid-js';
 import { toast } from 'solid-sonner';
 
 import { JsonViewer } from '@/components/custom/json-viewer';
@@ -23,11 +23,12 @@ type DataDisplayTabsProps = {
 
 const DataDisplayTabs = (_props: DataDisplayTabsProps) => {
   const props = mergeProps({ downloadFileName: 'data' }, _props);
-  const canActOnData =
-    props.copyableData !== undefined && props.copyableData !== null;
+  const canActOnData = createMemo(
+    () => props.copyableData !== undefined && props.copyableData !== null,
+  );
 
   const handleCopy = () => {
-    if (!canActOnData) return;
+    if (!canActOnData()) return;
     void navigator.clipboard.writeText(
       typeof props.copyableData === 'string'
         ? props.copyableData
@@ -37,7 +38,7 @@ const DataDisplayTabs = (_props: DataDisplayTabsProps) => {
   };
 
   const handleDownload = () => {
-    if (!canActOnData) return;
+    if (!canActOnData()) return;
     const isPlainString = typeof props.copyableData === 'string';
     const text = isPlainString
       ? props.copyableData
@@ -55,7 +56,7 @@ const DataDisplayTabs = (_props: DataDisplayTabsProps) => {
 
   return (
     <div class={cn('group flex flex-col gap-2', props.className)}>
-      <Show when={canActOnData}>
+      <Show when={canActOnData()}>
         <TooltipProvider>
           <div class="sticky top-0 z-10 flex justify-end pointer-events-none">
             <div class="flex items-center gap-0.5 bg-background/90 backdrop-blur-sm rounded-md border border-border shadow-sm pointer-events-auto opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">

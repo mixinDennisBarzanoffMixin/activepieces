@@ -129,12 +129,11 @@ export function useUserSuggestions({
       platformUser &&
       (platformUser.platformRole === PlatformRole.ADMIN ||
         platformUser.platformRole === PlatformRole.OPERATOR);
-    const isPlatformUser = isPlatformInvite && platformUser;
-    if (isCurrentUser || isPlatformAdminOrOperator || isPlatformUser) {
+    if (isCurrentUser || isPlatformAdminOrOperator) {
       return { email, type: 'has-access', user: platformUser };
     }
 
-    if (!isPlatformInvite && projectMemberEmails().has(email)) {
+    if (projectMemberEmails().has(email)) {
       return { email, type: 'in-project', user: platformUser };
     }
 
@@ -167,10 +166,14 @@ export function useUserSuggestions({
       new Set(platformUsersData?.data.map((u) => u.email.toLowerCase()) ?? []),
   );
 
+  const hasSuggestions = createMemo(
+    () => suggestedUsers().length > 0 || emailStatus() !== null,
+  );
+
   return {
     suggestedUsers,
     emailStatus,
-    hasSuggestions: suggestedUsers().length > 0 || emailStatus() !== null,
+    hasSuggestions,
     selectableItems,
     platformUserEmails,
   };
