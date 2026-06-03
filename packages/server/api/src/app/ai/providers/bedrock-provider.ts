@@ -14,7 +14,7 @@ import {
 } from '@aws-sdk/client-bedrock'
 
 import { FastifyBaseLogger } from 'fastify'
-import { AIProviderStrategy } from './ai-provider'
+import type { AIProviderStrategy } from './ai-provider'
 
 export const bedrockProvider: AIProviderStrategy<
 BedrockProviderAuthConfig,
