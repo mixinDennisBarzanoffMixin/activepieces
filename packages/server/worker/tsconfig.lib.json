@@ -6,8 +6,15 @@
     "declaration": true,
     "declarationMap": true,
     "types": ["node"],
-    "baseUrl": ".",
-    "paths": {}
+    "baseUrl": "../../..",
+    "paths": {
+      "@activepieces/engine": ["packages/server/engine/src/main.ts"],
+      "@activepieces/piece-*": ["packages/pieces/community/*/src/index.ts", "packages/pieces/core/*/src/index.ts"],
+      "@activepieces/pieces-common": ["packages/pieces/common/src/index.ts"],
+      "@activepieces/pieces-framework": ["packages/pieces/framework/src/index.ts"],
+      "@activepieces/server-utils": ["packages/server/utils/src/index.ts"],
+      "@activepieces/shared": ["packages/shared/src/index.ts"]
+    }
   },
   "include": ["src/**/*.ts"],
   "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"]
