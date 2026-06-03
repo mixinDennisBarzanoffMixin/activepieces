@@ -23,12 +23,12 @@ export const DeleteAccount = () => {
   const { mutate: deleteAccount, isPending } = platformHooks.useDeleteAccount();
   const isDeleteButtonDisabled = () => email() !== userEmail;
 
-  if (!isCloudPlanButNotEnterprise(platform.plan.plan) || isNil(userEmail)) {
-    return null;
-  }
-
   return (
-    <>
+    <Show
+      when={
+        isCloudPlanButNotEnterprise(platform.plan.plan) && !isNil(userEmail)
+      }
+    >
       <Separator />
       <form
         class="w-full"
@@ -79,6 +79,6 @@ export const DeleteAccount = () => {
           </p>
         </div>
       </form>
-    </>
+    </Show>
   );
 };

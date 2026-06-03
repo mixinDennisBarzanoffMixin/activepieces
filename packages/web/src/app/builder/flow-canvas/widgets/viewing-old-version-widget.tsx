@@ -27,12 +27,9 @@ const ViewingOldVersionWidget = () => {
     .toString();
   const { checkAccess } = useAuthorization();
   const hasPermissionToWriteFlow = checkAccess(Permission.WRITE_FLOW);
-  if (!isNil(run) || !readonly || isPublishing) {
-    return null;
-  }
   return (
-    <LargeWidgetWrapper>
-      <>
+    <Show when={isNil(run) && readonly && !isPublishing}>
+      <LargeWidgetWrapper>
         <div class="flex items-center gap-2">
           <Info class="size-5" />
           <span>
@@ -54,8 +51,8 @@ const ViewingOldVersionWidget = () => {
           </Show>
           <EditFlowOrViewDraftButton onCanvas={false} />
         </div>
-      </>
-    </LargeWidgetWrapper>
+      </LargeWidgetWrapper>
+    </Show>
   );
 };
 export { ViewingOldVersionWidget };

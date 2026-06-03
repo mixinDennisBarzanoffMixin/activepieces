@@ -86,9 +86,6 @@ const PublishFlowReminderWidget = () => {
       },
     });
 
-  if (!showShouldPublishButton) {
-    return null;
-  }
   const showLoading = isPublishing || isDiscardingChanges || isSaving;
   const loadingText = pickLoadingText({
     isDiscardingChanges,
@@ -96,60 +93,62 @@ const PublishFlowReminderWidget = () => {
     isSaving,
   });
   return (
-    <LargeWidgetWrapper>
-      <div class="flex items-center gap-2">
-        <Info class="size-5" />
-        <Show when={showLoading} fallback={t('You have unpublished changes')}>
-          {loadingText}
-        </Show>
-      </div>
-      <Show
-        when={showLoading}
-        fallback={
-          <div class="flex items-center gap-2">
-            <Show when={!isNil(flow.publishedVersionId) && !isSaving}>
-              <Button
-                size="sm"
-                variant="ghost"
-                class="hover:bg-gray-300/10 text-foreground"
-                onClick={() => discardChange()}
-              >
-                {t('Discard changes')}
-              </Button>
-            </Show>
+    <Show when={showShouldPublishButton}>
+      <LargeWidgetWrapper>
+        <div class="flex items-center gap-2">
+          <Info class="size-5" />
+          <Show when={showLoading} fallback={t('You have unpublished changes')}>
+            {loadingText}
+          </Show>
+        </div>
+        <Show
+          when={showLoading}
+          fallback={
+            <div class="flex items-center gap-2">
+              <Show when={!isNil(flow.publishedVersionId) && !isSaving}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  class="hover:bg-gray-300/10 text-foreground"
+                  onClick={() => discardChange()}
+                >
+                  {t('Discard changes')}
+                </Button>
+              </Show>
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div class="tooltip-wrapper">
-                  <Button
-                    size="sm"
-                    variant="default"
-                    class="z-50"
-                    loading={isSaving}
-                    //for e2e tests
-                    name="Publish"
-                    onClick={() => void publish()}
-                    disabled={!isValid}
-                  >
-                    {t('Publish')}
-                  </Button>
-                </div>
-              </TooltipTrigger>
-              <Show when={isSaving}>
-                <TooltipContent>{t('Saving...')}</TooltipContent>
-              </Show>
-              <Show when={!isValid}>
-                <TooltipContent>
-                  {t('You have incomplete steps')}
-                </TooltipContent>
-              </Show>
-            </Tooltip>
-          </div>
-        }
-      >
-        <LoadingSpinner class="size-5 stroke-foreground" />
-      </Show>
-    </LargeWidgetWrapper>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div class="tooltip-wrapper">
+                    <Button
+                      size="sm"
+                      variant="default"
+                      class="z-50"
+                      loading={isSaving}
+                      //for e2e tests
+                      name="Publish"
+                      onClick={() => void publish()}
+                      disabled={!isValid}
+                    >
+                      {t('Publish')}
+                    </Button>
+                  </div>
+                </TooltipTrigger>
+                <Show when={isSaving}>
+                  <TooltipContent>{t('Saving...')}</TooltipContent>
+                </Show>
+                <Show when={!isValid}>
+                  <TooltipContent>
+                    {t('You have incomplete steps')}
+                  </TooltipContent>
+                </Show>
+              </Tooltip>
+            </div>
+          }
+        >
+          <LoadingSpinner class="size-5 stroke-foreground" />
+        </Show>
+      </LargeWidgetWrapper>
+    </Show>
   );
 };
 

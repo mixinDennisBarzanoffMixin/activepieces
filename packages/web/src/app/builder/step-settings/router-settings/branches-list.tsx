@@ -6,7 +6,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { GripVertical, Trash, CopyPlus, Pencil } from 'lucide-solid';
-import { For, Show, createSignal } from 'solid-js';
+import { For, Show, createMemo, createSignal } from 'solid-js';
 
 import { useFormContext } from '@/app/builder/builder-form';
 import EditableText from '@/components/custom/editable-text';
@@ -47,12 +47,15 @@ export const BranchesList = (props: BranchListProps) => {
     number | null
   >(null);
   const form = useFormContext<RouterAction>();
+  const items = createMemo(() =>
+    props.step.settings.branches.map((branch, idx) => ({
+      id: idx + 1,
+      branch,
+    })),
+  );
   return (
     <Sortable
-      value={props.step.settings.branches.map((branch, idx) => ({
-        id: idx + 1,
-        branch,
-      }))}
+      value={items()}
       onMove={({ activeIndex, overIndex }) => {
         props.moveBranch({ sourceIndex: activeIndex, targetIndex: overIndex });
       }}

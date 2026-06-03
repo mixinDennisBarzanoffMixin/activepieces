@@ -1,4 +1,4 @@
-import { JSX } from 'solid-js';
+import { Show, type JSX } from 'solid-js';
 
 import { SocketProvider } from '@/components/providers/socket-provider';
 import { useTelemetry } from '@/components/providers/telemetry-provider';
@@ -16,29 +16,32 @@ type AllowOnlyLoggedInUserOnlyGuardProps = {
 export const AllowOnlyLoggedInUserOnlyGuard = (
   props: AllowOnlyLoggedInUserOnlyGuardProps,
 ) => {
-  const { reset } = useTelemetry();
-  if (!authenticationSession.isLoggedIn()) {
+  const log = authenticationSession.isLoggedIn();
+  const init = log && authenticationSession.isOnboarding();
+  const telemetry = useTelemetry();
+  if (!log) {
     authenticationSession.clearSession();
-    reset();
-    if (window.location.pathname === '/sign-in') {
-      return null;
+    telemetry.reset();
+    if (window.location.pathname !== '/sign-in') {
+      const params = new URLSearchParams();
+      params.set('from', window.location.pathname + window.location.search);
+      window.location.replace(`/sign-in?${params.toString()}`);
     }
-    const searchParams = new URLSearchParams();
-    searchParams.set('from', window.location.pathname + window.location.search);
-    window.location.replace(`/sign-in?${searchParams.toString()}`);
-    return null;
   }
-  if (authenticationSession.isOnboarding()) {
+  if (log && init) {
     window.location.replace('/create-platform');
-    return null;
   }
-  platformHooks.useCurrentPlatform();
-  flagsHooks.useFlags();
-  projectCollectionUtils.useCurrentProject();
+  if (log && !init) {
+    platformHooks.useCurrentPlatform();
+    flagsHooks.useFlags();
+    projectCollectionUtils.useCurrentProject();
+  }
   return (
-    <SocketProvider>
-      <BadgeCelebrate />
-      {props.children}
-    </SocketProvider>
+    <Show when={log && !init}>
+      <SocketProvider>
+        <BadgeCelebrate />
+        {props.children}
+      </SocketProvider>
+    </Show>
   );
 };
