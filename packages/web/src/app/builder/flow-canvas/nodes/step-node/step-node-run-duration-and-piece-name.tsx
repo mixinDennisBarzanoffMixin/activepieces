@@ -23,11 +23,9 @@ const StepNodeRunDurationAndPieceName = (props: {
     state.run,
     state.loopsIndexes,
   ]);
-  const selectedStepOutput = createMemo(() => {
-    return run && run.steps
-      ? flowRunUtils.extractStepOutput(props.stepName, loopIndexes, run.steps)
-      : null;
-  });
+  const selectedStepOutput = createMemo(() =>
+    flowRunUtils.extractStepOutput(props.stepName, loopIndexes, run.steps),
+  );
 
   return (
     <div class="flex justify-between mt-0.5 w-full items-center">

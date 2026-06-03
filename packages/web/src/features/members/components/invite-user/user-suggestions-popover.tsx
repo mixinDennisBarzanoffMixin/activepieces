@@ -17,7 +17,8 @@ function UserSuggestionsPopover(props: UserSuggestionsPopoverProps) {
   const [selectedValue, setSelectedValue] = createSignal('');
   const [tagInputKey, setTagInputKey] = createSignal(0);
   let inputRef: HTMLInputElement | undefined;
-  const isPlatformInvite = props.invitationType === InvitationType.PLATFORM;
+  const isPlatformInvite = () =>
+    props.invitationType === InvitationType.PLATFORM;
 
   const {
     suggestedUsers,
@@ -26,9 +27,11 @@ function UserSuggestionsPopover(props: UserSuggestionsPopoverProps) {
     selectableItems,
     platformUserEmails,
   } = useUserSuggestions({
+    // eslint-disable-next-line solid/reactivity
     inputValue: inputValue(),
+    // eslint-disable-next-line solid/reactivity
     currentEmails: Array.from(props.value),
-    isPlatformInvite,
+    isPlatformInvite: isPlatformInvite(),
   });
 
   const getTagMeta = (email: string): TagMeta | undefined => {
@@ -48,7 +51,7 @@ function UserSuggestionsPopover(props: UserSuggestionsPopoverProps) {
       className:
         'text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-950 dark:border-blue-900',
       icon: <Globe class="size-3 shrink-0" />,
-      tooltip: isPlatformInvite ? t('New User') : t('New Member'),
+      tooltip: isPlatformInvite() ? t('New User') : t('New Member'),
     };
   };
 
@@ -74,7 +77,7 @@ function UserSuggestionsPopover(props: UserSuggestionsPopoverProps) {
       e.key === 'Enter' &&
       selectedValue() &&
       showSuggestions() &&
-      hasSuggestions
+      hasSuggestions()
     ) {
       e.preventDefault();
       const email = selectableItems().find(
@@ -89,7 +92,7 @@ function UserSuggestionsPopover(props: UserSuggestionsPopoverProps) {
     setSelectedValue('');
   };
 
-  const isOpen = () => showSuggestions() && hasSuggestions;
+  const isOpen = () => showSuggestions() && hasSuggestions();
 
   return (
     <Command
@@ -144,7 +147,7 @@ function UserSuggestionsPopover(props: UserSuggestionsPopoverProps) {
                       <SuggestedUserItem
                         type="email-status"
                         emailStatus={status()}
-                        isPlatformInvite={isPlatformInvite}
+                        isPlatformInvite={isPlatformInvite()}
                         onSelect={handleSelectUser}
                       />
                     )}

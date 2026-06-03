@@ -1,47 +1,44 @@
-import { createSignal, createContext, JSX } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { Accessor, createSignal, createContext, JSX } from 'solid-js';
 
 type TimeSavedOverride = {
   value: number | null;
 };
 
 type RefreshAnalyticsContextType = {
-  isRefreshing: boolean;
+  isRefreshing: Accessor<boolean>;
   setIsRefreshing: (isRefreshing: boolean) => void;
-  timeSavedPerRunOverrides: Record<string, TimeSavedOverride>;
+  timeSavedPerRunOverrides: Accessor<Record<string, TimeSavedOverride>>;
   setTimeSavedPerRunOverride: (flowId: string, value: number | null) => void;
   clearTimeSavedPerRunOverrides: () => void;
 };
 
 export const RefreshAnalyticsContext =
   createContext<RefreshAnalyticsContextType>({
-    isRefreshing: false,
+    isRefreshing: () => false,
     setIsRefreshing: () => {},
-    timeSavedPerRunOverrides: {},
+    timeSavedPerRunOverrides: () => ({}),
     setTimeSavedPerRunOverride: () => {},
     clearTimeSavedPerRunOverrides: () => {},
   });
 
 export const RefreshAnalyticsProvider = (props: { children: JSX.Element }) => {
   const [isRefreshing, setIsRefreshing] = createSignal(false);
-  const [timeSavedPerRunOverrides, setTimeSavedPerRunOverrides] = createStore<
+  const [timeSavedPerRunOverrides, setTimeSavedPerRunOverrides] = createSignal<
     Record<string, TimeSavedOverride>
   >({});
 
   const setTimeSavedPerRunOverride = (flowId: string, value: number | null) => {
-    setTimeSavedPerRunOverrides(flowId, { value });
+    setTimeSavedPerRunOverrides((state) => ({ ...state, [flowId]: { value } }));
   };
 
   const clearTimeSavedPerRunOverrides = () => {
-    Object.keys(timeSavedPerRunOverrides).forEach((flowId) => {
-      setTimeSavedPerRunOverrides(flowId, undefined!);
-    });
+    setTimeSavedPerRunOverrides({});
   };
 
   return (
     <RefreshAnalyticsContext.Provider
       value={{
-        isRefreshing: isRefreshing(),
+        isRefreshing,
         setIsRefreshing,
         timeSavedPerRunOverrides,
         setTimeSavedPerRunOverride,

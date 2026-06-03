@@ -221,12 +221,12 @@ export const piecesHooks = {
 
     const pinnedPieces = getPinnedPieces(
       piecesMetadataWithoutEmptySuggestions,
-      platform.pinnedPieces ?? [],
+      platform.pinnedPieces,
     );
 
     const popularPieces = getPopularPieces(
       piecesMetadataWithoutEmptySuggestions,
-      platform.pinnedPieces ?? [],
+      platform.pinnedPieces,
     );
 
     const flowControllerPieces =
@@ -460,14 +460,8 @@ const getExploreTabContent = (
   if (environment === ApEnvironment.DEVELOPMENT) {
     return [popularCategory];
   }
-  const pinnedPieces = getPinnedPieces(
-    queryResult,
-    platform.pinnedPieces ?? [],
-  );
-  const popularPieces = getPopularPieces(
-    queryResult,
-    platform.pinnedPieces ?? [],
-  );
+  const pinnedPieces = getPinnedPieces(queryResult, platform.pinnedPieces);
+  const popularPieces = getPopularPieces(queryResult, platform.pinnedPieces);
 
   if (popularPieces.length > 0) {
     popularCategory.metadata = [...popularCategory.metadata, ...popularPieces];

@@ -7,7 +7,7 @@ import {
 } from '@activepieces/shared';
 import { t } from 'i18next';
 import { FlaskConical, Play } from 'lucide-solid';
-import { Show, useContext } from 'solid-js';
+import { Show, createMemo, useContext } from 'solid-js';
 
 import { Button } from '@/components/ui/button';
 
@@ -48,19 +48,23 @@ const TestStepSectionImplementation = (
   const runner = useActionTestRunner();
   const onTestButtonClick = () => runner?.fireTest();
 
-  const lastTestDate = props.currentStep.settings.sampleData?.lastTestDate;
+  const date = createMemo(
+    () => props.currentStep.settings.sampleData?.lastTestDate,
+  );
 
-  const sampleDataExists =
-    !isNil(lastTestDate) ||
-    !isNil(errorMessage) ||
-    isStepBeingTested(props.currentStep.name);
+  const exists = createMemo(
+    () =>
+      !isNil(date()) ||
+      !isNil(errorMessage) ||
+      isStepBeingTested(props.currentStep.name),
+  );
 
   const isTesting = runner?.isTesting ?? false;
   const { isLoadingDynamicProperties } = useContext(DynamicPropertiesContext);
 
   return (
     <>
-      <Show when={!sampleDataExists && !isTesting}>
+      <Show when={!exists() && !isTesting}>
         <div class="flex flex-col h-full">
           <TestPanelHeader status="idle" />
           <div class="flex justify-end px-3 py-2 shrink-0">
@@ -100,14 +104,14 @@ const TestStepSectionImplementation = (
           </div>
         </div>
       </Show>
-      <Show when={sampleDataExists || isTesting}>
+      <Show when={exists() || isTesting}>
         <TestSampleDataViewer
           isValid={props.currentStep.valid && !isLoadingDynamicProperties}
           currentStep={props.currentStep}
           isTesting={isTesting}
           sampleData={sampleData}
           sampleDataInput={sampleDataInput ?? null}
-          lastTestDate={lastTestDate}
+          lastTestDate={date()}
           isSaving={props.isSaving}
           onRetest={onTestButtonClick}
           errorMessage={errorMessage}
@@ -131,11 +135,18 @@ const TestActionSection = (props: TestActionComponentProps) => {
       ? flowStructureUtil.getStep(state.selectedStep, state.flowVersion.trigger)
       : null,
   );
-  if (isNil(currentStep) || !isAction(currentStep)) {
-    return null;
-  }
+  const action = createMemo(() => {
+    if (isNil(currentStep) || !isAction(currentStep)) return;
+    return currentStep;
+  });
 
-  return <TestStepSectionImplementation {...props} currentStep={currentStep} />;
+  return (
+    <Show when={action()} keyed>
+      {(current) => (
+        <TestStepSectionImplementation {...props} currentStep={current} />
+      )}
+    </Show>
+  );
 };
 
 type TestActionComponentProps = {

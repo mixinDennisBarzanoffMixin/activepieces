@@ -19,10 +19,8 @@ type CodeEditorProps = {
 };
 
 const CodeEditor = (props: CodeEditorProps) => {
-  const { code, packageJson } = props.sourceCode;
   const [activeTab, setActiveTab] = createSignal<keyof SourceCode>('code');
-  const codeApplicationEnabled =
-    typeof props.applyCodeToCurrentStep === 'function';
+  const enabled = () => typeof props.applyCodeToCurrentStep === 'function';
 
   const { data: allowNpmPackagesInCodeStep } = flagsHooks.useFlag<boolean>(
     ApFlagId.ALLOW_NPM_PACKAGES_IN_CODE_STEP,
@@ -44,7 +42,7 @@ const CodeEditor = (props: CodeEditorProps) => {
     packageVersion: string;
   }) {
     try {
-      const parsed: unknown = JSON.parse(packageJson);
+      const parsed: unknown = JSON.parse(props.sourceCode.packageJson);
       const json = {
         ...(isRecord(parsed) ? parsed : {}),
         dependencies: {
@@ -55,7 +53,10 @@ const CodeEditor = (props: CodeEditorProps) => {
         },
       };
       setActiveTab('packageJson');
-      props.onChange({ code, packageJson: JSON.stringify(json, null, 2) });
+      props.onChange({
+        code: props.sourceCode.code,
+        packageJson: JSON.stringify(json, null, 2),
+      });
     } catch (e) {
       console.error(e);
       internalErrorToast();
@@ -87,7 +88,7 @@ const CodeEditor = (props: CodeEditorProps) => {
         </div>
         <div class="flex grow" />
         <Show
-          when={codeApplicationEnabled}
+          when={enabled()}
           fallback={
             allowNpmPackagesInCodeStep && (
               <AddNpmDialog onAdd={handleAddPackages}>
@@ -116,7 +117,11 @@ const CodeEditor = (props: CodeEditorProps) => {
         </Show>
       </div>
       <textarea
-        value={activeTab() === 'code' ? code : packageJson}
+        value={
+          activeTab() === 'code'
+            ? props.sourceCode.code
+            : props.sourceCode.packageJson
+        }
         class="min-h-[200px] w-full border-none bg-transparent font-mono text-sm outline-none"
         style={{ 'min-height': props.minHeight ?? '200px' }}
         readOnly={props.readonly}
@@ -124,8 +129,8 @@ const CodeEditor = (props: CodeEditorProps) => {
           const value = e.currentTarget.value;
           props.onChange(
             activeTab() === 'code'
-              ? { code: value, packageJson }
-              : { code, packageJson: value },
+              ? { code: value, packageJson: props.sourceCode.packageJson }
+              : { code: props.sourceCode.code, packageJson: value },
           );
         }}
       />
