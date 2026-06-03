@@ -20,7 +20,18 @@ function DialogTrigger({
 function DialogPortal({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
-  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
+  const container =
+    typeof document === 'undefined'
+      ? undefined
+      : document.querySelector<HTMLElement>('.veritly-automation-editor') ??
+        undefined;
+  return (
+    <DialogPrimitive.Portal
+      data-slot="dialog-portal"
+      container={container}
+      {...props}
+    />
+  );
 }
 
 function DialogClose({

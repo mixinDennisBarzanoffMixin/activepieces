@@ -449,6 +449,24 @@
   color: var(--foreground);
 }
 
+.veritly-automation-editor [data-slot='dialog-overlay'],
+.veritly-automation-editor [data-slot='sheet-overlay'],
+.veritly-automation-editor [data-slot='drawer-overlay'] {
+  position: absolute;
+  inset: 0;
+}
+
+.veritly-automation-editor [data-slot='dialog-content'] {
+  position: absolute;
+  max-width: min(425px, calc(100% - 32px));
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
+}
+
+.veritly-automation-editor [data-slot='sheet-content'],
+.veritly-automation-editor [data-slot='drawer-content'] {
+  position: absolute;
+}
+
 /* You can add global styles to this file, and also import other style files */
 @layer base {
   input[type='number']::-webkit-inner-spin-button,

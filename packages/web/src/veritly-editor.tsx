@@ -164,7 +164,7 @@ export default function VeritlyAutomationEditorRoot(
     <StrictMode>
       <EmbeddingProvider>
         <VeritlyEmbedding>
-          <div className="veritly-automation-editor h-full min-h-0 w-full overflow-hidden bg-background text-foreground">
+          <div className="veritly-automation-editor relative h-full min-h-0 w-full overflow-hidden bg-background text-foreground">
             <MemoryRouter
               initialEntries={[`/projects/${props.projectId}/flows/${props.flowId}`]}
             >
