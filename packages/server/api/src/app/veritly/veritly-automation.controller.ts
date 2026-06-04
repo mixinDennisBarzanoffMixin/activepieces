@@ -1,4 +1,4 @@
-import { AuthenticationResponse, EnginePrincipal, FlowVersionState } from '@activepieces/shared'
+import { AuthenticationResponse, EnginePrincipal, FlowVersionState, VeritlyUniverAppend, VeritlyUniverRow, VeritlyUniverSheets, VeritlyUniverUpdate, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@activepieces/shared'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { StatusCodes } from 'http-status-codes'
 import { z } from 'zod'
@@ -9,16 +9,6 @@ import { getVeritlyProject, getVeritlySessionResponse, resolveVeritlySession } f
 
 const PROJECT_HDR = 'x-veritly-project-id'
 const ErrorResponse = z.object({ error: z.string() })
-const Book = z.object({ id: z.string(), name: z.string() })
-const Cell = z.union([z.string(), z.number(), z.boolean(), z.null()])
-const Row = z.object({
-    id: z.string(),
-    index: z.number(),
-    values: z.array(Cell),
-    updatedAt: z.string(),
-    hash: z.string(),
-})
-
 export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) => {
     app.get('/session', {
         schema: {
@@ -96,7 +86,7 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
 
     app.get('/worker/univer/workbooks', WorkerRequest({
         response: {
-            [StatusCodes.OK]: z.object({ workbooks: z.array(Book) }),
+            [StatusCodes.OK]: VeritlyUniverWorkbooks,
         },
     }), async (request) => {
         return await run(request, async ({ store }) => ({
@@ -107,7 +97,7 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
     app.get('/worker/univer/workbooks/:workbookId/sheets', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1) }),
         response: {
-            [StatusCodes.OK]: z.object({ sheets: z.array(Book) }),
+            [StatusCodes.OK]: VeritlyUniverSheets,
         },
     }), async (request) => {
         return await run(request, async ({ api, store }) => {
@@ -126,7 +116,7 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
     app.get('/worker/univer/workbooks/:workbookId/sheets/:sheetId/rows', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1), sheetId: z.string().min(1) }),
         response: {
-            [StatusCodes.OK]: z.object({ rows: z.array(Row) }),
+            [StatusCodes.OK]: z.object({ rows: z.array(VeritlyUniverRow) }),
         },
     }), async (request) => {
         return await run(request, async ({ api, store }) => ({
@@ -136,9 +126,9 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
 
     app.post('/worker/univer/workbooks/:workbookId/sheets/:sheetId/rows', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1), sheetId: z.string().min(1) }),
-        body: z.object({ values: z.array(Cell) }),
+        body: VeritlyUniverAppend,
         response: {
-            [StatusCodes.OK]: Row,
+            [StatusCodes.OK]: VeritlyUniverRow,
         },
     }), async (request) => {
         return await run(request, async ({ api, store }) => {
@@ -155,20 +145,9 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
 
     app.post('/worker/univer/workbooks/:workbookId/sheets/:sheetId/cells', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1), sheetId: z.string().min(1) }),
-        body: z.object({
-            rowIndex: z.number(),
-            columnIndex: z.number(),
-            value: Cell,
-        }),
+        body: VeritlyUniverUpdate,
         response: {
-            [StatusCodes.OK]: z.object({
-                workbookId: z.string(),
-                sheetId: z.string(),
-                rowIndex: z.number(),
-                columnIndex: z.number(),
-                value: Cell,
-                revision: z.number(),
-            }),
+            [StatusCodes.OK]: VeritlyUniverUpdateResult,
         },
     }), async (request) => {
         return await run(request, async ({ api, store }) => {
@@ -234,7 +213,7 @@ function persist() {
 }
 
 async function compat(): Promise<Compat> {
-    return await import(new URL('../../../../../../../univer-compat/src/index.ts', import.meta.url).href) as Compat
+    return await import('@opencode-ai/univer-compat') as Compat
 }
 
 function out(item: CompatRow) {

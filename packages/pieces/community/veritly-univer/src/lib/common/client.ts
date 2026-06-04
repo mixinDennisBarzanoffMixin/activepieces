@@ -1,23 +1,16 @@
 import type { ServerContext } from '@activepieces/pieces-framework';
+import type { VeritlyUniverRow, VeritlyUniverSheets, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@activepieces/shared';
 import { cell, row, type Row, type Scoped } from './types';
 
-type Book = {
-  id: string;
-  name: string;
-};
-
-type Sheet = {
-  id: string;
-  name: string;
-};
+const timeout = 5000;
 
 export async function workbooks(server: ServerContext) {
-  return await get<{ workbooks: Book[] }>(server, 'workbooks');
+  return await get<VeritlyUniverWorkbooks>(server, 'workbooks');
 }
 
 export async function sheets(server: ServerContext, props: { workbook_id: string }) {
   if (!props.workbook_id) throw new Error('Workbook ID is required');
-  return await get<{ sheets: Sheet[] }>(server, `workbooks/${encodeURIComponent(props.workbook_id)}/sheets`);
+  return await get<VeritlyUniverSheets>(server, `workbooks/${encodeURIComponent(props.workbook_id)}/sheets`);
 }
 
 export async function rows(server: ServerContext, props: Scoped) {
@@ -36,7 +29,7 @@ export async function find(server: ServerContext, props: Scoped & { query?: stri
 
 export async function append(server: ServerContext, props: Scoped & { values: unknown }) {
   const cfg = ref(props);
-  return await post<Row>(server, `workbooks/${encodeURIComponent(cfg.workbookId)}/sheets/${encodeURIComponent(cfg.sheetId)}/rows`, {
+  return await post<VeritlyUniverRow>(server, `workbooks/${encodeURIComponent(cfg.workbookId)}/sheets/${encodeURIComponent(cfg.sheetId)}/rows`, {
     values: row(props.values),
   });
 }
@@ -49,7 +42,7 @@ export async function update(server: ServerContext, props: Scoped & { row_index?
   if (typeof r !== 'number') throw new Error('Row index is required');
   if (typeof c !== 'number') throw new Error('Column index is required');
   const cfg = ref(props);
-  return await post(server, `workbooks/${encodeURIComponent(cfg.workbookId)}/sheets/${encodeURIComponent(cfg.sheetId)}/cells`, {
+  return await post<VeritlyUniverUpdateResult>(server, `workbooks/${encodeURIComponent(cfg.workbookId)}/sheets/${encodeURIComponent(cfg.sheetId)}/cells`, {
     rowIndex: r,
     columnIndex: c,
     value: cell(props.value),
@@ -66,13 +59,18 @@ function ref(props: Scoped) {
 }
 
 async function get<T>(server: ServerContext, path: string): Promise<T> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
   const res = await fetch(url(server, path), {
     headers: head(server),
-  });
+    signal: ctrl.signal,
+  }).finally(() => clearTimeout(timer));
   return await body<T>(res);
 }
 
 async function post<T>(server: ServerContext, path: string, data: unknown): Promise<T> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeout);
   const res = await fetch(url(server, path), {
     method: 'POST',
     headers: {
@@ -80,7 +78,8 @@ async function post<T>(server: ServerContext, path: string, data: unknown): Prom
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(data),
-  });
+    signal: ctrl.signal,
+  }).finally(() => clearTimeout(timer));
   return await body<T>(res);
 }
 
