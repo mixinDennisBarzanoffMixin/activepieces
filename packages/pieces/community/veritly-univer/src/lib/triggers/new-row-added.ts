@@ -24,9 +24,17 @@ export const newRowAdded = createTrigger({
     return newest((await rows(server(context), await scoped(context, context.propsValue))).rows).slice(0, 5);
   },
   async onEnable(context) {
+    const props = await scoped(context, context.propsValue);
+    const list = (await rows(server(context), props)).rows;
+    console.log('[veritly-univer] new_row_added onEnable', {
+      workbook: props.workbook_id,
+      sheet: props.sheet_id,
+      rows: list.length,
+      first: list[0],
+    });
     await context.store.put(
       key,
-      (await rows(server(context), await scoped(context, context.propsValue))).rows.map((item) => item.index)
+      list.map((item) => item.index)
     );
   },
   async onDisable(context) {
@@ -35,12 +43,23 @@ export const newRowAdded = createTrigger({
   async run(context) {
     const seen = await context.store.get<number[]>(key);
     if (!seen) throw new Error('Seen row state is missing');
-    const list = newest((await rows(server(context), await scoped(context, context.propsValue))).rows);
+    const props = await scoped(context, context.propsValue);
+    const list = newest((await rows(server(context), props)).rows);
     await context.store.put(
       key,
       list.map((item) => item.index)
     );
-    return list.filter((item) => !seen.includes(item.index));
+    const out = list.filter((item) => !seen.includes(item.index));
+    console.log('[veritly-univer] new_row_added run', {
+      workbook: props.workbook_id,
+      sheet: props.sheet_id,
+      seen: seen.length,
+      rows: list.length,
+      first: list[0],
+      out: out.length,
+      event: out[0],
+    });
+    return out;
   },
 });
 

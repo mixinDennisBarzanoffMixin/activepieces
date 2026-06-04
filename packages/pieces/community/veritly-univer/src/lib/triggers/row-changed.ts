@@ -30,8 +30,11 @@ export const rowChanged = createTrigger({
     return (await rows(server(context), await scoped(context, context.propsValue))).rows.slice(0, 5);
   },
   async onEnable(context) {
-    const list = (await rows(server(context), await scoped(context, context.propsValue))).rows;
+    const props = await scoped(context, context.propsValue);
+    const list = (await rows(server(context), props)).rows;
     console.log('[veritly-univer] row_changed onEnable', {
+      workbook: props.workbook_id,
+      sheet: props.sheet_id,
       rows: list.length,
       first: list[0],
     });
@@ -43,10 +46,13 @@ export const rowChanged = createTrigger({
   async run(context) {
     const old = await context.store.get<Snap>(key);
     if (!old) throw new Error('Row hash state is missing');
-    const list = (await rows(server(context), await scoped(context, context.propsValue))).rows;
+    const props = await scoped(context, context.propsValue);
+    const list = (await rows(server(context), props)).rows;
     await context.store.put(key, snap(list));
     const out = changed(list, old);
     console.log('[veritly-univer] row_changed run', {
+      workbook: props.workbook_id,
+      sheet: props.sheet_id,
       old: Object.keys(old).length,
       rows: list.length,
       first: list[0],
