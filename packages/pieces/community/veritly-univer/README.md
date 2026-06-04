@@ -8,5 +8,5 @@ same row automation HTTP shape.
 
 Expected behavior:
 
-Rows include stable `id`, numeric `index`, ISO `updatedAt`, stable `hash`, and a
-`values` array matching zero-based Univer columns.
+Rows include numeric `index`, stable `hash`, and a `values` array matching
+zero-based Univer columns.

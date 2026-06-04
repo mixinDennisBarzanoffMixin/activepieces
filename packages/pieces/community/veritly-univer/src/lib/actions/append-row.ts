@@ -16,6 +16,13 @@ export const appendRow = createAction({
     }),
   },
   async run(context) {
-    return await append(context.server, { ...(await scoped(context, context.propsValue)), values: context.propsValue.values });
+    console.log('[veritly-univer] append_row input', {
+      workbook: context.propsValue.workbook_id,
+      sheet: context.propsValue.sheet_id,
+      values: context.propsValue.values,
+    });
+    const out = await append(context.server, { ...(await scoped(context, context.propsValue)), values: context.propsValue.values });
+    console.log('[veritly-univer] append_row output', out);
+    return out;
   },
 });

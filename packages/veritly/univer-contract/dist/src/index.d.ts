@@ -5,10 +5,8 @@ export declare const VeritlyUniverBook: z.ZodObject<{
     name: z.ZodString;
 }, z.core.$strip>;
 export declare const VeritlyUniverRow: z.ZodObject<{
-    id: z.ZodString;
     index: z.ZodNumber;
     values: z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]>>;
-    updatedAt: z.ZodString;
     hash: z.ZodString;
 }, z.core.$strip>;
 export declare const VeritlyUniverWorkbooks: z.ZodObject<{
@@ -25,10 +23,8 @@ export declare const VeritlyUniverSheets: z.ZodObject<{
 }, z.core.$strip>;
 export declare const VeritlyUniverRows: z.ZodObject<{
     rows: z.ZodArray<z.ZodObject<{
-        id: z.ZodString;
         index: z.ZodNumber;
         values: z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]>>;
-        updatedAt: z.ZodString;
         hash: z.ZodString;
     }, z.core.$strip>>;
 }, z.core.$strip>;
@@ -102,18 +98,14 @@ export declare function createUniverClient(opts: ClientOptions): {
     }>;
     rows(target: Ref): Promise<{
         rows: {
-            id: string;
             index: number;
             values: (string | number | boolean | null)[];
-            updatedAt: string;
             hash: string;
         }[];
     }>;
     append(target: Ref, values: Cell[]): Promise<{
-        id: string;
         index: number;
         values: (string | number | boolean | null)[];
-        updatedAt: string;
         hash: string;
     }>;
     update(target: Ref, update: VeritlyUniverUpdate): Promise<{

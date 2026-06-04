@@ -16,14 +16,9 @@ export const newRowAdded = createTrigger({
   props: sheet,
   type: TriggerStrategy.POLLING,
   sampleData: {
-    id: 'row_12',
     index: 12,
-    updatedAt: '2026-06-04T00:00:00.000Z',
     hash: 'row-hash',
-    values: {
-      name: 'Dennis',
-      status: 'new',
-    },
+    values: ['Dennis', 'new'],
   },
   async test(context) {
     return newest((await rows(server(context), await scoped(context, context.propsValue))).rows).slice(0, 5);
@@ -31,21 +26,21 @@ export const newRowAdded = createTrigger({
   async onEnable(context) {
     await context.store.put(
       key,
-      (await rows(server(context), await scoped(context, context.propsValue))).rows.map((item) => item.id)
+      (await rows(server(context), await scoped(context, context.propsValue))).rows.map((item) => item.index)
     );
   },
   async onDisable(context) {
     await context.store.delete(key);
   },
   async run(context) {
-    const seen = await context.store.get<string[]>(key);
+    const seen = await context.store.get<number[]>(key);
     if (!seen) throw new Error('Seen row state is missing');
     const list = newest((await rows(server(context), await scoped(context, context.propsValue))).rows);
     await context.store.put(
       key,
-      list.map((item) => item.id)
+      list.map((item) => item.index)
     );
-    return list.filter((item) => !seen.includes(item.id));
+    return list.filter((item) => !seen.includes(item.index));
   },
 });
 

@@ -8,10 +8,8 @@ export const VeritlyUniverBook = z.object({
 });
 
 export const VeritlyUniverRow = z.object({
-  id: z.string(),
   index: z.number(),
   values: z.array(VeritlyUniverCell),
-  updatedAt: z.string(),
   hash: z.string(),
 });
 
@@ -120,7 +118,7 @@ export function row(value: unknown): Cell[] {
 }
 
 export function snap(rows: Row[]): Snap {
-  return Object.fromEntries(rows.map((item) => [item.id, item.hash]));
+  return Object.fromEntries(rows.map((item) => [String(item.index), item.hash]));
 }
 
 export function createUniverClient(opts: ClientOptions) {

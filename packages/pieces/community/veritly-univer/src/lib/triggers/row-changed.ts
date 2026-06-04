@@ -7,10 +7,10 @@ const key = 'veritly-univer-row-hashes';
 
 function changed(list: Row[], old: Snap) {
   return list
-    .filter((item) => old[item.id] !== undefined && old[item.id] !== item.hash)
+    .filter((item) => old[String(item.index)] !== undefined && old[String(item.index)] !== item.hash)
     .map((item) => ({
       ...item,
-      previousHash: old[item.id],
+      previousHash: old[String(item.index)],
     }));
 }
 
@@ -21,21 +21,21 @@ export const rowChanged = createTrigger({
   props: sheet,
   type: TriggerStrategy.POLLING,
   sampleData: {
-    id: 'row_12',
     index: 12,
-    updatedAt: '2026-06-04T00:00:00.000Z',
     hash: 'next-row-hash',
     previousHash: 'previous-row-hash',
-    values: {
-      name: 'Dennis',
-      status: 'processed',
-    },
+    values: ['Dennis', 'processed'],
   },
   async test(context) {
     return (await rows(server(context), await scoped(context, context.propsValue))).rows.slice(0, 5);
   },
   async onEnable(context) {
-    await context.store.put(key, snap((await rows(server(context), await scoped(context, context.propsValue))).rows));
+    const list = (await rows(server(context), await scoped(context, context.propsValue))).rows;
+    console.log('[veritly-univer] row_changed onEnable', {
+      rows: list.length,
+      first: list[0],
+    });
+    await context.store.put(key, snap(list));
   },
   async onDisable(context) {
     await context.store.delete(key);
@@ -45,7 +45,15 @@ export const rowChanged = createTrigger({
     if (!old) throw new Error('Row hash state is missing');
     const list = (await rows(server(context), await scoped(context, context.propsValue))).rows;
     await context.store.put(key, snap(list));
-    return changed(list, old);
+    const out = changed(list, old);
+    console.log('[veritly-univer] row_changed run', {
+      old: Object.keys(old).length,
+      rows: list.length,
+      first: list[0],
+      out: out.length,
+      event: out[0],
+    });
+    return out;
   },
 });
 

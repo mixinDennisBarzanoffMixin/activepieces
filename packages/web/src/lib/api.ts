@@ -42,6 +42,12 @@ function isUrlRelative(url: string) {
 }
 
 export function apiBaseUrl() {
+  const cfg = (
+    window as Window & {
+      __VERITLY_RUNTIME_CONFIG__?: { activepiecesApiUrl?: string };
+    }
+  ).__VERITLY_RUNTIME_CONFIG__?.activepiecesApiUrl?.trim();
+  if (cfg) return cfg;
   const env = import.meta.env.VITE_ACTIVEPIECES_API_URL?.trim();
   return env || API_BASE_URL;
 }

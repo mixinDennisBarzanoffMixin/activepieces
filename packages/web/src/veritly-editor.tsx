@@ -4,6 +4,7 @@ import './i18n';
 import { AuthenticationResponse, isNil, PopulatedFlow } from '@activepieces/shared';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { ReactFlowProvider } from '@xyflow/react';
+import { jwtDecode } from 'jwt-decode';
 import React, { StrictMode, useEffect, useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -90,6 +91,7 @@ function VeritlySession(props: React.PropsWithChildren<VeritlyAutomationEditorPr
 
   useEffect(() => {
     setReady(false);
+    authenticationSession.clearSession();
     setVeritlyProjectId(props.projectId);
   }, [props.projectId]);
 
@@ -105,6 +107,11 @@ function VeritlySession(props: React.PropsWithChildren<VeritlyAutomationEditorPr
 
   useEffect(() => {
     if (!session.data) return;
+    if (!isValidSession(session.data)) {
+      authenticationSession.clearSession();
+      setReady(false);
+      return;
+    }
     authenticationSession.saveResponse(session.data, true);
     setReady(true);
   }, [session.data]);
@@ -129,6 +136,16 @@ function VeritlySession(props: React.PropsWithChildren<VeritlyAutomationEditorPr
   }
 
   return <>{props.children}</>;
+}
+
+function isValidSession(session: AuthenticationResponse) {
+  if (!session.token || session.token.split('.').length !== 3) return false;
+  try {
+    jwtDecode(session.token);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function VeritlyEmbedding(props: React.PropsWithChildren) {

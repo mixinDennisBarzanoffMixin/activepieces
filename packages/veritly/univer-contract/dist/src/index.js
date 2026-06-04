@@ -14,10 +14,8 @@ exports.VeritlyUniverBook = zod_1.z.object({
     name: zod_1.z.string(),
 });
 exports.VeritlyUniverRow = zod_1.z.object({
-    id: zod_1.z.string(),
     index: zod_1.z.number(),
     values: zod_1.z.array(exports.VeritlyUniverCell),
-    updatedAt: zod_1.z.string(),
     hash: zod_1.z.string(),
 });
 exports.VeritlyUniverWorkbooks = zod_1.z.object({
@@ -89,7 +87,7 @@ function row(value) {
     return value.map(cell);
 }
 function snap(rows) {
-    return Object.fromEntries(rows.map((item) => [item.id, item.hash]));
+    return Object.fromEntries(rows.map((item) => [String(item.index), item.hash]));
 }
 function createUniverClient(opts) {
     const send = async (schema, method, path, data) => {
