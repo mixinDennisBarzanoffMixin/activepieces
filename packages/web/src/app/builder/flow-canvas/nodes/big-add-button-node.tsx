@@ -50,75 +50,83 @@ const ApBigAddButtonCanvasNode = React.memo(
             className="flex justify-center items-center "
           >
             {!readonly && (
-              //we use transparent colors when opening the piece selector, so to not show the pattern of the background inside the button, we wrap the big add button in a div with the background color
-              <div className="bg-builder-background">
+              <PieceSelector
+                operation={flowCanvasUtils.createAddOperationFromAddButtonData(
+                  data,
+                )}
+                id={id}
+                openSelectorOnClick={!isShowingDropIndicator}
+              >
                 <div
                   style={{
-                    height: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.height}px`,
-                    width: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.width}px`,
+                    height: `${flowCanvasConsts.AP_NODE_SIZE.STEP.height}px`,
+                    width: `${flowCanvasConsts.AP_NODE_SIZE.STEP.width}px`,
                   }}
-                  className=" cursor-auto border-none flex items-center justify-center relative "
+                  className="flex cursor-pointer items-center justify-center"
                 >
-                  <div
-                    style={{
-                      height: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.height}px`,
-                      width: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.width}px`,
-                    }}
-                    id={id}
-                    className={cn('rounded-lg bg-background relative', {
-                      'bg-primary/80':
-                        isShowingDropIndicator || isPieceSelectorOpened,
-                      'shadow-add-button':
-                        isIsStepInsideDropzone || isPieceSelectorOpened,
-                      'transition-all':
-                        isIsStepInsideDropzone ||
-                        isPieceSelectorOpened ||
-                        isShowingDropIndicator,
-                    })}
-                  >
-                    {!isShowingDropIndicator && (
-                      <PieceSelector
-                        operation={flowCanvasUtils.createAddOperationFromAddButtonData(
-                          data,
-                        )}
-                        id={id}
-                      >
-                        <span>
-                          <Button
-                            variant="transparent"
-                            className="w-full h-full flex items-center hover:bg-accent-foreground rounded-lg border-border border-solid border"
-                          >
-                            <Plus
-                              className={cn('w-6 h-6 text-foreground ', {
-                                'opacity-0':
-                                  isShowingDropIndicator ||
-                                  isPieceSelectorOpened,
-                              })}
-                            />
-                          </Button>
-                        </span>
-                      </PieceSelector>
-                    )}
-                  </div>
-                  {isShowingDropIndicator && (
-                    //this is an invisible div that is used to show the drop indicator when the step is being dragged over the big add button, it is a rectangle so there is more leanancy to drop the step on the big add button
+                  <div className="bg-builder-background rounded-lg">
                     <div
                       style={{
-                        height: `${flowCanvasConsts.AP_NODE_SIZE.STEP.height}px`,
-                        width: `${flowCanvasConsts.AP_NODE_SIZE.STEP.width}px`,
-                        top: `-${
-                          flowCanvasConsts.AP_NODE_SIZE.STEP.height / 2 -
-                          flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.width / 2
-                        }px`,
+                        height: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.height}px`,
+                        width: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.width}px`,
                       }}
-                      className=" absolute "
-                      ref={setNodeRef}
+                      className="border-none flex cursor-pointer items-center justify-center relative"
                     >
-                      {' '}
+                      <div
+                        style={{
+                          height: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.height}px`,
+                          width: `${flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON.width}px`,
+                        }}
+                        id={id}
+                        className={cn('rounded-lg bg-background relative', {
+                          'bg-primary/80':
+                            isShowingDropIndicator || isPieceSelectorOpened,
+                          'shadow-add-button':
+                            isIsStepInsideDropzone || isPieceSelectorOpened,
+                          'transition-all':
+                            isIsStepInsideDropzone ||
+                            isPieceSelectorOpened ||
+                            isShowingDropIndicator,
+                        })}
+                      >
+                        {!isShowingDropIndicator && (
+                          <span>
+                            <Button
+                              variant="transparent"
+                              className="w-full h-full flex cursor-pointer items-center rounded-lg border-border border-solid border"
+                            >
+                              <Plus
+                                className={cn('w-6 h-6 text-foreground', {
+                                  'opacity-0': isPieceSelectorOpened,
+                                })}
+                              />
+                            </Button>
+                          </span>
+                        )}
+                      </div>
+                      {isShowingDropIndicator && (
+                        //this is an invisible div that is used to show the drop indicator when the step is being dragged over the big add button, it is a rectangle so there is more leanancy to drop the step on the big add button
+                        <div
+                          style={{
+                            height: `${flowCanvasConsts.AP_NODE_SIZE.STEP.height}px`,
+                            width: `${flowCanvasConsts.AP_NODE_SIZE.STEP.width}px`,
+                            top: `-${
+                              flowCanvasConsts.AP_NODE_SIZE.STEP.height / 2 -
+                              flowCanvasConsts.AP_NODE_SIZE.BIG_ADD_BUTTON
+                                .width /
+                                2
+                            }px`,
+                          }}
+                          className="absolute"
+                          ref={setNodeRef}
+                        >
+                          {' '}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              </PieceSelector>
             )}
             {readonly && (
               <div
