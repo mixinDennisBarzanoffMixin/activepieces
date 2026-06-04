@@ -89,6 +89,7 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             [StatusCodes.OK]: VeritlyUniverWorkbooks,
         },
     }), async (request) => {
+        console.log('[veritly api] worker/univer/workbooks')
         return await run(request, async ({ store }) => ({
             workbooks: await store.listPersistedSheetUnits(),
         }))
@@ -100,6 +101,7 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             [StatusCodes.OK]: VeritlyUniverSheets,
         },
     }), async (request) => {
+        console.log('[veritly api] worker/univer/sheets', { workbookId: request.params.workbookId })
         return await run(request, async ({ api, store }) => {
             await store.hydrateUnit(request.params.workbookId)
             const wb = api.parseSnapshotWorkbook(store.latestSnapshot(request.params.workbookId, 2).snap).wb
@@ -181,14 +183,17 @@ function WorkerRequest(schema: WorkerSchema) {
 }
 
 async function run<T>(request: WorkerRequestType, fn: (ctx: CompatCtx) => Promise<T>) {
+    console.log('[veritly api] run start', { projectId: (request.principal as EnginePrincipal).projectId })
     const project = await projectService(request.log).getOneOrThrow((request.principal as EnginePrincipal).projectId)
     const id = identity(project)
     const api = await compat()
     const store = new api.Store(api.exchangeFilesFromEnv(), persist())
+    console.log('[veritly api] run scope', { veritlyProjectId: id.projectId, userId: id.userId })
     return await api.runWithRequestUserAsync(id.userId, () => api.runWithRequestProjectAsync(id.projectId, () => fn({ api, store })))
 }
 
 function identity(project: { externalId: string | null, metadata: Record<string, unknown> | null }) {
+    console.log('[veritly api] identity', { externalId: project.externalId })
     const prefix = 'veritly:project:'
     const ext = project.externalId
     if (!ext?.startsWith(prefix)) throw new Error('Activepieces project is missing Veritly external id')
@@ -213,6 +218,7 @@ function persist() {
 }
 
 async function compat(): Promise<Compat> {
+    console.log('[veritly api] importing @opencode-ai/univer-compat')
     return await import('@opencode-ai/univer-compat') as Compat
 }
 
