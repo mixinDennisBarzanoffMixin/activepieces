@@ -1,0 +1,30 @@
+import { createAction, Property } from '@activepieces/pieces-framework';
+import { update } from '../common/client';
+import { sheet } from '../common/props';
+
+export const updateCell = createAction({
+  name: 'update_cell',
+  displayName: 'Update Cell',
+  description: 'Update one cell in a Veritly Univer sheet.',
+  props: {
+    ...sheet,
+    row_index: Property.Number({
+      displayName: 'Row Index',
+      description: 'Zero-based Univer row index.',
+      required: true,
+    }),
+    column_index: Property.Number({
+      displayName: 'Column Index',
+      description: 'Zero-based Univer column index.',
+      required: true,
+    }),
+    value: Property.ShortText({
+      displayName: 'Value',
+      description: 'Value to write into the cell.',
+      required: true,
+    }),
+  },
+  async run(context) {
+    return await update(context.propsValue);
+  },
+});
