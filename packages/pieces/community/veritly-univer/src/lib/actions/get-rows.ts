@@ -1,6 +1,6 @@
 import { createAction } from '@activepieces/pieces-framework';
 import { rows } from '../common/client';
-import { sheet } from '../common/props';
+import { scoped, sheet } from '../common/props';
 
 export const getRows = createAction({
   name: 'get_rows',
@@ -8,6 +8,6 @@ export const getRows = createAction({
   description: 'Return rows from a Veritly Univer sheet.',
   props: sheet,
   async run(context) {
-    return await rows(context.propsValue);
+    return await rows(await scoped(context, context.propsValue));
   },
 });

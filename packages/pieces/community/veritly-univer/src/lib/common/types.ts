@@ -16,22 +16,27 @@ export type Row = {
 };
 
 export type Props = {
-  veritly_user_id: string;
-  project_id: string;
-  workbook_id: string;
-  sheet_id: string;
+  workbook_id?: string;
+  sheet_id?: string;
 };
+
+export type Identity = {
+  userId: string;
+  projectId: string;
+};
+
+export type Scoped = Props & Identity;
 
 export type Snap = Record<string, string>;
 
-export function ref(props: Props): Ref {
-  if (!props.veritly_user_id) throw new Error('Veritly User ID is required');
-  if (!props.project_id) throw new Error('Project ID is required');
+export function ref(props: Scoped): Ref {
+  if (!props.userId) throw new Error('Veritly User ID is required');
+  if (!props.projectId) throw new Error('Project ID is required');
   if (!props.workbook_id) throw new Error('Workbook ID is required');
   if (!props.sheet_id) throw new Error('Sheet ID is required');
   return {
-    userId: props.veritly_user_id,
-    projectId: props.project_id,
+    userId: props.userId,
+    projectId: props.projectId,
     workbookId: props.workbook_id,
     sheetId: props.sheet_id,
   };

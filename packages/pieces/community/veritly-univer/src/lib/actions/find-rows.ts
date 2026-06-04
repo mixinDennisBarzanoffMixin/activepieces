@@ -1,6 +1,6 @@
 import { createAction, Property } from '@activepieces/pieces-framework';
 import { find } from '../common/client';
-import { sheet } from '../common/props';
+import { scoped, sheet } from '../common/props';
 
 export const findRows = createAction({
   name: 'find_rows',
@@ -14,6 +14,6 @@ export const findRows = createAction({
     }),
   },
   async run(context) {
-    return await find(context.propsValue);
+    return await find({ ...(await scoped(context, context.propsValue)), query: context.propsValue.query });
   },
 });

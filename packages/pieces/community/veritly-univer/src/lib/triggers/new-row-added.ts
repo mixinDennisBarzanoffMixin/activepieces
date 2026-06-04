@@ -1,7 +1,7 @@
 import { createTrigger, TriggerStrategy } from '@activepieces/pieces-framework';
 import { rows } from '../common/client';
-import { sheet } from '../common/props';
-import type { Props, Row } from '../common/types';
+import { scoped, sheet } from '../common/props';
+import type { Row } from '../common/types';
 
 const key = 'veritly-univer-seen-rows';
 
@@ -26,12 +26,12 @@ export const newRowAdded = createTrigger({
     },
   },
   async test(context) {
-    return newest((await rows(context.propsValue as Props)).rows).slice(0, 5);
+    return newest((await rows(await scoped(context, context.propsValue))).rows).slice(0, 5);
   },
   async onEnable(context) {
     await context.store.put(
       key,
-      (await rows(context.propsValue as Props)).rows.map((item) => item.id)
+      (await rows(await scoped(context, context.propsValue))).rows.map((item) => item.id)
     );
   },
   async onDisable(context) {
@@ -40,7 +40,7 @@ export const newRowAdded = createTrigger({
   async run(context) {
     const seen = await context.store.get<string[]>(key);
     if (!seen) throw new Error('Seen row state is missing');
-    const list = newest((await rows(context.propsValue as Props)).rows);
+    const list = newest((await rows(await scoped(context, context.propsValue))).rows);
     await context.store.put(
       key,
       list.map((item) => item.id)

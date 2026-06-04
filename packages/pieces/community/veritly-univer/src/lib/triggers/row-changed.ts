@@ -1,7 +1,7 @@
 import { createTrigger, TriggerStrategy } from '@activepieces/pieces-framework';
 import { rows } from '../common/client';
-import { sheet } from '../common/props';
-import { snap, type Props, type Row, type Snap } from '../common/types';
+import { scoped, sheet } from '../common/props';
+import { snap, type Row, type Snap } from '../common/types';
 
 const key = 'veritly-univer-row-hashes';
 
@@ -32,10 +32,10 @@ export const rowChanged = createTrigger({
     },
   },
   async test(context) {
-    return (await rows(context.propsValue as Props)).rows.slice(0, 5);
+    return (await rows(await scoped(context, context.propsValue))).rows.slice(0, 5);
   },
   async onEnable(context) {
-    await context.store.put(key, snap((await rows(context.propsValue as Props)).rows));
+    await context.store.put(key, snap((await rows(await scoped(context, context.propsValue))).rows));
   },
   async onDisable(context) {
     await context.store.delete(key);
@@ -43,7 +43,7 @@ export const rowChanged = createTrigger({
   async run(context) {
     const old = await context.store.get<Snap>(key);
     if (!old) throw new Error('Row hash state is missing');
-    const list = (await rows(context.propsValue as Props)).rows;
+    const list = (await rows(await scoped(context, context.propsValue))).rows;
     await context.store.put(key, snap(list));
     return changed(list, old);
   },

@@ -1,6 +1,6 @@
 import { createAction, Property } from '@activepieces/pieces-framework';
 import { update } from '../common/client';
-import { sheet } from '../common/props';
+import { scoped, sheet } from '../common/props';
 
 export const updateCell = createAction({
   name: 'update_cell',
@@ -25,6 +25,11 @@ export const updateCell = createAction({
     }),
   },
   async run(context) {
-    return await update(context.propsValue);
+    return await update({
+      ...(await scoped(context, context.propsValue)),
+      row_index: context.propsValue.row_index,
+      column_index: context.propsValue.column_index,
+      value: context.propsValue.value,
+    });
   },
 });

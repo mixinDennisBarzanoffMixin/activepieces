@@ -1,6 +1,6 @@
 import { createAction, Property } from '@activepieces/pieces-framework';
 import { append } from '../common/client';
-import { sheet } from '../common/props';
+import { scoped, sheet } from '../common/props';
 
 export const appendRow = createAction({
   name: 'append_row',
@@ -16,6 +16,6 @@ export const appendRow = createAction({
     }),
   },
   async run(context) {
-    return await append(context.propsValue);
+    return await append({ ...(await scoped(context, context.propsValue)), values: context.propsValue.values });
   },
 });
