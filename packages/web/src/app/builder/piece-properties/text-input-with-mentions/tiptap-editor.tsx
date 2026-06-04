@@ -362,15 +362,6 @@ export const TiptapEditor = ({
         ),
       },
     },
-    onCreate: ({ editor: e }) => {
-      const editorContent = e.getJSON();
-      setHasFunctions(docHasFunctions(e));
-      setTypeErrors(collectTypeErrors(editorContent));
-      requestAnimationFrame(() => {
-        applyTypeErrors(editorContent, editorWrapperRef.current);
-        applyUnclosedErrors(editorWrapperRef.current);
-      });
-    },
     onUpdate: ({ editor: e }) => {
       const editorContent = e.getJSON();
       const textResult =
@@ -420,6 +411,18 @@ export const TiptapEditor = ({
 
   useEffect(() => {
     editorRef.current = editor;
+  }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const json = editor.getJSON();
+    setHasFunctions(docHasFunctions(editor));
+    setTypeErrors(collectTypeErrors(json));
+    const frame = requestAnimationFrame(() => {
+      applyTypeErrors(json, editorWrapperRef.current);
+      applyUnclosedErrors(editorWrapperRef.current);
+    });
+    return () => cancelAnimationFrame(frame);
   }, [editor]);
 
   useEffect(() => {
