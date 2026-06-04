@@ -1,4 +1,4 @@
-import { createServer } from 'http'
+import { createServer, ServerResponse } from 'http'
 import os from 'os'
 import { apVersionUtil, systemUsage } from '@activepieces/server-utils'
 import {
@@ -373,21 +373,40 @@ function sleep(ms: number): Promise<void> {
 
 function startHealthServer(): ReturnType<typeof createServer> {
     const port = Number(process.env[WorkerSystemProp.PORT] ?? system.get(WorkerSystemProp.PORT))
-    const healthPaths = new Set(['/worker/health', '/v1/health', '/api/v1/health'])
+    const readyPaths = new Set(['/readyz', '/worker/health', '/v1/health', '/api/v1/health'])
     const server = createServer((req, res) => {
-        if (req.method === 'GET' && req.url && healthPaths.has(req.url)) {
-            res.writeHead(200, { 'Content-Type': 'application/json' })
-            res.end(JSON.stringify({ status: 'ok' }))
+        const url = req.url ? req.url.split('?')[0] : ''
+        if (req.method === 'GET' && url === '/livez') {
+            sendHealth(res, 200, {
+                service: 'activepieces-worker',
+                status: 'ok',
+            })
+            return
         }
-        else {
-            res.writeHead(404)
-            res.end()
+        if (req.method === 'GET' && readyPaths.has(url)) {
+            const ready = socket?.connected === true && polling
+            sendHealth(res, ready ? 200 : 503, {
+                service: 'activepieces-worker',
+                status: ready ? 'ready' : 'not_ready',
+                checks: {
+                    apiSocket: socket?.connected === true,
+                    polling,
+                },
+            })
+            return
         }
+        res.writeHead(404)
+        res.end()
     })
     server.listen(port, () => {
         logger.info({ port }, 'Health server listening')
     })
     return server
+}
+
+function sendHealth(res: ServerResponse, code: number, body: unknown): void {
+    res.writeHead(code, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify(body))
 }
 
 type WorkerStartParams = {

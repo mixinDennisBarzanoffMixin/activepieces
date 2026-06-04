@@ -5,12 +5,10 @@ import { cell, row, type Row, type Scoped } from './types';
 const timeout = 5000;
 
 export async function workbooks(server: ServerContext) {
-  console.log('[veritly-univer piece] workbooks dropdown');
   return await get<VeritlyUniverWorkbooks>(server, 'workbooks');
 }
 
 export async function sheets(server: ServerContext, props: { workbook_id: string }) {
-  console.log('[veritly-univer piece] sheets dropdown', { workbookId: props.workbook_id });
   if (!props.workbook_id) throw new Error('Workbook ID is required');
   return await get<VeritlyUniverSheets>(server, `workbooks/${encodeURIComponent(props.workbook_id)}/sheets`);
 }
@@ -62,7 +60,6 @@ function ref(props: Scoped) {
 
 async function get<T>(server: ServerContext, path: string): Promise<T> {
   const target = url(server, path);
-  console.log('[veritly-univer piece] GET', { path, url: target.toString() });
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeout);
   const res = await fetch(target, {
@@ -88,10 +85,8 @@ async function post<T>(server: ServerContext, path: string, data: unknown): Prom
 }
 
 async function body<T>(res: Response): Promise<T> {
-  console.log('[veritly-univer piece] response', { status: res.status, ok: res.ok, url: res.url });
   if (res.ok) return await res.json() as T;
   const text = await res.text();
-  console.error('[veritly-univer piece] response error', { status: res.status, url: res.url, text });
   throw new Error(text);
 }
 

@@ -9,7 +9,9 @@ import tailwindcss from '@tailwindcss/vite';
 import customHtmlPlugin from './vite-plugins/html-plugin';
 
 export default defineConfig(({ command, mode }) => {
-  const isDev = command === 'serve' || mode === 'development';
+  const isDev =
+    (command === 'serve' || mode === 'development') &&
+    process.env.VERITLY_SKIP_VITE_CHECKER !== '1';
 
   const AP_TITLE = 'Activepieces';
   const AP_FAVICON = 'https://activepieces.com/favicon.ico';

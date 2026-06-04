@@ -186,8 +186,19 @@ export const createRunState = (
         return;
       }
       const socket = initialState.socket;
+      console.log('[veritly-ap-test] listen', {
+        runId,
+        stepName,
+        socketConnected: socket.connected,
+        socketId: socket.id,
+      });
       get().beforeStepTestPreparation(step);
       const handleStepFinished = (response: StepRunResponse) => {
+        console.log('[veritly-ap-test] finished event', {
+          expectedRunId: runId,
+          actualRunId: response.runId,
+          success: response.success,
+        });
         if (response.runId === runId) {
           get().removeStepTestListener(stepName);
           if (response.success) {
@@ -227,6 +238,7 @@ export const createRunState = (
         }
       };
       const handleError = (error: any) => {
+        console.error('[veritly-ap-test] socket error', error);
         get().removeStepTestListener(stepName);
         get().revertSampleDataLocallyCallbacks[stepName]?.();
         console.error(error);
@@ -235,6 +247,11 @@ export const createRunState = (
       socket.on(WebsocketClientEvent.TEST_STEP_FINISHED, handleStepFinished);
       socket.on('error', handleError);
       const handleOnProgress = (response: StepRunResponse) => {
+        console.log('[veritly-ap-test] progress event', {
+          expectedRunId: runId,
+          actualRunId: response.runId,
+          hasOutput: !!response.output,
+        });
         if (response.runId === runId && response.output) {
           get().setSampleDataLocally({
             stepName: stepName,

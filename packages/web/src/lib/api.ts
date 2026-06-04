@@ -43,7 +43,7 @@ function isUrlRelative(url: string) {
 
 export function apiBaseUrl() {
   const env = import.meta.env.VITE_ACTIVEPIECES_API_URL?.trim();
-  return env || (import.meta.env.DEV ? '/activepieces-api' : API_BASE_URL);
+  return env || API_BASE_URL;
 }
 
 function apiUrl() {
@@ -79,6 +79,7 @@ function request<TResponse>(
 
   return axios({
     url: resolvedUrl,
+    withCredentials: true,
     ...config,
     headers: {
       ...config.headers,

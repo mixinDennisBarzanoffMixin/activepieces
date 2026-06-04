@@ -13,6 +13,7 @@ import { Socket } from 'socket.io'
 import { getAdapter, setupApp } from './app'
 import { websocketService } from './core/websockets.service'
 import { healthModule } from './health/health.module'
+import { healthProbeModule } from './health/health-probe.module'
 import { embedSecurity } from './helper/embed-security'
 import { errorHandler } from './helper/error-handler'
 import { exceptionHandler } from './helper/exception-handler'
@@ -38,6 +39,7 @@ export const setupServer = async (): Promise<FastifyInstance> => {
 
     await app.register(async (apiApp) => {
         await apiApp.register(healthModule)
+        await apiApp.register(healthProbeModule)
         if (system.isApp()) {
             await setupApp(apiApp)
         }
@@ -165,7 +167,8 @@ async function setupBaseApp(): Promise<FastifyInstance> {
     await app.register(formBody, { parser: (str) => qs.parse(str) })
     app.setErrorHandler(errorHandler)
     await app.register(cors, {
-        origin: '*',
+        origin: true,
+        credentials: true,
         exposedHeaders: ['*'],
         methods: ['*'],
     })
@@ -220,5 +223,3 @@ function convertDatesToStrings(data: unknown): unknown {
     }
     return data
 }
-
-

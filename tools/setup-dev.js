@@ -67,6 +67,7 @@ const devPieces = process.env.AP_DEV_PIECES || envConfig.AP_DEV_PIECES;
 if (devPieces) {
   const pieceNames = [...new Set(devPieces.split(',').map(n => n.trim()))];
   const allFolders = findAllPieceFolders(path.resolve('packages', 'pieces'));
+  const concurrency = process.env.AP_DEV_PIECES_CONCURRENCY || '1';
 
   const pieceFilters = pieceNames.map(name => {
     const dir = allFolders.find(p => p.endsWith(path.sep + name));
@@ -78,5 +79,5 @@ if (devPieces) {
   }).join(' ');
 
   console.log(`Building dev pieces: ${devPieces}`);
-  execSync(`npx turbo run build ${pieceFilters}`, { stdio: 'inherit' });
+  execSync(`npx turbo run build --concurrency=${concurrency} ${pieceFilters}`, { stdio: 'inherit' });
 }
