@@ -16,6 +16,6 @@ export const appendRow = createAction({
     }),
   },
   async run(context) {
-    return await append({ ...(await scoped(context, context.propsValue)), values: context.propsValue.values });
+    return await append(context.server, { ...(await scoped(context, context.propsValue)), values: context.propsValue.values });
   },
 });

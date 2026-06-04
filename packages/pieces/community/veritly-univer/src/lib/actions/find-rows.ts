@@ -14,6 +14,6 @@ export const findRows = createAction({
     }),
   },
   async run(context) {
-    return await find({ ...(await scoped(context, context.propsValue)), query: context.propsValue.query });
+    return await find(context.server, { ...(await scoped(context, context.propsValue)), query: context.propsValue.query });
   },
 });

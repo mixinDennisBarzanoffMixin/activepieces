@@ -25,7 +25,7 @@ export const updateCell = createAction({
     }),
   },
   async run(context) {
-    return await update({
+    return await update(context.server, {
       ...(await scoped(context, context.propsValue)),
       row_index: context.propsValue.row_index,
       column_index: context.propsValue.column_index,

@@ -1,4 +1,4 @@
-import { createTrigger, TriggerStrategy } from '@activepieces/pieces-framework';
+import { createTrigger, type ServerContext, TriggerStrategy } from '@activepieces/pieces-framework';
 import { rows } from '../common/client';
 import { scoped, sheet } from '../common/props';
 import { snap, type Row, type Snap } from '../common/types';
@@ -32,10 +32,10 @@ export const rowChanged = createTrigger({
     },
   },
   async test(context) {
-    return (await rows(await scoped(context, context.propsValue))).rows.slice(0, 5);
+    return (await rows(server(context), await scoped(context, context.propsValue))).rows.slice(0, 5);
   },
   async onEnable(context) {
-    await context.store.put(key, snap((await rows(await scoped(context, context.propsValue))).rows));
+    await context.store.put(key, snap((await rows(server(context), await scoped(context, context.propsValue))).rows));
   },
   async onDisable(context) {
     await context.store.delete(key);
@@ -43,8 +43,14 @@ export const rowChanged = createTrigger({
   async run(context) {
     const old = await context.store.get<Snap>(key);
     if (!old) throw new Error('Row hash state is missing');
-    const list = (await rows(await scoped(context, context.propsValue))).rows;
+    const list = (await rows(server(context), await scoped(context, context.propsValue))).rows;
     await context.store.put(key, snap(list));
     return changed(list, old);
   },
 });
+
+function server(ctx: unknown): ServerContext {
+  const raw = ctx as { server?: ServerContext };
+  if (!raw.server) throw new Error('Activepieces server context is required');
+  return raw.server;
+}

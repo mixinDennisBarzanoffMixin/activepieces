@@ -8,6 +8,6 @@ export const getRows = createAction({
   description: 'Return rows from a Veritly Univer sheet.',
   props: sheet,
   async run(context) {
-    return await rows(await scoped(context, context.propsValue));
+    return await rows(context.server, await scoped(context, context.propsValue));
   },
 });

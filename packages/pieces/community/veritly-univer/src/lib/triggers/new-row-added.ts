@@ -1,4 +1,4 @@
-import { createTrigger, TriggerStrategy } from '@activepieces/pieces-framework';
+import { createTrigger, type ServerContext, TriggerStrategy } from '@activepieces/pieces-framework';
 import { rows } from '../common/client';
 import { scoped, sheet } from '../common/props';
 import type { Row } from '../common/types';
@@ -26,12 +26,12 @@ export const newRowAdded = createTrigger({
     },
   },
   async test(context) {
-    return newest((await rows(await scoped(context, context.propsValue))).rows).slice(0, 5);
+    return newest((await rows(server(context), await scoped(context, context.propsValue))).rows).slice(0, 5);
   },
   async onEnable(context) {
     await context.store.put(
       key,
-      (await rows(await scoped(context, context.propsValue))).rows.map((item) => item.id)
+      (await rows(server(context), await scoped(context, context.propsValue))).rows.map((item) => item.id)
     );
   },
   async onDisable(context) {
@@ -40,7 +40,7 @@ export const newRowAdded = createTrigger({
   async run(context) {
     const seen = await context.store.get<string[]>(key);
     if (!seen) throw new Error('Seen row state is missing');
-    const list = newest((await rows(await scoped(context, context.propsValue))).rows);
+    const list = newest((await rows(server(context), await scoped(context, context.propsValue))).rows);
     await context.store.put(
       key,
       list.map((item) => item.id)
@@ -48,3 +48,9 @@ export const newRowAdded = createTrigger({
     return list.filter((item) => !seen.includes(item.id));
   },
 });
+
+function server(ctx: unknown): ServerContext {
+  const raw = ctx as { server?: ServerContext };
+  if (!raw.server) throw new Error('Activepieces server context is required');
+  return raw.server;
+}
