@@ -1,0 +1,32 @@
+{
+  "name": "@veritly/activepieces-editor",
+  "version": "0.1.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./react": {
+      "types": "./src/react.ts",
+      "default": "./src/react.ts"
+    },
+    "./react-dom-client": {
+      "types": "./src/react-dom-client.ts",
+      "default": "./src/react-dom-client.ts"
+    },
+    "./styles": {
+      "types": "./src/styles.ts",
+      "default": "./src/styles.ts"
+    }
+  },
+  "peerDependencies": {
+    "react": "19.2.5",
+    "react-dom": "19.2.5"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3"
+  }
+}

@@ -8686,6 +8686,18 @@
         "checkly": "6.9.10",
       },
     },
+    "packages/veritly/activepieces-editor": {
+      "name": "@veritly/activepieces-editor",
+      "version": "0.1.0",
+      "devDependencies": {
+        "@types/react": "19.2.14",
+        "@types/react-dom": "19.2.3",
+      },
+      "peerDependencies": {
+        "react": "19.2.5",
+        "react-dom": "19.2.5",
+      },
+    },
     "packages/veritly/univer-contract": {
       "name": "@veritly/univer-contract",
       "version": "0.1.0",
@@ -12371,6 +12383,8 @@
     "@vapi-ai/server-sdk": ["@vapi-ai/server-sdk@0.11.0", "", {}, "sha512-anfCbCY3k3vh5RKX8noN4p2QOK3k1ezRT31nHReVCjr3oMlex+Bjk4G9Ze4ZrezKrP8KssbuITuB7OeZ0egIQQ=="],
 
     "@vercel/oidc": ["@vercel/oidc@3.2.0", "", {}, "sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug=="],
+
+    "@veritly/activepieces-editor": ["@veritly/activepieces-editor@workspace:packages/veritly/activepieces-editor"],
 
     "@veritly/univer-contract": ["@veritly/univer-contract@workspace:packages/veritly/univer-contract"],
 

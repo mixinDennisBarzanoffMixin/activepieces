@@ -8,9 +8,10 @@ const root = fileURLToPath(new URL('.', import.meta.url));
 const repo = path.resolve(root, '../..');
 const src = path.join(root, 'src');
 const ext = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx'];
-const reactId = '\0activepieces-web/react';
-const domId = '\0activepieces-web/react-dom-client';
-const stylesId = '\0activepieces-web/styles';
+const pkg = '@veritly/activepieces-editor';
+const reactId = '\0veritly-activepieces-editor/react';
+const domId = '\0veritly-activepieces-editor/react-dom-client';
+const stylesId = '\0veritly-activepieces-editor/styles';
 
 function file(source: string) {
   const target = path.join(src, source);
@@ -32,16 +33,16 @@ function webPlugin(appSrc?: string): Plugin {
     name: 'veritly-activepieces-web',
     enforce: 'pre',
     resolveId(source, importer) {
-      if (source === 'activepieces-web/veritly-editor') {
+      if (source === pkg) {
         return path.join(src, 'veritly-editor.tsx');
       }
-      if (source === 'activepieces-web/react') {
+      if (source === `${pkg}/react`) {
         return reactId;
       }
-      if (source === 'activepieces-web/react-dom-client') {
+      if (source === `${pkg}/react-dom-client`) {
         return domId;
       }
-      if (source === 'activepieces-web/styles') {
+      if (source === `${pkg}/styles`) {
         return stylesId;
       }
       if (source === '@activepieces/shared') {

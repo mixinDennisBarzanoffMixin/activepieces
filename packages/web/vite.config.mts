@@ -12,6 +12,7 @@ export default defineConfig(({ command, mode }) => {
   const isDev =
     (command === 'serve' || mode === 'development') &&
     process.env.VERITLY_SKIP_VITE_CHECKER !== '1';
+  const debug = mode === 'development' || process.env.VERITLY_DEBUG_BUILD === '1';
 
   const AP_TITLE = 'Activepieces';
   const AP_FAVICON = 'https://activepieces.com/favicon.ico';
@@ -137,6 +138,8 @@ export default defineConfig(({ command, mode }) => {
       outDir: '../../dist/packages/web',
       emptyOutDir: true,
       reportCompressedSize: true,
+      sourcemap: debug,
+      minify: debug ? false : 'esbuild',
       commonjsOptions: {
         transformMixedEsModules: true,
       },
