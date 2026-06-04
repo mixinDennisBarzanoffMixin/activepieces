@@ -13,12 +13,16 @@ const resolver = workosSessionResolver()
 
 export async function resolveVeritlySession(params: ResolveSessionParams) {
     const request = params.request
+    console.log('[veritly auth] resolve session', { hasCookie: Boolean(request.headers.cookie) })
     const result = await resolver.resolve(toRequest(request))
     if (!result.ok) {
+        console.error('[veritly auth] resolve session failed', { reason: result.reason, message: result.message })
         if (params.reply && params.setStatus !== false) params.reply.status(result.reason === 'misconfigured' ? 503 : 401)
         return { ok: false as const, body: { error: result.message } }
     }
+    console.log('[veritly auth] resolve session ok', { userId: result.user.id, email: result.user.email })
     if (params.reply && result.refreshedSessionData) {
+        console.log('[veritly auth] refreshed session cookie')
         params.reply.header('set-cookie', sessionCookie(result.refreshedSessionData))
     }
     return { ok: true as const, user: result.user }
@@ -45,14 +49,18 @@ export async function resolveVeritlyPrincipal({ request, reply, log }: ResolvePr
 }
 
 export async function getVeritlySessionResponse({ request, reply, log }: ResolvePrincipalParams) {
+    console.log('[veritly auth] session response start')
     const session = await resolveVeritlySession({ request, reply })
     if (!session.ok) return session
 
+    const veritlyProjectId = readProjectId(request)
+    console.log('[veritly auth] session context start', { veritlyProjectId, userId: session.user.id })
     const ctx = await getVeritlyContext({
         log,
         user: session.user,
-        veritlyProjectId: readProjectId(request),
+        veritlyProjectId,
     })
+    console.log('[veritly auth] token start', { apUserId: ctx.user.id, apProjectId: ctx.project.id, platformId: ctx.platformId })
     const token = await accessTokenManager(log).generateToken({
         id: ctx.user.id,
         type: PrincipalType.USER,
@@ -62,6 +70,7 @@ export async function getVeritlySessionResponse({ request, reply, log }: Resolve
         tokenVersion: ctx.identity.tokenVersion,
     })
     const info = await userService(log).getMetaInformation({ id: ctx.user.id })
+    console.log('[veritly auth] session response ok', { apUserId: ctx.user.id, apProjectId: ctx.project.id })
     return {
         ok: true as const,
         body: {
@@ -80,14 +89,18 @@ export async function getVeritlyProject(params: GetContextParams): Promise<Proje
 }
 
 async function getVeritlyContext(params: GetContextParams) {
+    console.log('[veritly auth] context start', { veritlyProjectId: params.veritlyProjectId, userId: params.user.id })
     const platform = await platformService(params.log).getOldestPlatform()
     if (!platform) throw new Error('Activepieces platform is not configured')
+    console.log('[veritly auth] platform', { platformId: platform.id })
     const identity = await getIdentity(params.user)
+    console.log('[veritly auth] identity', { identityId: identity.id, email: identity.email })
     const user = await getUser({
         log: params.log,
         identity,
         platformId: platform.id,
     })
+    console.log('[veritly auth] user', { userId: user.id })
     const project = await getProject({
         log: params.log,
         user,
@@ -95,6 +108,7 @@ async function getVeritlyContext(params: GetContextParams) {
         veritlyProjectId: params.veritlyProjectId,
         veritlyUserId: params.user.id,
     })
+    console.log('[veritly auth] project', { projectId: project.id, externalId: project.externalId })
     return {
         identity,
         user,
@@ -105,9 +119,14 @@ async function getVeritlyContext(params: GetContextParams) {
 
 async function getIdentity(user: AuthUser): Promise<UserIdentity> {
     const email = user.email?.trim().toLowerCase() || `veritly-${user.id}@users.veritly.local`
+    console.log('[veritly auth] get identity', { email })
     const existing = await userIdentityRepository().findOneBy({ email })
-    if (existing) return existing
+    if (existing) {
+        console.log('[veritly auth] existing identity', { identityId: existing.id })
+        return existing
+    }
 
+    console.log('[veritly auth] create identity')
     return userIdentityRepository().save({
         id: apId(),
         created: new Date().toISOString(),
@@ -127,12 +146,17 @@ async function getIdentity(user: AuthUser): Promise<UserIdentity> {
 }
 
 async function getUser(params: GetUserParams): Promise<User> {
+    console.log('[veritly auth] get user', { identityId: params.identity.id, platformId: params.platformId })
     const existing = await userService(params.log).getOneByIdentityAndPlatform({
         identityId: params.identity.id,
         platformId: params.platformId,
     })
-    if (existing) return existing
+    if (existing) {
+        console.log('[veritly auth] existing user', { userId: existing.id })
+        return existing
+    }
 
+    console.log('[veritly auth] create user')
     return userService(params.log).create({
         identityId: params.identity.id,
         platformId: params.platformId,
@@ -143,11 +167,13 @@ async function getUser(params: GetUserParams): Promise<User> {
 
 async function getProject(params: GetProjectParams): Promise<Project> {
     const externalId = projectExternalId(params.veritlyProjectId)
+    console.log('[veritly auth] get project', { externalId, platformId: params.platformId })
     const existing = await projectService(params.log).getByPlatformIdAndExternalId({
         platformId: params.platformId,
         externalId,
     })
     if (existing) {
+        console.log('[veritly auth] existing project', { projectId: existing.id })
         await projectMemberService(params.log).upsert({
             userId: params.user.id,
             projectId: existing.id,
@@ -156,6 +182,7 @@ async function getProject(params: GetProjectParams): Promise<Project> {
         return existing
     }
 
+    console.log('[veritly auth] create project')
     const project = await projectService(params.log).create({
         platformId: params.platformId,
         ownerId: params.user.id,
@@ -179,7 +206,11 @@ async function getProject(params: GetProjectParams): Promise<Project> {
 
 function readProjectId(request: FastifyRequest) {
     const value = request.headers['x-veritly-project-id']?.toString()
-    if (value) return value
+    if (value) {
+        console.log('[veritly auth] read project id', { value })
+        return value
+    }
+    console.error('[veritly auth] missing x-veritly-project-id')
     throw new Error('missing x-veritly-project-id')
 }
 

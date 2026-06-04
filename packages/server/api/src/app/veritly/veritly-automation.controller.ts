@@ -20,9 +20,19 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             },
         },
     }, async (request, reply) => {
-        const session = await getVeritlySessionResponse({ request, reply, log: request.log })
-        if (!session.ok) return reply.send(session.body)
-        return session.body
+        console.log('[veritly api] session start', {
+            hasCookie: Boolean(request.headers.cookie),
+            veritlyProjectId: request.headers[PROJECT_HDR]?.toString(),
+        })
+        try {
+            const session = await getVeritlySessionResponse({ request, reply, log: request.log })
+            console.log('[veritly api] session resolved', { ok: session.ok })
+            if (!session.ok) return reply.send(session.body)
+            return session.body
+        } catch (err) {
+            console.error('[veritly api] session failed', err)
+            throw err
+        }
     })
 
     app.post('/automations', {
