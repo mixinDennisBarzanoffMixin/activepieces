@@ -217,7 +217,7 @@ const StepNameEditor = ({
       ref={focusAndSelect}
       contentEditable
       suppressContentEditableWarning
-      className="truncate focus:outline-hidden break-all"
+      className="min-w-0 truncate rounded-sm bg-background px-1 text-foreground caret-foreground selection:bg-primary selection:text-primary-foreground focus:outline-hidden break-all"
       onBlur={commit}
       onKeyDown={(event) => {
         if (event.key === 'Escape') {
