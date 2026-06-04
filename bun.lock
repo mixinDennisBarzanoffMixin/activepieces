@@ -7381,6 +7381,7 @@
         "@activepieces/pieces-common": "workspace:*",
         "@activepieces/pieces-framework": "workspace:*",
         "@activepieces/shared": "workspace:*",
+        "@veritly/univer-contract": "workspace:*",
         "tslib": "2.6.2",
       },
     },
@@ -8476,6 +8477,7 @@
         "@sentry/node": "7.120.0",
         "@smithy/node-http-handler": "4.4.14",
         "@socket.io/redis-adapter": "8.3.0",
+        "@veritly/univer-contract": "workspace:*",
         "ai": "^6.0.0",
         "ai-gateway-provider": "3.1.1",
         "async-mutex": "0.4.0",
@@ -8658,7 +8660,7 @@
     },
     "packages/shared": {
       "name": "@activepieces/shared",
-      "version": "0.83.0",
+      "version": "0.83.1",
       "dependencies": {
         "dayjs": "1.11.9",
         "deepmerge-ts": "7.1.0",
@@ -8682,6 +8684,17 @@
       "devDependencies": {
         "@playwright/test": "1.54.1",
         "checkly": "6.9.10",
+      },
+    },
+    "packages/veritly/univer-contract": {
+      "name": "@veritly/univer-contract",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@types/node": "24.11.0",
+        "typescript": "5.5.4",
       },
     },
     "packages/web": {
@@ -12358,6 +12371,8 @@
     "@vapi-ai/server-sdk": ["@vapi-ai/server-sdk@0.11.0", "", {}, "sha512-anfCbCY3k3vh5RKX8noN4p2QOK3k1ezRT31nHReVCjr3oMlex+Bjk4G9Ze4ZrezKrP8KssbuITuB7OeZ0egIQQ=="],
 
     "@vercel/oidc": ["@vercel/oidc@3.2.0", "", {}, "sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug=="],
+
+    "@veritly/univer-contract": ["@veritly/univer-contract@workspace:packages/veritly/univer-contract"],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
 

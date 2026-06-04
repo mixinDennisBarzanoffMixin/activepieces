@@ -1,48 +1,13 @@
-export type Cell = string | number | boolean | null;
-
-export type Ref = {
-  workbookId: string;
-  sheetId: string;
-};
-
-export type Row = {
-  id: string;
-  index: number;
-  values: Cell[];
-  updatedAt: string;
-  hash: string;
-};
-
-export type Props = {
-  workbook_id?: string;
-  sheet_id?: string;
-};
-export type Scoped = Props;
-
-export type Snap = Record<string, string>;
-
-export function ref(props: Scoped): Ref {
-  if (!props.workbook_id) throw new Error('Workbook ID is required');
-  if (!props.sheet_id) throw new Error('Sheet ID is required');
-  return {
-    workbookId: props.workbook_id,
-    sheetId: props.sheet_id,
-  };
-}
-
-export function cell(value: unknown): Cell {
-  if (value === null) return value;
-  if (typeof value === 'string') return value;
-  if (typeof value === 'number') return value;
-  if (typeof value === 'boolean') return value;
-  throw new Error('Cell value must be a string, number, boolean, or null');
-}
-
-export function row(value: unknown): Cell[] {
-  if (!Array.isArray(value)) throw new Error('Row values must be an array');
-  return value.map(cell);
-}
-
-export function snap(rows: Row[]): Snap {
-  return Object.fromEntries(rows.map((item) => [item.id, item.hash]));
-}
+export {
+  cell,
+  createUniverClient,
+  ref,
+  row,
+  snap,
+  type Cell,
+  type Ref,
+  type Row,
+  type Scope as Props,
+  type Scope as Scoped,
+  type Snap,
+} from '@veritly/univer-contract';

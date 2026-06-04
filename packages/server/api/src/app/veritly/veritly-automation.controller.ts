@@ -1,4 +1,6 @@
-import { AuthenticationResponse, EnginePrincipal, FlowVersionState, VeritlyUniverAppend, VeritlyUniverRow, VeritlyUniverSheets, VeritlyUniverUpdate, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@activepieces/shared'
+import { AuthenticationResponse, EnginePrincipal, FlowVersionState } from '@activepieces/shared'
+import { VeritlyUniverAppend, VeritlyUniverRow, VeritlyUniverRows, VeritlyUniverSheets, VeritlyUniverUpdate, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@veritly/univer-contract'
+import type { FastifyRequest } from 'fastify'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { StatusCodes } from 'http-status-codes'
 import { z } from 'zod'
@@ -70,7 +72,7 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             externalIds: [externalId],
             versionState: FlowVersionState.DRAFT,
         })
-        const flow = existing.data[0] ?? await flowService(request.log).create({
+        const flow = existing.data[0] ? existing.data[0] : await flowService(request.log).create({
             projectId: project.id,
             externalId,
             ownerId: project.ownerId,
@@ -111,10 +113,11 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             [StatusCodes.OK]: VeritlyUniverSheets,
         },
     }), async (request) => {
-        console.log('[veritly api] worker/univer/sheets', { workbookId: request.params.workbookId })
+        const params = request.params as WorkbookParams
+        console.log('[veritly api] worker/univer/sheets', { workbookId: params.workbookId })
         return await run(request, async ({ api, store }) => {
-            await store.hydrateUnit(request.params.workbookId)
-            const wb = api.parseSnapshotWorkbook(store.latestSnapshot(request.params.workbookId, 2).snap).wb
+            await store.hydrateUnit(params.workbookId)
+            const wb = api.parseSnapshotWorkbook(store.latestSnapshot(params.workbookId, 2).snap).wb
             return {
                 sheets: api.sheetIdsFromWorkbook(wb).map((id) => {
                     const raw = wb.sheets ? wb.sheets[id] : undefined
@@ -128,11 +131,12 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
     app.get('/worker/univer/workbooks/:workbookId/sheets/:sheetId/rows', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1), sheetId: z.string().min(1) }),
         response: {
-            [StatusCodes.OK]: z.object({ rows: z.array(VeritlyUniverRow) }),
+            [StatusCodes.OK]: VeritlyUniverRows,
         },
     }), async (request) => {
+        const params = request.params as SheetParams
         return await run(request, async ({ api, store }) => ({
-            rows: (await api.readUnitRows(store, request.params.workbookId, { sheet: request.params.sheetId })).map(out),
+            rows: (await api.readUnitRows(store, params.workbookId, { sheet: params.sheetId })).map(out),
         }))
     })
 
@@ -143,12 +147,14 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             [StatusCodes.OK]: VeritlyUniverRow,
         },
     }), async (request) => {
+        const params = request.params as SheetParams
+        const body = request.body as AppendBody
         return await run(request, async ({ api, store }) => {
-            const res = await api.appendUnitRow(store, request.params.workbookId, request.body.values, {
-                sheet: request.params.sheetId,
+            const res = await api.appendUnitRow(store, params.workbookId, body.values, {
+                sheet: params.sheetId,
                 member: 'activepieces',
             })
-            const rows = await api.readUnitRows(store, request.params.workbookId, { sheet: res.sheet, start: res.row, end: res.row })
+            const rows = await api.readUnitRows(store, params.workbookId, { sheet: res.sheet, start: res.row, end: res.row })
             const row = rows[0]
             if (!row) throw new Error('Appended row was not readable')
             return out(row)
@@ -162,17 +168,19 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             [StatusCodes.OK]: VeritlyUniverUpdateResult,
         },
     }), async (request) => {
+        const params = request.params as SheetParams
+        const body = request.body as UpdateBody
         return await run(request, async ({ api, store }) => {
-            const res = await api.updateUnitCell(store, request.params.workbookId, request.body.rowIndex, request.body.columnIndex, request.body.value, {
-                sheet: request.params.sheetId,
+            const res = await api.updateUnitCell(store, params.workbookId, body.rowIndex, body.columnIndex, body.value, {
+                sheet: params.sheetId,
                 member: 'activepieces',
             })
             return {
-                workbookId: request.params.workbookId,
+                workbookId: params.workbookId,
                 sheetId: res.sheet,
                 rowIndex: res.row,
-                columnIndex: request.body.columnIndex,
-                value: request.body.value,
+                columnIndex: body.columnIndex,
+                value: body.value,
                 revision: res.rev,
             }
         })
@@ -192,9 +200,10 @@ function WorkerRequest(schema: WorkerSchema) {
     }
 }
 
-async function run<T>(request: WorkerRequestType, fn: (ctx: CompatCtx) => Promise<T>) {
-    console.log('[veritly api] run start', { projectId: (request.principal as EnginePrincipal).projectId })
-    const project = await projectService(request.log).getOneOrThrow((request.principal as EnginePrincipal).projectId)
+async function run<T>(request: FastifyRequest, fn: (ctx: CompatCtx) => Promise<T>) {
+    const req = request as FastifyRequest & { principal: EnginePrincipal }
+    console.log('[veritly api] run start', { projectId: req.principal.projectId })
+    const project = await projectService(request.log).getOneOrThrow(req.principal.projectId)
     const id = identity(project)
     const api = await compat()
     const store = new api.Store(api.exchangeFilesFromEnv(), persist())
@@ -202,7 +211,7 @@ async function run<T>(request: WorkerRequestType, fn: (ctx: CompatCtx) => Promis
     return await api.runWithRequestUserAsync(id.userId, () => api.runWithRequestProjectAsync(id.projectId, () => fn({ api, store })))
 }
 
-function identity(project: { externalId: string | null, metadata: Record<string, unknown> | null }) {
+function identity(project: { externalId?: string | null, metadata?: Record<string, unknown> | null }) {
     console.log('[veritly api] identity', { externalId: project.externalId })
     const prefix = 'veritly:project:'
     const ext = project.externalId
@@ -229,7 +238,8 @@ function persist() {
 
 async function compat(): Promise<Compat> {
     console.log('[veritly api] importing @opencode-ai/univer-compat')
-    return await import('@opencode-ai/univer-compat') as Compat
+    const name = '@opencode-ai/univer-compat'
+    return await import(name) as Compat
 }
 
 function out(item: CompatRow) {
@@ -252,7 +262,23 @@ type WorkerSchema = {
     response: Record<number, z.ZodType>
 }
 
-type WorkerRequestType = Parameters<Parameters<typeof veritlyAutomationController>[0]['get']>[2] extends (request: infer R) => unknown ? R : never
+type WorkbookParams = {
+    workbookId: string
+}
+
+type SheetParams = {
+    workbookId: string
+    sheetId: string
+}
+
+type AppendBody = z.infer<typeof VeritlyUniverAppend>
+
+type UpdateBody = z.infer<typeof VeritlyUniverUpdate>
+
+type CompatCtx = {
+    api: Compat
+    store: InstanceType<Compat['Store']>
+}
 
 type CompatRow = {
     index: number

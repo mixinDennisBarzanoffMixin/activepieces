@@ -397,6 +397,7 @@
     "packages/tests-e2e",
     "packages/pieces/framework",
     "packages/pieces/common",
+    "packages/veritly/*",
     "packages/pieces/core/*",
     "packages/pieces/community/*",
     "packages/pieces/custom/*"

@@ -3,8 +3,8 @@
 This piece is the Activepieces-facing shell for Veritly Univer automations.
 
 The runtime adapter is intentionally outside this package. It uses
-`@opencode-ai/univer-compat` so the Activepieces worker reads and writes the same
-persisted workbook snapshots as the Univer service.
+`@veritly/univer-contract` so the Activepieces worker and server agree on the
+same row automation HTTP shape.
 
 Expected behavior:
 
