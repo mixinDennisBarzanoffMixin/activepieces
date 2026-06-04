@@ -9,6 +9,7 @@ import React, { ComponentPropsWithoutRef } from 'react';
 import { createPortal } from 'react-dom';
 
 import { SelectUtilButton } from '@/components/custom/select-util-button';
+import { embedded } from '@/components/ui/portal-container';
 import { cn } from '@/lib/utils';
 
 import { Badge } from '../ui/badge';
@@ -422,7 +423,7 @@ const MultiSelectContent = React.forwardRef<
   }
 
   return (
-    <PopoverPrimitive.Portal forceMount>
+    <PopoverPrimitive.Portal container={embedded()} forceMount>
       <PopoverPrimitive.Content
         ref={ref}
         align="start"
