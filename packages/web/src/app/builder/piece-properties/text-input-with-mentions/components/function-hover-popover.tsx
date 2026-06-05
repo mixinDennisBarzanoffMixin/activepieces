@@ -3,7 +3,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
-import { embedded } from '@/components/ui/portal-container';
 import { cn } from '@/lib/utils';
 
 const TOOLTIP_WIDTH = 320;
@@ -320,7 +319,7 @@ export function FunctionTooltipCard({
         </code>
       </div>
     </div>,
-    embedded() ?? document.body,
+    document.body,
   );
 }
 

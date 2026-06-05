@@ -4,7 +4,6 @@ import { RefObject, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 
-import { embedded } from '@/components/ui/portal-container';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +38,6 @@ export function FunctionSearchPopover({
   const [activeIdx, setActiveIdx] = useState(0);
   const [hoveredFn, setHoveredFn] = useState<ApFunction | null>(null);
   const [hoverItemRect, setHoverItemRect] = useState<DOMRect | null>(null);
-  const root = embedded() ?? document.body;
   const listRef = useRef<HTMLDivElement>(null);
 
   const filtered = query
@@ -131,7 +129,7 @@ export function FunctionSearchPopover({
         </div>
         {footer}
       </div>,
-      root,
+      document.body,
     );
   }
 
@@ -146,7 +144,7 @@ export function FunctionSearchPopover({
         </div>
         {footer}
       </div>,
-      root,
+      document.body,
     );
   }
 
@@ -234,6 +232,6 @@ export function FunctionSearchPopover({
         />
       )}
     </>,
-    root,
+    document.body,
   );
 }

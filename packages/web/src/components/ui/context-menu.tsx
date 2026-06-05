@@ -5,7 +5,6 @@ import { ContextMenu as ContextMenuPrimitive } from 'radix-ui';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
-import { embedded } from './portal-container';
 
 function ContextMenu({
   ...props
@@ -33,11 +32,7 @@ function ContextMenuPortal({
   ...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Portal>) {
   return (
-    <ContextMenuPrimitive.Portal
-      data-slot="context-menu-portal"
-      container={embedded()}
-      {...props}
-    />
+    <ContextMenuPrimitive.Portal data-slot="context-menu-portal" {...props} />
   );
 }
 
@@ -103,7 +98,7 @@ function ContextMenuContent({
   ...props
 }: React.ComponentProps<typeof ContextMenuPrimitive.Content>) {
   return (
-    <ContextMenuPrimitive.Portal container={embedded()}>
+    <ContextMenuPrimitive.Portal>
       <ContextMenuPrimitive.Content
         data-slot="context-menu-content"
         className={cn(

@@ -2,7 +2,6 @@ import { HoverCard as HoverCardPrimitive } from 'radix-ui';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
-import { embedded } from './portal-container';
 
 function HoverCard({
   ...props
@@ -25,10 +24,7 @@ function HoverCardContent({
   ...props
 }: React.ComponentProps<typeof HoverCardPrimitive.Content>) {
   return (
-    <HoverCardPrimitive.Portal
-      data-slot="hover-card-portal"
-      container={embedded()}
-    >
+    <HoverCardPrimitive.Portal data-slot="hover-card-portal">
       <HoverCardPrimitive.Content
         data-slot="hover-card-content"
         align={align}

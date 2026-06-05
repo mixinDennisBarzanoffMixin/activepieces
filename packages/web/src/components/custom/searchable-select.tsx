@@ -153,7 +153,7 @@ export const SearchableSelect = <T,>({
           e.stopPropagation();
         }}
       >
-        <div className="relative w-full">
+        <div className="relative">
           <Button
             ref={triggerRef}
             variant="outline"

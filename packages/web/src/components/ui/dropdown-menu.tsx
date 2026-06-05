@@ -5,7 +5,6 @@ import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui';
 import * as React from 'react';
 
 import { cn } from '@/lib/utils';
-import { embedded } from './portal-container';
 
 function DropdownMenu({
   ...props
@@ -17,11 +16,7 @@ function DropdownMenuPortal({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Portal>) {
   return (
-    <DropdownMenuPrimitive.Portal
-      data-slot="dropdown-menu-portal"
-      container={embedded()}
-      {...props}
-    />
+    <DropdownMenuPrimitive.Portal data-slot="dropdown-menu-portal" {...props} />
   );
 }
 
@@ -52,7 +47,7 @@ function DropdownMenuContent({
   noAnimationOnOut?: boolean;
 }) {
   return (
-    <DropdownMenuPrimitive.Portal container={embedded()}>
+    <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         data-slot="dropdown-menu-content"
         sideOffset={sideOffset}

@@ -180,7 +180,7 @@ export default function VeritlyAutomationEditorRoot(
     <StrictMode>
       <EmbeddingProvider>
         <VeritlyEmbedding>
-          <div className="veritly-automation-editor ap-light light relative h-full min-h-0 w-full overflow-hidden bg-background text-foreground">
+          <div className="h-full min-h-0 w-full overflow-hidden bg-background text-foreground">
             <MemoryRouter
               initialEntries={[`/projects/${props.projectId}/flows/${props.flowId}`]}
             >

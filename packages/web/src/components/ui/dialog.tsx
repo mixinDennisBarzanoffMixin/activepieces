@@ -4,7 +4,6 @@ import * as React from 'react';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { embedded } from './portal-container';
 
 function Dialog({
   ...props
@@ -21,13 +20,7 @@ function DialogTrigger({
 function DialogPortal({
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Portal>) {
-  return (
-    <DialogPrimitive.Portal
-      data-slot="dialog-portal"
-      container={embedded()}
-      {...props}
-    />
-  );
+  return <DialogPrimitive.Portal data-slot="dialog-portal" {...props} />;
 }
 
 function DialogClose({

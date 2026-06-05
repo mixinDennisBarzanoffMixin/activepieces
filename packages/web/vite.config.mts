@@ -13,6 +13,8 @@ export default defineConfig(({ command, mode }) => {
     (command === 'serve' || mode === 'development') &&
     process.env.VERITLY_SKIP_VITE_CHECKER !== '1';
   const debug = mode === 'development' || process.env.VERITLY_DEBUG_BUILD === '1';
+  const api = (process.env.ACTIVEPIECES_PROXY_TARGET || 'http://127.0.0.1:3000').replace(/\/+$/, '');
+  const host = new URL(api).host;
 
   const AP_TITLE = 'Activepieces';
   const AP_FAVICON = 'https://activepieces.com/favicon.ico';
@@ -24,16 +26,16 @@ export default defineConfig(({ command, mode }) => {
       // allowedHosts: ['wozcsvaint.loclx.io'],
       proxy: {
         '/api': {
-          target: 'http://127.0.0.1:3000',
+          target: api,
           secure: false,
           changeOrigin: true,
           headers: {
-            Host: '127.0.0.1:4200',
+            Host: host,
           },
           ws: true,
         },
         '^/mcp(/|$)': {
-          target: 'http://127.0.0.1:3000',
+          target: api,
           secure: false,
           changeOrigin: true,
           headers: {
@@ -42,7 +44,7 @@ export default defineConfig(({ command, mode }) => {
           rewrite: (p: string) => p,
         },
         '/.well-known': {
-          target: 'http://127.0.0.1:3000',
+          target: api,
           secure: false,
           changeOrigin: true,
           headers: {
@@ -50,7 +52,7 @@ export default defineConfig(({ command, mode }) => {
           },
         },
         '/register': {
-          target: 'http://127.0.0.1:3000',
+          target: api,
           secure: false,
           changeOrigin: true,
           headers: {
@@ -58,7 +60,7 @@ export default defineConfig(({ command, mode }) => {
           },
         },
         '/authorize': {
-          target: 'http://127.0.0.1:3000',
+          target: api,
           secure: false,
           changeOrigin: true,
           headers: {
@@ -66,7 +68,7 @@ export default defineConfig(({ command, mode }) => {
           },
         },
         '/token': {
-          target: 'http://127.0.0.1:3000',
+          target: api,
           secure: false,
           changeOrigin: true,
           headers: {
@@ -74,7 +76,7 @@ export default defineConfig(({ command, mode }) => {
           },
         },
         '/revoke': {
-          target: 'http://127.0.0.1:3000',
+          target: api,
           secure: false,
           changeOrigin: true,
           headers: {
