@@ -90,11 +90,14 @@ export async function getVeritlyProject(params: GetContextParams): Promise<Proje
 
 async function getVeritlyContext(params: GetContextParams) {
     console.log('[veritly auth] context start', { veritlyProjectId: params.veritlyProjectId, userId: params.user.id })
-    const platform = await platformService(params.log).getOldestPlatform()
-    if (!platform) throw new Error('Activepieces platform is not configured')
-    console.log('[veritly auth] platform', { platformId: platform.id })
     const identity = await getIdentity(params.user)
     console.log('[veritly auth] identity', { identityId: identity.id, email: identity.email })
+    const platform = await getPlatform({
+        log: params.log,
+        identity,
+        user: params.user,
+    })
+    console.log('[veritly auth] platform', { platformId: platform.id })
     const user = await getUser({
         log: params.log,
         identity,
@@ -115,6 +118,24 @@ async function getVeritlyContext(params: GetContextParams) {
         project,
         platformId: platform.id,
     }
+}
+
+async function getPlatform(params: GetPlatformParams) {
+    const service = platformService(params.log)
+    const existing = await service.getOldestPlatform()
+    if (existing) return existing
+
+    console.log('[veritly auth] create platform', { identityId: params.identity.id })
+    const owner = await userService(params.log).create({
+        identityId: params.identity.id,
+        platformId: null,
+        platformRole: PlatformRole.ADMIN,
+        externalId: veritlyUserExternalId(params.user.id),
+    })
+    return service.create({
+        ownerId: owner.id,
+        name: 'Veritly',
+    })
 }
 
 async function getIdentity(user: AuthUser): Promise<UserIdentity> {
@@ -268,6 +289,12 @@ type GetUserParams = {
     log: FastifyBaseLogger
     identity: UserIdentity
     platformId: string
+}
+
+type GetPlatformParams = {
+    log: FastifyBaseLogger
+    identity: UserIdentity
+    user: AuthUser
 }
 
 type GetProjectParams = {
