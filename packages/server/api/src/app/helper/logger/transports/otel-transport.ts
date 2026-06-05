@@ -7,7 +7,7 @@ import { TransportProvider } from './transport-provider'
 export const otelTransport: TransportProvider = {
     name: 'otel',
     isConfigured() {
-        return !!environmentVariables.getEnvironment(AppSystemProp.OTEL_ENABLED)
+        return environmentVariables.getEnvironment(AppSystemProp.OTEL_ENABLED) === 'true'
     },
     createLogger(level: Level, targets: TransportTargetOptions[]) {
         return pino(
