@@ -7376,7 +7376,7 @@
     },
     "packages/pieces/community/veritly-univer": {
       "name": "@activepieces/piece-veritly-univer",
-      "version": "0.0.1",
+      "version": "0.0.2",
       "dependencies": {
         "@activepieces/pieces-common": "workspace:*",
         "@activepieces/pieces-framework": "workspace:*",
@@ -8700,7 +8700,7 @@
     },
     "packages/veritly/univer-contract": {
       "name": "@veritly/univer-contract",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "zod": "4.3.6",
       },
