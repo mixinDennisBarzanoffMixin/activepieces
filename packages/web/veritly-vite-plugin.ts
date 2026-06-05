@@ -7,6 +7,7 @@ import type { Plugin } from 'vite';
 const root = fileURLToPath(new URL('.', import.meta.url));
 const repo = path.resolve(root, '../..');
 const src = path.join(root, 'src');
+const framework = path.join(repo, 'packages/pieces/framework/src');
 const ext = ['', '.ts', '.tsx', '.js', '.jsx', '/index.ts', '/index.tsx'];
 const pkg = '@veritly/activepieces-editor';
 const reactId = '\0veritly-activepieces-editor/react';
@@ -28,11 +29,27 @@ function active(importer: string | undefined) {
   return importer && path.normalize(importer).includes(src);
 }
 
+function ts(source: string) {
+  const [id, q = ''] = source.split('?');
+  const file = id.startsWith('/@fs/') ? id.slice('/@fs'.length) : id;
+  if (!file.endsWith('.js')) return;
+  const target = file.slice(0, -3) + '.ts';
+  if (!path.normalize(target).startsWith(framework)) return;
+  try {
+    if (!statSync(target).isFile()) return;
+  } catch {
+    return;
+  }
+  return q ? target + '?' + q : target;
+}
+
 function webPlugin(appSrc?: string): Plugin {
   return {
     name: 'veritly-activepieces-web',
     enforce: 'pre',
     resolveId(source, importer) {
+      const mod = ts(source);
+      if (mod) return mod;
       if (source === pkg) {
         return path.join(src, 'veritly-editor.tsx');
       }

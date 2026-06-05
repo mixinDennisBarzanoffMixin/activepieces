@@ -16,7 +16,7 @@
         "../../packages/shared/src"
       ],
       "@activepieces/pieces-framework": [
-        "../../packages/pieces/framework/src"
+        "../../packages/pieces/framework/src/index.ts"
       ],
       "ee-embed-sdk": [
         "../../packages/ee/embed-sdk/src"

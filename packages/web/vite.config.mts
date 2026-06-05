@@ -91,6 +91,7 @@ export default defineConfig(({ command, mode }) => {
       host: 'localhost',
     },
     resolve: {
+      extensions: ['.ts', '.tsx', '.mts', '.mjs', '.js', '.jsx', '.json'],
       dedupe: [
         '@codemirror/state',
         '@codemirror/view',
@@ -109,7 +110,7 @@ export default defineConfig(({ command, mode }) => {
         ),
         '@activepieces/pieces-framework': path.resolve(
           __dirname,
-          '../../packages/pieces/framework/src',
+          '../../packages/pieces/framework/src/index.ts',
         ),
       },
     },

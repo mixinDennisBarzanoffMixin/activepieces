@@ -44,6 +44,30 @@ export const VeritlyUniverUpdateResult = z.object({
   revision: z.number(),
 });
 
+export const VeritlyUniverEventType = z.enum(['new_row_added', 'row_changed']);
+
+export const VeritlyUniverWebhookRegistration = z.object({
+  id: z.string(),
+  event: VeritlyUniverEventType,
+  workbookId: z.string(),
+  sheetId: z.string(),
+  url: z.string().url(),
+});
+
+export const VeritlyUniverRegisterWebhook = VeritlyUniverWebhookRegistration.omit({ id: true });
+
+export const VeritlyUniverRegisterWebhookResult = z.object({
+  id: z.string(),
+});
+
+export const VeritlyUniverWebhookPayload = z.object({
+  event: VeritlyUniverEventType,
+  workbookId: z.string(),
+  sheetId: z.string(),
+  revision: z.number(),
+  row: VeritlyUniverRow,
+});
+
 export type VeritlyUniverCell = z.infer<typeof VeritlyUniverCell>;
 export type VeritlyUniverBook = z.infer<typeof VeritlyUniverBook>;
 export type VeritlyUniverRow = z.infer<typeof VeritlyUniverRow>;
@@ -53,6 +77,11 @@ export type VeritlyUniverRows = z.infer<typeof VeritlyUniverRows>;
 export type VeritlyUniverAppend = z.infer<typeof VeritlyUniverAppend>;
 export type VeritlyUniverUpdate = z.infer<typeof VeritlyUniverUpdate>;
 export type VeritlyUniverUpdateResult = z.infer<typeof VeritlyUniverUpdateResult>;
+export type VeritlyUniverEventType = z.infer<typeof VeritlyUniverEventType>;
+export type VeritlyUniverWebhookRegistration = z.infer<typeof VeritlyUniverWebhookRegistration>;
+export type VeritlyUniverRegisterWebhook = z.infer<typeof VeritlyUniverRegisterWebhook>;
+export type VeritlyUniverRegisterWebhookResult = z.infer<typeof VeritlyUniverRegisterWebhookResult>;
+export type VeritlyUniverWebhookPayload = z.infer<typeof VeritlyUniverWebhookPayload>;
 
 export type Cell = VeritlyUniverCell;
 export type Row = VeritlyUniverRow;
@@ -86,6 +115,10 @@ export const univerWorkerPaths = {
   },
   cells(ref: Ref) {
     return `workbooks/${encodeURIComponent(ref.workbookId)}/sheets/${encodeURIComponent(ref.sheetId)}/cells`;
+  },
+  webhooks: 'webhook-registrations',
+  webhook(id: string) {
+    return `webhook-registrations/${encodeURIComponent(id)}`;
   },
 };
 
@@ -156,6 +189,12 @@ export function createUniverClient(opts: ClientOptions) {
     },
     async update(target: Ref, update: VeritlyUniverUpdate) {
       return await send(VeritlyUniverUpdateResult, 'POST', univerWorkerPaths.cells(target), update);
+    },
+    async registerWebhook(input: VeritlyUniverRegisterWebhook) {
+      return await send(VeritlyUniverRegisterWebhookResult, 'POST', univerWorkerPaths.webhooks, input);
+    },
+    async unregisterWebhook(id: string) {
+      return await send(z.object({ ok: z.literal(true) }), 'DELETE', univerWorkerPaths.webhook(id));
     },
   };
 }

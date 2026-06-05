@@ -1,9 +1,10 @@
 import { createTrigger, type ServerContext, TriggerStrategy } from '@activepieces/pieces-framework';
-import { rows } from '../common/client';
+import { VeritlyUniverWebhookPayload } from '@veritly/univer-contract';
+import { registerWebhook, rows, unregisterWebhook } from '../common/client';
 import { scoped, sheet } from '../common/props';
 import type { Row } from '../common/types';
 
-const key = 'veritly-univer-seen-rows';
+const key = 'veritly-univer-new-row-webhook';
 
 function newest(list: Row[]) {
   return list.slice().sort((a: Row, b: Row) => b.index - a.index);
@@ -14,7 +15,7 @@ export const newRowAdded = createTrigger({
   displayName: 'New Row Added',
   description: 'Triggers when a new row is added to a Veritly Univer sheet.',
   props: sheet,
-  type: TriggerStrategy.POLLING,
+  type: TriggerStrategy.WEBHOOK,
   sampleData: {
     index: 12,
     hash: 'row-hash',
@@ -25,41 +26,30 @@ export const newRowAdded = createTrigger({
   },
   async onEnable(context) {
     const props = await scoped(context, context.propsValue);
-    const list = (await rows(server(context), props)).rows;
-    console.log('[veritly-univer] new_row_added onEnable', {
+    const hook = await registerWebhook(server(context), {
+      ...props,
+      event: 'new_row_added',
+      url: context.webhookUrl,
+    });
+    console.log('[veritly-univer] new_row_added webhook registered', {
       workbook: props.workbook_id,
       sheet: props.sheet_id,
-      rows: list.length,
-      first: list[0],
+      id: hook.id,
     });
-    await context.store.put(
-      key,
-      list.map((item) => item.index)
-    );
+    await context.store.put(key, hook.id);
   },
   async onDisable(context) {
+    const id = await context.store.get<string>(key);
+    if (id) await unregisterWebhook(server(context), id);
     await context.store.delete(key);
   },
   async run(context) {
-    const seen = await context.store.get<number[]>(key);
-    if (!seen) throw new Error('Seen row state is missing');
-    const props = await scoped(context, context.propsValue);
-    const list = newest((await rows(server(context), props)).rows);
-    await context.store.put(
-      key,
-      list.map((item) => item.index)
-    );
-    const out = list.filter((item) => !seen.includes(item.index));
-    console.log('[veritly-univer] new_row_added run', {
-      workbook: props.workbook_id,
-      sheet: props.sheet_id,
-      seen: seen.length,
-      rows: list.length,
-      first: list[0],
-      out: out.length,
-      event: out[0],
+    console.log('[veritly-univer] new_row_added webhook payload', {
+      type: typeof context.payload.body,
     });
-    return out;
+    const body = VeritlyUniverWebhookPayload.parse(context.payload.body);
+    console.log('[veritly-univer] new_row_added webhook', body.row);
+    return [body.row];
   },
 });
 

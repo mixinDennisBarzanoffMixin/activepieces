@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.scope = exports.univerWorkerPaths = exports.VeritlyUniverUpdateResult = exports.VeritlyUniverUpdate = exports.VeritlyUniverAppend = exports.VeritlyUniverRows = exports.VeritlyUniverSheets = exports.VeritlyUniverWorkbooks = exports.VeritlyUniverRow = exports.VeritlyUniverBook = exports.VeritlyUniverCell = void 0;
+exports.scope = exports.univerWorkerPaths = exports.VeritlyUniverWebhookPayload = exports.VeritlyUniverRegisterWebhookResult = exports.VeritlyUniverRegisterWebhook = exports.VeritlyUniverWebhookRegistration = exports.VeritlyUniverEventType = exports.VeritlyUniverUpdateResult = exports.VeritlyUniverUpdate = exports.VeritlyUniverAppend = exports.VeritlyUniverRows = exports.VeritlyUniverSheets = exports.VeritlyUniverWorkbooks = exports.VeritlyUniverRow = exports.VeritlyUniverBook = exports.VeritlyUniverCell = void 0;
 exports.ref = ref;
 exports.isCell = isCell;
 exports.cell = cell;
@@ -43,6 +43,25 @@ exports.VeritlyUniverUpdateResult = zod_1.z.object({
     value: exports.VeritlyUniverCell,
     revision: zod_1.z.number(),
 });
+exports.VeritlyUniverEventType = zod_1.z.enum(['new_row_added', 'row_changed']);
+exports.VeritlyUniverWebhookRegistration = zod_1.z.object({
+    id: zod_1.z.string(),
+    event: exports.VeritlyUniverEventType,
+    workbookId: zod_1.z.string(),
+    sheetId: zod_1.z.string(),
+    url: zod_1.z.string().url(),
+});
+exports.VeritlyUniverRegisterWebhook = exports.VeritlyUniverWebhookRegistration.omit({ id: true });
+exports.VeritlyUniverRegisterWebhookResult = zod_1.z.object({
+    id: zod_1.z.string(),
+});
+exports.VeritlyUniverWebhookPayload = zod_1.z.object({
+    event: exports.VeritlyUniverEventType,
+    workbookId: zod_1.z.string(),
+    sheetId: zod_1.z.string(),
+    revision: zod_1.z.number(),
+    row: exports.VeritlyUniverRow,
+});
 exports.univerWorkerPaths = {
     root: 'v1/veritly/worker/univer',
     workbooks: 'workbooks',
@@ -54,6 +73,10 @@ exports.univerWorkerPaths = {
     },
     cells(ref) {
         return `workbooks/${encodeURIComponent(ref.workbookId)}/sheets/${encodeURIComponent(ref.sheetId)}/cells`;
+    },
+    webhooks: 'webhook-registrations',
+    webhook(id) {
+        return `webhook-registrations/${encodeURIComponent(id)}`;
     },
 };
 function ref(scope) {
@@ -125,6 +148,12 @@ function createUniverClient(opts) {
         },
         async update(target, update) {
             return await send(exports.VeritlyUniverUpdateResult, 'POST', exports.univerWorkerPaths.cells(target), update);
+        },
+        async registerWebhook(input) {
+            return await send(exports.VeritlyUniverRegisterWebhookResult, 'POST', exports.univerWorkerPaths.webhooks, input);
+        },
+        async unregisterWebhook(id) {
+            return await send(zod_1.z.object({ ok: zod_1.z.literal(true) }), 'DELETE', exports.univerWorkerPaths.webhook(id));
         },
     };
 }

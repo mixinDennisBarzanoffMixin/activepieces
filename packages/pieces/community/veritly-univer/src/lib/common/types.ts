@@ -10,4 +10,5 @@ export {
   type Scope as Props,
   type Scope as Scoped,
   type Snap,
+  type VeritlyUniverEventType,
 } from '@veritly/univer-contract';

@@ -41,18 +41,39 @@ export const executeWebhookJob: JobHandler<WebhookJobData, FireAndForgetJobResul
     async execute(ctx: JobContext, data: WebhookJobData): Promise<FireAndForgetJobResult> {
         const settings = workerSettings.getSettings()
         const timeoutInSeconds = settings.TRIGGER_TIMEOUT_SECONDS
+        ctx.log.info({
+            flowId: data.flowId,
+            flowVersionIdToRun: data.flowVersionIdToRun,
+            projectId: data.projectId,
+            saveSampleData: data.saveSampleData,
+            execute: data.execute,
+            runEnvironment: data.runEnvironment,
+        }, '[executeWebhookJob] Start')
         const resolvedPayload = await resolvePayload(data.payload, data.projectId, ctx.apiClient)
+        ctx.log.info({
+            flowId: data.flowId,
+            body: typeof (resolvedPayload as { body?: unknown }).body,
+            method: (resolvedPayload as { method?: unknown }).method,
+        }, '[executeWebhookJob] Payload resolved')
 
         const flowVersion = await flowCache(ctx.log, ctx.apiClient).getVersion({ flowVersionId: data.flowVersionIdToRun })
         if (isNil(flowVersion)) {
             ctx.log.info({ flowVersionId: data.flowVersionIdToRun }, 'Flow version not found for webhook, skipping')
             return { kind: JobResultKind.FIRE_AND_FORGET, status: EngineResponseStatus.OK }
         }
+        ctx.log.info({
+            flowVersionId: flowVersion.id,
+            flowId: flowVersion.flowId,
+            state: flowVersion.state,
+            valid: flowVersion.valid,
+            trigger: (flowVersion.trigger as PieceTrigger).settings?.triggerName,
+        }, '[executeWebhookJob] Flow version loaded')
 
         const { appWebhookUrl, webhookSecret } = getAppWebhookDetails(flowVersion, ctx.publicApiUrl, settings.APP_WEBHOOK_SECRETS)
 
         const provisioned = await provisionFlowPieces({ flowVersion, platformId: data.platformId, flowId: data.flowId, projectId: data.projectId, log: ctx.log, apiClient: ctx.apiClient })
         if (!provisioned) {
+            ctx.log.warn({ flowId: data.flowId }, '[executeWebhookJob] Pieces not provisioned')
             return { kind: JobResultKind.FIRE_AND_FORGET, status: EngineResponseStatus.OK }
         }
 
@@ -99,6 +120,10 @@ export const executeWebhookJob: JobHandler<WebhookJobData, FireAndForgetJobResul
             }
 
             if (!data.execute) {
+                ctx.log.warn({
+                    flowId: data.flowId,
+                    saveSampleData: data.saveSampleData,
+                }, '[executeWebhookJob] Skipping trigger run because execute=false')
                 return null
             }
 
@@ -136,13 +161,21 @@ export const executeWebhookJob: JobHandler<WebhookJobData, FireAndForgetJobResul
         }
 
         if (isNil(execResult)) {
+            ctx.log.warn({
+                flowId: data.flowId,
+                saveSampleData: data.saveSampleData,
+                execute: data.execute,
+            }, '[executeWebhookJob] No trigger result')
             return { kind: JobResultKind.FIRE_AND_FORGET, status: EngineResponseStatus.OK }
         }
 
+        ctx.log.info({ status: execResult.status }, '[executeWebhookJob] Trigger hook finished')
+
         if (execResult.status === EngineResponseStatus.OK) {
             const triggerResult = execResult.response as ExecuteTriggerResponse<TriggerHookType.RUN>
+            ctx.log.info({ outputCount: triggerResult.output.length }, '[executeWebhookJob] Trigger hook output')
             if (triggerResult.output.length > 0) {
-                await ctx.apiClient.submitPayloads({
+                const runs = await ctx.apiClient.submitPayloads({
                     flowVersionId: flowVersion.id,
                     projectId: data.projectId,
                     payloads: triggerResult.output,
@@ -152,7 +185,11 @@ export const executeWebhookJob: JobHandler<WebhookJobData, FireAndForgetJobResul
                     parentRunId: data.parentRunId,
                     failParentOnFailure: data.failParentOnFailure,
                 })
+                ctx.log.info({ runCount: runs.length }, '[executeWebhookJob] Payloads submitted')
             }
+        }
+        else {
+            ctx.log.warn({ status: execResult.status, response: execResult.response }, '[executeWebhookJob] Trigger hook did not return OK')
         }
 
         return { kind: JobResultKind.FIRE_AND_FORGET, status: EngineResponseStatus.OK, logs: execResult.logs }

@@ -85,6 +85,14 @@ export const webhookService = {
                     }
                 }
                 const { flow } = flowExecutionResult
+                pinoLogger.info({
+                    status: flow.status,
+                    projectId: flow.projectId,
+                    publishedVersionId: flow.publishedVersionId,
+                    saveSampleData,
+                    execute,
+                    async,
+                }, '[webhookService] Flow resolved')
                 if (flow.status === FlowStatus.DISABLED && !saveSampleData) {
                     pinoLogger.warn({ flowId }, 'Webhook received for disabled flow')
                     span.setAttribute('webhook.triggerSourceFound', false)
@@ -100,6 +108,10 @@ export const webhookService = {
                 span.setAttribute('webhook.flowFound', true)
                 span.setAttribute('webhook.projectId', flow.projectId)
                 const flowVersionIdToRun = await webhookService.getFlowVersionIdToRun(flowVersionToRun, flow)
+                pinoLogger.info({
+                    flowVersionIdToRun,
+                    flowVersionToRun,
+                }, '[webhookService] Flow version selected')
                 span.setAttribute('webhook.flowVersionId', flowVersionIdToRun)
 
                 const response = await webhookHandshake.handleHandshakeRequest({
@@ -143,6 +155,12 @@ export const webhookService = {
 
                 if (async) {
                     span.setAttribute('webhook.mode', 'async')
+                    pinoLogger.info({
+                        saveSampleData,
+                        execute: flow.status === FlowStatus.ENABLED && execute,
+                        requestedExecute: execute,
+                        runEnvironment: flowVersionToRun === WebhookFlowVersionToRun.LOCKED_FALL_BACK_TO_LATEST ? RunEnvironment.PRODUCTION : RunEnvironment.TESTING,
+                    }, '[webhookService] Queue async webhook')
                     return await handleAsync({
                         flow,
                         saveSampleData,
@@ -214,6 +232,14 @@ async function handleAsync(params: AsyncWebhookParams): Promise<EngineHttpRespon
             propagation.inject(context.active(), traceContext)
 
             const jobPayload = await payloadOffloader.offloadPayload(logger, payload, flow.projectId, platformId)
+            logger.info({
+                flowId: flow.id,
+                flowVersionIdToRun,
+                saveSampleData,
+                execute,
+                runEnvironment,
+                payloadKind: typeof payload,
+            }, '[webhookService] Enqueue webhook job')
 
             await jobQueue(logger).add({
                 id: webhookRequestId,

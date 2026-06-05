@@ -11,13 +11,9 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
-    - port: 3000
-      targetPort: 3000
-      protocol: TCP
-      name: api
   selector:
     {{- include "activepieces.selectorLabels" . | nindent 4 }}
-{{- if ne (.Values.workloadType | default "rollout") "statefulset" }}
+{{- if eq (.Values.workloadType | default "rollout") "rollout" }}
 ---
 apiVersion: v1
 kind: Service
@@ -32,10 +28,6 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
-    - port: 3000
-      targetPort: 3000
-      protocol: TCP
-      name: api
   selector:
     {{- include "activepieces.selectorLabels" . | nindent 4 }}
 {{- end }}

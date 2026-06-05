@@ -1,6 +1,9 @@
 {{- if eq (.Values.workloadType | default "rollout") "statefulset" }}
 apiVersion: apps/v1
 kind: StatefulSet
+{{- else if eq (.Values.workloadType | default "rollout") "deployment" }}
+apiVersion: apps/v1
+kind: Deployment
 {{- else }}
 apiVersion: argoproj.io/v1alpha1
 kind: Rollout
@@ -50,6 +53,14 @@ spec:
           {{- end }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- with .Values.command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           ports:
             - name: http
               containerPort: {{ .Values.container.port }}
@@ -128,7 +139,7 @@ spec:
           requests:
             storage: {{ .Values.persistence.size | quote }}
   {{- end }}
-  {{- else }}
+  {{- else if eq (.Values.workloadType | default "rollout") "rollout" }}
   strategy:
     blueGreen:
       activeService: {{ include "activepieces.fullname" . }}

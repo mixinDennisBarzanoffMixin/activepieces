@@ -56,6 +56,13 @@ Thumbs.db
 activepieces-engine.js
 .history/
 
+# Do not let local framework builds leave CommonJS sidecars beside TypeScript
+# source. Vite aliases this package to src in dev and extensionless imports can
+# resolve to these generated files before the .ts modules.
+/packages/pieces/framework/src/**/*.d.ts
+/packages/pieces/framework/src/**/*.js
+/packages/pieces/framework/src/**/*.js.map
+
 # produced by unsandboxed engine execution
 .pnpm-store
 

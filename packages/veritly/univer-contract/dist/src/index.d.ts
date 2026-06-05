@@ -44,6 +44,46 @@ export declare const VeritlyUniverUpdateResult: z.ZodObject<{
     value: z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]>;
     revision: z.ZodNumber;
 }, z.core.$strip>;
+export declare const VeritlyUniverEventType: z.ZodEnum<{
+    new_row_added: "new_row_added";
+    row_changed: "row_changed";
+}>;
+export declare const VeritlyUniverWebhookRegistration: z.ZodObject<{
+    id: z.ZodString;
+    event: z.ZodEnum<{
+        new_row_added: "new_row_added";
+        row_changed: "row_changed";
+    }>;
+    workbookId: z.ZodString;
+    sheetId: z.ZodString;
+    url: z.ZodString;
+}, z.core.$strip>;
+export declare const VeritlyUniverRegisterWebhook: z.ZodObject<{
+    workbookId: z.ZodString;
+    sheetId: z.ZodString;
+    event: z.ZodEnum<{
+        new_row_added: "new_row_added";
+        row_changed: "row_changed";
+    }>;
+    url: z.ZodString;
+}, z.core.$strip>;
+export declare const VeritlyUniverRegisterWebhookResult: z.ZodObject<{
+    id: z.ZodString;
+}, z.core.$strip>;
+export declare const VeritlyUniverWebhookPayload: z.ZodObject<{
+    event: z.ZodEnum<{
+        new_row_added: "new_row_added";
+        row_changed: "row_changed";
+    }>;
+    workbookId: z.ZodString;
+    sheetId: z.ZodString;
+    revision: z.ZodNumber;
+    row: z.ZodObject<{
+        index: z.ZodNumber;
+        values: z.ZodArray<z.ZodUnion<readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]>>;
+        hash: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>;
 export type VeritlyUniverCell = z.infer<typeof VeritlyUniverCell>;
 export type VeritlyUniverBook = z.infer<typeof VeritlyUniverBook>;
 export type VeritlyUniverRow = z.infer<typeof VeritlyUniverRow>;
@@ -53,6 +93,11 @@ export type VeritlyUniverRows = z.infer<typeof VeritlyUniverRows>;
 export type VeritlyUniverAppend = z.infer<typeof VeritlyUniverAppend>;
 export type VeritlyUniverUpdate = z.infer<typeof VeritlyUniverUpdate>;
 export type VeritlyUniverUpdateResult = z.infer<typeof VeritlyUniverUpdateResult>;
+export type VeritlyUniverEventType = z.infer<typeof VeritlyUniverEventType>;
+export type VeritlyUniverWebhookRegistration = z.infer<typeof VeritlyUniverWebhookRegistration>;
+export type VeritlyUniverRegisterWebhook = z.infer<typeof VeritlyUniverRegisterWebhook>;
+export type VeritlyUniverRegisterWebhookResult = z.infer<typeof VeritlyUniverRegisterWebhookResult>;
+export type VeritlyUniverWebhookPayload = z.infer<typeof VeritlyUniverWebhookPayload>;
 export type Cell = VeritlyUniverCell;
 export type Row = VeritlyUniverRow;
 export type Snap = Record<string, string>;
@@ -76,6 +121,8 @@ export declare const univerWorkerPaths: {
     sheets(book: string): string;
     rows(ref: Ref): string;
     cells(ref: Ref): string;
+    webhooks: string;
+    webhook(id: string): string;
 };
 export declare function ref(scope: Scope): Ref;
 export declare const scope: typeof ref;
@@ -115,6 +162,12 @@ export declare function createUniverClient(opts: ClientOptions): {
         columnIndex: number;
         value: string | number | boolean | null;
         revision: number;
+    }>;
+    registerWebhook(input: VeritlyUniverRegisterWebhook): Promise<{
+        id: string;
+    }>;
+    unregisterWebhook(id: string): Promise<{
+        ok: true;
     }>;
 };
 //# sourceMappingURL=index.d.ts.map

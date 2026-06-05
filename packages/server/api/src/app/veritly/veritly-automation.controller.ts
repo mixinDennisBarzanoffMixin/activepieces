@@ -1,5 +1,5 @@
 import { AuthenticationResponse, EnginePrincipal, FlowVersionState } from '@activepieces/shared'
-import { VeritlyUniverAppend, VeritlyUniverBook, VeritlyUniverRow, VeritlyUniverRows, VeritlyUniverSheets, VeritlyUniverUpdate, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@veritly/univer-contract'
+import { VeritlyUniverAppend, VeritlyUniverBook, VeritlyUniverRegisterWebhook, VeritlyUniverRegisterWebhookResult, VeritlyUniverRow, VeritlyUniverRows, VeritlyUniverSheets, VeritlyUniverUpdate, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@veritly/univer-contract'
 import type { FastifyRequest } from 'fastify'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { StatusCodes } from 'http-status-codes'
@@ -16,6 +16,8 @@ const UniverSheets = z.object({ error: z.unknown(), sheets: z.array(VeritlyUnive
 const UniverRows = z.object({ error: z.unknown(), rows: z.array(VeritlyUniverRow) })
 const UniverAppendResult = z.object({ error: z.unknown(), sheet: z.string(), row: z.number(), rev: z.number() })
 const UniverUpdateResult = z.object({ error: z.unknown(), sheet: z.string(), row: z.number(), rev: z.number() })
+const UniverRegisterWebhookResult = z.object({ error: z.unknown(), id: z.string() })
+const UniverUnregisterWebhookResult = z.object({ error: z.unknown(), ok: z.literal(true) })
 export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) => {
     app.get('/session', {
         schema: {
@@ -171,6 +173,28 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             revision: res.rev,
         }
     })
+
+    app.post('/worker/univer/webhook-registrations', WorkerRequest({
+        body: VeritlyUniverRegisterWebhook,
+        response: {
+            [StatusCodes.OK]: VeritlyUniverRegisterWebhookResult,
+        },
+    }), async (request) => {
+        const body = request.body as z.infer<typeof VeritlyUniverRegisterWebhook>
+        const res = await call(request, UniverRegisterWebhookResult, 'POST', '/webhook-registrations', body)
+        return { id: res.id }
+    })
+
+    app.delete('/worker/univer/webhook-registrations/:webhookId', WorkerRequest({
+        params: z.object({ webhookId: z.string().min(1) }),
+        response: {
+            [StatusCodes.OK]: z.object({ ok: z.literal(true) }),
+        },
+    }), async (request) => {
+        const params = request.params as WebhookParams
+        await call(request, UniverUnregisterWebhookResult, 'DELETE', `/webhook-registrations/${encodeURIComponent(params.webhookId)}`)
+        return { ok: true }
+    })
 }
 
 function flowExternalId(veritlyProjectId: string, path: string) {
@@ -251,6 +275,10 @@ type WorkbookParams = {
 type SheetParams = {
     workbookId: string
     sheetId: string
+}
+
+type WebhookParams = {
+    webhookId: string
 }
 
 type AppendBody = z.infer<typeof VeritlyUniverAppend>

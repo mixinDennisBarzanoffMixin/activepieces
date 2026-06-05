@@ -1,6 +1,5 @@
 import './instrumentation'
 
-
 import dayjs from 'dayjs'
 import { FastifyInstance } from 'fastify'
 import { appPostBoot } from './app/app'
@@ -13,12 +12,16 @@ import { setupServer } from './app/server'
 const start = async (app: FastifyInstance): Promise<void> => {
     try {
         const port = Number(system.get(AppSystemProp.PORT))
+        console.info('[veritly-ap-api] listen:start', { port })
         await app.listen({
             host: '::',
             port,
         })
+        console.info('[veritly-ap-api] listen:done', { port })
         if (system.isApp()) {
+            console.info('[veritly-ap-api] postboot:start')
             await appPostBoot(app)
+            console.info('[veritly-ap-api] postboot:done')
         }
     }
     catch (err) {
@@ -29,7 +32,6 @@ const start = async (app: FastifyInstance): Promise<void> => {
 
 // This might be needed as it can be called twice
 let shuttingDown = false
-
 
 const stop = async (app: FastifyInstance): Promise<void> => {
     if (shuttingDown) return
@@ -52,17 +54,26 @@ function setupTimeZone(): void {
     process.env.TZ = 'UTC'
 }
 
-
 const main = async (): Promise<void> => {
+    console.info('[veritly-ap-api] main:start', {
+        type: process.env.AP_CONTAINER_TYPE,
+        port: process.env.AP_PORT,
+        db: process.env.AP_POSTGRES_HOST,
+        redis: process.env.AP_REDIS_HOST,
+    })
     setupTimeZone()
     if (system.isApp()) {
+        console.info('[veritly-ap-api] migration:start')
         await distributedLock(system.globalLogger()).runExclusive({
             key: 'database-migration-lock',
             timeoutInSeconds: dayjs.duration(10, 'minutes').asSeconds(),
             fn: async () => initializeDatabase({ runMigrations: true }),
         })
+        console.info('[veritly-ap-api] migration:done')
     }
+    console.info('[veritly-ap-api] setup:start')
     const app = await setupServer()
+    console.info('[veritly-ap-api] setup:done')
 
     process.on('SIGINT', async () => {
         await stop(app).catch((e) => system.globalLogger().error({ err: e }, '[main#stop] Failed to stop server'))
@@ -79,4 +90,3 @@ main().catch((e) => {
     system.globalLogger().error({ err: e }, '[main#start] Failed to start server')
     process.exit(1)
 })
-

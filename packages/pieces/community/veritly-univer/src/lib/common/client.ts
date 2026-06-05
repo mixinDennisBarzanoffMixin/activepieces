@@ -1,5 +1,5 @@
 import type { ServerContext } from '@activepieces/pieces-framework';
-import { cell, createUniverClient, ref, row, type Scoped } from './types';
+import { cell, createUniverClient, ref, row, type Scoped, type VeritlyUniverEventType } from './types';
 
 export async function workbooks(server: ServerContext) {
   return await client(server).workbooks();
@@ -42,6 +42,20 @@ export async function update(server: ServerContext, props: Scoped & { row_index?
     columnIndex: c,
     value: cell(props.value),
   });
+}
+
+export async function registerWebhook(server: ServerContext, props: Scoped & { event: VeritlyUniverEventType; url: string }) {
+  const cfg = ref(props);
+  return await client(server).registerWebhook({
+    event: props.event,
+    workbookId: cfg.workbookId,
+    sheetId: cfg.sheetId,
+    url: props.url,
+  });
+}
+
+export async function unregisterWebhook(server: ServerContext, id: string) {
+  return await client(server).unregisterWebhook(id);
 }
 
 function client(server: ServerContext) {

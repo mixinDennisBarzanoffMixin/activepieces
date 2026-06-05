@@ -127,14 +127,26 @@ export function createHandlers(log: FastifyBaseLogger, workerGroupId?: string): 
 
         async submitPayloads(input) {
             const { flowVersionId, projectId, payloads, httpRequestId, streamStepProgress, environment, parentRunId, failParentOnFailure } = input
+            log.info({
+                flowVersionId,
+                projectId,
+                count: payloads.length,
+                environment,
+            }, '[workerRpc] submitPayloads start')
 
             const flowVersion = await flowVersionService(log).getOne(flowVersionId)
             if (!flowVersion) {
+                log.warn({ flowVersionId }, '[workerRpc] submitPayloads missing flow version')
                 return []
             }
 
             const platformId = await projectService(log).getPlatformId(projectId)
             const filterPayloads = await dedupeService.filterUniquePayloads(flowVersionId, payloads)
+            log.info({
+                flowId: flowVersion.flowId,
+                flowVersionId,
+                count: filterPayloads.length,
+            }, '[workerRpc] submitPayloads deduped')
 
             const flowRuns = await Promise.all(
                 filterPayloads.map((payload) =>
@@ -155,6 +167,12 @@ export function createHandlers(log: FastifyBaseLogger, workerGroupId?: string): 
                     }),
                 ),
             )
+            log.info({
+                flowId: flowVersion.flowId,
+                flowVersionId,
+                count: flowRuns.length,
+                runs: flowRuns.map((run) => run.id),
+            }, '[workerRpc] submitPayloads done')
             return flowRuns
         },
 
