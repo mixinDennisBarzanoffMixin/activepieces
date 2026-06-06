@@ -85,6 +85,9 @@ export const worker = {
             connectionGeneration++
             polling = false
             logger.warn({ reason }, 'Disconnected from API server')
+            if (reason === 'io server disconnect') {
+                socket?.connect()
+            }
         })
 
         socket.on('connect_error', (error) => {
