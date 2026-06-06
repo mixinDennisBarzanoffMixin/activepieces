@@ -140,7 +140,7 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             user: session.user,
             veritlyProjectId: request.body.projectId,
         })
-        const result = await smoke(request, ctx, request.body.projectId, session.user.id)
+        const result = await smoke(request, ctx, request.body.projectId)
         return reply.status(result.ok ? StatusCodes.OK : StatusCodes.INTERNAL_SERVER_ERROR).send(result)
     })
 
@@ -242,7 +242,7 @@ function flowExternalId(veritlyProjectId: string, path: string) {
     return `veritly:automation:${veritlyProjectId}:${path}`
 }
 
-async function smoke(request: FastifyRequest, ctx: Awaited<ReturnType<typeof getVeritlyContext>>, project: string, user: string) {
+async function smoke(request: FastifyRequest, ctx: Awaited<ReturnType<typeof getVeritlyContext>>, project: string) {
     const checks: z.infer<typeof SmokezResult>['checks'] = []
     const logs: z.infer<typeof SmokezResult>['logs'] = []
     const log = (step: string, data?: Record<string, unknown>) => {
@@ -252,6 +252,7 @@ async function smoke(request: FastifyRequest, ctx: Awaited<ReturnType<typeof get
     checks.push(await timed('activepieces-univer-flow', async () => {
         const root = compat()
         const mark = `smoke-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
+        const user = identity(ctx.project).userId
         log('start', { project, mark, activepiecesProjectId: ctx.project.id, activepiecesUserId: ctx.user.id, userId: user })
         const source = await unit(root, user, project, `${mark}-source`)
         log('source-created', { source })
