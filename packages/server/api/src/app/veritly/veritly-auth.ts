@@ -88,7 +88,7 @@ export async function getVeritlyProject(params: GetContextParams): Promise<Proje
     return (await getVeritlyContext(params)).project
 }
 
-async function getVeritlyContext(params: GetContextParams) {
+export async function getVeritlyContext(params: GetContextParams) {
     console.log('[veritly auth] context start', { veritlyProjectId: params.veritlyProjectId, userId: params.user.id })
     const identity = await getIdentity(params.user)
     console.log('[veritly auth] identity', { identityId: identity.id, email: identity.email })

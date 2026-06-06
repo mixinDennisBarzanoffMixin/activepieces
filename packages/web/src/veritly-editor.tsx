@@ -116,14 +116,6 @@ function VeritlySession(props: React.PropsWithChildren<VeritlyAutomationEditorPr
     setReady(true);
   }, [session.data]);
 
-  if (session.isLoading || !ready) {
-    return (
-      <div className="bg-background flex h-full w-full items-center justify-center">
-        <LoadingSpinner isLarge={true} />
-      </div>
-    );
-  }
-
   if (session.isError) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
@@ -131,6 +123,24 @@ function VeritlySession(props: React.PropsWithChildren<VeritlyAutomationEditorPr
           Automation session not available
         </div>
         <div>{session.error.message}</div>
+      </div>
+    );
+  }
+
+  if (session.data && !isValidSession(session.data)) {
+    return (
+      <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+        <div className="font-medium text-foreground">
+          Automation session is invalid
+        </div>
+      </div>
+    );
+  }
+
+  if (session.isLoading || !ready) {
+    return (
+      <div className="bg-background flex h-full w-full items-center justify-center">
+        <LoadingSpinner isLarge={true} />
       </div>
     );
   }
@@ -180,7 +190,7 @@ export default function VeritlyAutomationEditorRoot(
     <StrictMode>
       <EmbeddingProvider>
         <VeritlyEmbedding>
-          <div className="h-full min-h-0 w-full overflow-hidden bg-background text-foreground">
+          <div className="h-screen min-h-0 w-screen overflow-hidden bg-background text-foreground">
             <MemoryRouter
               initialEntries={[`/projects/${props.projectId}/flows/${props.flowId}`]}
             >

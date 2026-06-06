@@ -23,7 +23,29 @@ export default defineConfig(({ command, mode }) => {
     root: __dirname,
     cacheDir: '../../node_modules/.vite/packages/web',
     server: {
-      // allowedHosts: ['wozcsvaint.loclx.io'],
+      cors: {
+        origin: [
+          'http://opencode-frontend.veritly.svc.cluster.local',
+          'http://opencode-frontend.veritly.svc.cluster.local:80',
+          'http://opencode-frontend',
+          'http://opencode-frontend:80',
+          'http://activepieces.veritly.svc.cluster.local',
+          'http://activepieces.veritly.svc.cluster.local:80',
+          'http://activepieces-web.veritly.svc.cluster.local',
+          'http://activepieces-web.veritly.svc.cluster.local:4200',
+          'http://activepieces',
+          'http://activepieces:80',
+          'http://activepieces-web',
+          'http://activepieces-web:4200',
+        ],
+        credentials: true,
+      },
+      allowedHosts: [
+        'activepieces',
+        'activepieces.veritly.svc.cluster.local',
+        'activepieces-web',
+        'activepieces-web.veritly.svc.cluster.local',
+      ],
       proxy: {
         '/api': {
           target: api,
@@ -119,7 +141,16 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       react(),
       tailwindcss(),
-      tsconfigPaths(),
+      tsconfigPaths({
+        projects: [
+          path.resolve(__dirname, 'tsconfig.json'),
+          path.resolve(__dirname, '../../packages/shared/tsconfig.json'),
+          path.resolve(__dirname, '../../packages/server/utils/tsconfig.lib.json'),
+          path.resolve(__dirname, '../../packages/pieces/framework/tsconfig.json'),
+          path.resolve(__dirname, '../../packages/pieces/common/tsconfig.json'),
+          path.resolve(__dirname, '../../packages/ee/embed-sdk/tsconfig.json'),
+        ],
+      }),
       customHtmlPlugin({
         title: AP_TITLE,
         icon: AP_FAVICON,
