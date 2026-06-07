@@ -471,7 +471,7 @@ async function data<T>(root: string, user: string, project: string, method: stri
 }
 
 async function wait(fn: () => Promise<boolean>) {
-    const end = Date.now() + 5000
+    const end = Date.now() + 15000
     while (Date.now() < end) {
         if (await fn()) return
         await new Promise((resolve) => setTimeout(resolve, 250))
