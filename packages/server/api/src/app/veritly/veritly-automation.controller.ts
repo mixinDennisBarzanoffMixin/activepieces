@@ -1,13 +1,13 @@
-import { AuthenticationResponse, EnginePrincipal, FlowActionType, FlowOperationType, FlowStatus, FlowTriggerType, FlowVersionState, StepLocationRelativeToParent } from '@activepieces/shared'
+import { AuthenticationResponse, EnginePrincipal, FlowVersionState } from '@activepieces/shared'
 import { VeritlyUniverAppend, VeritlyUniverBook, VeritlyUniverRegisterWebhook, VeritlyUniverRegisterWebhookResult, VeritlyUniverRow, VeritlyUniverRows, VeritlyUniverSheets, VeritlyUniverUpdate, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@veritly/univer-contract'
-import type { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyRequest } from 'fastify'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { StatusCodes } from 'http-status-codes'
 import { z } from 'zod'
 import { securityAccess } from '../core/security/authorization/fastify-security'
 import { flowService } from '../flows/flow/flow.service'
 import { projectService } from '../project/project-service'
-import { getVeritlyContext, getVeritlyProject, getVeritlySessionResponse, resolveVeritlySession } from './veritly-auth'
+import { getVeritlyProject, getVeritlySessionResponse, resolveVeritlySession } from './veritly-auth'
 
 const PROJECT_HDR = 'x-veritly-project-id'
 const ErrorResponse = z.object({ error: z.string() })
@@ -18,24 +18,6 @@ const UniverAppendResult = z.object({ error: z.unknown(), sheet: z.string(), row
 const UniverUpdateResult = z.object({ error: z.unknown(), sheet: z.string(), row: z.number(), rev: z.number() })
 const UniverRegisterWebhookResult = z.object({ error: z.unknown(), id: z.string() })
 const UniverUnregisterWebhookResult = z.object({ error: z.unknown(), ok: z.literal(true) })
-const SmokezInput = z.object({ projectId: z.string().min(1) })
-const UniverPiece = '@activepieces/piece-veritly-univer'
-const UniverPieceVersion = '0.0.2'
-const SmokezResult = z.object({
-    ok: z.boolean(),
-    projectId: z.string(),
-    checks: z.array(z.object({
-        name: z.string(),
-        ok: z.boolean(),
-        ms: z.number(),
-        detail: z.string().optional(),
-    })),
-    logs: z.array(z.object({
-        at: z.string(),
-        step: z.string(),
-        data: z.record(z.string(), z.unknown()).optional(),
-    })),
-})
 export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) => {
     app.get('/session', {
         schema: {
@@ -119,29 +101,6 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             flowId: flow.id,
             displayName: flow.version.displayName,
         })
-    })
-
-    app.post('/smokez', {
-        schema: {
-            body: SmokezInput,
-            response: {
-                [StatusCodes.OK]: SmokezResult,
-                [StatusCodes.INTERNAL_SERVER_ERROR]: SmokezResult,
-                [StatusCodes.UNAUTHORIZED]: ErrorResponse,
-                [StatusCodes.SERVICE_UNAVAILABLE]: ErrorResponse,
-            },
-        },
-    }, async (request, reply) => {
-        const session = await resolveSmokezSession({ request, reply })
-        if (!session.ok) return reply.send(session.body)
-
-        const ctx = await getVeritlyContext({
-            log: request.log,
-            user: session.user,
-            veritlyProjectId: request.body.projectId,
-        })
-        const result = await smoke(request, ctx, request.body.projectId)
-        return reply.status(result.ok ? StatusCodes.OK : StatusCodes.INTERNAL_SERVER_ERROR).send(result)
     })
 
     app.get('/worker/univer/workbooks', WorkerRequest({
@@ -238,257 +197,8 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
     })
 }
 
-async function resolveSmokezSession(params: { request: FastifyRequest, reply: FastifyReply }) {
-    const token = params.request.headers['x-veritly-smokez-token']?.toString()
-    if (!token) return resolveVeritlySession(params)
-    if (token !== smokeToken()) {
-        params.reply.status(StatusCodes.UNAUTHORIZED)
-        return { ok: false as const, body: { error: 'Invalid smokez token' } }
-    }
-    return { ok: true as const, user: smokeUser() }
-}
-
-function smokeToken() {
-    const token = process.env.SMOKEZ_SERVICE_TOKEN?.trim()
-    if (!token) throw new Error('SMOKEZ_SERVICE_TOKEN is required')
-    return token
-}
-
-function smokeUser() {
-    const id = process.env.SMOKEZ_USER_ID?.trim()
-    if (!id) throw new Error('SMOKEZ_USER_ID is required')
-    return {
-        id,
-        email: process.env.SMOKEZ_USER_EMAIL?.trim(),
-        firstName: 'Smokez',
-        lastName: 'Service',
-    }
-}
-
 function flowExternalId(veritlyProjectId: string, path: string) {
     return `veritly:automation:${veritlyProjectId}:${path}`
-}
-
-async function smoke(request: FastifyRequest, ctx: Awaited<ReturnType<typeof getVeritlyContext>>, project: string) {
-    const checks: z.infer<typeof SmokezResult>['checks'] = []
-    const logs: z.infer<typeof SmokezResult>['logs'] = []
-    const log = (step: string, data?: Record<string, unknown>) => {
-        logs.push({ at: new Date().toISOString(), step, data })
-        console.log('[veritly smokez]', { step, data })
-    }
-    checks.push(await timed('activepieces-univer-flow', async () => {
-        const root = compat()
-        const mark = `smoke-${Date.now()}-${crypto.randomUUID().slice(0, 8)}`
-        const user = identity(ctx.project).userId
-        log('start', { project, mark, activepiecesProjectId: ctx.project.id, activepiecesUserId: ctx.user.id, userId: user })
-        const source = await unit(root, user, project, `${mark}-source`)
-        log('source-created', { source })
-        const dest = await unit(root, user, project, `${mark}-dest`)
-        log('dest-created', { dest })
-        let flow = ''
-        try {
-            const src = await first(root, user, project, source)
-            const dst = await first(root, user, project, dest)
-            log('sheets-selected', { source, src, dest, dst })
-            const created = await flowService(request.log).create({
-                projectId: ctx.project.id,
-                externalId: flowExternalId(project, `${mark}.auto`),
-                ownerId: ctx.project.ownerId,
-                request: {
-                    projectId: ctx.project.id,
-                    displayName: `smokez ${mark}`,
-                    metadata: {
-                        veritly: {
-                            path: `${mark}.auto`,
-                            projectId: project,
-                            creatorUserId: ctx.user.id,
-                        },
-                    },
-                },
-            })
-            flow = created.id
-            log('flow-created', { flow })
-            let out = await flowService(request.log).update({
-                id: flow,
-                projectId: ctx.project.id,
-                userId: ctx.user.id,
-                platformId: ctx.platformId,
-                operation: {
-                    type: FlowOperationType.UPDATE_TRIGGER,
-                    request: trigger(source, src),
-                },
-            })
-            log('trigger-configured', { flow, trigger: out.version.trigger.name })
-            out = await flowService(request.log).update({
-                id: flow,
-                projectId: ctx.project.id,
-                userId: ctx.user.id,
-                platformId: ctx.platformId,
-                operation: {
-                    type: FlowOperationType.ADD_ACTION,
-                    request: {
-                        parentStep: out.version.trigger.name,
-                        stepLocationRelativeToParent: StepLocationRelativeToParent.AFTER,
-                        action: action(dest, dst),
-                    },
-                },
-            })
-            log('action-configured', { flow, version: out.version.id })
-            await flowService(request.log).update({
-                id: flow,
-                projectId: ctx.project.id,
-                userId: ctx.user.id,
-                platformId: ctx.platformId,
-                operation: {
-                    type: FlowOperationType.LOCK_AND_PUBLISH,
-                    request: { status: FlowStatus.ENABLED },
-                },
-            })
-            log('flow-published', { flow })
-            await write(root, user, project, source, src, [mark, 'input'])
-            log('source-row-written', { source, src, values: [mark, 'input'] })
-            await wait(async () => {
-                const rows = await data<{ rows: { values: unknown[] }[] }>(root, user, project, 'GET', `/veritly/units/${dest}/sheets/${dst}/rows?empty=true`)
-                log('dest-polled', { rows: rows.rows.length })
-                return rows.rows.some((row) => row.values[0] === mark && row.values[1] === 'processed')
-            })
-            log('dest-verified', { dest, dst, values: [mark, 'processed'] })
-            return `flow=${flow} source=${source}/${src} dest=${dest}/${dst}`
-        } finally {
-            log('cleanup-start', { flow, source, dest })
-            await Promise.all([
-                flow ? flowService(request.log).delete({ id: flow, projectId: ctx.project.id }) : Promise.resolve(),
-                drop(root, user, project, source),
-                drop(root, user, project, dest),
-            ])
-            log('cleanup-done', { flow, source, dest })
-        }
-    }))
-    return {
-        ok: checks.every((check) => check.ok),
-        projectId: project,
-        checks,
-        logs,
-    }
-}
-
-async function timed(name: string, fn: () => Promise<string>) {
-    const start = performance.now()
-    try {
-        const detail = await fn()
-        return {
-            name,
-            ok: true,
-            ms: Math.round(performance.now() - start),
-            detail,
-        }
-    } catch (err) {
-        return {
-            name,
-            ok: false,
-            ms: Math.round(performance.now() - start),
-            detail: err instanceof Error ? err.message : String(err),
-        }
-    }
-}
-
-function trigger(book: string, tab: string) {
-    return {
-        name: 'trigger',
-        displayName: 'New Row Added',
-        valid: true,
-        lastUpdatedDate: new Date().toISOString(),
-        type: FlowTriggerType.PIECE as const,
-        settings: {
-            pieceName: UniverPiece,
-            pieceVersion: UniverPieceVersion,
-            triggerName: 'new_row_added',
-            input: {
-                workbook_id: book,
-                sheet_id: tab,
-            },
-            propertySettings: {},
-        },
-    }
-}
-
-function action(book: string, tab: string) {
-    return {
-        name: 'append_row',
-        displayName: 'Append Row',
-        valid: true,
-        lastUpdatedDate: new Date().toISOString(),
-        type: FlowActionType.PIECE as const,
-        settings: {
-            pieceName: UniverPiece,
-            pieceVersion: UniverPieceVersion,
-            actionName: 'append_row',
-            input: {
-                workbook_id: book,
-                sheet_id: tab,
-                values: ['{{trigger.values[0]}}', 'processed'],
-            },
-            propertySettings: {},
-        },
-    }
-}
-
-async function unit(root: string, user: string, project: string, name: string) {
-    return (await data<{ unitID: string }>(root, user, project, 'POST', '/snapshot/2/unit/-/create', { name, creator: user })).unitID
-}
-
-async function first(root: string, user: string, project: string, book: string) {
-    const res = await data<{ sheets: { id: string }[] }>(root, user, project, 'GET', `/veritly/units/${book}/sheets`)
-    const sheet = res.sheets[0]
-    if (!sheet) throw new Error(`unit ${book} has no sheets`)
-    return sheet.id
-}
-
-async function write(root: string, user: string, project: string, book: string, tab: string, values: unknown[]) {
-    await data(root, user, project, 'POST', `/veritly/units/${book}/sheets/${tab}/rows`, { values })
-}
-
-async function drop(root: string, user: string, project: string, book: string) {
-    await data(root, user, project, 'DELETE', `/veritly/units/${book}`)
-}
-
-async function data<T>(root: string, user: string, project: string, method: string, path: string, body?: unknown): Promise<T> {
-    const res = await fetch(new URL(`/universer-api${path}`, root), {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-            'x-veritly-service-token': token(),
-            'x-veritly-user-id': user,
-            'x-veritly-project-id': project,
-        },
-        body: body === undefined ? undefined : JSON.stringify(body),
-        signal: AbortSignal.timeout(5000),
-    })
-    const text = await res.text()
-    if (!res.ok) throw new Error(`${method} ${path} failed ${res.status}: ${text}`)
-    if (!text) return {} as T
-    return JSON.parse(text) as T
-}
-
-async function wait(fn: () => Promise<boolean>) {
-    const end = Date.now() + 15000
-    while (Date.now() < end) {
-        if (await fn()) return
-        await new Promise((resolve) => setTimeout(resolve, 250))
-    }
-    throw new Error('destination workbook did not receive processed row')
-}
-
-function compat() {
-    const root = process.env.UNIVER_COMPAT_URL?.trim()
-    if (!root) throw new Error('UNIVER_COMPAT_URL is required')
-    return root
-}
-
-function token() {
-    const value = process.env.UNIVER_COMPAT_SERVICE_TOKEN?.trim()
-    if (!value) throw new Error('UNIVER_COMPAT_SERVICE_TOKEN is required')
-    return value
 }
 
 function WorkerRequest(schema: WorkerSchema) {
