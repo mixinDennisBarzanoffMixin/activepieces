@@ -170,7 +170,7 @@ async function setupBaseApp(): Promise<FastifyInstance> {
         origin: true,
         credentials: true,
         exposedHeaders: ['*'],
-        methods: ['*'],
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     })
     // SurveyMonkey
     app.addContentTypeParser(
