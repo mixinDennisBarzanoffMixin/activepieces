@@ -1,6 +1,6 @@
 import { AuthenticationResponse, EnginePrincipal, FlowActionType, FlowOperationType, FlowStatus, FlowTriggerType, FlowVersionState, StepLocationRelativeToParent } from '@activepieces/shared'
 import { VeritlyUniverAppend, VeritlyUniverBook, VeritlyUniverRegisterWebhook, VeritlyUniverRegisterWebhookResult, VeritlyUniverRow, VeritlyUniverRows, VeritlyUniverSheets, VeritlyUniverUpdate, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@veritly/univer-contract'
-import type { FastifyRequest } from 'fastify'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { StatusCodes } from 'http-status-codes'
 import { z } from 'zod'
@@ -132,7 +132,7 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             },
         },
     }, async (request, reply) => {
-        const session = await resolveVeritlySession({ request, reply })
+        const session = await resolveSmokezSession({ request, reply })
         if (!session.ok) return reply.send(session.body)
 
         const ctx = await getVeritlyContext({
@@ -236,6 +236,33 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
         await call(request, UniverUnregisterWebhookResult, 'DELETE', `/webhook-registrations/${encodeURIComponent(params.webhookId)}`)
         return { ok: true }
     })
+}
+
+async function resolveSmokezSession(params: { request: FastifyRequest, reply: FastifyReply }) {
+    const token = params.request.headers['x-veritly-smokez-token']?.toString()
+    if (!token) return resolveVeritlySession(params)
+    if (token !== smokeToken()) {
+        params.reply.status(StatusCodes.UNAUTHORIZED)
+        return { ok: false as const, body: { error: 'Invalid smokez token' } }
+    }
+    return { ok: true as const, user: smokeUser() }
+}
+
+function smokeToken() {
+    const token = process.env.SMOKEZ_SERVICE_TOKEN?.trim()
+    if (!token) throw new Error('SMOKEZ_SERVICE_TOKEN is required')
+    return token
+}
+
+function smokeUser() {
+    const id = process.env.SMOKEZ_USER_ID?.trim()
+    if (!id) throw new Error('SMOKEZ_USER_ID is required')
+    return {
+        id,
+        email: process.env.SMOKEZ_USER_EMAIL?.trim(),
+        firstName: 'Smokez',
+        lastName: 'Service',
+    }
 }
 
 function flowExternalId(veritlyProjectId: string, path: string) {
