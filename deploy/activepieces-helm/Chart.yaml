@@ -25,10 +25,6 @@ version: 0.3.0
 appVersion: "0.71.2"
 
 dependencies:
-  - name: kubernetes-secret-generator
-    version: "3.4.1"
-    repository: "https://helm.mittwald.de"
-    condition: kubernetes-secret-generator.enabled
   - name: postgresql
     version: "11.7.2"
     repository: "https://charts.bitnami.com/bitnami"
