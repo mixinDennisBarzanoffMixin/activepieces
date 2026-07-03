@@ -18,6 +18,8 @@ const UniverAppendResult = z.object({ error: z.unknown(), sheet: z.string(), row
 const UniverUpdateResult = z.object({ error: z.unknown(), sheet: z.string(), row: z.number(), rev: z.number() })
 const UniverRegisterWebhookResult = z.object({ error: z.unknown(), id: z.string() })
 const UniverUnregisterWebhookResult = z.object({ error: z.unknown(), ok: z.literal(true) })
+const Automation = z.object({ path: z.string(), flowId: z.string(), displayName: z.string() })
+const Automations = z.object({ automations: z.array(Automation) })
 export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) => {
     app.get('/session', {
         schema: {
@@ -42,6 +44,48 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             console.error('[veritly api] session failed', err)
             throw err
         }
+    })
+
+    app.get('/automations', {
+        schema: {
+            response: {
+                [StatusCodes.OK]: Automations,
+                [StatusCodes.BAD_REQUEST]: ErrorResponse,
+                [StatusCodes.UNAUTHORIZED]: ErrorResponse,
+                [StatusCodes.SERVICE_UNAVAILABLE]: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
+        const session = await resolveVeritlySession({ request, reply })
+        if (!session.ok) return reply.send(session.body)
+
+        const veritlyProjectId = request.headers[PROJECT_HDR]?.toString()
+        if (!veritlyProjectId) return reply.status(StatusCodes.BAD_REQUEST).send({ error: `missing ${PROJECT_HDR}` })
+
+        const project = await getVeritlyProject({
+            log: request.log,
+            user: session.user,
+            veritlyProjectId,
+        })
+        const page = await flowService(request.log).list({
+            projectIds: [project.id],
+            versionState: FlowVersionState.DRAFT,
+            limit: 100,
+            includeTriggerSource: false,
+        })
+        const automations = page.data
+            .map((flow) => {
+                const path = flowPath(flow, veritlyProjectId)
+                if (!path) return
+                return {
+                    path,
+                    flowId: flow.id,
+                    displayName: flow.version.displayName,
+                }
+            })
+            .filter((item): item is z.infer<typeof Automation> => Boolean(item))
+
+        return { automations }
     })
 
     app.post('/automations', {
@@ -199,6 +243,17 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
 
 function flowExternalId(veritlyProjectId: string, path: string) {
     return `veritly:automation:${veritlyProjectId}:${path}`
+}
+
+function flowPath(flow: { externalId?: string | null, metadata?: Record<string, unknown> | null }, scope: string) {
+    const veritly = record(flow.metadata) ? flow.metadata.veritly : undefined
+    const path = record(veritly) ? veritly.path : undefined
+    if (typeof path === 'string' && path) return path
+    const ext = flow.externalId
+    const prefix = flowExternalId(scope, '')
+    if (typeof ext !== 'string') return
+    if (!ext.startsWith(prefix)) return
+    return ext.slice(prefix.length)
 }
 
 function WorkerRequest(schema: WorkerSchema) {
