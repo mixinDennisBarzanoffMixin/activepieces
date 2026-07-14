@@ -1,19 +1,28 @@
 import './polyfills';
 import './i18n';
 
-import { AuthenticationResponse, isNil, PopulatedFlow } from '@activepieces/shared';
+import {
+  AuthenticationResponse,
+  isNil,
+  PopulatedFlow,
+} from '@activepieces/shared';
 import { QueryClientProvider, useQuery } from '@tanstack/react-query';
 import { ReactFlowProvider } from '@xyflow/react';
 import { jwtDecode } from 'jwt-decode';
-import React, { StrictMode, useEffect, useState } from 'react';
+import React, { StrictMode, useContext, useEffect, useState } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 
 import { BuilderPage } from '@/app/builder';
+import { BuilderStateContext } from '@/app/builder/builder-hooks';
+import type { BuilderStore } from '@/app/builder/builder-hooks';
 import { BuilderStateProvider } from '@/app/builder/state/builder-state-provider';
 import { queryClient } from '@/app/query-client';
 import { ApErrorDialog } from '@/components/custom/ap-error-dialog/ap-error-dialog';
 import { LoadingSpinner } from '@/components/custom/spinner';
-import { EmbeddingProvider, useEmbedding } from '@/components/providers/embed-provider';
+import {
+  EmbeddingProvider,
+  useEmbedding,
+} from '@/components/providers/embed-provider';
 import { SocketProvider } from '@/components/providers/socket-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -28,7 +37,42 @@ export type VeritlyAutomationEditorProps = {
   projectId: string;
 };
 
-function VeritlyAutomationEditor(props: VeritlyAutomationEditorProps) {
+type RootProps = VeritlyAutomationEditorProps & {
+  register: (flush: (() => Promise<void>) | undefined) => void;
+};
+
+async function flush(store: BuilderStore) {
+  if (document.querySelector('[role="dialog"][data-state="open"] form')) {
+    throw new Error(
+      'Activepieces cannot flush while an unfinished dialog is open',
+    );
+  }
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) active.blur();
+  await new Promise<void>((done) => setTimeout(done, 0));
+  const end = Date.now() + 4_500;
+  while (store.getState().saving) {
+    if (Date.now() >= end) {
+      throw new Error('Activepieces could not persist the current flow');
+    }
+    await new Promise<void>((done) => setTimeout(done, 50));
+  }
+}
+
+function VeritlyFlush(props: Pick<RootProps, 'register'>) {
+  const store = useContext(BuilderStateContext);
+  if (!store) throw new Error('Missing Activepieces builder store');
+  const register = props.register;
+
+  useEffect(() => {
+    register(() => flush(store));
+    return () => register(undefined);
+  }, [register, store]);
+
+  return null;
+}
+
+function VeritlyAutomationEditor(props: RootProps) {
   useEffect(() => {
     setVeritlyProjectId(props.projectId);
   }, [props.projectId]);
@@ -80,13 +124,18 @@ function VeritlyAutomationEditor(props: VeritlyAutomationEditorProps) {
         outputSampleData={sample.data ?? {}}
         inputSampleData={input.data ?? {}}
       >
+        <VeritlyFlush register={props.register} />
         <BuilderPage />
       </BuilderStateProvider>
     </ReactFlowProvider>
   );
 }
 
-function VeritlySession(props: React.PropsWithChildren<VeritlyAutomationEditorProps>) {
+function VeritlySession(
+  props: React.PropsWithChildren<
+    Pick<VeritlyAutomationEditorProps, 'projectId'>
+  >,
+) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -183,29 +232,30 @@ function VeritlyEmbedding(props: React.PropsWithChildren) {
   return <>{props.children}</>;
 }
 
-export default function VeritlyAutomationEditorRoot(
-  props: VeritlyAutomationEditorProps,
-) {
+export default function VeritlyAutomationEditorRoot(props: RootProps) {
   return (
     <StrictMode>
       <EmbeddingProvider>
         <VeritlyEmbedding>
           <div className="h-screen min-h-0 w-screen overflow-hidden bg-background text-foreground">
-            <MemoryRouter
-              initialEntries={[`/projects/${props.projectId}/flows/${props.flowId}`]}
-            >
-              <QueryClientProvider client={queryClient}>
-                <VeritlySession {...props}>
-                  <SocketProvider>
-                    <TooltipProvider>
+            <QueryClientProvider client={queryClient}>
+              <VeritlySession {...props}>
+                <SocketProvider>
+                  <TooltipProvider>
+                    <MemoryRouter
+                      key={props.flowId}
+                      initialEntries={[
+                        `/projects/${props.projectId}/flows/${props.flowId}`,
+                      ]}
+                    >
                       <VeritlyAutomationEditor {...props} />
-                      <Toaster position="bottom-right" />
-                      <ApErrorDialog />
-                    </TooltipProvider>
-                  </SocketProvider>
-                </VeritlySession>
-              </QueryClientProvider>
-            </MemoryRouter>
+                    </MemoryRouter>
+                    <Toaster position="bottom-right" />
+                    <ApErrorDialog />
+                  </TooltipProvider>
+                </SocketProvider>
+              </VeritlySession>
+            </QueryClientProvider>
           </div>
         </VeritlyEmbedding>
       </EmbeddingProvider>

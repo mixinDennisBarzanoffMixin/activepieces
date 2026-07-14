@@ -4,13 +4,7 @@ import * as ReactDOM from 'react-dom/client';
 
 import './i18n';
 import App from './app/app';
-import VeritlyAutomationEditorRoot from './veritly-editor';
-
-function param(url: URL, key: string) {
-  const value = url.searchParams.get(key)?.trim();
-  if (!value) throw new Error(`Missing ${key}`);
-  return value;
-}
+import VeritlyAutomationWorkspace from './veritly-workspace';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement,
@@ -18,14 +12,12 @@ const root = ReactDOM.createRoot(
 const url = new URL(window.location.href);
 
 if (url.pathname === '/veritly/editor') {
-  root.render(
-    <VeritlyAutomationEditorRoot
-      flowId={param(url, 'flowId')}
-      projectId={param(url, 'projectId')}
-      path={param(url, 'path')}
-      name={url.searchParams.get('name')?.trim() || undefined}
-    />,
-  );
+  const origin = url.searchParams.get('parentOrigin')?.trim();
+  const frame = url.searchParams.get('frame')?.trim();
+  if (!origin || !frame) {
+    throw new Error('Activepieces workspace requires parentOrigin and frame');
+  }
+  root.render(<VeritlyAutomationWorkspace origin={origin} frame={frame} />);
 } else {
   root.render(
     <StrictMode>
