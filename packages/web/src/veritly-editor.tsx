@@ -14,7 +14,6 @@ import { MemoryRouter } from 'react-router-dom';
 
 import { BuilderPage } from '@/app/builder';
 import { BuilderStateContext } from '@/app/builder/builder-hooks';
-import type { BuilderStore } from '@/app/builder/builder-hooks';
 import { BuilderStateProvider } from '@/app/builder/state/builder-state-provider';
 import { queryClient } from '@/app/query-client';
 import { ApErrorDialog } from '@/components/custom/ap-error-dialog/ap-error-dialog';
@@ -30,6 +29,8 @@ import { flowsApi, sampleDataHooks } from '@/features/flows';
 import { api, setVeritlyProjectId } from '@/lib/api';
 import { authenticationSession } from '@/lib/authentication-session';
 
+import { ActivepiecesSave } from './veritly-save';
+
 export type VeritlyAutomationEditorProps = {
   flowId: string;
   path: string;
@@ -41,31 +42,14 @@ type RootProps = VeritlyAutomationEditorProps & {
   register: (flush: (() => Promise<void>) | undefined) => void;
 };
 
-async function flush(store: BuilderStore) {
-  if (document.querySelector('[role="dialog"][data-state="open"] form')) {
-    throw new Error(
-      'Activepieces cannot flush while an unfinished dialog is open',
-    );
-  }
-  const active = document.activeElement;
-  if (active instanceof HTMLElement) active.blur();
-  await new Promise<void>((done) => setTimeout(done, 0));
-  const end = Date.now() + 4_500;
-  while (store.getState().saving) {
-    if (Date.now() >= end) {
-      throw new Error('Activepieces could not persist the current flow');
-    }
-    await new Promise<void>((done) => setTimeout(done, 50));
-  }
-}
-
 function VeritlyFlush(props: Pick<RootProps, 'register'>) {
   const store = useContext(BuilderStateContext);
   if (!store) throw new Error('Missing Activepieces builder store');
   const register = props.register;
 
   useEffect(() => {
-    register(() => flush(store));
+    const save = new ActivepiecesSave(store);
+    register(() => save.flush());
     return () => register(undefined);
   }, [register, store]);
 
