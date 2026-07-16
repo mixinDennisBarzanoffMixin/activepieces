@@ -59,6 +59,11 @@ import { flowRepo } from './flow.repo'
 
 
 export const flowService = (log: FastifyBaseLogger) => ({
+    async rekey({ id, projectId, externalId }: { id: FlowId, projectId: ProjectId, externalId: string }): Promise<void> {
+        await this.getOneOrThrow({ id, projectId })
+        await flowRepo().update(id, { externalId })
+    },
+
     async create({ projectId, request, externalId, ownerId, templateId, createdBy }: CreateParams): Promise<PopulatedFlow> {
         const folderId = await getFolderIdFromRequest({ projectId, folderId: request.folderId, folderName: request.folderName, log })
         const newFlow: NewFlow = {

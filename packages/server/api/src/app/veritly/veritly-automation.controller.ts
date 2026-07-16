@@ -1,4 +1,4 @@
-import { AuthenticationResponse, EnginePrincipal, FlowVersionState } from '@activepieces/shared'
+import { AuthenticationResponse, EnginePrincipal, FlowOperationRequest, FlowOperationType, FlowVersionState } from '@activepieces/shared'
 import { VeritlyUniverAppend, VeritlyUniverBook, VeritlyUniverRegisterWebhook, VeritlyUniverRegisterWebhookResult, VeritlyUniverRow, VeritlyUniverRows, VeritlyUniverSheets, VeritlyUniverUpdate, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@veritly/univer-contract'
 import type { FastifyRequest } from 'fastify'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
@@ -7,7 +7,12 @@ import { z } from 'zod'
 import { securityAccess } from '../core/security/authorization/fastify-security'
 import { flowService } from '../flows/flow/flow.service'
 import { projectService } from '../project/project-service'
-import { getVeritlyProject, getVeritlySessionResponse, resolveVeritlySession } from './veritly-auth'
+import {
+    getVeritlyContext,
+    getVeritlyProject,
+    getVeritlySessionResponse,
+    resolveVeritlySession,
+} from './veritly-auth'
 
 const PROJECT_HDR = 'x-veritly-project-id'
 const ErrorResponse = z.object({ error: z.string() })
@@ -70,7 +75,6 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
         const page = await flowService(request.log).list({
             projectIds: [project.id],
             versionState: FlowVersionState.DRAFT,
-            limit: 100,
             includeTriggerSource: false,
         })
         const automations = page.data
@@ -117,13 +121,14 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             user: session.user,
             veritlyProjectId,
         })
-        const externalId = flowExternalId(veritlyProjectId, request.body.path)
-        const existing = await flowService(request.log).list({
+        const page = await flowService(request.log).list({
             projectIds: [project.id],
-            externalIds: [externalId],
             versionState: FlowVersionState.DRAFT,
+            includeTriggerSource: false,
         })
-        const flow = existing.data[0] ? existing.data[0] : await flowService(request.log).create({
+        const existing = page.data.find((item) => flowPath(item, veritlyProjectId) === request.body.path)
+        const externalId = flowExternalId(veritlyProjectId, request.body.path)
+        const flow = existing ? existing : await flowService(request.log).create({
             projectId: project.id,
             externalId,
             ownerId: project.ownerId,
@@ -145,6 +150,107 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
             flowId: flow.id,
             displayName: flow.version.displayName,
         })
+    })
+
+    app.patch('/automations/:flowId', {
+        schema: {
+            params: z.object({ flowId: z.string().min(1) }),
+            body: z.object({ path: z.string().min(1), displayName: z.string().min(1) }),
+            response: {
+                [StatusCodes.OK]: Automation,
+                [StatusCodes.BAD_REQUEST]: ErrorResponse,
+                [StatusCodes.UNAUTHORIZED]: ErrorResponse,
+                [StatusCodes.NOT_FOUND]: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
+        const session = await resolveVeritlySession({ request, reply })
+        if (!session.ok) return reply.send(session.body)
+        const scope = request.headers[PROJECT_HDR]?.toString()
+        if (!scope) return reply.status(StatusCodes.BAD_REQUEST).send({ error: `missing ${PROJECT_HDR}` })
+        const ctx = await getVeritlyContext({ log: request.log, user: session.user, veritlyProjectId: scope })
+        const project = ctx.project
+        const flow = await flowService(request.log).getOnePopulated({ id: request.params.flowId, projectId: project.id })
+        if (!flow || !flowPath(flow, scope)) return reply.status(StatusCodes.NOT_FOUND).send({ error: 'automation not found' })
+        const ops: FlowOperationRequest[] = [
+            { type: FlowOperationType.CHANGE_NAME, request: { displayName: request.body.displayName } },
+            {
+                type: FlowOperationType.UPDATE_METADATA,
+                request: {
+                    metadata: {
+                        ...flow.metadata,
+                        veritly: {
+                            path: request.body.path,
+                            projectId: scope,
+                            creatorUserId: session.user.id,
+                        },
+                    },
+                },
+            },
+        ]
+        for (const operation of ops) {
+            await flowService(request.log).update({
+                id: flow.id,
+                projectId: project.id,
+                userId: ctx.user.id,
+                platformId: project.platformId,
+                operation,
+            })
+        }
+        await flowService(request.log).rekey({
+            id: flow.id,
+            projectId: project.id,
+            externalId: flowExternalId(scope, request.body.path),
+        })
+        return { path: request.body.path, flowId: flow.id, displayName: request.body.displayName }
+    })
+
+    app.delete('/automations/:flowId', {
+        schema: {
+            params: z.object({ flowId: z.string().min(1) }),
+            response: {
+                [StatusCodes.OK]: z.object({ ok: z.literal(true) }),
+                [StatusCodes.BAD_REQUEST]: ErrorResponse,
+                [StatusCodes.UNAUTHORIZED]: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
+        const session = await resolveVeritlySession({ request, reply })
+        if (!session.ok) return reply.send(session.body)
+        const scope = request.headers[PROJECT_HDR]?.toString()
+        if (!scope) return reply.status(StatusCodes.BAD_REQUEST).send({ error: `missing ${PROJECT_HDR}` })
+        const project = await getVeritlyProject({ log: request.log, user: session.user, veritlyProjectId: scope })
+        const flow = await flowService(request.log).getOnePopulated({ id: request.params.flowId, projectId: project.id })
+        if (!flow || !flowPath(flow, scope)) return { ok: true as const }
+        await flowService(request.log).delete({ id: flow.id, projectId: project.id })
+        return { ok: true as const }
+    })
+
+    app.delete('/automations', {
+        schema: {
+            response: {
+                [StatusCodes.OK]: z.object({ ok: z.literal(true) }),
+                [StatusCodes.BAD_REQUEST]: ErrorResponse,
+                [StatusCodes.UNAUTHORIZED]: ErrorResponse,
+            },
+        },
+    }, async (request, reply) => {
+        const session = await resolveVeritlySession({ request, reply })
+        if (!session.ok) return reply.send(session.body)
+        const scope = request.headers[PROJECT_HDR]?.toString()
+        if (!scope) return reply.status(StatusCodes.BAD_REQUEST).send({ error: `missing ${PROJECT_HDR}` })
+        const project = await getVeritlyProject({ log: request.log, user: session.user, veritlyProjectId: scope })
+        const page = await flowService(request.log).list({
+            projectIds: [project.id],
+            versionState: FlowVersionState.DRAFT,
+            includeTriggerSource: false,
+        })
+        await Promise.all(
+            page.data
+                .filter((flow) => Boolean(flowPath(flow, scope)))
+                .map((flow) => flowService(request.log).delete({ id: flow.id, projectId: project.id })),
+        )
+        return { ok: true as const }
     })
 
     app.get('/worker/univer/workbooks', WorkerRequest({
