@@ -88,7 +88,7 @@ export async function validateWorkosSession(input: ValidateWorkosSessionInput): 
   return { ok: false, reason: "Invalid WorkOS session" }
 }
 
-/** Shared Set-Cookie shape for `wos-session` (api + univer-compat). */
+/** Shared Set-Cookie shape for `wos-session` across authenticated services. */
 export function workosSessionCookieBase() {
   const raw = process.env.PUBLIC_BASE_URL?.trim() || process.env.WORKOS_REDIRECT_URI?.trim()
   if (!raw) throw new Error("PUBLIC_BASE_URL or WORKOS_REDIRECT_URI is required for WorkOS cookie options")

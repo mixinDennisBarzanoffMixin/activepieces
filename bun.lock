@@ -7374,14 +7374,14 @@
         "tslib": "^2.3.0",
       },
     },
-    "packages/pieces/community/veritly-univer": {
-      "name": "@activepieces/piece-veritly-univer",
+    "packages/pieces/community/veritly-onlyoffice": {
+      "name": "@activepieces/piece-veritly-onlyoffice",
       "version": "0.0.2",
       "dependencies": {
         "@activepieces/pieces-common": "workspace:*",
         "@activepieces/pieces-framework": "workspace:*",
         "@activepieces/shared": "workspace:*",
-        "@veritly/univer-contract": "workspace:*",
+        "@veritly/onlyoffice-contract": "workspace:*",
         "tslib": "2.6.2",
       },
     },
@@ -8477,7 +8477,7 @@
         "@sentry/node": "7.120.0",
         "@smithy/node-http-handler": "4.4.14",
         "@socket.io/redis-adapter": "8.3.0",
-        "@veritly/univer-contract": "workspace:*",
+        "@veritly/onlyoffice-contract": "workspace:*",
         "ai": "^6.0.0",
         "ai-gateway-provider": "3.1.1",
         "async-mutex": "0.4.0",
@@ -8701,8 +8701,8 @@
         "typescript": "5.5.4",
       },
     },
-    "packages/veritly/univer-contract": {
-      "name": "@veritly/univer-contract",
+    "packages/veritly/onlyoffice-contract": {
+      "name": "@veritly/onlyoffice-contract",
       "version": "0.1.1",
       "dependencies": {
         "zod": "4.3.6",
@@ -10196,7 +10196,7 @@
 
     "@activepieces/piece-vercel": ["@activepieces/piece-vercel@workspace:packages/pieces/community/vercel"],
 
-    "@activepieces/piece-veritly-univer": ["@activepieces/piece-veritly-univer@workspace:packages/pieces/community/veritly-univer"],
+    "@activepieces/piece-veritly-onlyoffice": ["@activepieces/piece-veritly-onlyoffice@workspace:packages/pieces/community/veritly-onlyoffice"],
 
     "@activepieces/piece-vero": ["@activepieces/piece-vero@workspace:packages/pieces/community/vero"],
 
@@ -12400,7 +12400,7 @@
 
     "@veritly/iframe": ["@veritly/iframe@workspace:packages/veritly/iframe"],
 
-    "@veritly/univer-contract": ["@veritly/univer-contract@workspace:packages/veritly/univer-contract"],
+    "@veritly/onlyoffice-contract": ["@veritly/onlyoffice-contract@workspace:packages/veritly/onlyoffice-contract"],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
 

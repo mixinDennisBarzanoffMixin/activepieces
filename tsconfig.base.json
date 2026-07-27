@@ -1818,8 +1818,8 @@
       "@activepieces/piece-vero": [
         "packages/pieces/community/vero/src/index.ts"
       ],
-      "@activepieces/piece-veritly-univer": [
-        "packages/pieces/community/veritly-univer/src/index.ts"
+      "@activepieces/piece-veritly-onlyoffice": [
+        "packages/pieces/community/veritly-onlyoffice/src/index.ts"
       ],
       "@activepieces/piece-digital-pilot": [
         "packages/pieces/community/digital-pilot/src/index.ts"

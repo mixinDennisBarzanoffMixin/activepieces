@@ -1,9 +1,11 @@
 const types = {
   open: 'veritly.iframe.open',
   flush: 'veritly.iframe.flush',
+  invoke: 'veritly.iframe.invoke',
   ready: 'veritly.iframe.ready',
   loaded: 'veritly.iframe.loaded',
   flushed: 'veritly.iframe.flushed',
+  result: 'veritly.iframe.result',
   error: 'veritly.iframe.error',
 } as const;
 
@@ -22,10 +24,19 @@ export type IframeFlush = {
   path: string;
 };
 
+export type IframeInvoke<T = unknown> = {
+  type: typeof types.invoke;
+  frame: string;
+  request: number;
+  path: string;
+  method: string;
+  payload: T;
+};
+
 export type IframeReady = {
   type: typeof types.ready;
   frame: string;
-  methods: ['open', 'flush'];
+  methods: ('open' | 'flush' | 'invoke')[];
   events: ['loaded'];
 };
 
@@ -43,6 +54,14 @@ export type IframeFlushed = {
   path: string;
 };
 
+export type IframeResult<T = unknown> = {
+  type: typeof types.result;
+  frame: string;
+  request: number;
+  path: string;
+  value: T;
+};
+
 export type IframeFailure = {
   type: typeof types.error;
   frame: string;
@@ -50,11 +69,15 @@ export type IframeFailure = {
   error: string;
 };
 
-export type IframeParentMessage<T = unknown> = IframeOpen<T> | IframeFlush;
-export type IframeChildMessage =
+export type IframeParentMessage<T = unknown> =
+  | IframeOpen<T>
+  | IframeFlush
+  | IframeInvoke;
+export type IframeChildMessage<T = unknown> =
   | IframeReady
   | IframeLoaded
   | IframeFlushed
+  | IframeResult<T>
   | IframeFailure;
 export type IframeMessage = IframeParentMessage | IframeChildMessage;
 export type IframeKind = keyof typeof types;
@@ -108,6 +131,10 @@ export class IframeCodec {
     return value.type === types.open;
   }
 
+  isInvoke(value: IframeParentMessage): value is IframeInvoke {
+    return value.type === types.invoke;
+  }
+
   isReady(value: IframeChildMessage): value is IframeReady {
     return value.type === types.ready;
   }
@@ -120,11 +147,15 @@ export class IframeCodec {
     return value.type === types.flushed;
   }
 
+  isResult<T>(value: IframeChildMessage<T>): value is IframeResult<T> {
+    return value.type === types.result;
+  }
+
   open<T>(
     frame: string,
     request: number,
     path: string,
-    payload: T
+    payload: T,
   ): IframeOpen<T> {
     return { type: types.open, frame, request, path, payload };
   }
@@ -133,11 +164,21 @@ export class IframeCodec {
     return { type: types.flush, frame, request, path };
   }
 
-  ready(frame: string): IframeReady {
+  invoke<T>(
+    frame: string,
+    request: number,
+    path: string,
+    method: string,
+    payload: T,
+  ): IframeInvoke<T> {
+    return { type: types.invoke, frame, request, path, method, payload };
+  }
+
+  ready(frame: string, invoke = false): IframeReady {
     return {
       type: types.ready,
       frame,
-      methods: ['open', 'flush'],
+      methods: invoke ? ['open', 'flush', 'invoke'] : ['open', 'flush'],
       events: ['loaded'],
     };
   }
@@ -150,6 +191,15 @@ export class IframeCodec {
     return { type: types.flushed, frame, request, path };
   }
 
+  result<T>(
+    frame: string,
+    request: number,
+    path: string,
+    value: T,
+  ): IframeResult<T> {
+    return { type: types.result, frame, request, path, value };
+  }
+
   failure(frame: string, request: number, error: string): IframeFailure {
     return { type: types.error, frame, request, error };
   }
@@ -157,9 +207,13 @@ export class IframeCodec {
   parent<T = unknown>(value: unknown): IframeParentMessage<T> {
     if (!record(value))
       throw new IframeProtocolError('Iframe parent message is not an object');
-    if (value.type !== types.open && value.type !== types.flush) {
+    if (
+      value.type !== types.open &&
+      value.type !== types.flush &&
+      value.type !== types.invoke
+    ) {
       throw new IframeProtocolError(
-        `Unknown iframe parent message ${String(value.type)}`
+        `Unknown iframe parent message ${String(value.type)}`,
       );
     }
     base(value);
@@ -167,10 +221,18 @@ export class IframeCodec {
     if (value.type === types.open && !('payload' in value)) {
       throw new IframeProtocolError('Iframe open message has no payload');
     }
+    if (value.type === types.invoke) {
+      if (typeof value.method !== 'string' || !value.method) {
+        throw new IframeProtocolError('Iframe invoke message has no method');
+      }
+      if (!('payload' in value)) {
+        throw new IframeProtocolError('Iframe invoke message has no payload');
+      }
+    }
     return value as IframeParentMessage<T>;
   }
 
-  child(value: unknown): IframeChildMessage {
+  child<T = unknown>(value: unknown): IframeChildMessage<T> {
     if (!record(value))
       throw new IframeProtocolError('Iframe child message is not an object');
     if (typeof value.frame !== 'string' || !value.frame) {
@@ -183,7 +245,7 @@ export class IframeCodec {
         !value.methods.includes('flush')
       ) {
         throw new IframeProtocolError(
-          'Iframe child does not implement open and flush'
+          'Iframe child does not implement open and flush',
         );
       }
       if (!Array.isArray(value.events) || !value.events.includes('loaded')) {
@@ -194,10 +256,11 @@ export class IframeCodec {
     if (
       value.type !== types.loaded &&
       value.type !== types.flushed &&
+      value.type !== types.result &&
       value.type !== types.error
     ) {
       throw new IframeProtocolError(
-        `Unknown iframe child message ${String(value.type)}`
+        `Unknown iframe child message ${String(value.type)}`,
       );
     }
     base(value);
@@ -208,13 +271,17 @@ export class IframeCodec {
       return value as IframeFailure;
     }
     path(value);
-    return value as IframeLoaded | IframeFlushed;
+    if (value.type === types.result && !('value' in value)) {
+      throw new IframeProtocolError('Iframe result message has no value');
+    }
+    return value as IframeLoaded | IframeFlushed | IframeResult<T>;
   }
 }
 
 export interface IframeChildDriver<T> {
   open(message: IframeOpen<T>): Promise<void>;
   flush(message: IframeFlush): Promise<void>;
+  invoke?(message: IframeInvoke): Promise<unknown>;
 }
 
 export type IframeChildOptions<T> = {
@@ -242,18 +309,32 @@ export class IframeChildBridge<T> {
     this.#origin = options.origin;
     this.#driver = options.driver;
     this.#window = options.window;
+    console.info('[veritly-iframe:child]', 'created', {
+      frame: this.#frame,
+      origin: this.#origin,
+    });
   }
 
   start() {
     if (this.#started)
       throw new Error(`Iframe bridge ${this.#frame} is already started`);
     this.#started = true;
+    console.info('[veritly-iframe:child]', 'starting', {
+      frame: this.#frame,
+      origin: this.#origin,
+      invoke: Boolean(this.#driver.invoke),
+    });
     this.#window.addEventListener('message', this.#receive);
-    this.#post(this.#codec.ready(this.#frame));
+    this.#post(this.#codec.ready(this.#frame, Boolean(this.#driver.invoke)));
   }
 
   dispose() {
     if (!this.#started) return;
+    console.info('[veritly-iframe:child]', 'disposing', {
+      frame: this.#frame,
+      active: this.#active?.path,
+      request: this.#active?.request,
+    });
     this.#window.removeEventListener('message', this.#receive);
     this.#active = undefined;
     this.#started = false;
@@ -261,54 +342,170 @@ export class IframeChildBridge<T> {
 
   #receive = (event: MessageEvent) => {
     if (event.source !== this.#window.parent) return;
+    console.info('[veritly-iframe:child]', 'postMessage received', {
+      frame: this.#frame,
+      origin: event.origin,
+      expected: this.#origin,
+      data: event.data,
+    });
     if (event.origin !== this.#origin) {
       console.error(
-        new IframeProtocolError(`Rejected iframe parent origin ${event.origin}`)
+        '[veritly-iframe:child]',
+        'postMessage rejected',
+        new IframeProtocolError(
+          `Rejected iframe parent origin ${event.origin}`,
+        ),
       );
       return;
     }
     try {
       const data = this.#codec.parent<T>(event.data);
+      console.info('[veritly-iframe:child]', 'postMessage decoded', {
+        frame: this.#frame,
+        type: data.type,
+        request: data.request,
+        path: data.path,
+        method: this.#codec.isInvoke(data) ? data.method : undefined,
+      });
       if (data.frame !== this.#frame)
         throw new IframeProtocolError('Received a request for another iframe');
       if (this.#codec.isOpen(data)) {
         void this.#open(data);
         return;
       }
+      if (this.#codec.isInvoke(data)) {
+        void this.#invoke(data);
+        return;
+      }
       void this.#flush(data);
     } catch (error) {
-      console.error(error);
+      console.error('[veritly-iframe:child]', 'postMessage failed', {
+        frame: this.#frame,
+        error,
+        data: event.data,
+      });
     }
   };
 
   async #open(data: IframeOpen<T>) {
+    console.info('[veritly-iframe:child]', 'open started', {
+      frame: this.#frame,
+      request: data.request,
+      path: data.path,
+      payload: data.payload,
+    });
     this.#active = data;
     try {
       await this.#driver.open(data);
-      if (this.#active?.request !== data.request) return;
+      if (this.#active?.request !== data.request) {
+        console.info('[veritly-iframe:child]', 'open completed but was replaced', {
+          frame: this.#frame,
+          request: data.request,
+          path: data.path,
+          active: this.#active?.request,
+        });
+        return;
+      }
+      console.info('[veritly-iframe:child]', 'open driver ready', {
+        frame: this.#frame,
+        request: data.request,
+        path: data.path,
+      });
       this.#post(this.#codec.loaded(this.#frame, data.request, data.path));
     } catch (error) {
-      if (this.#active?.request !== data.request) return;
+      if (this.#active?.request !== data.request) {
+        console.error('[veritly-iframe:child]', 'replaced open failed', {
+          frame: this.#frame,
+          request: data.request,
+          path: data.path,
+          error,
+        });
+        return;
+      }
       this.#error(data.request, error);
     }
   }
 
   async #flush(data: IframeFlush) {
+    console.info('[veritly-iframe:child]', 'flush started', {
+      frame: this.#frame,
+      request: data.request,
+      path: data.path,
+      active: this.#active?.path,
+    });
     try {
       if (data.path !== this.#active?.path)
         throw new Error(`Cannot flush inactive file ${data.path}`);
       await this.#driver.flush(data);
+      console.info('[veritly-iframe:child]', 'flush driver completed', {
+        frame: this.#frame,
+        request: data.request,
+        path: data.path,
+      });
       this.#post(this.#codec.flushed(this.#frame, data.request, data.path));
     } catch (error) {
       this.#error(data.request, error);
     }
   }
 
+  async #invoke(data: IframeInvoke) {
+    console.info('[veritly-iframe:child]', 'invoke started', {
+      frame: this.#frame,
+      request: data.request,
+      path: data.path,
+      method: data.method,
+      payload: data.payload,
+      active: this.#active?.path,
+    });
+    try {
+      if (data.path !== this.#active?.path) {
+        throw new Error(
+          `Cannot invoke ${data.method} on inactive file ${data.path}`,
+        );
+      }
+      if (!this.#driver.invoke) {
+        throw new Error(`Iframe ${this.#frame} does not implement invoke`);
+      }
+      const value = await this.#driver.invoke(data);
+      console.info('[veritly-iframe:child]', 'invoke driver completed', {
+        frame: this.#frame,
+        request: data.request,
+        path: data.path,
+        method: data.method,
+        result:
+          value instanceof Blob
+            ? { type: value.type, size: value.size }
+            : value,
+      });
+      this.#post(
+        this.#codec.result(
+          this.#frame,
+          data.request,
+          data.path,
+          value,
+        ),
+      );
+    } catch (error) {
+      this.#error(data.request, error);
+    }
+  }
+
   #error(request: number, error: unknown) {
+    console.error('[veritly-iframe:child]', 'operation failed', {
+      frame: this.#frame,
+      request,
+      active: this.#active?.path,
+      error,
+    });
     this.#post(this.#codec.failure(this.#frame, request, message(error)));
   }
 
   #post(data: IframeChildMessage) {
+    console.info('[veritly-iframe:child]', 'postMessage sending', {
+      frame: this.#frame,
+      origin: this.#origin,
+      data,
+    });
     this.#window.parent.postMessage(data, this.#origin);
   }
 }

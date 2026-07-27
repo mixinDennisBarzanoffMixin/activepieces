@@ -6,6 +6,7 @@ import {
   IframeProtocolError,
   type IframeChildDriver,
   type IframeFlush,
+  type IframeInvoke,
   type IframeOpen,
 } from './index';
 
@@ -23,14 +24,14 @@ class Browser {
 
   addEventListener(
     _type: string,
-    listener: EventListenerOrEventListenerObject
+    listener: EventListenerOrEventListenerObject,
   ) {
     this.listeners.add(listener as (event: MessageEvent) => void);
   }
 
   removeEventListener(
     _type: string,
-    listener: EventListenerOrEventListenerObject
+    listener: EventListenerOrEventListenerObject,
   ) {
     this.listeners.delete(listener as (event: MessageEvent) => void);
   }
@@ -38,7 +39,7 @@ class Browser {
   send(
     data: unknown,
     origin = 'https://parent.test',
-    source: object = this.parent
+    source: object = this.parent,
   ) {
     const event = {
       data,
@@ -52,6 +53,7 @@ class Browser {
 class Driver implements IframeChildDriver<{ id: string }> {
   readonly opened: IframeOpen<{ id: string }>[] = [];
   readonly flushed: IframeFlush[] = [];
+  readonly invoked: IframeInvoke[] = [];
   readonly ready = Promise.withResolvers<void>();
 
   async open(message: IframeOpen<{ id: string }>) {
@@ -61,6 +63,11 @@ class Driver implements IframeChildDriver<{ id: string }> {
 
   async flush(message: IframeFlush) {
     this.flushed.push(message);
+  }
+
+  async invoke(message: IframeInvoke) {
+    this.invoked.push(message);
+    return new Blob(['snapshot'], { type: 'application/pdf' });
   }
 }
 
@@ -83,7 +90,7 @@ describe('IframeCodec', () => {
         type: 'veritly.iframe.ready',
         frame: 'test',
         methods: ['open'],
-      })
+      }),
     ).toThrow('open and flush');
   });
 });
@@ -102,6 +109,7 @@ describe('IframeChildBridge', () => {
     expect(browser.parent.messages[0]).toMatchObject({
       type: 'veritly.iframe.ready',
       frame: 'test',
+      methods: ['open', 'flush', 'invoke'],
     });
 
     browser.send({
@@ -124,8 +132,8 @@ describe('IframeChildBridge', () => {
     expect(
       browser.parent.messages.filter(
         (item) =>
-          Reflect.get(item as object, 'type') === 'veritly.iframe.loaded'
-      )
+          Reflect.get(item as object, 'type') === 'veritly.iframe.loaded',
+      ),
     ).toEqual([
       { type: 'veritly.iframe.loaded', frame: 'test', request: 2, path: 'new' },
     ]);
@@ -144,6 +152,25 @@ describe('IframeChildBridge', () => {
       frame: 'test',
       request: 3,
       path: 'new',
+    });
+
+    browser.send({
+      type: 'veritly.iframe.invoke',
+      frame: 'test',
+      request: 4,
+      path: 'new',
+      method: 'download',
+      payload: null,
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(driver.invoked).toHaveLength(1);
+    expect(browser.parent.messages.at(-1)).toMatchObject({
+      type: 'veritly.iframe.result',
+      frame: 'test',
+      request: 4,
+      path: 'new',
+      value: expect.any(Blob),
     });
 
     bridge.dispose();

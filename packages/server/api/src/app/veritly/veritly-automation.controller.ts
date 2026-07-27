@@ -1,5 +1,5 @@
 import { AuthenticationResponse, EnginePrincipal, FlowOperationRequest, FlowOperationType, FlowVersionState } from '@activepieces/shared'
-import { VeritlyUniverAppend, VeritlyUniverBook, VeritlyUniverRegisterWebhook, VeritlyUniverRegisterWebhookResult, VeritlyUniverRow, VeritlyUniverRows, VeritlyUniverSheets, VeritlyUniverUpdate, VeritlyUniverUpdateResult, VeritlyUniverWorkbooks } from '@veritly/univer-contract'
+import { VeritlyOnlyOfficeAppend, VeritlyOnlyOfficeBook, VeritlyOnlyOfficeRegisterWebhook, VeritlyOnlyOfficeRegisterWebhookResult, VeritlyOnlyOfficeRow, VeritlyOnlyOfficeRows, VeritlyOnlyOfficeSheets, VeritlyOnlyOfficeUpdate, VeritlyOnlyOfficeUpdateResult, VeritlyOnlyOfficeWorkbooks } from '@veritly/onlyoffice-contract'
 import type { FastifyRequest } from 'fastify'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { StatusCodes } from 'http-status-codes'
@@ -16,13 +16,13 @@ import {
 
 const PROJECT_HDR = 'x-veritly-project-id'
 const ErrorResponse = z.object({ error: z.string() })
-const UniverUnits = z.object({ error: z.unknown(), units: z.array(VeritlyUniverBook) })
-const UniverSheets = z.object({ error: z.unknown(), sheets: z.array(VeritlyUniverBook) })
-const UniverRows = z.object({ error: z.unknown(), rows: z.array(VeritlyUniverRow) })
-const UniverAppendResult = z.object({ error: z.unknown(), sheet: z.string(), row: z.number(), rev: z.number() })
-const UniverUpdateResult = z.object({ error: z.unknown(), sheet: z.string(), row: z.number(), rev: z.number() })
-const UniverRegisterWebhookResult = z.object({ error: z.unknown(), id: z.string() })
-const UniverUnregisterWebhookResult = z.object({ error: z.unknown(), ok: z.literal(true) })
+const OnlyOfficeFile = z.object({ id: z.string(), path: z.string(), kind: z.string() })
+const OnlyOfficeFiles = z.array(OnlyOfficeFile)
+const OnlyOfficeSheets = z.object({ sheets: z.array(VeritlyOnlyOfficeBook) })
+const OnlyOfficeRows = z.object({ rows: z.array(VeritlyOnlyOfficeRow) })
+const OnlyOfficeAppendResult = z.object({ row: VeritlyOnlyOfficeRow, revision: z.number() })
+const OnlyOfficeUpdateResult = z.object({ revision: z.number() })
+const OnlyOfficeRegisterWebhookResult = z.object({ id: z.string() }).passthrough()
 const Automation = z.object({ path: z.string(), flowId: z.string(), displayName: z.string() })
 const Automations = z.object({ automations: z.array(Automation) })
 export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) => {
@@ -253,96 +253,107 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
         return { ok: true as const }
     })
 
-    app.get('/worker/univer/workbooks', WorkerRequest({
+    app.get('/worker/onlyoffice/workbooks', WorkerRequest({
         response: {
-            [StatusCodes.OK]: VeritlyUniverWorkbooks,
+            [StatusCodes.OK]: VeritlyOnlyOfficeWorkbooks,
         },
     }), async (request) => {
-        console.log('[veritly api] worker/univer/workbooks')
-        return { workbooks: (await call(request, UniverUnits, 'GET', '/units')).units }
+        console.log('[veritly api] worker/onlyoffice/workbooks')
+        return {
+            workbooks: (await call(request, OnlyOfficeFiles, 'GET', '/files'))
+                .filter((file) => file.kind === 'cell')
+                .map((file) => ({ id: file.id, name: file.path })),
+        }
     })
 
-    app.get('/worker/univer/workbooks/:workbookId/sheets', WorkerRequest({
+    app.get('/worker/onlyoffice/workbooks/:workbookId/sheets', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1) }),
         response: {
-            [StatusCodes.OK]: VeritlyUniverSheets,
+            [StatusCodes.OK]: VeritlyOnlyOfficeSheets,
         },
     }), async (request) => {
         const params = request.params as WorkbookParams
-        console.log('[veritly api] worker/univer/sheets', { workbookId: params.workbookId })
-        return { sheets: (await call(request, UniverSheets, 'GET', `/units/${encodeURIComponent(params.workbookId)}/sheets`)).sheets }
+        console.log('[veritly api] worker/onlyoffice/sheets', { workbookId: params.workbookId })
+        return await call(request, OnlyOfficeSheets, 'GET', `/files/${encodeURIComponent(params.workbookId)}/sheets`)
     })
 
-    app.get('/worker/univer/workbooks/:workbookId/sheets/:sheetId/rows', WorkerRequest({
+    app.get('/worker/onlyoffice/workbooks/:workbookId/sheets/:sheetId/rows', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1), sheetId: z.string().min(1) }),
         response: {
-            [StatusCodes.OK]: VeritlyUniverRows,
+            [StatusCodes.OK]: VeritlyOnlyOfficeRows,
         },
     }), async (request) => {
         const params = request.params as SheetParams
-        return { rows: (await call(request, UniverRows, 'GET', `/units/${encodeURIComponent(params.workbookId)}/sheets/${encodeURIComponent(params.sheetId)}/rows`)).rows }
+        return await call(request, OnlyOfficeRows, 'GET', `/files/${encodeURIComponent(params.workbookId)}/sheets/${encodeURIComponent(params.sheetId)}/rows`)
     })
 
-    app.post('/worker/univer/workbooks/:workbookId/sheets/:sheetId/rows', WorkerRequest({
+    app.post('/worker/onlyoffice/workbooks/:workbookId/sheets/:sheetId/rows', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1), sheetId: z.string().min(1) }),
-        body: VeritlyUniverAppend,
+        body: VeritlyOnlyOfficeAppend,
         response: {
-            [StatusCodes.OK]: VeritlyUniverRow,
+            [StatusCodes.OK]: VeritlyOnlyOfficeRow,
         },
     }), async (request) => {
         const params = request.params as SheetParams
         const body = request.body as AppendBody
-        const path = `/units/${encodeURIComponent(params.workbookId)}/sheets/${encodeURIComponent(params.sheetId)}/rows`
-        const res = await call(request, UniverAppendResult, 'POST', path, { values: body.values })
-        const rows = await call(request, UniverRows, 'GET', `${path}?start=${res.row}&end=${res.row}`)
-        const row = rows.rows[0]
-        if (!row) throw new Error('Appended row was not readable')
-        return row
+        const path = `/files/${encodeURIComponent(params.workbookId)}/sheets/${encodeURIComponent(params.sheetId)}/rows`
+        const res = await call(request, OnlyOfficeAppendResult, 'POST', path, { values: body.values })
+        return res.row
     })
 
-    app.post('/worker/univer/workbooks/:workbookId/sheets/:sheetId/cells', WorkerRequest({
+    app.post('/worker/onlyoffice/workbooks/:workbookId/sheets/:sheetId/cells', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1), sheetId: z.string().min(1) }),
-        body: VeritlyUniverUpdate,
+        body: VeritlyOnlyOfficeUpdate,
         response: {
-            [StatusCodes.OK]: VeritlyUniverUpdateResult,
+            [StatusCodes.OK]: VeritlyOnlyOfficeUpdateResult,
         },
     }), async (request) => {
         const params = request.params as SheetParams
         const body = request.body as UpdateBody
-        const res = await call(request, UniverUpdateResult, 'POST', `/units/${encodeURIComponent(params.workbookId)}/sheets/${encodeURIComponent(params.sheetId)}/cells`, {
+        const path = `/files/${encodeURIComponent(params.workbookId)}/sheets/${encodeURIComponent(params.sheetId)}`
+        const rows = await call(request, OnlyOfficeRows, 'GET', `${path}/rows?start=${body.rowIndex}&end=${body.rowIndex}&empty=true`)
+        const evidence = rows.rows[0]
+        if (!evidence) throw new Error('Target row was not readable')
+        const res = await call(request, OnlyOfficeUpdateResult, 'POST', `${path}/cells`, {
             row: body.rowIndex,
             column: body.columnIndex,
             value: body.value,
+            evidence,
         })
         return {
             workbookId: params.workbookId,
-            sheetId: res.sheet,
-            rowIndex: res.row,
+            sheetId: params.sheetId,
+            rowIndex: body.rowIndex,
             columnIndex: body.columnIndex,
             value: body.value,
-            revision: res.rev,
+            revision: res.revision,
         }
     })
 
-    app.post('/worker/univer/webhook-registrations', WorkerRequest({
-        body: VeritlyUniverRegisterWebhook,
+    app.post('/worker/onlyoffice/webhook-registrations', WorkerRequest({
+        body: VeritlyOnlyOfficeRegisterWebhook,
         response: {
-            [StatusCodes.OK]: VeritlyUniverRegisterWebhookResult,
+            [StatusCodes.OK]: VeritlyOnlyOfficeRegisterWebhookResult,
         },
     }), async (request) => {
-        const body = request.body as z.infer<typeof VeritlyUniverRegisterWebhook>
-        const res = await call(request, UniverRegisterWebhookResult, 'POST', '/webhook-registrations', body)
+        const body = request.body as z.infer<typeof VeritlyOnlyOfficeRegisterWebhook>
+        const res = await call(request, OnlyOfficeRegisterWebhookResult, 'POST', '/webhooks', {
+            event: body.event,
+            fileId: body.workbookId,
+            sheetId: body.sheetId,
+            url: body.url,
+        })
         return { id: res.id }
     })
 
-    app.delete('/worker/univer/webhook-registrations/:webhookId', WorkerRequest({
+    app.delete('/worker/onlyoffice/webhook-registrations/:webhookId', WorkerRequest({
         params: z.object({ webhookId: z.string().min(1) }),
         response: {
             [StatusCodes.OK]: z.object({ ok: z.literal(true) }),
         },
     }), async (request) => {
         const params = request.params as WebhookParams
-        await call(request, UniverUnregisterWebhookResult, 'DELETE', `/webhook-registrations/${encodeURIComponent(params.webhookId)}`)
+        await call(request, z.undefined(), 'DELETE', `/webhooks/${encodeURIComponent(params.webhookId)}`)
         return { ok: true }
     })
 }
@@ -398,12 +409,12 @@ function identity(project: { externalId?: string | null, metadata?: Record<strin
 }
 
 async function call<T>(request: FastifyRequest, schema: z.ZodType<T>, method: string, path: string, body?: unknown) {
-    const target = process.env.UNIVER_COMPAT_URL?.trim()
-    if (!target) throw new Error('UNIVER_COMPAT_URL is required')
-    const token = process.env.UNIVER_COMPAT_SERVICE_TOKEN?.trim()
-    if (!token) throw new Error('UNIVER_COMPAT_SERVICE_TOKEN is required')
+    const target = process.env.ONLYOFFICE_BACKEND_URL?.trim()
+    if (!target) throw new Error('ONLYOFFICE_BACKEND_URL is required')
+    const token = process.env.ONLYOFFICE_SERVICE_TOKEN?.trim()
+    if (!token) throw new Error('ONLYOFFICE_SERVICE_TOKEN is required')
     const id = await scope(request)
-    const res = await fetch(new URL(`/universer-api/veritly${path}`, target), {
+    const res = await fetch(new URL(`/onlyoffice-api${path}`, target), {
         method,
         headers: {
             'Content-Type': 'application/json',
@@ -415,7 +426,7 @@ async function call<T>(request: FastifyRequest, schema: z.ZodType<T>, method: st
     })
     const text = await res.text()
     if (!res.ok) throw new Error(text)
-    if (!text) throw new Error(`Univer returned empty body for ${method} ${path}`)
+    if (!text) return schema.parse(undefined)
     return schema.parse(JSON.parse(text))
 }
 
@@ -442,6 +453,6 @@ type WebhookParams = {
     webhookId: string
 }
 
-type AppendBody = z.infer<typeof VeritlyUniverAppend>
+type AppendBody = z.infer<typeof VeritlyOnlyOfficeAppend>
 
-type UpdateBody = z.infer<typeof VeritlyUniverUpdate>
+type UpdateBody = z.infer<typeof VeritlyOnlyOfficeUpdate>

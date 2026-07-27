@@ -89,7 +89,7 @@ RUN rm -rf packages/pieces/core packages/pieces/custom && \
       ! -name square \
       ! -name facebook-leads \
       ! -name intercom \
-      ! -name veritly-univer \
+      ! -name veritly-onlyoffice \
       -exec rm -rf {} + && \
     rm -f bun.lock && bun install
 

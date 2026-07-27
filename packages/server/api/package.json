@@ -10,7 +10,7 @@
     "@activepieces/pieces-framework": "workspace:*",
     "@activepieces/server-utils": "workspace:*",
     "@activepieces/shared": "workspace:*",
-    "@veritly/univer-contract": "workspace:*",
+    "@veritly/onlyoffice-contract": "workspace:*",
     "@ai-sdk/amazon-bedrock": "3.0.97",
     "@ai-sdk/anthropic": "^3.0.0",
     "@ai-sdk/mcp": "1.0.11",
