@@ -409,9 +409,9 @@
     --ring: theme('colors.neutral.400');
     --radius: 0.5rem;
 
-    --primary-100: 257 75% 85%;
-    --primary: 257 74% 57%;
-    --primary-300: 257 74% 25%;
+    --primary-100: 216 100% 85%;
+    --primary: 216 100% 50%;
+    --primary-300: 216 100% 25%;
     --primary-foreground: 210 20% 98%;
 
     /* Success — Emerald */
@@ -467,7 +467,7 @@
 
     --sidebar-background: theme('colors.neutral.50');
     --sidebar-foreground: theme('colors.neutral.950');
-    --sidebar-primary: 257 74% 57%;
+    --sidebar-primary: 216 100% 50%;
     --sidebar-primary-foreground: theme('colors.neutral.50');
     --sidebar-accent: color-mix(
       in srgb,
@@ -495,9 +495,9 @@
     --accent: theme('colors.neutral.700');
     --accent-foreground: theme('colors.neutral.50');
 
-    --primary-100: 210 80% 40%;
-    --primary: 210 90% 50%;
-    --primary-300: 210 100% 85%;
+    --primary-100: 220.7059 100% 40%;
+    --primary: 220.7059 100% 50%;
+    --primary-300: 220.7059 100% 85%;
     --primary-foreground: 210 90% 98%;
 
     --success: var(--success-400);
@@ -521,7 +521,7 @@
 
     --sidebar-background: theme('colors.neutral.800');
     --sidebar-foreground: theme('colors.neutral.50');
-    --sidebar-primary: 210 85% 65%;
+    --sidebar-primary: 224.1573 100% 65.098%;
     --sidebar-primary-foreground: 210 90% 98%;
     --sidebar-accent: theme('colors.neutral.700');
     --sidebar-accent-foreground: theme('colors.neutral.50');
