@@ -1,8 +1,8 @@
 import { Property } from '@activepieces/pieces-framework';
-import { sheets, workbooks } from './client';
+import { documents, sheets, workbooks } from './client';
 import type { Props, Scoped } from './types';
 
-export const sheet = {
+export const workbook = {
   workbook_id: Property.Dropdown<string>({
     auth: undefined,
     displayName: 'Workbook',
@@ -21,6 +21,10 @@ export const sheet = {
       };
     },
   }),
+};
+
+export const sheet = {
+  ...workbook,
   sheet_id: Property.Dropdown<string>({
     auth: undefined,
     displayName: 'Sheet',
@@ -41,6 +45,27 @@ export const sheet = {
         disabled: list.length === 0,
         placeholder: list.length === 0 ? 'No sheets found' : 'Select a sheet',
         options: list.map((item: { id: string; name: string }) => ({
+          label: item.name,
+          value: item.id,
+        })),
+      };
+    },
+  }),
+};
+
+export const document = {
+  document_id: Property.Dropdown<string>({
+    auth: undefined,
+    displayName: 'Document',
+    description: 'The live Veritly document or presentation to export.',
+    required: true,
+    refreshers: [],
+    async options(_props, ctx) {
+      const list = (await documents(ctx.server)).documents;
+      return {
+        disabled: list.length === 0,
+        placeholder: list.length === 0 ? 'No Veritly documents or presentations found' : 'Select a file',
+        options: list.map((item) => ({
           label: item.name,
           value: item.id,
         })),

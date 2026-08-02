@@ -1,5 +1,5 @@
 import { createTrigger, type ServerContext, TriggerStrategy } from '@activepieces/pieces-framework';
-import { VeritlyOnlyOfficeWebhookPayload } from '@veritly/onlyoffice-contract';
+import { VeritlyOnlyOfficeSheetWebhookPayload } from '@veritly/onlyoffice-contract';
 import { registerWebhook, rows, unregisterWebhook } from '../common/client';
 import { scoped, sheet } from '../common/props';
 import type { Row } from '../common/types';
@@ -47,7 +47,7 @@ export const newRowAdded = createTrigger({
     console.log('[veritly-onlyoffice] new_row_added webhook payload', {
       type: typeof context.payload.body,
     });
-    const body = VeritlyOnlyOfficeWebhookPayload.parse(context.payload.body);
+    const body = VeritlyOnlyOfficeSheetWebhookPayload.parse(context.payload.body);
     console.log('[veritly-onlyoffice] new_row_added webhook', body.row);
     return [body.row];
   },

@@ -64,8 +64,12 @@ export const slackSendMessage = async ({
   const client = new WebClient(token);
 
   if (file) {
+    const channel = conversationId.startsWith('U')
+      ? (await client.conversations.open({ users: conversationId })).channel?.id
+      : conversationId;
+    if (!channel) throw new Error('Slack direct-message channel could not be opened');
     return await client.files.uploadV2({
-      channel_id: conversationId,
+      channel_id: channel,
       initial_comment: text,
       thread_ts: threadTs,
       file_uploads: [

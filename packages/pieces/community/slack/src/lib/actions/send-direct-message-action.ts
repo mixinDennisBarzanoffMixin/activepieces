@@ -26,6 +26,10 @@ export const slackSendDirectMessageAction = createAction({
     username,
     profilePicture,
     iconEmoji,
+    file: Property.File({
+      displayName: 'Attachment',
+      required: false,
+    }),
     mentionOriginFlow,
     blocks,
     unfurlLinks: Property.Checkbox({
@@ -37,7 +41,7 @@ export const slackSendDirectMessageAction = createAction({
   },
   async run(context) {
     const token = getBotToken(context.auth as SlackAuthValue);
-    const { text, userId, blocks, unfurlLinks, mentionOriginFlow } = context.propsValue;
+    const { text, userId, blocks, file, unfurlLinks, mentionOriginFlow } = context.propsValue;
 
     assertNotNullOrUndefined(token, 'token');
     assertNotNullOrUndefined(text, 'text');
@@ -60,9 +64,9 @@ export const slackSendDirectMessageAction = createAction({
       profilePicture: context.propsValue.profilePicture,
       iconEmoji: context.propsValue.iconEmoji,
       conversationId: userId,
+      file,
       blocks:blockList,
       unfurlLinks,
     });
   },
 });
-

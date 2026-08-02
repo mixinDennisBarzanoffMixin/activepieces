@@ -17,6 +17,14 @@ export const VeritlyOnlyOfficeWorkbooks = z.object({
   workbooks: z.array(VeritlyOnlyOfficeBook),
 });
 
+export const VeritlyOnlyOfficeDocument = VeritlyOnlyOfficeBook.extend({
+  kind: z.enum(['word', 'slide']),
+});
+
+export const VeritlyOnlyOfficeDocuments = z.object({
+  documents: z.array(VeritlyOnlyOfficeDocument),
+});
+
 export const VeritlyOnlyOfficeSheets = z.object({
   sheets: z.array(VeritlyOnlyOfficeBook),
 });
@@ -44,34 +52,81 @@ export const VeritlyOnlyOfficeUpdateResult = z.object({
   revision: z.number(),
 });
 
-export const VeritlyOnlyOfficeEventType = z.enum(['new_row_added', 'row_changed']);
+export const VeritlyOnlyOfficeSheetEventType = z.enum(['new_row_added', 'row_changed']);
+export const VeritlyOnlyOfficeChartEventType = z.literal('chart_changed');
+export const VeritlyOnlyOfficeEventType = z.union([
+  VeritlyOnlyOfficeSheetEventType,
+  VeritlyOnlyOfficeChartEventType,
+]);
 
-export const VeritlyOnlyOfficeWebhookRegistration = z.object({
+export const VeritlyOnlyOfficeSheetWebhookRegistration = z.object({
   id: z.string(),
-  event: VeritlyOnlyOfficeEventType,
+  event: VeritlyOnlyOfficeSheetEventType,
   workbookId: z.string(),
   sheetId: z.string(),
   url: z.string().url(),
 });
 
-export const VeritlyOnlyOfficeRegisterWebhook = VeritlyOnlyOfficeWebhookRegistration.omit({ id: true });
+export const VeritlyOnlyOfficeChartWebhookRegistration = z.object({
+  id: z.string(),
+  event: VeritlyOnlyOfficeChartEventType,
+  workbookId: z.string(),
+  url: z.string().url(),
+});
+
+export const VeritlyOnlyOfficeWebhookRegistration = z.discriminatedUnion('event', [
+  VeritlyOnlyOfficeSheetWebhookRegistration,
+  VeritlyOnlyOfficeChartWebhookRegistration,
+]);
+
+export const VeritlyOnlyOfficeRegisterWebhook = z.discriminatedUnion('event', [
+  VeritlyOnlyOfficeSheetWebhookRegistration.omit({ id: true }),
+  VeritlyOnlyOfficeChartWebhookRegistration.omit({ id: true }),
+]);
 
 export const VeritlyOnlyOfficeRegisterWebhookResult = z.object({
   id: z.string(),
 });
 
-export const VeritlyOnlyOfficeWebhookPayload = z.object({
-  event: VeritlyOnlyOfficeEventType,
+export const VeritlyOnlyOfficeSheetWebhookPayload = z.object({
+  event: VeritlyOnlyOfficeSheetEventType,
   workbookId: z.string(),
   sheetId: z.string(),
   revision: z.number(),
   row: VeritlyOnlyOfficeRow,
 });
 
+export const VeritlyOnlyOfficeChart = z.object({
+  provider: z.literal('onlyoffice'),
+  fileId: z.string(),
+  fileName: z.string(),
+  chartId: z.string(),
+  sourceId: z.string(),
+  sourceName: z.string(),
+  revision: z.number(),
+  name: z.string(),
+  spec: z.record(z.string(), z.unknown()),
+  updated: z.number(),
+});
+
+export const VeritlyOnlyOfficeChartWebhookPayload = z.object({
+  event: VeritlyOnlyOfficeChartEventType,
+  workbookId: z.string(),
+  revision: z.number(),
+  charts: z.array(VeritlyOnlyOfficeChart),
+});
+
+export const VeritlyOnlyOfficeWebhookPayload = z.discriminatedUnion('event', [
+  VeritlyOnlyOfficeSheetWebhookPayload,
+  VeritlyOnlyOfficeChartWebhookPayload,
+]);
+
 export type VeritlyOnlyOfficeCell = z.infer<typeof VeritlyOnlyOfficeCell>;
 export type VeritlyOnlyOfficeBook = z.infer<typeof VeritlyOnlyOfficeBook>;
 export type VeritlyOnlyOfficeRow = z.infer<typeof VeritlyOnlyOfficeRow>;
 export type VeritlyOnlyOfficeWorkbooks = z.infer<typeof VeritlyOnlyOfficeWorkbooks>;
+export type VeritlyOnlyOfficeDocument = z.infer<typeof VeritlyOnlyOfficeDocument>;
+export type VeritlyOnlyOfficeDocuments = z.infer<typeof VeritlyOnlyOfficeDocuments>;
 export type VeritlyOnlyOfficeSheets = z.infer<typeof VeritlyOnlyOfficeSheets>;
 export type VeritlyOnlyOfficeRows = z.infer<typeof VeritlyOnlyOfficeRows>;
 export type VeritlyOnlyOfficeAppend = z.infer<typeof VeritlyOnlyOfficeAppend>;
@@ -107,6 +162,10 @@ export type ClientOptions = {
 export const onlyOfficeWorkerPaths = {
   root: 'v1/veritly/worker/onlyoffice',
   workbooks: 'workbooks',
+  documents: 'documents',
+  document(id: string) {
+    return `documents/${encodeURIComponent(id)}/content`;
+  },
   sheets(book: string) {
     return `workbooks/${encodeURIComponent(book)}/sheets`;
   },
@@ -156,19 +215,7 @@ export function snap(rows: Row[]): Snap {
 
 export function createOnlyOfficeClient(opts: ClientOptions) {
   const send = async <T>(schema: z.ZodType<T>, method: string, path: string, data?: unknown): Promise<T> => {
-    const timeout = opts.timeoutMs === undefined ? 5000 : opts.timeoutMs;
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), timeout);
-    const fetcher = opts.fetch === undefined ? fetch : opts.fetch;
-    const res = await fetcher(url(opts.baseUrl, path), {
-      method,
-      headers: {
-        Authorization: `Bearer ${opts.token}`,
-        ...(data === undefined ? {} : { 'Content-Type': 'application/json' }),
-      },
-      body: data === undefined ? undefined : JSON.stringify(data),
-      signal: ctrl.signal,
-    }).finally(() => clearTimeout(timer));
+    const res = await request(method, path, data);
     if (res.ok) return schema.parse(await res.json());
     throw new Error(await res.text());
   };
@@ -176,6 +223,15 @@ export function createOnlyOfficeClient(opts: ClientOptions) {
   return {
     async workbooks() {
       return await send(VeritlyOnlyOfficeWorkbooks, 'GET', onlyOfficeWorkerPaths.workbooks);
+    },
+    async documents() {
+      return await send(VeritlyOnlyOfficeDocuments, 'GET', onlyOfficeWorkerPaths.documents);
+    },
+    async document(id: string) {
+      if (!id) throw new Error('Document ID is required');
+      const res = await request('GET', onlyOfficeWorkerPaths.document(id));
+      if (!res.ok) throw new Error(await res.text());
+      return new Uint8Array(await res.arrayBuffer());
     },
     async sheets(book: string) {
       if (!book) throw new Error('Workbook ID is required');
@@ -197,6 +253,22 @@ export function createOnlyOfficeClient(opts: ClientOptions) {
       return await send(z.object({ ok: z.literal(true) }), 'DELETE', onlyOfficeWorkerPaths.webhook(id));
     },
   };
+
+  async function request(method: string, path: string, data?: unknown) {
+    const timeout = opts.timeoutMs === undefined ? 5000 : opts.timeoutMs;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout);
+    const fetcher = opts.fetch === undefined ? fetch : opts.fetch;
+    return await fetcher(url(opts.baseUrl, path), {
+      method,
+      headers: {
+        Authorization: `Bearer ${opts.token}`,
+        ...(data === undefined ? {} : { 'Content-Type': 'application/json' }),
+      },
+      body: data === undefined ? undefined : JSON.stringify(data),
+      signal: ctrl.signal,
+    }).finally(() => clearTimeout(timer));
+  }
 }
 
 function url(base: string, path: string) {

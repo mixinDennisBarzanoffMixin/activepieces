@@ -1,6 +1,6 @@
 import { AuthenticationResponse, EnginePrincipal, FlowOperationRequest, FlowOperationType, FlowVersionState } from '@activepieces/shared'
-import { VeritlyOnlyOfficeAppend, VeritlyOnlyOfficeBook, VeritlyOnlyOfficeRegisterWebhook, VeritlyOnlyOfficeRegisterWebhookResult, VeritlyOnlyOfficeRow, VeritlyOnlyOfficeRows, VeritlyOnlyOfficeSheets, VeritlyOnlyOfficeUpdate, VeritlyOnlyOfficeUpdateResult, VeritlyOnlyOfficeWorkbooks } from '@veritly/onlyoffice-contract'
-import type { FastifyRequest } from 'fastify'
+import { VeritlyOnlyOfficeAppend, VeritlyOnlyOfficeBook, VeritlyOnlyOfficeDocuments, VeritlyOnlyOfficeRegisterWebhook, VeritlyOnlyOfficeRegisterWebhookResult, VeritlyOnlyOfficeRow, VeritlyOnlyOfficeRows, VeritlyOnlyOfficeSheets, VeritlyOnlyOfficeUpdate, VeritlyOnlyOfficeUpdateResult, VeritlyOnlyOfficeWorkbooks } from '@veritly/onlyoffice-contract'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { StatusCodes } from 'http-status-codes'
 import { z } from 'zod'
@@ -266,6 +266,31 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
         }
     })
 
+    app.get('/worker/onlyoffice/documents', WorkerRequest({
+        response: {
+            [StatusCodes.OK]: VeritlyOnlyOfficeDocuments,
+        },
+    }), async (request) => {
+        return {
+            documents: (await call(request, OnlyOfficeFiles, 'GET', '/files'))
+                .filter((file) => file.kind === 'word' || file.kind === 'slide')
+                .map((file) => ({ id: file.id, name: file.path, kind: file.kind })),
+        }
+    })
+
+    app.get('/worker/onlyoffice/documents/:documentId/content', {
+        config: {
+            security: securityAccess.engine(),
+        },
+        schema: {
+            params: z.object({ documentId: z.string().min(1) }),
+        },
+    }, async (request, reply) => {
+        const params = request.params as DocumentParams
+        const res = await raw(request, 'GET', `/files/${encodeURIComponent(params.documentId)}/content`)
+        return file(reply, res)
+    })
+
     app.get('/worker/onlyoffice/workbooks/:workbookId/sheets', WorkerRequest({
         params: z.object({ workbookId: z.string().min(1) }),
         response: {
@@ -337,12 +362,10 @@ export const veritlyAutomationController: FastifyPluginAsyncZod = async (app) =>
         },
     }), async (request) => {
         const body = request.body as z.infer<typeof VeritlyOnlyOfficeRegisterWebhook>
-        const res = await call(request, OnlyOfficeRegisterWebhookResult, 'POST', '/webhooks', {
-            event: body.event,
-            fileId: body.workbookId,
-            sheetId: body.sheetId,
-            url: body.url,
-        })
+        const input = body.event === 'chart_changed'
+            ? { event: body.event, fileId: body.workbookId, url: body.url }
+            : { event: body.event, fileId: body.workbookId, sheetId: body.sheetId, url: body.url }
+        const res = await call(request, OnlyOfficeRegisterWebhookResult, 'POST', '/webhooks', input)
         return { id: res.id }
     })
 
@@ -409,6 +432,13 @@ function identity(project: { externalId?: string | null, metadata?: Record<strin
 }
 
 async function call<T>(request: FastifyRequest, schema: z.ZodType<T>, method: string, path: string, body?: unknown) {
+    const res = await raw(request, method, path, body)
+    const text = await res.text()
+    if (!text) return schema.parse(undefined)
+    return schema.parse(JSON.parse(text))
+}
+
+async function raw(request: FastifyRequest, method: string, path: string, body?: unknown) {
     const target = process.env.ONLYOFFICE_BACKEND_URL?.trim()
     if (!target) throw new Error('ONLYOFFICE_BACKEND_URL is required')
     const token = process.env.ONLYOFFICE_SERVICE_TOKEN?.trim()
@@ -424,10 +454,19 @@ async function call<T>(request: FastifyRequest, schema: z.ZodType<T>, method: st
         },
         body: body === undefined ? undefined : JSON.stringify(body),
     })
-    const text = await res.text()
-    if (!res.ok) throw new Error(text)
-    if (!text) return schema.parse(undefined)
-    return schema.parse(JSON.parse(text))
+    if (!res.ok) throw new Error(await res.text())
+    return res
+}
+
+async function file(reply: FastifyReply, res: Response) {
+    const disposition = res.headers.get('content-disposition')
+    if (disposition) void reply.header('Content-Disposition', disposition)
+    const type = res.headers.get('content-type')
+    if (!type) throw new Error('ONLYOFFICE document content type is missing')
+    return reply
+        .type(type)
+        .status(StatusCodes.OK)
+        .send(Buffer.from(await res.arrayBuffer()))
 }
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -451,6 +490,10 @@ type SheetParams = {
 
 type WebhookParams = {
     webhookId: string
+}
+
+type DocumentParams = {
+    documentId: string
 }
 
 type AppendBody = z.infer<typeof VeritlyOnlyOfficeAppend>

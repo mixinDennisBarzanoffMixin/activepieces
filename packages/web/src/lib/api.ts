@@ -85,11 +85,13 @@ function request<TResponse>(
 
   return axios({
     url: resolvedUrl,
-    withCredentials: true,
+    withCredentials: isApWebsite,
     ...config,
     headers: {
       ...config.headers,
-      ...(veritlyProjectId ? { 'x-veritly-project-id': veritlyProjectId } : {}),
+      ...(veritlyProjectId && isApWebsite
+        ? { 'x-veritly-project-id': veritlyProjectId }
+        : {}),
       Authorization: getToken(
         unAuthenticated,
         isApWebsite,
