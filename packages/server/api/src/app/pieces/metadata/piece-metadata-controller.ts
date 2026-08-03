@@ -23,6 +23,7 @@ import { ProjectResourceType } from '../../core/security/authorization/common'
 import { securityAccess } from '../../core/security/authorization/fastify-security'
 import { flowService } from '../../flows/flow/flow.service'
 import { sampleDataService } from '../../flows/step-run/sample-data.service'
+import { veritlyOptions } from '../../veritly/veritly-piece-options'
 import { userInteractionWatcher } from '../../workers/user-interaction-watcher'
 import { pieceSyncService } from '../piece-sync-service'
 import { getPiecePackageWithoutArchive, pieceMetadataService } from './piece-metadata-service'
@@ -127,6 +128,8 @@ const basePiecesController: FastifyPluginAsyncZod = async (app) => {
         '/options',
         OptionsPieceRequest,
         async (req) => {
+            const options = await veritlyOptions(req.log, req.body)
+            if (options) return options
             const projectId = req.projectId
             const platform = req.principal.platform
             const flow = await flowService(req.log).getOnePopulatedOrThrow({

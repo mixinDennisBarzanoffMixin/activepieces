@@ -6,13 +6,13 @@ import { StatusCodes } from 'http-status-codes'
 import { z } from 'zod'
 import { securityAccess } from '../core/security/authorization/fastify-security'
 import { flowService } from '../flows/flow/flow.service'
-import { projectService } from '../project/project-service'
 import {
     getVeritlyContext,
     getVeritlyProject,
     getVeritlySessionResponse,
     resolveVeritlySession,
 } from './veritly-auth'
+import { onlyoffice, onlyofficeRaw } from './veritly-onlyoffice.service'
 
 const PROJECT_HDR = 'x-veritly-project-id'
 const ErrorResponse = z.object({ error: z.string() })
@@ -405,57 +405,16 @@ function WorkerRequest(schema: WorkerSchema) {
     }
 }
 
-async function scope(request: FastifyRequest) {
-    const req = request as FastifyRequest & { principal: EnginePrincipal }
-    console.log('[veritly api] run start', { projectId: req.principal.projectId })
-    const project = await projectService(request.log).getOneOrThrow(req.principal.projectId)
-    const id = identity(project)
-    console.log('[veritly api] run scope', { veritlyProjectId: id.projectId, userId: id.userId })
-    return id
-}
-
-function identity(project: { externalId?: string | null, metadata?: Record<string, unknown> | null }) {
-    console.log('[veritly api] identity', { externalId: project.externalId })
-    const prefix = 'veritly:project:'
-    const ext = project.externalId
-    if (!ext?.startsWith(prefix)) throw new Error('Activepieces project is missing Veritly external id')
-    const meta = project.metadata
-    if (!record(meta)) throw new Error('Activepieces project metadata is missing')
-    const veritly = meta.veritly
-    if (!record(veritly)) throw new Error('Activepieces project Veritly metadata is missing')
-    const userId = veritly.creatorUserId
-    if (typeof userId !== 'string' || !userId) throw new Error('Activepieces project Veritly user id is missing')
-    return {
-        userId,
-        projectId: ext.slice(prefix.length),
-    }
-}
-
 async function call<T>(request: FastifyRequest, schema: z.ZodType<T>, method: string, path: string, body?: unknown) {
-    const res = await raw(request, method, path, body)
-    const text = await res.text()
-    if (!text) return schema.parse(undefined)
-    return schema.parse(JSON.parse(text))
+    return onlyoffice(request.log, project(request), schema, method, path, body)
 }
 
 async function raw(request: FastifyRequest, method: string, path: string, body?: unknown) {
-    const target = process.env.ONLYOFFICE_BACKEND_URL?.trim()
-    if (!target) throw new Error('ONLYOFFICE_BACKEND_URL is required')
-    const token = process.env.ONLYOFFICE_SERVICE_TOKEN?.trim()
-    if (!token) throw new Error('ONLYOFFICE_SERVICE_TOKEN is required')
-    const id = await scope(request)
-    const res = await fetch(new URL(`/onlyoffice-api${path}`, target), {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-            'x-veritly-service-token': token,
-            'x-veritly-user-id': id.userId,
-            'x-veritly-project-id': id.projectId,
-        },
-        body: body === undefined ? undefined : JSON.stringify(body),
-    })
-    if (!res.ok) throw new Error(await res.text())
-    return res
+    return onlyofficeRaw(request.log, project(request), method, path, body)
+}
+
+function project(request: FastifyRequest) {
+    return (request as FastifyRequest & { principal: EnginePrincipal }).principal.projectId
 }
 
 async function file(reply: FastifyReply, res: Response) {
