@@ -1,4 +1,4 @@
-import { WorkOS, type User } from "@workos-inc/node"
+import { GenericServerException, RateLimitExceededException, WorkOS, type User } from "@workos-inc/node"
 
 export const WORKOS_SESSION_COOKIE_NAME = "wos-session"
 
@@ -12,7 +12,7 @@ export type SessionResolverResult =
     }
   | {
       ok: false
-      reason: "missing" | "invalid" | "misconfigured"
+      reason: "missing" | "invalid" | "misconfigured" | "transient"
       message: string
     }
 
@@ -39,8 +39,16 @@ export type ValidateWorkosSessionResult =
     }
   | {
       ok: false
-      reason: string
+      reason: "invalid" | "transient"
+      message: string
     }
+
+function retryable(err: unknown) {
+  if (err instanceof RateLimitExceededException || err instanceof GenericServerException || err instanceof TypeError)
+    return true
+  if (!(err instanceof Error)) return false
+  return /\b(timeout|timed out|network|fetch|econnreset|econnrefused|enotfound|socket)\b/i.test(err.message)
+}
 
 export function requireNonEmpty(value: string | undefined, name: string): string {
   const trimmed = value?.trim()
@@ -69,13 +77,18 @@ export async function validateWorkosSession(input: ValidateWorkosSessionInput): 
     sessionData,
     cookiePassword,
   })
-  const auth = await session.authenticate()
-  if (auth.authenticated && auth.user) {
+  const auth = await session.authenticate().catch(() => undefined)
+  if (auth?.authenticated && auth.user) {
     return { ok: true, user: auth.user }
   }
 
-  if ("reason" in auth && (auth.reason === "invalid_jwt" || auth.reason === "invalid_session_cookie")) {
-    const refresh = await session.refresh()
+  if (!auth || ("reason" in auth && (auth.reason === "invalid_jwt" || auth.reason === "invalid_session_cookie"))) {
+    const refresh = await session.refresh().catch((err) => ({ err }))
+    if ("err" in refresh) {
+      return retryable(refresh.err)
+        ? { ok: false, reason: "transient", message: "WorkOS session refresh is temporarily unavailable" }
+        : { ok: false, reason: "invalid", message: "Invalid WorkOS session" }
+    }
     if (refresh.authenticated && refresh.user) {
       return {
         ok: true,
@@ -83,9 +96,12 @@ export async function validateWorkosSession(input: ValidateWorkosSessionInput): 
         refreshedSessionData: refresh.sealedSession,
       }
     }
+    if (!refresh.authenticated)
+      return { ok: false, reason: "invalid", message: `WorkOS session refresh failed: ${refresh.reason}` }
+    return { ok: false, reason: "invalid", message: "WorkOS session refresh returned no user" }
   }
 
-  return { ok: false, reason: "Invalid WorkOS session" }
+  return { ok: false, reason: "invalid", message: "Invalid WorkOS session" }
 }
 
 /** Shared Set-Cookie shape for `wos-session` across authenticated services. */
@@ -175,7 +191,7 @@ export function workosSessionResolver(): SessionResolver {
         cookiePassword: requireCookiePassword(process.env.COOKIE_PASSWORD),
       })
 
-      if (!result.ok) return { ok: false, reason: "invalid", message: "Invalid session" }
+      if (!result.ok) return { ok: false, reason: result.reason, message: result.message }
       return {
         ok: true,
         user: result.user,
