@@ -1,3 +1,5 @@
 [install]
+auto = "disable"
+exact = true
 linker = "isolated"
-minimumReleaseAge = 259200 # 3 days, in seconds
+minimumReleaseAge = 604800
