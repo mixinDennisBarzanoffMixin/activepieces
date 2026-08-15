@@ -3,13 +3,20 @@ import { PieceOptionRequest } from '@activepieces/shared'
 import { FastifyBaseLogger } from 'fastify'
 import { z } from 'zod'
 import { onlyoffice } from './veritly-onlyoffice.service'
+import { data } from './veritly-data.service'
 
 const File = z.object({ id: z.string(), path: z.string(), kind: z.string() })
 const Files = z.array(File)
 const Sheets = z.object({ sheets: z.array(z.object({ id: z.string(), name: z.string() })) })
 const PIECE = '@activepieces/piece-veritly-onlyoffice'
+const DATA_PIECE = '@activepieces/piece-veritly-data'
+const Prep = z.object({ id: z.string(), path: z.string() }).passthrough()
+const Preps = z.object({ preps: z.array(Prep) })
+const Dataset = z.object({ id: z.string(), schema: z.string(), table: z.string() }).passthrough()
+const Datasets = z.object({ datasets: z.array(Dataset) })
 
 export async function veritlyOptions(log: FastifyBaseLogger, req: PieceOptionRequest) {
+    if (req.pieceName === DATA_PIECE) return dataOptions(log, req)
     if (req.pieceName !== PIECE) return
     if (req.propertyName === 'workbook_id') {
         const files = await onlyoffice(log, req.projectId, Files, 'GET', '/files')
@@ -25,6 +32,16 @@ export async function veritlyOptions(log: FastifyBaseLogger, req: PieceOptionReq
     if (typeof book !== 'string' || !book) return dropdown([], 'Select a workbook first', 'Select a workbook first')
     const res = await onlyoffice(log, req.projectId, Sheets, 'GET', `/files/${encodeURIComponent(book)}/sheets`)
     return dropdown(res.sheets.map((sheet) => ({ label: sheet.name, value: sheet.id })), 'No sheets found', 'Select a sheet')
+}
+
+async function dataOptions(log: FastifyBaseLogger, req: PieceOptionRequest) {
+    if (req.propertyName === 'prep_id') {
+        const res = await data({ log, project: req.projectId, schema: Preps, method: 'GET', path: '/preps' })
+        return dropdown(res.preps.map((prep) => ({ label: prep.path, value: prep.id })), 'No project data preparations found', 'Select a preparation')
+    }
+    if (req.propertyName !== 'dataset_id') return
+    const res = await data({ log, project: req.projectId, schema: Datasets, method: 'GET', path: '/datasets' })
+    return dropdown(res.datasets.map((dataset) => ({ label: `${dataset.schema}.${dataset.table}`, value: dataset.id })), 'No published project datasets found', 'Select a dataset')
 }
 
 function dropdown(options: Array<{ label: string, value: string }>, empty: string, ready: string) {

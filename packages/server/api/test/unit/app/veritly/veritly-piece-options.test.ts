@@ -31,4 +31,12 @@ describe('veritlyOptions', () => {
     it('leaves other pieces on the generic worker path', async () => {
         expect(await veritlyOptions(log, { ...req, pieceName: '@activepieces/piece-slack' })).toBeUndefined()
     })
+
+    it('leaves static Veritly Data properties on the generic worker path', async () => {
+        expect(await veritlyOptions(log, {
+            ...req,
+            pieceName: '@activepieces/piece-veritly-data',
+            propertyName: 'resource_id',
+        })).toBeUndefined()
+    })
 })

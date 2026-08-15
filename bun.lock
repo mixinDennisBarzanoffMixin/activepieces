@@ -7374,6 +7374,16 @@
         "tslib": "^2.3.0",
       },
     },
+    "packages/pieces/community/veritly-data": {
+      "name": "@activepieces/piece-veritly-data",
+      "version": "0.1.0",
+      "dependencies": {
+        "@activepieces/pieces-framework": "workspace:*",
+        "@activepieces/shared": "workspace:*",
+        "tslib": "2.6.2",
+        "zod": "4.3.6",
+      },
+    },
     "packages/pieces/community/veritly-onlyoffice": {
       "name": "@activepieces/piece-veritly-onlyoffice",
       "version": "0.0.2",
@@ -10195,6 +10205,8 @@
     "@activepieces/piece-vbout": ["@activepieces/piece-vbout@workspace:packages/pieces/community/vbout"],
 
     "@activepieces/piece-vercel": ["@activepieces/piece-vercel@workspace:packages/pieces/community/vercel"],
+
+    "@activepieces/piece-veritly-data": ["@activepieces/piece-veritly-data@workspace:packages/pieces/community/veritly-data"],
 
     "@activepieces/piece-veritly-onlyoffice": ["@activepieces/piece-veritly-onlyoffice@workspace:packages/pieces/community/veritly-onlyoffice"],
 
