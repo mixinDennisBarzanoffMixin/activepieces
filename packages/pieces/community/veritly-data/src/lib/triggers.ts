@@ -1,4 +1,5 @@
 import { createTrigger, TriggerStrategy } from '@activepieces/pieces-framework';
+import { z } from 'zod';
 import { data, type TriggerEvent } from './client';
 import { props } from './props';
 
@@ -89,17 +90,16 @@ function trigger(input: Config) {
   });
 }
 
+const Server = z.object({
+  server: z.object({
+    apiUrl: z.string().url(),
+    publicUrl: z.string().url(),
+    token: z.string().min(1),
+  }),
+});
+
 function server(value: unknown) {
-  if (typeof value !== 'object' || value === null) throw new Error('Activepieces server context is required');
-  const raw: unknown = Reflect.get(value, 'server');
-  if (typeof raw !== 'object' || raw === null) throw new Error('Activepieces server context is required');
-  const apiUrl: unknown = Reflect.get(raw, 'apiUrl');
-  const publicUrl: unknown = Reflect.get(raw, 'publicUrl');
-  const token: unknown = Reflect.get(raw, 'token');
-  if (typeof apiUrl !== 'string' || typeof publicUrl !== 'string' || typeof token !== 'string') {
-    throw new Error('Activepieces server context is required');
-  }
-  return { apiUrl, publicUrl, token };
+  return Server.parse(value).server;
 }
 
 function topic(event: ReturnType<typeof data.Event.parse>): TriggerEvent | undefined {

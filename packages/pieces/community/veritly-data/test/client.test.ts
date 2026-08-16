@@ -48,4 +48,21 @@ describe('Veritly Data automation contract', () => {
       }),
     ).toEqual(job);
   });
+
+  test('rejects failed jobs that omit the required backend error', async () => {
+    expect(
+      data.wait({
+        server: { apiUrl: 'https://automation.example', publicUrl: 'https://automation.example', token: 'engine' },
+        job: {
+          id: 'job_2',
+          kind: 'publish',
+          state: 'failed',
+          progress: 1,
+          created: 1,
+          updated: 2,
+        },
+        timeout: 1,
+      }),
+    ).rejects.toThrow('missing an error');
+  });
 });

@@ -98,16 +98,16 @@ const Ok = z.object({ ok: z.literal(true) })
 
 export const veritlyDataController: FastifyPluginAsyncZod = async (app) => {
     app.get('/worker/data/preps', worker({ response: { [StatusCodes.OK]: Preps } }), async (request) => {
-        return await call({ request, schema: Preps, method: 'GET', path: '/preps' })
+        return call({ request, schema: Preps, method: 'GET', path: '/preps' })
     })
 
     app.get('/worker/data/preps/:prepId', worker({ params: PrepParams, response: { [StatusCodes.OK]: Prep } }), async (request) => {
         const params = PrepParams.parse(request.params)
-        return await call({ request, schema: Prep, method: 'GET', path: `/preps/${encodeURIComponent(params.prepId)}` })
+        return call({ request, schema: Prep, method: 'GET', path: `/preps/${encodeURIComponent(params.prepId)}` })
     })
 
     app.get('/worker/data/datasets', worker({ response: { [StatusCodes.OK]: Datasets } }), async (request) => {
-        return await call({ request, schema: Datasets, method: 'GET', path: '/datasets' })
+        return call({ request, schema: Datasets, method: 'GET', path: '/datasets' })
     })
 
     app.get('/worker/data/datasets/:datasetId/rows', worker({ params: RowsParams, querystring: Limit, response: { [StatusCodes.OK]: Rows } }), async (request) => {
@@ -115,44 +115,44 @@ export const veritlyDataController: FastifyPluginAsyncZod = async (app) => {
         const query = Limit.parse(request.query)
         const search = new URLSearchParams({ limit: String(query.limit) })
         if (query.cursor) search.set('cursor', query.cursor)
-        return await call({ request, schema: Rows, method: 'GET', path: `/datasets/${encodeURIComponent(params.datasetId)}/rows?${search}` })
+        return call({ request, schema: Rows, method: 'GET', path: `/datasets/${encodeURIComponent(params.datasetId)}/rows?${search}` })
     })
 
     app.post('/worker/data/datasets/:datasetId/rows', worker({ params: RowsParams, body: Insert, response: { [StatusCodes.OK]: Row } }), async (request) => {
         const params = RowsParams.parse(request.params)
-        return await call({ request, schema: Row, method: 'POST', path: `/datasets/${encodeURIComponent(params.datasetId)}/rows`, body: Insert.parse(request.body) })
+        return call({ request, schema: Row, method: 'POST', path: `/datasets/${encodeURIComponent(params.datasetId)}/rows`, body: Insert.parse(request.body) })
     })
 
     app.post('/worker/data/datasets/:datasetId/rows/:rowId/edit', worker({ params: RowParams, body: Edit, response: { [StatusCodes.OK]: Row } }), async (request) => {
         const params = RowParams.parse(request.params)
-        return await call({ request, schema: Row, method: 'PATCH', path: `/datasets/${encodeURIComponent(params.datasetId)}/rows/${encodeURIComponent(params.rowId)}`, body: Edit.parse(request.body) })
+        return call({ request, schema: Row, method: 'PATCH', path: `/datasets/${encodeURIComponent(params.datasetId)}/rows/${encodeURIComponent(params.rowId)}`, body: Edit.parse(request.body) })
     })
 
     app.delete('/worker/data/datasets/:datasetId/rows/:rowId', worker({ params: RowParams, body: Remove, response: { [StatusCodes.OK]: Receipt } }), async (request) => {
         const params = RowParams.parse(request.params)
-        return await call({ request, schema: Receipt, method: 'DELETE', path: `/datasets/${encodeURIComponent(params.datasetId)}/rows/${encodeURIComponent(params.rowId)}`, body: Remove.parse(request.body) })
+        return call({ request, schema: Receipt, method: 'DELETE', path: `/datasets/${encodeURIComponent(params.datasetId)}/rows/${encodeURIComponent(params.rowId)}`, body: Remove.parse(request.body) })
     })
 
     app.post('/worker/data/datasets/:datasetId/upsert', worker({ params: RowsParams, body: Upsert, response: { [StatusCodes.OK]: Row } }), async (request) => {
         const params = RowsParams.parse(request.params)
-        return await call({ request, schema: Row, method: 'POST', path: `/datasets/${encodeURIComponent(params.datasetId)}/upsert`, body: Upsert.parse(request.body) })
+        return call({ request, schema: Row, method: 'POST', path: `/datasets/${encodeURIComponent(params.datasetId)}/upsert`, body: Upsert.parse(request.body) })
     })
 
     app.post('/worker/data/preps/:prepId/publish', worker({ params: PrepParams, body: Publish, response: { [StatusCodes.OK]: Job } }), async (request) => {
-        return await job({ request, path: 'publish', schema: Publish })
+        return job({ request, path: 'publish', schema: Publish })
     })
 
     app.post('/worker/data/preps/:prepId/writeback', worker({ params: PrepParams, body: Sync, response: { [StatusCodes.OK]: Job } }), async (request) => {
-        return await job({ request, path: 'writeback', schema: Sync })
+        return job({ request, path: 'writeback', schema: Sync })
     })
 
     app.post('/worker/data/preps/:prepId/reconcile', worker({ params: PrepParams, body: Sync, response: { [StatusCodes.OK]: Job } }), async (request) => {
-        return await job({ request, path: 'reconcile', schema: Sync })
+        return job({ request, path: 'reconcile', schema: Sync })
     })
 
     app.get('/worker/data/jobs/:jobId', worker({ params: JobParams, response: { [StatusCodes.OK]: Job } }), async (request) => {
         const params = JobParams.parse(request.params)
-        return await call({ request, schema: Job, method: 'GET', path: `/jobs/${encodeURIComponent(params.jobId)}` })
+        return call({ request, schema: Job, method: 'GET', path: `/jobs/${encodeURIComponent(params.jobId)}` })
     })
 
     app.post('/worker/data/webhook-registrations', worker({ body: Register, response: { [StatusCodes.OK]: Id } }), async (request) => {
@@ -173,7 +173,7 @@ function worker(schema: WorkerSchema) {
 
 async function job(input: JobInput) {
     const params = PrepParams.parse(input.request.params)
-    return await call({
+    return call({
         request: input.request,
         schema: Job,
         method: 'POST',
@@ -183,7 +183,7 @@ async function job(input: JobInput) {
 }
 
 async function call<T>(input: CallInput<T>) {
-    return await data({
+    return data.request({
         log: input.request.log,
         project: project(input.request),
         schema: input.schema,

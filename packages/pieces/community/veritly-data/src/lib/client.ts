@@ -114,14 +114,16 @@ const Event = z.discriminatedUnion('kind', [
 ]);
 const Hook = z.object({ id: z.string() });
 
-function create(server: ServerContext) {
-  async function request<T>(schema: z.ZodType<T>, method: string, path: string, body?: unknown) {
+class DataClient {
+  constructor(private readonly server: ServerContext) {}
+
+  private async request<T>(schema: z.ZodType<T>, method: string, path: string, body?: unknown) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 5_000);
-    const res = await fetch(url(server.apiUrl, path), {
+    const res = await fetch(url(this.server.apiUrl, path), {
       method,
       headers: {
-        Authorization: `Bearer ${server.token}`,
+        Authorization: `Bearer ${this.server.token}`,
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -131,60 +133,74 @@ function create(server: ServerContext) {
     return schema.parse(await res.json());
   }
 
-  return {
-    async preps() {
-      return await request(Preps, 'GET', 'preps');
-    },
-    async prep(id: string) {
-      return await request(Prep, 'GET', `preps/${encodeURIComponent(id)}`);
-    },
-    async datasets() {
-      return await request(Datasets, 'GET', 'datasets');
-    },
-    async rows(id: string, cursor: string | undefined, limit: number) {
-      const query = new URLSearchParams({ limit: String(limit) });
-      if (cursor) query.set('cursor', cursor);
-      return await request(Rows, 'GET', `datasets/${encodeURIComponent(id)}/rows?${query}`);
-    },
-    async insert(id: string, input: InsertInput) {
-      return await request(Row, 'POST', `datasets/${encodeURIComponent(id)}/rows`, input);
-    },
-    async edit(id: string, row: string, input: EditInput) {
-      return await request(Row, 'POST', `datasets/${encodeURIComponent(id)}/rows/${encodeURIComponent(row)}/edit`, input);
-    },
-    async remove(id: string, row: string, input: RemoveInput) {
-      return await request(Receipt, 'DELETE', `datasets/${encodeURIComponent(id)}/rows/${encodeURIComponent(row)}`, input);
-    },
-    async upsert(id: string, input: UpsertInput) {
-      return await request(Row, 'POST', `datasets/${encodeURIComponent(id)}/upsert`, input);
-    },
-    async publish(id: string, input: PublishInput) {
-      return await request(Job, 'POST', `preps/${encodeURIComponent(id)}/publish`, input);
-    },
-    async writeback(id: string, input: WritebackInput) {
-      return await request(Job, 'POST', `preps/${encodeURIComponent(id)}/writeback`, input);
-    },
-    async reconcile(id: string, input: ReconcileInput) {
-      return await request(Job, 'POST', `preps/${encodeURIComponent(id)}/reconcile`, input);
-    },
-    async job(id: string) {
-      return await request(Job, 'GET', `jobs/${encodeURIComponent(id)}`);
-    },
-    async register(event: TriggerEvent, url: string, resource?: string) {
-      return await request(Hook, 'POST', 'webhook-registrations', { event, url, resource });
-    },
-    async unregister(id: string) {
-      return await request(z.object({ ok: z.literal(true) }), 'DELETE', `webhook-registrations/${encodeURIComponent(id)}`);
-    },
-  };
+  async preps() {
+    return await this.request(Preps, 'GET', 'preps');
+  }
+
+  async prep(id: string) {
+    return await this.request(Prep, 'GET', `preps/${encodeURIComponent(id)}`);
+  }
+
+  async datasets() {
+    return await this.request(Datasets, 'GET', 'datasets');
+  }
+
+  async rows(id: string, cursor: string | undefined, limit: number) {
+    const query = new URLSearchParams({ limit: String(limit) });
+    if (cursor) query.set('cursor', cursor);
+    return await this.request(Rows, 'GET', `datasets/${encodeURIComponent(id)}/rows?${query}`);
+  }
+
+  async insert(id: string, input: InsertInput) {
+    return await this.request(Row, 'POST', `datasets/${encodeURIComponent(id)}/rows`, input);
+  }
+
+  async edit(id: string, row: string, input: EditInput) {
+    return await this.request(Row, 'POST', `datasets/${encodeURIComponent(id)}/rows/${encodeURIComponent(row)}/edit`, input);
+  }
+
+  async remove(id: string, row: string, input: RemoveInput) {
+    return await this.request(Receipt, 'DELETE', `datasets/${encodeURIComponent(id)}/rows/${encodeURIComponent(row)}`, input);
+  }
+
+  async upsert(id: string, input: UpsertInput) {
+    return await this.request(Row, 'POST', `datasets/${encodeURIComponent(id)}/upsert`, input);
+  }
+
+  async publish(id: string, input: PublishInput) {
+    return await this.request(Job, 'POST', `preps/${encodeURIComponent(id)}/publish`, input);
+  }
+
+  async writeback(id: string, input: WritebackInput) {
+    return await this.request(Job, 'POST', `preps/${encodeURIComponent(id)}/writeback`, input);
+  }
+
+  async reconcile(id: string, input: ReconcileInput) {
+    return await this.request(Job, 'POST', `preps/${encodeURIComponent(id)}/reconcile`, input);
+  }
+
+  async job(id: string) {
+    return await this.request(Job, 'GET', `jobs/${encodeURIComponent(id)}`);
+  }
+
+  async register(event: TriggerEvent, url: string, resource?: string) {
+    return await this.request(Hook, 'POST', 'webhook-registrations', { event, url, resource });
+  }
+
+  async unregister(id: string) {
+    return await this.request(z.object({ ok: z.literal(true) }), 'DELETE', `webhook-registrations/${encodeURIComponent(id)}`);
+  }
 }
 
 async function wait(input: { server: ServerContext; job: JobType; timeout: number }) {
-  const client = create(input.server);
+  const client = new DataClient(input.server);
   const end = Date.now() + input.timeout * 1_000;
   const next = async (job: JobType): Promise<JobType> => {
     if (job.state === 'succeeded') return job;
-    if (job.state === 'failed') throw new Error(job.error || 'Veritly data job failed');
+    if (job.state === 'failed') {
+      if (!job.error) throw new Error('Failed Veritly data job response is missing an error');
+      throw new Error(job.error);
+    }
     if (job.state === 'cancelled') throw new Error('Veritly data job was cancelled');
     if (Date.now() >= end) throw new Error(`Veritly data job ${job.id} did not finish before the timeout`);
     await new Promise((resolve) => setTimeout(resolve, 1_000));
@@ -210,6 +226,6 @@ function url(base: string, path: string) {
   return new URL(`v1/veritly/worker/data/${path}`, root);
 }
 
-export const data = { create, wait, limit, timeout, Cells, Event };
+export const data = { create: (server: ServerContext) => new DataClient(server), wait, limit, timeout, Cells, Event };
 
 export type TriggerEvent = TriggerEventType;

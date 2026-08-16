@@ -2,8 +2,8 @@ import { PropertyType } from '@activepieces/pieces-framework'
 import { PieceOptionRequest } from '@activepieces/shared'
 import { FastifyBaseLogger } from 'fastify'
 import { z } from 'zod'
-import { onlyoffice } from './veritly-onlyoffice.service'
 import { data } from './veritly-data.service'
+import { onlyoffice } from './veritly-onlyoffice.service'
 
 const File = z.object({ id: z.string(), path: z.string(), kind: z.string() })
 const Files = z.array(File)
@@ -36,11 +36,11 @@ export async function veritlyOptions(log: FastifyBaseLogger, req: PieceOptionReq
 
 async function dataOptions(log: FastifyBaseLogger, req: PieceOptionRequest) {
     if (req.propertyName === 'prep_id') {
-        const res = await data({ log, project: req.projectId, schema: Preps, method: 'GET', path: '/preps' })
+        const res = await data.request({ log, project: req.projectId, schema: Preps, method: 'GET', path: '/preps' })
         return dropdown(res.preps.map((prep) => ({ label: prep.path, value: prep.id })), 'No project data preparations found', 'Select a preparation')
     }
     if (req.propertyName !== 'dataset_id') return
-    const res = await data({ log, project: req.projectId, schema: Datasets, method: 'GET', path: '/datasets' })
+    const res = await data.request({ log, project: req.projectId, schema: Datasets, method: 'GET', path: '/datasets' })
     return dropdown(res.datasets.map((dataset) => ({ label: `${dataset.schema}.${dataset.table}`, value: dataset.id })), 'No published project datasets found', 'Select a dataset')
 }
 

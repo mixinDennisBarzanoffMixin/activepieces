@@ -139,7 +139,7 @@ export const publish = createAction({
       expectedVersion: revision(context.propsValue.expected_version),
       mode: mode(context.propsValue.mode),
       overwrite: context.propsValue.overwrite,
-      ...(dataset ? { dataset } : {}),
+      ...(dataset === undefined ? {} : { dataset: id(dataset) }),
       ...(keys ? { keys } : {}),
     });
     return await data.wait({ server: context.server, job, timeout: data.timeout(context.propsValue.timeout_seconds) });
@@ -190,7 +190,7 @@ function nonempty(value: unknown) {
 }
 
 function names(value: unknown) {
-  if (value === undefined || value === null) return;
+  if (value === undefined) return;
   return z.array(z.string().trim().min(1)).min(1).parse(value);
 }
 
