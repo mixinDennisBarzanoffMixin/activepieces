@@ -421,7 +421,7 @@ async function file(reply: FastifyReply, res: Response) {
     const disposition = res.headers.get('content-disposition')
     if (disposition) void reply.header('Content-Disposition', disposition)
     const type = res.headers.get('content-type')
-    if (!type) throw new Error('ONLYOFFICE document content type is missing')
+    if (!type) throw new Error('Document content type is missing')
     return reply
         .type(type)
         .status(StatusCodes.OK)

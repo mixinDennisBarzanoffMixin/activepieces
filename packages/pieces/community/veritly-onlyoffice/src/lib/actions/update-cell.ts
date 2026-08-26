@@ -5,17 +5,17 @@ import { scoped, sheet } from '../common/props';
 export const updateCell = createAction({
   name: 'update_cell',
   displayName: 'Update Cell',
-  description: 'Update one cell in a Veritly ONLYOFFICE sheet.',
+  description: 'Update one cell in a Veritly spreadsheet.',
   props: {
     ...sheet,
     row_index: Property.Number({
       displayName: 'Row Index',
-      description: 'Zero-based ONLYOFFICE row index.',
+      description: 'Zero-based spreadsheet row index.',
       required: true,
     }),
     column_index: Property.Number({
       displayName: 'Column Index',
-      description: 'Zero-based ONLYOFFICE column index.',
+      description: 'Zero-based spreadsheet column index.',
       required: true,
     }),
     value: Property.ShortText({

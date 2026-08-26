@@ -10,7 +10,7 @@ import { chartChanged } from './lib/triggers/chart-changed';
 import { rowChanged } from './lib/triggers/row-changed';
 
 export const veritlyOnlyOffice = createPiece({
-  displayName: 'Veritly ONLYOFFICE',
+  displayName: 'Veritly Spreadsheets',
   description: 'Trigger flows from Veritly chart and sheet changes, then export refreshed live documents.',
   minimumSupportedRelease: '0.30.0',
   logoUrl: 'https://cdn.activepieces.com/pieces/google-sheets.png',

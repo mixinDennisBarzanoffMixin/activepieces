@@ -5,7 +5,7 @@ import { scoped, sheet } from '../common/props';
 export const appendRow = createAction({
   name: 'append_row',
   displayName: 'Append Row',
-  description: 'Append a row to a Veritly ONLYOFFICE sheet.',
+  description: 'Append a row to a Veritly spreadsheet.',
   props: {
     ...sheet,
     values: Property.Json({

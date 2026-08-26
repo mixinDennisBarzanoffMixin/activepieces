@@ -9,7 +9,7 @@ const key = 'veritly-onlyoffice-row-change-webhook';
 export const rowChanged = createTrigger({
   name: 'row_changed',
   displayName: 'Row Changed',
-  description: 'Triggers when an existing Veritly ONLYOFFICE row changes.',
+  description: 'Triggers when an existing Veritly spreadsheet row changes.',
   props: sheet,
   type: TriggerStrategy.WEBHOOK,
   sampleData: {

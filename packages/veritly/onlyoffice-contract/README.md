@@ -1,10 +1,10 @@
 # @veritly/onlyoffice-contract
 
-Tiny shared HTTP contract for Veritly ONLYOFFICE automation.
+Tiny shared HTTP contract for Veritly spreadsheet automation.
 
 This package owns schemas, route builders, small value parsers, and the fetch
 client used by Activepieces pieces. It must not import Activepieces server code,
-the ONLYOFFICE runtime, storage, auth internals, or database code.
+the document runtime, storage, auth internals, or database code.
 
 ## Private Publish
 

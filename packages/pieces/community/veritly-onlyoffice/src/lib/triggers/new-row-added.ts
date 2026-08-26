@@ -13,7 +13,7 @@ function newest(list: Row[]) {
 export const newRowAdded = createTrigger({
   name: 'new_row_added',
   displayName: 'New Row Added',
-  description: 'Triggers when a new row is added to a Veritly ONLYOFFICE sheet.',
+  description: 'Triggers when a new row is added to a Veritly spreadsheet.',
   props: sheet,
   type: TriggerStrategy.WEBHOOK,
   sampleData: {
