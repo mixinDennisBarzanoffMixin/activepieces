@@ -9,6 +9,8 @@ import { StreamStepProgress } from './engine-operation'
 
 
 export const UploadRunLogsRequest = z.object({
+    jobId: z.string(),
+    claim: z.string(),
     runId: z.string(),
     tags: z.array(z.string()).optional(),
     status: z.nativeEnum(FlowRunStatus),
@@ -61,6 +63,8 @@ export const GetFlowVersionForWorkerRequest = z.object({
 export type GetFlowVersionForWorkerRequest = z.infer<typeof GetFlowVersionForWorkerRequest>
 
 export type UpdateRunProgressRequest = {
+    jobId: string
+    claim: string
     flowRun: Omit<FlowRun, 'steps'>
     step?: {
         name: string

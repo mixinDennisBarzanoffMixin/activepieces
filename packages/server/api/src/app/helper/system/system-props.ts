@@ -155,4 +155,3 @@ export const environmentVariables = {
         return value
     },
 }
-

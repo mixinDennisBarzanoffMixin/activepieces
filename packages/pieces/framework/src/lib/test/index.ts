@@ -44,6 +44,7 @@ export function createMockActionContext<
     },
     run: {
       id: 'test-run-id' as string,
+      operationId: 'test-operation-id',
       stop: () => {
         return;
       },

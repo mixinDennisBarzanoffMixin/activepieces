@@ -188,6 +188,7 @@ export type WaitForWaitpointHook = (waitpointId: string) => void;
 
 export type RunContext = {
   id: FlowRunId;
+  operationId: string;
   stop: StopHook;
   /** @deprecated Use createWaitpoint + waitForWaitpoint instead */
   pause?: PauseHook;

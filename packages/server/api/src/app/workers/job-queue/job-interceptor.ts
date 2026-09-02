@@ -8,12 +8,36 @@ export enum InterceptorVerdict {
     DISCARD = 'DISCARD',
 }
 
+export enum JobOutcome {
+    COMPLETED = 'COMPLETED',
+    FAILED = 'FAILED',
+    RETRY = 'RETRY',
+    RELEASED = 'RELEASED',
+}
+
 export type InterceptorResult =
     | { verdict: InterceptorVerdict.ALLOW }
     | { verdict: InterceptorVerdict.REJECT, delayInMs: number, priority?: number }
     | { verdict: InterceptorVerdict.DISCARD }
 
 export type JobInterceptor = {
-    preDispatch(params: { jobId: string, jobData: JobData, job: Job, log: FastifyBaseLogger }): Promise<InterceptorResult>
-    onJobFinished(params: { jobId: string, jobData: JobData, failed: boolean, log: FastifyBaseLogger }): Promise<void>
+    preDispatch(params: {
+        jobId: string
+        jobData: JobData
+        job: Job
+        token: string
+        log: FastifyBaseLogger
+    }): Promise<InterceptorResult>
+    onJobFinished(params: {
+        jobId: string
+        jobData: JobData
+        token: string
+        outcome: JobOutcome
+        log: FastifyBaseLogger
+    }): Promise<void>
+    onJobHeartbeat?(params: {
+        jobId: string
+        token: string
+        log: FastifyBaseLogger
+    }): Promise<void>
 }

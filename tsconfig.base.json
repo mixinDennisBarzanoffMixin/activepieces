@@ -1818,8 +1818,8 @@
       "@activepieces/piece-vero": [
         "packages/pieces/community/vero/src/index.ts"
       ],
-      "@activepieces/piece-veritly-onlyoffice": [
-        "packages/pieces/community/veritly-onlyoffice/src/index.ts"
+      "@activepieces/piece-veritly-office": [
+        "packages/pieces/community/veritly-office/src/index.ts"
       ],
       "@activepieces/piece-digital-pilot": [
         "packages/pieces/community/digital-pilot/src/index.ts"
@@ -2081,6 +2081,9 @@
       ],
       "@activepieces/piece-connectuc": [
         "packages/pieces/community/connectuc/src/index.ts"
+      ],
+      "@veritly/contracts": [
+        "../veritly-contracts/typescript/src/index.ts"
       ]
     },
     "resolveJsonModule": true

@@ -32,12 +32,18 @@ export type UserPrincipal = {
 
 export type EnginePrincipal = {
     id: ApId
+    claim: string
+    scope: EngineScope
     type: PrincipalType.ENGINE
     projectId: ProjectId
     platform: {
         id: PlatformId
     }
 }
+
+export type EngineScope =
+    | { kind: 'flow', flowId: string, flowVersionId: string, runId?: string }
+    | { kind: 'system' }
 
 
 export type OnboardingPrincipal = {

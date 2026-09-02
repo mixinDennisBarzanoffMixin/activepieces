@@ -50,6 +50,8 @@ export type EngineStderr = z.infer<typeof EngineStderr>
 
 
 export type BaseEngineOperation = {
+    jobId: string
+    claim: string
     projectId: ProjectId
     engineToken: string
     internalApiUrl: string
@@ -135,6 +137,7 @@ export type ExecuteTriggerOperation<HT extends TriggerHookType> = BaseEngineOper
 export const TriggerPayload = z.object({
     body: z.unknown(),
     rawBody: z.unknown().optional(),
+    rawHeaders: z.array(z.string()).optional(),
     headers: z.record(z.string(), z.string()),
     queryParams: z.record(z.string(), z.string()),
 })
@@ -142,6 +145,7 @@ export const TriggerPayload = z.object({
 export type TriggerPayload<T = unknown> = {
     body: T
     rawBody?: unknown
+    rawHeaders?: string[]
     headers: Record<string, string>
     queryParams: Record<string, string>
 }
@@ -149,6 +153,7 @@ export type TriggerPayload<T = unknown> = {
 export type EventPayload<B = unknown> = {
     body: B
     rawBody?: unknown
+    rawHeaders?: string[]
     method: string
     headers: Record<string, string>
     queryParams: Record<string, string>

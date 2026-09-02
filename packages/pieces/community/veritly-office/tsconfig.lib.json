@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "rootDir": ".",
+    "baseUrl": ".",
+    "paths": {
+      "@activepieces/pieces-framework": ["../../framework/dist/src/index.d.ts"],
+      "@activepieces/shared": ["../../../shared/dist/src/index.d.ts"],
+      "@veritly/contracts": ["../../../../../veritly-contracts/typescript/src/index.ts"],
+      "@veritly/contracts/client": ["../../../../../veritly-contracts/typescript/src/client.ts"],
+      "@veritly/contracts/zod": ["../../../../../veritly-contracts/typescript/src/zod.ts"]
+    },
+    "outDir": "./dist",
+    "declaration": true,
+    "declarationMap": true,
+    "types": ["node"]
+  },
+  "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],
+  "include": ["src/**/*.ts"]
+}

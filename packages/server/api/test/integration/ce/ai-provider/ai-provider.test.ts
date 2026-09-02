@@ -100,6 +100,8 @@ describe('AI Providers API', () => {
 
             const engineToken = await generateMockToken({
                 type: PrincipalType.ENGINE,
+                claim: 'test-claim-0000000000000000',
+                scope: { kind: 'system' },
                 id: apId(),
                 projectId: ctx.project.id,
                 platform: { id: ctx.platform.id },
@@ -133,6 +135,8 @@ describe('AI Providers API', () => {
 
             const engineToken = await generateMockToken({
                 type: PrincipalType.ENGINE,
+                claim: 'test-claim-0000000000000000',
+                scope: { kind: 'system' },
                 id: apId(),
                 projectId: ctx.project.id,
                 platform: { id: ctx.platform.id },

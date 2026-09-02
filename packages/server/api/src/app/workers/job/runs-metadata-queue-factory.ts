@@ -72,6 +72,7 @@ const RUNS_METADATA_UPSERT_KEYS: (keyof RunsMetadataUpsertData)[] = [
     'triggeredBy', 'startTime', 'finishTime', 'status', 'tags',
     'failedStep', 'stepNameToTest', 'parentRunId', 'failParentOnFailure',
     'logsFileId', 'updated', 'stepsCount', 'requestId',
+    'officeJobId', 'officeClaim',
 ]
 
 function stripToRunsMetadataUpsertData(params: RunsMetadataUpsertData): RunsMetadataUpsertData {
@@ -120,4 +121,6 @@ export type RunsMetadataUpsertData = {
     updated?: string
     stepsCount?: number
     requestId?: string
+    officeJobId?: string
+    officeClaim?: string
 }

@@ -36,6 +36,8 @@ export const executeValidationJob: JobHandler<ExecuteValidateAuthJobData, Synchr
                     auth: data.connectionValue as AppConnectionValue,
                     platformId: data.platformId,
                     engineToken: ctx.engineToken,
+                    jobId: ctx.jobId,
+                    claim: ctx.claim,
                     internalApiUrl: ctx.internalApiUrl,
                     publicApiUrl: ctx.publicApiUrl,
                     timeoutInSeconds,

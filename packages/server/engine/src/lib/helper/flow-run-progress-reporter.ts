@@ -44,6 +44,8 @@ export const flowRunProgressReporter = {
                 return
             }
             await sendUpdateProgress({
+                jobId: engineConstants.jobId,
+                claim: engineConstants.claim,
                 step: {
                     name: stepNameToUpdate,
                     path: flowExecutorContext.currentPath.path,
@@ -131,6 +133,8 @@ export const flowRunProgressReporter = {
             })
 
             const request: UploadRunLogsRequest = {
+                jobId: engineConstants.jobId,
+                claim: engineConstants.claim,
                 runId: engineConstants.flowRunId,
                 projectId: engineConstants.projectId,
                 status,

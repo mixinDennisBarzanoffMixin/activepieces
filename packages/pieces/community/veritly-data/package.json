@@ -6,7 +6,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.lib.json && cp package.json dist/",
     "lint": "eslint 'src/**/*.ts'",
-    "test": "bun test ./test"
+    "test": "bun test ./test",
+    "typecheck": "tsc -p tsconfig.typecheck.json"
   },
   "dependencies": {
     "@activepieces/pieces-framework": "workspace:*",

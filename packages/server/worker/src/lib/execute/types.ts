@@ -11,6 +11,7 @@ export type JobContext = {
     apiClient: WorkerToApiContract
     sandboxManager: SandboxManager
     jobId: string
+    claim: string
     engineToken: string
     internalApiUrl: string
     publicApiUrl: string

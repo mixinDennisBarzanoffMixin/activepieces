@@ -9,6 +9,8 @@ type RetryConstants = {
 }
 
 type EngineConstantsParams = {
+    jobId: string
+    claim: string
     flowId: string
     flowVersionId: string
     flowVersionState: FlowVersionState
@@ -48,6 +50,8 @@ export class EngineConstants {
     public static readonly TEST_MODE = process.env.AP_TEST_MODE === 'true'
 
     public readonly platformId: string
+    public readonly jobId: string
+    public readonly claim: string
     public readonly timeoutInSeconds: number
     public readonly flowId: string
     public readonly flowVersionId: string
@@ -94,6 +98,8 @@ export class EngineConstants {
         }
 
         this.flowId = params.flowId
+        this.jobId = params.jobId
+        this.claim = params.claim
         this.flowVersionId = params.flowVersionId
         this.flowVersionState = params.flowVersionState
         this.flowRunId = params.flowRunId
@@ -117,6 +123,8 @@ export class EngineConstants {
   
     public static fromExecuteFlowInput(input: ResolvedExecuteFlowOperation): EngineConstants {
         return new EngineConstants({
+            jobId: input.jobId,
+            claim: input.claim,
             flowId: input.flowVersion.flowId,
             flowVersionId: input.flowVersion.id,
             flowVersionState: input.flowVersion.state,
@@ -142,6 +150,8 @@ export class EngineConstants {
 
     public static fromExecuteActionInput(input: ExecuteToolOperation): EngineConstants {
         return new EngineConstants({
+            jobId: input.jobId,
+            claim: input.claim,
             flowId: DEFAULT_MCP_DATA.flowId,
             flowVersionId: DEFAULT_MCP_DATA.flowVersionId,
             flowVersionState: DEFAULT_MCP_DATA.flowVersionState,
@@ -166,6 +176,8 @@ export class EngineConstants {
 
     public static fromExecutePropertyInput(input: Omit<ExecutePropsOptions, 'piece'> & { pieceName: string, pieceVersion: string }): EngineConstants {
         return new EngineConstants({
+            jobId: input.jobId,
+            claim: input.claim,
             flowId: input.flowVersion?.flowId ?? DEFAULT_MCP_DATA.flowId,
             flowVersionId: input.flowVersion?.id ?? DEFAULT_MCP_DATA.flowVersionId,
             flowVersionState: input.flowVersion?.state ?? DEFAULT_MCP_DATA.flowVersionState,
@@ -190,6 +202,8 @@ export class EngineConstants {
 
     public static fromExecuteTriggerInput(input: ExecuteTriggerOperation<TriggerHookType>): EngineConstants {
         return new EngineConstants({
+            jobId: input.jobId,
+            claim: input.claim,
             flowId: input.flowVersion.flowId,
             flowVersionId: input.flowVersion.id,
             flowVersionState: input.flowVersion.state,

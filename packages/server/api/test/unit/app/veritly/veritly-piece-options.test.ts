@@ -7,7 +7,7 @@ import { veritlyOptions } from '../../../../src/app/veritly/veritly-piece-option
 const log = {} as FastifyBaseLogger
 const req: PieceOptionRequest = {
     projectId: 'project',
-    pieceName: '@activepieces/piece-veritly-onlyoffice',
+    pieceName: '@activepieces/piece-veritly-office',
     pieceVersion: '0.1.0',
     actionOrTriggerName: 'get_rows',
     propertyName: 'sheet_id',

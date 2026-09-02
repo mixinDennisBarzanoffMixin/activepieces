@@ -21,6 +21,8 @@ describe('Project Worker API', () => {
 
             const mockToken = await generateMockToken({
                 type: PrincipalType.ENGINE,
+                claim: 'test-claim-0000000000000000',
+                scope: { kind: 'system' },
                 id: apId(),
                 platform: {
                     id: mockPlatform.id,

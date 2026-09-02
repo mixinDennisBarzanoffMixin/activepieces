@@ -3,7 +3,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@veritly/data-protocol/activepieces": ["../../../../../veritly-data/protocol/src/activepieces.d.ts"]
+      "@veritly/contracts": ["../../../../../veritly-contracts/typescript/src/index.ts"],
+      "@veritly/contracts/client": ["../../../../../veritly-contracts/typescript/src/client.ts"],
+      "@veritly/contracts/zod": ["../../../../../veritly-contracts/typescript/src/zod.ts"]
     },
     "rootDir": ".",
     "outDir": "./dist",

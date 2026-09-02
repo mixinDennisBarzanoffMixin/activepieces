@@ -61,6 +61,12 @@ import { UserBadgeEntity } from '../user/badges/badge-entity'
 import { UserEntity } from '../user/user-entity'
 import { UserInvitationEntity } from '../user-invitations/user-invitation.entity'
 import { VariableEntity } from '../variable/variable.entity'
+import {
+    OfficeEffectEntity,
+    OfficeInboxEntity,
+    OfficeOutboxEntity,
+    OfficeRegistrationEntity,
+} from '../veritly/office/office-inbox-entity'
 import { DatabaseType } from './database-type'
 import { createPGliteDataSource } from './pglite-connection'
 import { createPostgresDataSource } from './postgres-connection'
@@ -81,6 +87,10 @@ function getEntities(): EntitySchema<unknown>[] {
         UserEntity,
         AppConnectionEntity,
         VariableEntity,
+        OfficeRegistrationEntity,
+        OfficeInboxEntity,
+        OfficeOutboxEntity,
+        OfficeEffectEntity,
         FolderEntity,
         PieceMetadataEntity,
         PlatformEntity,

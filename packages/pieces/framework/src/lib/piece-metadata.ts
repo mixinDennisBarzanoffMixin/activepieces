@@ -54,6 +54,9 @@ export const AiMetadata = z.object({
 })
 export type AiMetadata = z.infer<typeof AiMetadata>
 
+export const EffectPolicy = z.enum(['pure', 'idempotent', 'reconcilable', 'non_idempotent'])
+export type EffectPolicy = z.infer<typeof EffectPolicy>
+
 export const ActionBase = z.object({
   name: z.string(),
   displayName: z.string(),
@@ -63,6 +66,7 @@ export const ActionBase = z.object({
   errorHandlingOptions: ErrorHandlingOptionsParam.optional(),
   audience: Audience.optional(),
   aiMetadata: AiMetadata.optional(),
+  effect: EffectPolicy.optional(),
 })
 
 export type ActionBase = {
@@ -74,6 +78,7 @@ export type ActionBase = {
   errorHandlingOptions?: ErrorHandlingOptionsParam;
   audience?: Audience;
   aiMetadata?: AiMetadata;
+  effect?: EffectPolicy;
 }
 
 export const TriggerBase = z.object({

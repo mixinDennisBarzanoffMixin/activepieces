@@ -2,6 +2,8 @@ import { apId, FlowRun, FlowRunStatus, isFlowRunStateTerminal, isNil, spreadIfDe
 import { Queue, Worker } from 'bullmq'
 import { BullMQOtel } from 'bullmq-otel'
 import { FastifyBaseLogger } from 'fastify'
+import { EntityManager } from 'typeorm'
+import { databaseConnection } from '../../database/database-connection'
 import { distributedLock, distributedStore, redisConnections } from '../../database/redis-connections'
 import { domainHelper } from '../../helper/domain-helper'
 import { exceptionHandler } from '../../helper/exception-handler'
@@ -53,47 +55,13 @@ export const runsMetadataQueue = (log: FastifyBaseLogger) => ({
                                 return
                             }
 
-                            const existingFlowRun = await flowRunRepo().findOneBy({ id: job.data.runId })
-                            let savedFlowRun: FlowRun
-                            if (!isNil(existingFlowRun)) {
-                                await flowRunRepo().update(job.data.runId, {
-                                    ...spreadIfDefined('projectId', runMetadata.projectId),
-                                    ...spreadIfDefined('flowId', runMetadata.flowId),
-                                    ...spreadIfDefined('flowVersionId', runMetadata.flowVersionId),
-                                    ...spreadIfDefined('environment', runMetadata.environment),
-                                    ...spreadIfDefined('startTime', runMetadata.startTime),
-                                    ...spreadIfDefined('finishTime', runMetadata.finishTime),
-                                    ...spreadIfDefined('status', runMetadata.status),
-                                    ...spreadIfDefined('tags', runMetadata.tags),
-                                    ...spreadIfDefined('failedStep', runMetadata.failedStep),
-                                    ...spreadIfDefined('stepNameToTest', runMetadata.stepNameToTest),
-                                    ...spreadIfDefined('parentRunId', runMetadata.parentRunId),
-                                    ...spreadIfDefined('failParentOnFailure', runMetadata.failParentOnFailure),
-                                    ...spreadIfDefined('logsFileId', runMetadata.logsFileId),
-                                    ...spreadIfDefined('updated', runMetadata.updated),
-                                    ...spreadIfDefined('stepsCount', runMetadata.stepsCount),
-                                })
-                                const updatedFlowRun = await flowRunRepo().findOneBy({ id: job.data.runId })
-                                if (isNil(updatedFlowRun)) {
-                                    log.info({
-                                        jobId: job.id,
-                                        runId: job.data.runId,
-                                    }, '[runsMetadataQueue#worker] Flow run was deleted during update, skipping job')
-                                    return
+                            const savedFlowRun = await persist(runMetadata, log)
+                            if (!savedFlowRun) {
+                                if (!isNil(runMetadata.requestId)) {
+                                    await distributedStore.deleteKeyIfFieldValueMatches(key, 'requestId', runMetadata.requestId)
                                 }
-                                savedFlowRun = updatedFlowRun
-                            }
-                            else {
-                                const flowId = runMetadata.flowId
-                                const flowExists = !isNil(flowId) && await flowService(log).exists(flowId)
-                                if (!flowExists) {
-                                    log.info({
-                                        jobId: job.id,
-                                        runId: job.data.runId,
-                                    }, '[runsMetadataQueue#worker] Flow does not exist (deleted), skipping job')
-                                    return
-                                }
-                                savedFlowRun = await flowRunRepo().save(runMetadata)
+                                log.info({ jobId: job.id, runId: job.data.runId }, '[runsMetadataQueue#worker] Stale Office metadata discarded')
+                                return
                             }
 
                             const parentRunId = savedFlowRun.parentRunId
@@ -151,11 +119,20 @@ export const runsMetadataQueue = (log: FastifyBaseLogger) => ({
     },
 
     async add(params: RunsMetadataUpsertData): Promise<void> {
-        log.info({
-            runId: params.id,
-            projectId: params.projectId,
-        }, '[runsMetadataQueue#add] Adding runs metadata to queue')
-        await queue.add(params)
+        const add = async () => {
+            log.info({
+                runId: params.id,
+                projectId: params.projectId,
+            }, '[runsMetadataQueue#add] Adding runs metadata to queue')
+            if (params.officeJobId && !await persist(params, log)) return
+            await queue.add(params)
+        }
+        if (!params.officeJobId) return add()
+        await distributedLock(log).runExclusive({
+            key: `runs_metadata_${params.id}`,
+            timeoutInSeconds: 30,
+            fn: add,
+        })
     },
 
     get(): Queue<RunsMetadataJobData> {
@@ -172,6 +149,71 @@ export const runsMetadataQueue = (log: FastifyBaseLogger) => ({
     },
 
 })
+
+async function persist(input: RunsMetadataUpsertData, log: FastifyBaseLogger): Promise<FlowRun | undefined> {
+    return databaseConnection().transaction(async (manager) => {
+        if (Boolean(input.officeJobId) !== Boolean(input.officeClaim)) throw new OfficeMetadataScopeError()
+        if (input.officeJobId && !await allowed(manager, input)) return undefined
+        const repo = flowRunRepo(manager)
+        const current = await repo.findOneBy({ id: input.id })
+        if (current) {
+            const terminal = isFlowRunStateTerminal({ status: current.status, ignoreInternalError: false })
+            if (input.officeJobId && terminal && input.status !== current.status) return undefined
+            await repo.update(input.id, {
+                ...spreadIfDefined('projectId', input.projectId),
+                ...spreadIfDefined('flowId', input.flowId),
+                ...spreadIfDefined('flowVersionId', input.flowVersionId),
+                ...spreadIfDefined('environment', input.environment),
+                ...spreadIfDefined('startTime', input.startTime),
+                ...spreadIfDefined('finishTime', input.finishTime),
+                ...spreadIfDefined('status', input.status),
+                ...spreadIfDefined('tags', input.tags),
+                ...spreadIfDefined('failedStep', input.failedStep),
+                ...spreadIfDefined('stepNameToTest', input.stepNameToTest),
+                ...spreadIfDefined('parentRunId', input.parentRunId),
+                ...spreadIfDefined('failParentOnFailure', input.failParentOnFailure),
+                ...spreadIfDefined('logsFileId', input.logsFileId),
+                ...spreadIfDefined('updated', input.updated),
+                ...spreadIfDefined('stepsCount', input.stepsCount),
+            })
+            return await repo.findOneBy({ id: input.id }) ?? undefined
+        }
+        const flowId = input.flowId
+        if (isNil(flowId) || !await flowService(log).exists(flowId)) return undefined
+        return repo.save(input)
+    })
+}
+
+async function allowed(manager: EntityManager, input: RunsMetadataUpsertData) {
+    const rows: OfficeLeaseRow[] = await manager.query(
+        `SELECT state, "commitToken", "leaseToken", "leaseExpiresAt"
+         FROM veritly_office_inbox
+         WHERE "runId" = $1
+         FOR UPDATE`,
+        [input.id],
+    )
+    const row = rows[0]
+    if (!row) return true
+    if (input.officeJobId !== input.id || !input.officeClaim) return false
+    if (row.commitToken !== input.officeClaim) return false
+    if (row.state === 'succeeded' || row.state === 'failed') {
+        return input.status !== undefined
+            && isFlowRunStateTerminal({ status: input.status, ignoreInternalError: false })
+    }
+    return row.state === 'running'
+        && row.leaseToken === input.officeClaim
+        && Boolean(row.leaseExpiresAt)
+        && new Date(row.leaseExpiresAt!).getTime() > Date.now()
+}
+
+class OfficeMetadataScopeError extends Error {}
+
+type OfficeLeaseRow = {
+    state: 'queued' | 'running' | 'succeeded' | 'failed'
+    commitToken: string | null
+    leaseToken: string | null
+    leaseExpiresAt: string | null
+}
 
 async function markParentRunAsFailed({
     parentRunId,

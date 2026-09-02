@@ -4,12 +4,16 @@ import { userIdentityService } from '../../../../authentication/user-identity/us
 import { rbacService } from '../../../../ee/authentication/project-role/rbac-service'
 import { projectMemberService } from '../../../../ee/projects/project-members/project-member.service'
 import { userService } from '../../../../user/user-service'
+import { engineLease } from '../../../../authentication/lib/engine-lease'
 import { AuthorizationRouteSecurity, ProjectAuthorizationConfig } from '../../authorization/authorization'
 import { AuthorizationType, RouteKind } from '../../authorization/common'
 
 export const authorizeOrThrow = async (principal: Principal, security: AuthorizationRouteSecurity, log: FastifyBaseLogger): Promise<void> => {
     if (security.kind === RouteKind.PUBLIC) {
         return
+    }
+    if (principal.type === PrincipalType.ENGINE) {
+        await engineLease.assert(principal)
     }
     switch (security.authorization.type) {
         case AuthorizationType.PROJECT:

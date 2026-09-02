@@ -190,6 +190,8 @@ describe('authorizeOrThrow - Project', () => {
             const principal: Principal = {
                 id: apId(),
                 type: PrincipalType.ENGINE,
+                claim: 'test-claim-0000000000000000',
+                scope: { kind: 'system' },
                 projectId: mockProject.id,
                 platform: { id: mockPlatform.id },
             }
@@ -214,6 +216,8 @@ describe('authorizeOrThrow - Project', () => {
             const principal: Principal = {
                 id: apId(),
                 type: PrincipalType.ENGINE,
+                claim: 'test-claim-0000000000000000',
+                scope: { kind: 'system' },
                 projectId: mockProject.id,
                 platform: { id: mockPlatform.id },
             }

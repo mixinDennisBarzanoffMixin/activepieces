@@ -1,4 +1,4 @@
-import { ActionContext, backwardCompatabilityContextUtils, ConstructToolParams, CreateWaitpointHook, CreateWaitpointParams, CreateWaitpointResult, InputPropertyMap, PieceAuthProperty, PiecePropertyMap, RespondHook, RespondHookParams, StaticPropsValue, StopHook, StopHookParams, TagsManager, WaitForWaitpointHook } from '@activepieces/pieces-framework'
+import { ActionContext, backwardCompatabilityContextUtils, ConstructToolParams, CreateWaitpointHook, CreateWaitpointParams, CreateWaitpointResult, EffectPolicy, IAction, InputPropertyMap, PieceAuthProperty, PiecePropertyMap, RespondHook, RespondHookParams, StaticPropsValue, StopHook, StopHookParams, TagsManager, WaitForWaitpointHook } from '@activepieces/pieces-framework'
 import { AUTHENTICATION_PROPERTY_NAME, EngineGenericError, ExecutionType, FlowActionType, FlowRunStatus, GenericStepOutput, isNil, PausedFlowTimeoutError, PieceAction, RespondResponse, StepOutputStatus } from '@activepieces/shared'
 import type { ToolSet } from 'ai'
 import dayjs from 'dayjs'
@@ -7,6 +7,7 @@ import { flowRunProgressReporter } from '../helper/flow-run-progress-reporter'
 import { pieceLoader } from '../helper/piece-loader'
 import { createFileUploader } from '../piece-context/file-uploader'
 import { createFlowsContext } from '../piece-context/flows'
+import { effectClient, EffectDecision, effectHash } from '../piece-context/effect'
 import { createContextStore } from '../piece-context/store'
 import { waitpointClient } from '../piece-context/waitpoint-client'
 import { agentTools } from '../tools'
@@ -63,6 +64,33 @@ const executeAction: ActionHandler<PieceAction> = async ({ action, executionStat
         if (Object.keys(errors).length > 0) {
             throw new Error(JSON.stringify(errors, null, 2))
         }
+
+        const inputHash = effectHash(processedInput)
+        const path = executionState.currentPath.path
+        const effect = await effectClient.attempt({
+            apiUrl: constants.internalApiUrl,
+            token: constants.engineToken,
+            runId: constants.flowRunId,
+            step: action.name,
+            path,
+            policy: pieceAction.effect,
+            inputHash,
+        })
+        if (effect.kind === 'unknown') {
+            throw new EngineGenericError('EffectOutcomeUnknown', `External effect outcome is unknown for operation ${effect.operationId}`)
+        }
+        if (effect.kind === 'completed') {
+            const succeeded = stepOutput
+                .setOutput(effect.output)
+                .setStatus(StepOutputStatus.SUCCEEDED)
+                .setDuration(performance.now() - stepStartTime)
+            return (await executionState.upsertStep(action.name, succeeded))
+                .incrementStepsExecuted()
+                .setVerdict({ status: FlowRunStatus.RUNNING })
+        }
+        const operationId = effect.kind === 'untracked'
+            ? `untracked_${effectHash({ runId: constants.flowRunId, step: action.name, path })}`
+            : effect.operationId
 
 
         const params: {
@@ -136,6 +164,7 @@ const executeAction: ActionHandler<PieceAction> = async ({ action, executionStat
             }),
             run: {
                 id: constants.flowRunId,
+                operationId,
                 stop: createStopHook(params),
                 respond: createRespondHook(params),
                 createWaitpoint: createWaitpointHook({ constants, stepName: action.name, hookParams: params }),
@@ -152,7 +181,28 @@ const executeAction: ActionHandler<PieceAction> = async ({ action, executionStat
         })
         const testSingleStepMode = !isNil(constants.stepNameToTest)
         const runMethodToExecute = (testSingleStepMode && !isNil(pieceAction.test)) ? pieceAction.test : pieceAction.run
-        const output = await runMethodToExecute(backwardCompatibleContext)
+        const output = await dispatch({
+            action: pieceAction,
+            context: backwardCompatibleContext,
+            effect,
+            constants,
+            step: action.name,
+            path,
+            run: runMethodToExecute,
+        })
+        if (effect.kind !== 'untracked') {
+            await effectClient.complete({
+                apiUrl: constants.internalApiUrl,
+                token: constants.engineToken,
+                runId: constants.flowRunId,
+                step: action.name,
+                path,
+                policy: policy(pieceAction.effect),
+                operationId,
+                inputHash,
+                output: output === undefined ? null : output,
+            })
+        }
         const newExecutionContext = executionState.addTags(params.hookResponse.tags)
 
         const webhookResponse = getResponse(params.hookResponse)
@@ -209,6 +259,66 @@ const executeAction: ActionHandler<PieceAction> = async ({ action, executionStat
     }
 
     return executionStateResult
+}
+
+async function reconcile(input: ReconcileInput) {
+    if (input.action.effect !== 'reconcilable' || !input.action.reconcile) {
+        throw new EngineGenericError('EffectReconcileError', 'Reconcilable action has no reconciliation handler')
+    }
+    const result = await input.action.reconcile(input.context)
+    if (result.status === 'complete') return result.output
+    if (result.status === 'absent') return input.action.run(input.context)
+    if (result.status === 'pending') {
+        throw new EngineGenericError('EffectReconcilePending', `External effect ${input.effect.operationId} is still pending`)
+    }
+    await effectClient.unknown({
+        apiUrl: input.constants.internalApiUrl,
+        token: input.constants.engineToken,
+        runId: input.constants.flowRunId,
+        step: input.step,
+        path: input.path,
+        operationId: input.effect.operationId,
+    })
+    throw new EngineGenericError('EffectOutcomeUnknown', `External effect outcome is unknown for operation ${input.effect.operationId}`)
+}
+
+async function dispatch(input: DispatchInput) {
+    try {
+        if (input.effect.kind === 'reconcile') return reconcile(input as ReconcileInput)
+        return await input.run(input.context)
+    }
+    catch (error) {
+        if (input.effect.kind === 'dispatch' && input.action.effect === 'non_idempotent') {
+            await effectClient.unknown({
+                apiUrl: input.constants.internalApiUrl,
+                token: input.constants.engineToken,
+                runId: input.constants.flowRunId,
+                step: input.step,
+                path: input.path,
+                operationId: input.effect.operationId,
+            })
+        }
+        throw error
+    }
+}
+
+function policy(input: EffectPolicy | undefined): EffectPolicy {
+    if (!input) throw new EngineGenericError('EffectPolicyError', 'Tracked action has no effect policy')
+    return input
+}
+
+type ReconcileInput = {
+    action: IAction<PieceAuthProperty, InputPropertyMap>
+    context: ActionContext<PieceAuthProperty, InputPropertyMap>
+    effect: Extract<EffectDecision, { kind: 'reconcile' }>
+    constants: EngineConstants
+    step: string
+    path: readonly [string, number][]
+}
+
+type DispatchInput = Omit<ReconcileInput, 'effect'> & {
+    effect: Exclude<EffectDecision, { kind: 'completed' | 'unknown' }>
+    run: IAction<PieceAuthProperty, InputPropertyMap>['run']
 }
 
 function getResponse(hookResponse: HookResponse): RespondResponse | undefined {

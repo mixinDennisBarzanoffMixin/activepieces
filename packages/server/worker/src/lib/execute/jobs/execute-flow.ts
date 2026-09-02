@@ -115,6 +115,8 @@ function buildFlowOperation(
     timeoutInSeconds: number,
 ): BeginExecuteFlowOperation | ResumeExecuteFlowOperation {
     const base = {
+        jobId: ctx.jobId,
+        claim: ctx.claim,
         flowVersion,
         flowRunId: data.runId,
         projectId: data.projectId,
@@ -169,6 +171,8 @@ async function reportFlowStatus(
     internalError?: RunInternalError,
 ): Promise<void> {
     await ctx.apiClient.uploadRunLog({
+        jobId: ctx.jobId,
+        claim: ctx.claim,
         runId: data.runId,
         status,
         projectId: data.projectId,

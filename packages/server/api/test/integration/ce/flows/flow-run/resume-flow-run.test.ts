@@ -153,6 +153,8 @@ describe('Resume flow run', () => {
 
         const handlers = createHandlers(app.log)
         await handlers.uploadRunLog({
+            jobId: runId,
+            claim: 'test-claim-0000000000000000',
             runId,
             projectId: ctx.project.id,
             status: FlowRunStatus.PAUSED,
@@ -270,6 +272,8 @@ describe('Resume flow run', () => {
 
         const handlers = createHandlers(app.log)
         await handlers.uploadRunLog({
+            jobId: runId,
+            claim: 'test-claim-0000000000000000',
             runId,
             projectId: ctx.project.id,
             status: FlowRunStatus.PAUSED,
@@ -330,6 +334,8 @@ describe('Resume flow run', () => {
 
         const handlers = createHandlers(app.log)
         await handlers.uploadRunLog({
+            jobId: runId,
+            claim: 'test-claim-0000000000000000',
             runId,
             projectId: ctx.project.id,
             status: FlowRunStatus.PAUSED,

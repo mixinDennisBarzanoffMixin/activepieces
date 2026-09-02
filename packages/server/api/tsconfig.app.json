@@ -14,7 +14,8 @@
       "@activepieces/pieces-framework": ["packages/pieces/framework/src/index.ts"],
       "@activepieces/server-utils": ["packages/server/utils/dist/src/index.d.ts"],
       "@activepieces/shared": ["packages/shared/dist/src/index.d.ts"],
-      "@veritly/auth-shared": ["packages/veritly/auth-shared/src/index.ts"]
+      "@veritly/contracts": ["../veritly-contracts/typescript/src/index.ts"],
+      "@veritly/contracts/*": ["../veritly-contracts/typescript/src/*"]
     }
   },
   "exclude": ["jest.config.ts", "src/**/*.spec.ts", "src/**/*.test.ts"],

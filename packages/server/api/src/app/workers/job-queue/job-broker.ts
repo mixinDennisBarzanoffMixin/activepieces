@@ -1,4 +1,5 @@
-import { ConsumeJobRequest, ConsumeJobResponse, EngineResponseStatus, isNil, JobData, tryCatch } from '@activepieces/shared'
+import { randomUUID } from 'node:crypto'
+import { ConsumeJobRequest, ConsumeJobResponse, EngineResponseStatus, EngineScope, isNil, JobData, tryCatch } from '@activepieces/shared'
 import { Worker as BullMQWorker, Job, UnrecoverableError } from 'bullmq'
 import { BullMQOtel } from 'bullmq-otel'
 import { FastifyBaseLogger } from 'fastify'
@@ -6,19 +7,20 @@ import { accessTokenManager } from '../../authentication/lib/access-token-manage
 import { redisConnections } from '../../database/redis-connections'
 import { system } from '../../helper/system/system'
 import { AppSystemProp } from '../../helper/system/system-props'
+import { failOfficeJob, finishOfficeJob, officeJobInterceptor } from '../../veritly/office/office-job-interceptor'
 import { engineResponseWatcher } from '../engine-response-watcher'
 import { QueueName } from '../job'
 import { jobMigrations } from '../migrations/job-data-migrations'
 import { rateLimiterInterceptor } from './interceptors/rate-limiter-interceptor'
 import { zombiePollingInterceptor } from './interceptors/zombie-polling-interceptor'
-import { InterceptorVerdict, JobInterceptor } from './job-interceptor'
+import { InterceptorVerdict, JobInterceptor, JobOutcome } from './job-interceptor'
 import { isUserInteractionJobData } from './job-queue'
 import { createQueueDispatcher, QueueDispatcher } from './queue-dispatcher'
 
 const DRAIN_DELAY_SECONDS = 15
 const LOCK_DURATION_MS = 120_000
 
-const interceptors: JobInterceptor[] = [rateLimiterInterceptor, zombiePollingInterceptor]
+const interceptors: JobInterceptor[] = [officeJobInterceptor, rateLimiterInterceptor, zombiePollingInterceptor]
 const workerPromises = new Map<string, Promise<BullMQWorker>>()
 const dispatchers = new Map<string, QueueDispatcher>()
 
@@ -84,7 +86,7 @@ function ensureDispatcher(queueName: string, worker: BullMQWorker, log: FastifyB
 }
 
 async function tryDequeue(worker: BullMQWorker, queueName: string, log: FastifyBaseLogger): Promise<ConsumeJobRequest | null> {
-    const token = `token-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    const token = randomUUID()
     const job = await worker.getNextJob(token)
     if (isNil(job)) {
         return null  // waiting list empty — drainDelay provided backpressure
@@ -95,6 +97,7 @@ async function tryDequeue(worker: BullMQWorker, queueName: string, log: FastifyB
             { queueName, jobId: job.id, jobName: job.name, deferredFailure: job.deferredFailure },
             '[jobBroker#tryDequeue] Failing job with deferred failure (BullMQ stalled limit exceeded)',
         )
+        await failOfficeJob(job.id ?? job.name, token)
         const { error: failError } = await tryCatch(() => job.moveToFailed(new UnrecoverableError(job.deferredFailure), token, false))
         if (failError) {
             log.error(
@@ -123,6 +126,7 @@ async function tryDequeue(worker: BullMQWorker, queueName: string, log: FastifyB
             { queueName, jobId, schemaVersion: migratedData.schemaVersion, jobType: migratedData.jobType, issues: parseResult.error.issues },
             '[jobBroker#tryDequeue] Failing job with invalid schema as unrecoverable',
         )
+        await failOfficeJob(jobId, token)
         const { error: failError } = await tryCatch(() => job.moveToFailed(new UnrecoverableError(reason), token, false))
         if (failError) {
             log.error({ queueName, jobId, error: String(failError) }, '[jobBroker#tryDequeue] Failed to fail invalid-schema job')
@@ -130,7 +134,7 @@ async function tryDequeue(worker: BullMQWorker, queueName: string, log: FastifyB
         return tryDequeue(worker, queueName, log)
     }
 
-    const interceptorResult = await runInterceptors({ jobId, jobData: migratedData, job, log })
+    const interceptorResult = await runInterceptors({ jobId, jobData: migratedData, job, token, log })
     if (interceptorResult === 'DISCARD') {
         await job.moveToCompleted(null, token, false)
         return tryDequeue(worker, queueName, log)
@@ -145,6 +149,8 @@ async function tryDequeue(worker: BullMQWorker, queueName: string, log: FastifyB
 
     const engineToken = await accessTokenManager(log).generateEngineToken({
         jobId,
+        claim: token,
+        scope: scope(migratedData),
         projectId: migratedData.projectId as string,
         platformId: migratedData.platformId,
     })
@@ -167,7 +173,13 @@ async function returnJobToQueue(jobId: string, token: string, queueName: string,
     const jobData = JobData.parse(job.data)
     await job.moveToDelayed(Date.now() + 100, token)
     for (const interceptor of interceptors) {
-        const { error } = await tryCatch(() => interceptor.onJobFinished({ jobId, jobData, failed: false, log }))
+        const { error } = await tryCatch(() => interceptor.onJobFinished({
+            jobId,
+            jobData,
+            token,
+            outcome: JobOutcome.RELEASED,
+            log,
+        }))
         if (error) {
             log.error({ jobId, error: String(error) }, '[jobBroker#returnJobToQueue] interceptor cleanup failed')
         }
@@ -175,13 +187,25 @@ async function returnJobToQueue(jobId: string, token: string, queueName: string,
     log.info({ jobId }, '[jobBroker#returnJobToQueue] orphaned job returned to queue')
 }
 
-async function runInterceptors({ jobId, jobData, job, log }: { jobId: string, jobData: JobData, job: Job, log: FastifyBaseLogger }): Promise<{ delayInMs: number, priority?: number } | 'DISCARD' | null> {
+async function runInterceptors({ jobId, jobData, job, token, log }: {
+    jobId: string
+    jobData: JobData
+    job: Job
+    token: string
+    log: FastifyBaseLogger
+}): Promise<{ delayInMs: number, priority?: number } | 'DISCARD' | null> {
     const passed: JobInterceptor[] = []
     for (const interceptor of interceptors) {
-        const result = await interceptor.preDispatch({ jobId, jobData, job, log })
+        const result = await interceptor.preDispatch({ jobId, jobData, job, token, log })
         if (result.verdict === InterceptorVerdict.DISCARD) {
             for (const passedInterceptor of passed) {
-                const { error } = await tryCatch(() => passedInterceptor.onJobFinished({ jobId, jobData, failed: false, log }))
+                const { error } = await tryCatch(() => passedInterceptor.onJobFinished({
+                    jobId,
+                    jobData,
+                    token,
+                    outcome: JobOutcome.RELEASED,
+                    log,
+                }))
                 if (error) {
                     log.error({ jobId, error: String(error) }, '[jobBroker] Failed to clean up interceptor on discard')
                 }
@@ -190,7 +214,13 @@ async function runInterceptors({ jobId, jobData, job, log }: { jobId: string, jo
         }
         if (result.verdict === InterceptorVerdict.REJECT) {
             for (const passedInterceptor of passed) {
-                const { error } = await tryCatch(() => passedInterceptor.onJobFinished({ jobId, jobData, failed: false, log }))
+                const { error } = await tryCatch(() => passedInterceptor.onJobFinished({
+                    jobId,
+                    jobData,
+                    token,
+                    outcome: JobOutcome.RELEASED,
+                    log,
+                }))
                 if (error) {
                     log.error({ jobId, error: String(error) }, '[jobBroker] Failed to clean up interceptor on reject')
                 }
@@ -229,6 +259,15 @@ export const jobBroker = (log: FastifyBaseLogger) => ({
 
         const jobData = JobData.parse(job.data)
         const userJobData = isUserInteractionJobData(jobData) ? jobData : null
+        const outcome = input.status !== EngineResponseStatus.INTERNAL_ERROR
+            ? JobOutcome.COMPLETED
+            : job.attemptsMade + 1 >= Math.max(job.opts.attempts === undefined ? 1 : job.opts.attempts, 1)
+                ? JobOutcome.FAILED
+                : JobOutcome.RETRY
+
+        // The PostgreSQL run claim is the durable authority. Commit it before the
+        // Redis terminal transition so a crash can only leave a replayable Bull job.
+        await finishOfficeJob(input.jobId, input.token, outcome)
 
         const { error } = await tryCatch(async () => {
             if (input.status === EngineResponseStatus.INTERNAL_ERROR) {
@@ -265,9 +304,15 @@ export const jobBroker = (log: FastifyBaseLogger) => ({
             }
         }
 
-        const failed = input.status === EngineResponseStatus.INTERNAL_ERROR || !isNil(error)
         for (const interceptor of interceptors) {
-            const { error: interceptorError } = await tryCatch(() => interceptor.onJobFinished({ jobId: input.jobId, jobData, failed, log }))
+            if (interceptor === officeJobInterceptor) continue
+            const { error: interceptorError } = await tryCatch(() => interceptor.onJobFinished({
+                jobId: input.jobId,
+                jobData,
+                token: input.token,
+                outcome: isNil(error) ? outcome : JobOutcome.RELEASED,
+                log,
+            }))
             if (interceptorError) {
                 log.error({ jobId: input.jobId, error: String(interceptorError) }, '[jobBroker] Interceptor onJobFinished failed')
             }
@@ -280,6 +325,10 @@ export const jobBroker = (log: FastifyBaseLogger) => ({
             return
         }
         await job.extendLock(input.token, LOCK_DURATION_MS)
+        for (const interceptor of interceptors) {
+            if (!interceptor.onJobHeartbeat) continue
+            await interceptor.onJobHeartbeat({ jobId: input.jobId, token: input.token, log })
+        }
         log.debug({ jobId: input.jobId }, '[jobBroker] Lock extended')
     },
 
@@ -298,3 +347,14 @@ export const jobBroker = (log: FastifyBaseLogger) => ({
         workerPromises.clear()
     },
 })
+
+function scope(input: JobData): EngineScope {
+    const data = input as unknown as Record<string, unknown>
+    if (typeof data.flowId !== 'string' || typeof data.flowVersionId !== 'string') return { kind: 'system' }
+    return {
+        kind: 'flow',
+        flowId: data.flowId,
+        flowVersionId: data.flowVersionId,
+        ...(typeof data.runId === 'string' ? { runId: data.runId } : {}),
+    }
+}

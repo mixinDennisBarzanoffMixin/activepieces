@@ -1,4 +1,4 @@
-import { ActivepiecesError, ALL_PRINCIPAL_TYPES, apId, EnginePrincipal, ErrorCode, PlatformId, Principal, PrincipalType, ProjectId, UserStatus, WorkerPrincipal } from '@activepieces/shared'
+import { ActivepiecesError, ALL_PRINCIPAL_TYPES, apId, EnginePrincipal, EngineScope, ErrorCode, PlatformId, Principal, PrincipalType, ProjectId, UserStatus, WorkerPrincipal } from '@activepieces/shared'
 import dayjs from 'dayjs'
 import { FastifyBaseLogger } from 'fastify'
 import { jwtUtils } from '../../helper/jwt-utils'
@@ -17,9 +17,11 @@ export const accessTokenManager = (log: FastifyBaseLogger) => ({
         })
     },
 
-    async generateEngineToken({ jobId, projectId, platformId }: GenerateEngineTokenParams): Promise<string> {
+    async generateEngineToken({ jobId, claim, scope, projectId, platformId }: GenerateEngineTokenParams): Promise<string> {
         const enginePrincipal: EnginePrincipal = {
             id: jobId ?? apId(),
+            claim,
+            scope,
             type: PrincipalType.ENGINE,
             projectId,
             platform: {
@@ -66,6 +68,19 @@ export const accessTokenManager = (log: FastifyBaseLogger) => ({
                     code: ErrorCode.INVALID_BEARER_TOKEN,
                     params: {
                         message: 'invalid principal type',
+                    },
+                })
+            }
+            if (decoded.type === PrincipalType.ENGINE && (
+                typeof decoded.claim !== 'string'
+                || decoded.claim.length < 16
+                || decoded.claim.length > 128
+                || !validScope(decoded.scope)
+            )) {
+                throw new ActivepiecesError({
+                    code: ErrorCode.INVALID_BEARER_TOKEN,
+                    params: {
+                        message: 'invalid engine claim',
                     },
                 })
             }
@@ -120,7 +135,23 @@ async function assertUserSession(log: FastifyBaseLogger, decoded: Principal | Pr
 }
 
 type GenerateEngineTokenParams = {
+    claim: string
+    scope: EngineScope
     projectId: ProjectId
     jobId?: string
     platformId: PlatformId
+}
+
+function validScope(input: unknown): input is EngineScope {
+    if (!input || typeof input !== 'object') return false
+    const scope = input as Record<string, unknown>
+    if (scope.kind === 'system') return Object.keys(scope).length === 1
+    if (scope.kind !== 'flow') return false
+    if (!id(scope.flowId) || !id(scope.flowVersionId)) return false
+    if (scope.runId !== undefined && !id(scope.runId)) return false
+    return Object.keys(scope).every((key) => ['kind', 'flowId', 'flowVersionId', 'runId'].includes(key))
+}
+
+function id(input: unknown): input is string {
+    return typeof input === 'string' && input.length >= 1 && input.length <= 128
 }

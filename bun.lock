@@ -4572,21 +4572,6 @@
         "tslib": "2.6.2",
       },
     },
-    "packages/pieces/community/metabase": {
-      "name": "@activepieces/piece-metabase",
-      "version": "0.2.6",
-      "dependencies": {
-        "@activepieces/pieces-common": "workspace:*",
-        "@activepieces/pieces-framework": "workspace:*",
-        "@activepieces/shared": "workspace:*",
-        "jsonwebtoken": "9.0.1",
-        "playwright": "1.56.0",
-        "tslib": "2.6.2",
-      },
-      "devDependencies": {
-        "@types/jsonwebtoken": "9.0.10",
-      },
-    },
     "packages/pieces/community/metatext": {
       "name": "@activepieces/piece-metatext",
       "version": "0.1.4",
@@ -6572,7 +6557,7 @@
     },
     "packages/pieces/community/slack": {
       "name": "@activepieces/piece-slack",
-      "version": "0.17.1",
+      "version": "0.18.0",
       "dependencies": {
         "@activepieces/pieces-common": "workspace:*",
         "@activepieces/pieces-framework": "workspace:*",
@@ -7384,14 +7369,13 @@
         "zod": "4.3.6",
       },
     },
-    "packages/pieces/community/veritly-onlyoffice": {
-      "name": "@activepieces/piece-veritly-onlyoffice",
-      "version": "0.0.2",
+    "packages/pieces/community/veritly-office": {
+      "name": "@activepieces/piece-veritly-office",
+      "version": "0.1.0",
       "dependencies": {
         "@activepieces/pieces-common": "workspace:*",
         "@activepieces/pieces-framework": "workspace:*",
         "@activepieces/shared": "workspace:*",
-        "@veritly/onlyoffice-contract": "workspace:*",
         "tslib": "2.6.2",
       },
     },
@@ -8487,7 +8471,6 @@
         "@sentry/node": "7.120.0",
         "@smithy/node-http-handler": "4.4.14",
         "@socket.io/redis-adapter": "8.3.0",
-        "@veritly/onlyoffice-contract": "workspace:*",
         "ai": "^6.0.0",
         "ai-gateway-provider": "3.1.1",
         "async-mutex": "0.4.0",
@@ -8515,6 +8498,7 @@
         "fuse.js": "7.0.0",
         "http-status-codes": "2.2.0",
         "ioredis": "5.4.1",
+        "jose": "6.2.3",
         "jsonwebtoken": "9.0.1",
         "jwks-rsa": "3.1.0",
         "mammoth": "1.11.0",
@@ -8708,17 +8692,6 @@
       "version": "0.1.0",
       "devDependencies": {
         "@types/bun": "1.3.10",
-        "typescript": "5.5.4",
-      },
-    },
-    "packages/veritly/onlyoffice-contract": {
-      "name": "@veritly/onlyoffice-contract",
-      "version": "0.1.1",
-      "dependencies": {
-        "zod": "4.3.6",
-      },
-      "devDependencies": {
-        "@types/node": "24.11.0",
         "typescript": "5.5.4",
       },
     },
@@ -9662,8 +9635,6 @@
 
     "@activepieces/piece-messagebird": ["@activepieces/piece-messagebird@workspace:packages/pieces/community/messagebird"],
 
-    "@activepieces/piece-metabase": ["@activepieces/piece-metabase@workspace:packages/pieces/community/metabase"],
-
     "@activepieces/piece-metatext": ["@activepieces/piece-metatext@workspace:packages/pieces/community/metatext"],
 
     "@activepieces/piece-microsoft-365-people": ["@activepieces/piece-microsoft-365-people@workspace:packages/pieces/community/microsoft-365-people"],
@@ -10208,7 +10179,7 @@
 
     "@activepieces/piece-veritly-data": ["@activepieces/piece-veritly-data@workspace:packages/pieces/community/veritly-data"],
 
-    "@activepieces/piece-veritly-onlyoffice": ["@activepieces/piece-veritly-onlyoffice@workspace:packages/pieces/community/veritly-onlyoffice"],
+    "@activepieces/piece-veritly-office": ["@activepieces/piece-veritly-office@workspace:packages/pieces/community/veritly-office"],
 
     "@activepieces/piece-vero": ["@activepieces/piece-vero@workspace:packages/pieces/community/vero"],
 
@@ -12411,8 +12382,6 @@
     "@veritly/auth-shared": ["@veritly/auth-shared@workspace:packages/veritly/auth-shared"],
 
     "@veritly/iframe": ["@veritly/iframe@workspace:packages/veritly/iframe"],
-
-    "@veritly/onlyoffice-contract": ["@veritly/onlyoffice-contract@workspace:packages/veritly/onlyoffice-contract"],
 
     "@vitejs/plugin-react": ["@vitejs/plugin-react@4.7.0", "", { "dependencies": { "@babel/core": "^7.28.0", "@babel/plugin-transform-react-jsx-self": "^7.27.1", "@babel/plugin-transform-react-jsx-source": "^7.27.1", "@rolldown/pluginutils": "1.0.0-beta.27", "@types/babel__core": "^7.20.5", "react-refresh": "^0.17.0" }, "peerDependencies": { "vite": "^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0" } }, "sha512-gUu9hwfWvvEDBBmgtAowQCojwZmJ5mcLn3aufeCsitijs3+f2NsrPtlAWIR6OPiqljl96GVCUbLe0HyqIpVaoA=="],
 

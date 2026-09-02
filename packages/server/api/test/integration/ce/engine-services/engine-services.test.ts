@@ -58,6 +58,8 @@ describe('Engine Services Integration', () => {
 
         engineToken = await generateMockToken({
             type: PrincipalType.ENGINE,
+            claim: 'test-claim-0000000000000000',
+            scope: { kind: 'system' },
             id: apId(),
             projectId,
             platform: { id: platformId },

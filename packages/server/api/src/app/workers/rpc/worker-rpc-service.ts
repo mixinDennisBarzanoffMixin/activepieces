@@ -38,6 +38,7 @@ import { triggerEventService } from '../../trigger/trigger-events/trigger-event.
 import { triggerSourceService } from '../../trigger/trigger-source/trigger-source-service'
 import { getWorkerGroupQueueName, QueueName, RunsMetadataUpsertData } from '../job'
 import { jobBroker } from '../job-queue/job-broker'
+import { officeLease } from '../../veritly/office/office-inbox-service'
 import { machineService } from '../machine/machine-service'
 
 const getPollQueueName = (workerGroupId?: string): string => {
@@ -72,10 +73,12 @@ export function createHandlers(log: FastifyBaseLogger, workerGroupId?: string): 
         },
 
         async updateRunProgress(input) {
+            await assertOfficeClaim(input)
             websocketService.to(input.flowRun.projectId).emit(WebsocketClientEvent.UPDATE_RUN_PROGRESS, input)
         },
 
         async uploadRunLog(input) {
+            await assertOfficeClaim(input)
             const internalErrorEnabled = system.getEdition() !== ApEdition.CLOUD
             if (internalErrorEnabled && !isNil(input.internalError) && !isNil(input.logsFileId)) {
                 await persistInternalErrorToLogs({
@@ -96,8 +99,11 @@ export function createHandlers(log: FastifyBaseLogger, workerGroupId?: string): 
                 finishTime: input.finishTime,
                 stepsCount: input.stepsCount,
                 stepNameToTest: input.stepNameToTest,
+                officeJobId: input.jobId,
+                officeClaim: input.claim,
             }
             await runsMetadataQueue(log).add(logData)
+            await assertOfficeClaim(input)
 
             if (input.stepResponse && input.streamStepProgress === StreamStepProgress.WEBSOCKET) {
                 const stepData = { ...input.stepResponse, projectId: input.projectId }
@@ -302,6 +308,14 @@ export function createHandlers(log: FastifyBaseLogger, workerGroupId?: string): 
         },
     }
 }
+
+async function assertOfficeClaim(input: { jobId: string; claim: string }) {
+    if (!await officeLease({ id: input.jobId, claim: input.claim })) {
+        throw new OfficeWorkerLeaseError()
+    }
+}
+
+class OfficeWorkerLeaseError extends Error {}
 
 async function persistInternalErrorToLogs({ log, projectId, logsFileId, internalError }: PersistInternalErrorParams): Promise<void> {
     const { error } = await tryCatch(async () => {

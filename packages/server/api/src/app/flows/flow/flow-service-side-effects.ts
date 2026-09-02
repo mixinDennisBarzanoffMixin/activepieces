@@ -8,6 +8,7 @@ import {
 import { FastifyBaseLogger } from 'fastify'
 import { triggerSourceService } from '../../trigger/trigger-source/trigger-source-service'
 import { sampleDataService } from '../step-run/sample-data.service'
+import { officeRegistrationCleanup } from '../../veritly/office/office-registration-cleanup'
 
 export const flowSideEffects = (log: FastifyBaseLogger) => ({
     async preUpdateStatus({
@@ -40,18 +41,21 @@ export const flowSideEffects = (log: FastifyBaseLogger) => ({
     },
 
     async preDelete({ flowToDelete }: PreDeleteParams): Promise<void> {
-        if (
-            flowToDelete.status === FlowStatus.DISABLED ||
-            isNil(flowToDelete.publishedVersionId)
-        ) {
-            return
+        const disabled = flowToDelete.status === FlowStatus.DISABLED || isNil(flowToDelete.publishedVersionId)
+        if (!disabled) {
+            await triggerSourceService(log).disable({
+                flowId: flowToDelete.id,
+                projectId: flowToDelete.projectId,
+                simulate: false,
+                ignoreError: true,
+            })
         }
-        await triggerSourceService(log).disable({
-            flowId: flowToDelete.id,
-            projectId: flowToDelete.projectId,
-            simulate: false,
-            ignoreError: true,
+        await officeRegistrationCleanup.removeFlow({
+            log,
+            project: flowToDelete.projectId,
+            flow: flowToDelete.id,
         })
+        if (disabled) return
 
         await sampleDataService(log).deleteForFlow({
             projectId: flowToDelete.projectId,

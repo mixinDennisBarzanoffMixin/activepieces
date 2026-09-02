@@ -1,5 +1,4 @@
-import { isNil, JobData, PollingJobData, RenewWebhookJobData, WorkerJobType } from '@activepieces/shared'
-import { FastifyBaseLogger } from 'fastify'
+import { isNil, PollingJobData, RenewWebhookJobData, WorkerJobType } from '@activepieces/shared'
 import { triggerSourceRepo } from '../../../trigger/trigger-source/trigger-source-service'
 import { InterceptorResult, InterceptorVerdict, JobInterceptor } from '../job-interceptor'
 import { jobQueue } from '../job-queue'
@@ -23,7 +22,7 @@ export const zombiePollingInterceptor: JobInterceptor = {
         return { verdict: InterceptorVerdict.DISCARD }
     },
 
-    async onJobFinished(_params: { jobId: string, jobData: JobData, failed: boolean, log: FastifyBaseLogger }): Promise<void> {
+    async onJobFinished(_params): Promise<void> {
         // Nothing to release
     },
 }

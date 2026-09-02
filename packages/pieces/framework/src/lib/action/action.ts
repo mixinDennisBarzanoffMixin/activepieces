@@ -1,11 +1,20 @@
 import { z } from 'zod';
 import { ActionContext } from '../context';
-import { ActionBase, Audience, AiMetadata } from '../piece-metadata';
+import { ActionBase, Audience, AiMetadata, EffectPolicy } from '../piece-metadata';
 import { InputPropertyMap } from '../property';
 import { ExtractPieceAuthPropertyTypeForMethods, PieceAuthProperty } from '../property/authentication';
 
 export type ActionRunner<PieceAuth extends PieceAuthProperty | PieceAuthProperty[] | undefined = PieceAuthProperty, ActionProps extends InputPropertyMap = InputPropertyMap> =
   (ctx: ActionContext<PieceAuth, ActionProps>) => Promise<unknown | void>
+
+export type ReconcileResult =
+  | { status: 'complete'; output: unknown }
+  | { status: 'absent' }
+  | { status: 'pending' }
+  | { status: 'unknown' }
+
+export type ReconcileRunner<PieceAuth extends PieceAuthProperty | PieceAuthProperty[] | undefined = PieceAuthProperty, ActionProps extends InputPropertyMap = InputPropertyMap> =
+  (ctx: ActionContext<PieceAuth, ActionProps>) => Promise<ReconcileResult>
 
 export const ErrorHandlingOptionsParam = z.object({
   retryOnFailure: z.object({
@@ -37,6 +46,8 @@ type CreateActionParams<PieceAuth extends PieceAuthProperty | PieceAuthProperty[
   errorHandlingOptions?: ErrorHandlingOptionsParam
   audience?: Audience
   aiMetadata?: AiMetadata
+  effect?: EffectPolicy
+  reconcile?: ReconcileRunner<ExtractPieceAuthPropertyTypeForMethods<PieceAuth>, ActionProps>
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,6 +63,8 @@ export class IAction<PieceAuth extends PieceAuthProperty | PieceAuthProperty[] |
     public readonly errorHandlingOptions: ErrorHandlingOptionsParam,
     public readonly audience?: Audience,
     public readonly aiMetadata?: AiMetadata,
+    public readonly effect?: EffectPolicy,
+    public readonly reconcile?: ReconcileRunner<ExtractPieceAuthPropertyTypeForMethods<PieceAuth>, ActionProps>,
   ) { }
 }
 
@@ -68,6 +81,9 @@ export const createAction = <
 >(
   params: CreateActionParams<PieceAuth, ActionProps>,
 ) => {
+  if ((params.effect === 'reconcilable') !== Boolean(params.reconcile)) {
+    throw new TypeError('Reconcilable actions require exactly one reconciliation handler');
+  }
   return new IAction(
     params.name,
     params.displayName,
@@ -86,5 +102,7 @@ export const createAction = <
     },
     params.audience,
     params.aiMetadata,
+    params.effect,
+    params.reconcile,
   )
 }

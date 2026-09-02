@@ -229,6 +229,7 @@ async function executeJob(apiClient: WorkerToApiContract, job: ConsumeJobRequest
             apiClient,
             sandboxManager: sbManager,
             jobId: job.jobId,
+            claim: job.token,
             engineToken: job.engineToken,
             internalApiUrl: apiUrl,
             publicApiUrl: ensurePublicApiUrl(publicUrl),

@@ -43,6 +43,7 @@ export async function convertRequest(
         body: await convertBody(request, projectId, flowId),
         queryParams: request.query as Record<string, string>,
         rawBody: isBinary ? undefined : request.rawBody,
+        rawHeaders: request.raw.rawHeaders,
     }
 }
 
