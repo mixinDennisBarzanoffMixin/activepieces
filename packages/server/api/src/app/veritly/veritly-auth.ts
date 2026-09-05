@@ -18,7 +18,8 @@ export async function resolveVeritlySession(params: ResolveSessionParams) {
     if (!result.ok) {
         console.error('[veritly auth] resolve session failed', { reason: result.reason, message: result.message })
         if (params.reply && params.setStatus !== false) {
-            const unavailable = result.reason === 'misconfigured' || result.reason === 'transient'
+            const reason: string = result.reason
+            const unavailable = reason === 'misconfigured' || reason === 'transient'
             params.reply.status(unavailable ? 503 : 401)
         }
         return { ok: false as const, body: { error: result.message } }
