@@ -17,12 +17,29 @@ describe('Veritly Data automation client', () => {
     expect(value).toEqual({ datasets: [], next_cursor: null })
   })
 
+  test('rejects literal and escaped-equivalent duplicate response keys', async () => {
+    for (const body of [
+      '{"datasets":[],"datasets":[],"next_cursor":null}',
+      '{"datasets":[],"\\u0064atasets":[],"next_cursor":null}',
+    ]) {
+      const server = Bun.serve({
+        port: 0,
+        fetch() {
+          return new Response(body, { headers: { 'content-type': 'application/json' } })
+        },
+      })
+      await expect(data.create(context(server.port)).datasets()).rejects.toBeInstanceOf(SyntaxError)
+      server.stop(true)
+    }
+  })
+
   test('preserves route-narrowed Data errors', async () => {
     const server = Bun.serve({
       port: 0,
       fetch() {
         return Response.json({
           code: 'project_unavailable',
+          project: 'project_1',
           request: '01992e25-6f9d-4a4c-8fb6-548d014a1ff2',
         }, { status: 404 })
       },
@@ -32,6 +49,7 @@ describe('Veritly Data automation client', () => {
       status: 404,
       route: {
         code: 'project_unavailable',
+        project: 'project_1',
         request: '01992e25-6f9d-4a4c-8fb6-548d014a1ff2',
       },
     })

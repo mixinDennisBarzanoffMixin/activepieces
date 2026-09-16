@@ -3,9 +3,9 @@ import type { PageQuery } from '@veritly/contracts'
 import {
     dataRoutes,
     decodeDataRouteError,
+    decodeRouteResponse,
     type RouteResult,
 } from '@veritly/contracts/client'
-import { responses } from '@veritly/contracts/zod'
 import { safeHttp } from '@activepieces/server-utils'
 import type { FastifyBaseLogger } from 'fastify'
 import { projectService } from '../project/project-service'
@@ -25,7 +25,7 @@ class DataService {
         return {
             kind: 'response',
             status: 200,
-            value: responses.PrepPage.parse(JSON.parse(res.body)),
+            value: decodeRouteResponse('data', 'data_preps', res.status, res.body),
         }
     }
 
@@ -41,7 +41,7 @@ class DataService {
         return {
             kind: 'response',
             status: 200,
-            value: responses.DatasetPage.parse(JSON.parse(res.body)),
+            value: decodeRouteResponse('data', 'data_datasets', res.status, res.body),
         }
     }
 
@@ -57,7 +57,7 @@ class DataService {
         return {
             kind: 'response',
             status: 200,
-            value: responses.Job.parse(JSON.parse(res.body)),
+            value: decodeRouteResponse('data', 'data_job', res.status, res.body),
         }
     }
 

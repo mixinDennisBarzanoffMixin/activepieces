@@ -1,5 +1,7 @@
 import { apId, EnginePrincipal } from '@activepieces/shared'
-import { responses } from '@veritly/contracts/zod'
+import type { OfficeRouteName } from '@veritly/contracts/client'
+import { officeRoutes, routeErrorSchema } from '@veritly/contracts/client'
+import { responses, strict } from '@veritly/contracts/zod'
 import type { FastifyReply, FastifyRequest } from 'fastify'
 import { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { StatusCodes } from 'http-status-codes'
@@ -34,69 +36,18 @@ import {
     verify,
 } from './veritly-office.service'
 
-const LocalCode = z.enum([
-    'binding_conflict',
-    'binding_invalid',
-    'effect_rejected',
-    'event_conflict',
-    'payload_too_large',
-    'request_invalid',
-])
-const LocalError = z.object({ code: LocalCode }).strict()
-const WorkerError = z.union([responses.OfficeApiError, LocalError])
-const Id = z.string().min(1).max(128)
-const OfficeRegistration = z.object({
-    flowId: Id,
-    flowVersionId: Id,
-    trigger: Id,
-    destinationId: Id,
-    registrationId: Id,
-    webhookId: Id,
-}).strict()
-const RegisterOfficeWebhook = z.object({
-    endpoint: z.string().url().max(2048),
-    event: responses.OfficeAutomationEvent,
-    fileId: z.string().min(40).max(80),
-    sheetId: z.string().min(1).max(256),
-    flowId: Id,
-    flowVersionId: Id,
-    trigger: Id,
-}).strict()
-const OfficeDelivery = OfficeRegistration.extend({
-    eventId: z.string().min(40).max(80),
-    timestamp: z.string().regex(/^(0|[1-9][0-9]{0,15})$/).refine((value) => Number.isSafeInteger(Number(value))),
-    signature: z.string().regex(/^[A-Za-z0-9+/]{43}=$/),
-    bodyBase64: z.string().max(87_384).regex(/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/),
-}).strict()
-const OfficeAccepted = z.object({ runId: Id }).strict()
-const EffectPolicy = z.enum(['pure', 'idempotent', 'reconcilable', 'non_idempotent'])
-const EffectScope = z.object({
-    runId: Id,
-    step: Id,
-    path: z.array(z.tuple([Id, z.number().int().min(0).max(1_000_000)])).max(32),
-}).strict()
-const EffectAttempt = EffectScope.extend({
-    policy: EffectPolicy.optional(),
-    inputHash: z.string().regex(/^[a-f0-9]{64}$/),
-}).strict()
-const EffectDecision = z.discriminatedUnion('kind', [
-    z.object({ kind: z.literal('untracked') }).strict(),
-    z.object({ kind: z.literal('dispatch'), operationId: Id }).strict(),
-    z.object({ kind: z.literal('reconcile'), operationId: Id }).strict(),
-    z.object({ kind: z.literal('completed'), operationId: Id, output: z.unknown() }).strict(),
-    z.object({ kind: z.literal('unknown'), operationId: Id }).strict(),
-])
-const EffectComplete = EffectScope.extend({
-    policy: EffectPolicy,
-    inputHash: z.string().regex(/^[a-f0-9]{64}$/),
-    operationId: Id,
-    output: z.unknown(),
-}).strict()
-const EffectUnknown = EffectScope.extend({ operationId: Id }).strict()
+const OfficeRegistration = strict.OfficeWorkerRegistration
+const RegisterOfficeWebhook = strict.OfficeWorkerRegister
+const OfficeDelivery = strict.OfficeWorkerDelivery
+const OfficeAccepted = strict.OfficeWorkerAccepted
+const EffectAttempt = strict.OfficeWorkerEffectAttempt
+const EffectDecision = strict.OfficeWorkerEffectDecision
+const EffectComplete = strict.OfficeWorkerEffectComplete
+const EffectUnknown = strict.OfficeWorkerEffectUnknown
 
 export const veritlyOfficeController: FastifyPluginAsyncZod = async (app) => {
     app.get('/worker/office/files', worker({
-        response: officeResponse(responses.OfficeFilePage),
+        response: officeResponse('office_worker_files', strict.OfficeFilePage),
     }), async (request, reply) => {
         const out = await files(scope(request))
         if (out.kind === 'error') return reply.status(out.status).send(out.error)
@@ -115,7 +66,7 @@ export const veritlyOfficeController: FastifyPluginAsyncZod = async (app) => {
 
     app.post('/worker/office/webhook-registrations', worker({
         body: RegisterOfficeWebhook,
-        response: officeResponse(OfficeRegistration, StatusCodes.CREATED),
+        response: officeResponse('office_worker_register', OfficeRegistration, StatusCodes.CREATED),
     }), async (request, reply) => {
         if (!flowScope(principal(request), request.body)
             || request.body.endpoint !== webhook(request.body.flowId)) {
@@ -197,7 +148,7 @@ export const veritlyOfficeController: FastifyPluginAsyncZod = async (app) => {
 
     app.delete('/worker/office/webhook-registrations', worker({
         body: OfficeRegistration,
-        response: officeResponse(z.undefined(), StatusCodes.NO_CONTENT),
+        response: officeResponse('office_worker_unregister', z.undefined(), StatusCodes.NO_CONTENT),
     }), async (request, reply) => {
         const ctx = scope(request)
         const value = internal(request.body, principal(request))
@@ -232,7 +183,7 @@ export const veritlyOfficeController: FastifyPluginAsyncZod = async (app) => {
 
     app.post('/worker/office/webhook-events', worker({
         body: OfficeDelivery,
-        response: officeResponse(OfficeAccepted, StatusCodes.ACCEPTED),
+        response: officeResponse('office_worker_event', OfficeAccepted, StatusCodes.ACCEPTED),
     }), async (request, reply) => {
         const ctx = scope(request)
         const value = internal(request.body, principal(request))
@@ -288,13 +239,13 @@ export const veritlyOfficeController: FastifyPluginAsyncZod = async (app) => {
 
     app.post('/worker/office/effects/attempt', worker({
         body: EffectAttempt,
-        response: localResponse(EffectDecision),
+        response: officeResponse('office_worker_effect_attempt', EffectDecision),
     }), async (request, reply) => {
         if (!runScope(principal(request), request.body.runId)) {
             return reply.status(StatusCodes.FORBIDDEN).send({ code: 'binding_invalid' as const })
         }
         const path = effectPath(request.body.path)
-        if (!path) return reply.status(StatusCodes.REQUEST_TOO_LONG).send({ code: 'payload_too_large' as const })
+        if (!path) return reply.status(StatusCodes.REQUEST_TOO_LONG).send({ code: 'worker_payload_too_large' as const })
         try {
             return await officeEffect.attempt({
                 id: apId(),
@@ -307,24 +258,24 @@ export const veritlyOfficeController: FastifyPluginAsyncZod = async (app) => {
             })
         }
         catch (error) {
-            const status = effectStatus(error)
-            if (status) return reply.status(status).send({ code: 'effect_rejected' as const })
+            const issue = effectIssue(error)
+            if (issue) return reply.status(issue.status).send({ code: issue.code })
             throw error
         }
     })
 
     app.post('/worker/office/effects/complete', worker({
         body: EffectComplete,
-        response: localResponse(z.object({ ok: z.literal(true) }).strict()),
+        response: officeResponse('office_worker_effect_complete', strict.OfficeWorkerOkay),
     }), async (request, reply) => {
         if (!runScope(principal(request), request.body.runId)) {
             return reply.status(StatusCodes.FORBIDDEN).send({ code: 'binding_invalid' as const })
         }
         const path = effectPath(request.body.path)
-        if (!path) return reply.status(StatusCodes.REQUEST_TOO_LONG).send({ code: 'payload_too_large' as const })
+        if (!path) return reply.status(StatusCodes.REQUEST_TOO_LONG).send({ code: 'worker_payload_too_large' as const })
         const output = JSON.stringify(request.body.output)
         if (output === undefined || Buffer.byteLength(output) > 262_144) {
-            return reply.status(StatusCodes.REQUEST_TOO_LONG).send({ code: 'payload_too_large' as const })
+            return reply.status(StatusCodes.REQUEST_TOO_LONG).send({ code: 'worker_payload_too_large' as const })
         }
         try {
             await officeEffect.complete({
@@ -340,21 +291,21 @@ export const veritlyOfficeController: FastifyPluginAsyncZod = async (app) => {
             return { ok: true as const }
         }
         catch (error) {
-            const status = effectStatus(error)
-            if (status) return reply.status(status).send({ code: 'effect_rejected' as const })
+            const issue = effectIssue(error)
+            if (issue) return reply.status(issue.status).send({ code: issue.code })
             throw error
         }
     })
 
     app.post('/worker/office/effects/unknown', worker({
         body: EffectUnknown,
-        response: localResponse(z.object({ ok: z.literal(true) }).strict()),
+        response: officeResponse('office_worker_effect_unknown', strict.OfficeWorkerOkay),
     }), async (request, reply) => {
         if (!runScope(principal(request), request.body.runId)) {
             return reply.status(StatusCodes.FORBIDDEN).send({ code: 'binding_invalid' as const })
         }
         const path = effectPath(request.body.path)
-        if (!path) return reply.status(StatusCodes.REQUEST_TOO_LONG).send({ code: 'payload_too_large' as const })
+        if (!path) return reply.status(StatusCodes.REQUEST_TOO_LONG).send({ code: 'worker_payload_too_large' as const })
         try {
             await officeEffect.unknown({
                 runId: request.body.runId,
@@ -366,8 +317,8 @@ export const veritlyOfficeController: FastifyPluginAsyncZod = async (app) => {
             return { ok: true as const }
         }
         catch (error) {
-            const status = effectStatus(error)
-            if (status) return reply.status(status).send({ code: 'effect_rejected' as const })
+            const issue = effectIssue(error)
+            if (issue) return reply.status(issue.status).send({ code: issue.code })
             throw error
         }
     })
@@ -384,39 +335,26 @@ function worker<const T extends WorkerSchema>(schema: T) {
     }
 }
 
-function officeResponse(ok: z.ZodType, status = StatusCodes.OK) {
-    return {
-        [status]: ok,
-        [StatusCodes.BAD_REQUEST]: WorkerError,
-        [StatusCodes.UNAUTHORIZED]: WorkerError,
-        [StatusCodes.FORBIDDEN]: WorkerError,
-        [StatusCodes.NOT_FOUND]: WorkerError,
-        [StatusCodes.CONFLICT]: WorkerError,
-        [StatusCodes.REQUEST_TIMEOUT]: WorkerError,
-        [StatusCodes.REQUEST_TOO_LONG]: WorkerError,
-        [StatusCodes.SERVICE_UNAVAILABLE]: WorkerError,
-        [StatusCodes.GATEWAY_TIMEOUT]: WorkerError,
-    }
+function officeResponse(route: OfficeRouteName, ok: z.ZodType, status = StatusCodes.OK) {
+    const errors = officeRoutes[route].errors
+    if (!errors) throw new Error(`Office worker route ${route} has no error contract`)
+    return Object.fromEntries([
+        [status, ok],
+        ...[...new Set(errors.owned.map((error) => error.status))]
+            .map((status) => [status, routeErrorSchema('office', route, status)]),
+    ])
 }
 
-function localResponse(ok: z.ZodType) {
-    return {
-        [StatusCodes.OK]: ok,
-        [StatusCodes.BAD_REQUEST]: LocalError,
-        [StatusCodes.FORBIDDEN]: LocalError,
-        [StatusCodes.CONFLICT]: LocalError,
-        [StatusCodes.REQUEST_TOO_LONG]: LocalError,
+function effectIssue(error: unknown) {
+    if (error instanceof OfficeEffectLeaseError || error instanceof OfficeEffectScopeError) {
+        return { code: 'effect_scope_rejected' as const, status: StatusCodes.FORBIDDEN }
     }
-}
-
-function effectStatus(error: unknown) {
-    if (error instanceof OfficeEffectLeaseError || error instanceof OfficeEffectScopeError) return StatusCodes.FORBIDDEN
     if (
         error instanceof OfficeEffectConflictError
         || error instanceof OfficeEffectLimitError
         || error instanceof OfficeEffectOutcomeUnknownError
         || error instanceof OfficeEffectPolicyError
-    ) return StatusCodes.CONFLICT
+    ) return { code: 'effect_conflict' as const, status: StatusCodes.CONFLICT }
     return undefined
 }
 

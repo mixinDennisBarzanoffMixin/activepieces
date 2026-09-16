@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto'
 import type { ProjectAccess } from '@veritly/contracts'
 import {
+    decodeRouteResponse,
     decodeServerRouteError,
     routes,
     type RouteErrorFor,
 } from '@veritly/contracts/client'
-import { responses } from '@veritly/contracts/zod'
 import { safeHttp } from '@activepieces/server-utils'
 import type { FastifyRequest } from 'fastify'
 import { edge } from './veritly-edge'
@@ -42,7 +42,7 @@ export async function projectAccess(input: AccessInput): Promise<ProjectAccess> 
         const err = decodeServerRouteError('project_access', res.status, body)
         throw new WorkosAuthError(message(err), status(res.status), err)
     }
-    const access = responses.ProjectAccess.parse(JSON.parse(body))
+    const access = decodeRouteResponse('server', 'project_access', res.status, body)
     if (access.project_id !== input.project) {
         throw new WorkosAuthError('project authorization response is invalid', 503)
     }

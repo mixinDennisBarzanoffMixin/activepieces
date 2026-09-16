@@ -9,12 +9,13 @@ import type {
     OfficeWebhookVerifyInput,
 } from '@veritly/contracts'
 import {
+    assertRouteResponse,
     decodeOfficeRouteError,
+    decodeRouteResponse,
     officeRoutes,
     type RouteErrorFor,
     type RouteResult,
 } from '@veritly/contracts/client'
-import { decodeOfficeWebhookPayload, responses } from '@veritly/contracts/zod'
 import { safeHttp } from '@activepieces/server-utils'
 import type { FastifyBaseLogger } from 'fastify'
 import { projectService } from '../project/project-service'
@@ -33,7 +34,7 @@ export async function files(input: Scope): Promise<RouteResult<'office', 'office
     return {
         kind: 'response',
         status: 200,
-        value: responses.OfficeFilePage.parse(json(res.body)),
+        value: decodeRouteResponse('office', 'office_list', res.status, res.body),
     }
 }
 
@@ -51,6 +52,7 @@ export async function content(input: Scope & { file: string }): Promise<ContentR
             error: decodeOfficeRouteError('office_export', res.status, text(res.data)),
         }
     }
+    assertRouteResponse('office', 'office_export', res.status)
     return {
         kind: 'response',
         status: 200,
@@ -79,7 +81,7 @@ export async function destination(
     return {
         kind: 'response',
         status: 201,
-        value: responses.OfficeDestinationCreateResult.parse(json(res.body)),
+        value: decodeRouteResponse('office', 'office_destination_create', res.status, res.body),
     }
 }
 
@@ -97,7 +99,7 @@ export async function hook(
     return {
         kind: 'response',
         status: 201,
-        value: responses.OfficeWebhookRow.parse(json(res.body)),
+        value: decodeRouteResponse('office', 'office_hook', res.status, res.body),
     }
 }
 
@@ -121,7 +123,7 @@ export async function verify(
     return {
         kind: 'response',
         status: 200,
-        value: decodeOfficeWebhookPayload(res.body),
+        value: decodeRouteResponse('office', 'office_webhook_verify', res.status, res.body),
     }
 }
 
@@ -140,7 +142,11 @@ export async function unhook(
             error: decodeOfficeRouteError('office_unhook', res.status, res.body),
         }
     }
-    return { kind: 'response', status: 204, value: undefined }
+    return {
+        kind: 'response',
+        status: 204,
+        value: decodeRouteResponse('office', 'office_unhook', res.status, res.body),
+    }
 }
 
 export async function removeDestination(
@@ -158,7 +164,11 @@ export async function removeDestination(
             error: decodeOfficeRouteError('office_destination_remove', res.status, res.body),
         }
     }
-    return { kind: 'response', status: 204, value: undefined }
+    return {
+        kind: 'response',
+        status: 204,
+        value: decodeRouteResponse('office', 'office_destination_remove', res.status, res.body),
+    }
 }
 
 export function registrationKey(input: { project: string; flow: string; trigger: string; kind: 'destination' | 'hook' }) {
@@ -242,10 +252,6 @@ function identity(project: { externalId?: string | null; metadata?: Record<strin
         throw new Error('Activepieces project Veritly identity is inconsistent')
     }
     return id
-}
-
-function json(value: string): unknown {
-    return JSON.parse(value)
 }
 
 function text(value: unknown) {

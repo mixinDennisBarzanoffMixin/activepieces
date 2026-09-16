@@ -1,26 +1,41 @@
 import { createHash } from 'node:crypto'
 import { EffectPolicy } from '@activepieces/pieces-framework'
 import { EngineGenericError } from '@activepieces/shared'
+import type { OfficeWorkerEffectDecision } from '@veritly/contracts'
+import type { OfficeRouteName, RouteValueFor } from '@veritly/contracts/client'
+import { decodeOfficeRouteError, decodeRouteResponse, officeRoutes } from '@veritly/contracts/client'
+import { strict } from '@veritly/contracts/zod'
 
 export const effectClient = {
     async attempt(input: EffectAttempt): Promise<EffectDecision> {
-        return send('attempt', {
-            apiUrl: input.apiUrl,
-            token: input.token,
+        return send('office_worker_effect_attempt', input, strict.OfficeWorkerEffectAttempt.parse({
             runId: input.runId,
             step: input.step,
             path: input.path,
             policy: input.policy,
             inputHash: input.inputHash,
-        }, decision)
+        }))
     },
 
     async complete(input: EffectComplete): Promise<void> {
-        await send('complete', input, okay)
+        await send('office_worker_effect_complete', input, strict.OfficeWorkerEffectComplete.parse({
+            runId: input.runId,
+            step: input.step,
+            path: input.path,
+            policy: input.policy,
+            inputHash: input.inputHash,
+            operationId: input.operationId,
+            output: input.output,
+        }))
     },
 
     async unknown(input: EffectUnknown): Promise<void> {
-        await send('unknown', input, okay)
+        await send('office_worker_effect_unknown', input, strict.OfficeWorkerEffectUnknown.parse({
+            runId: input.runId,
+            step: input.step,
+            path: input.path,
+            operationId: input.operationId,
+        }))
     },
 }
 
@@ -28,47 +43,24 @@ export function effectHash(input: unknown) {
     return createHash('sha256').update(canonical(input)).digest('hex')
 }
 
-async function send<T>(name: string, body: unknown, parse: (input: unknown) => T) {
-    const scope = body as { apiUrl?: string; token?: string }
+async function send<Name extends EffectRoute>(route: Name, scope: EffectBase, body: unknown): Promise<RouteValueFor<'office', Name>> {
     if (!scope.apiUrl || !scope.token) throw new EngineGenericError('EffectScopeError', 'Effect API scope is missing')
-    const value = { ...(body as Record<string, unknown>) }
-    delete value.apiUrl
-    delete value.token
-    const response = await fetch(`${scope.apiUrl}v1/veritly/worker/office/effects/${name}`, {
+    const response = await fetch(`${scope.apiUrl}${officeRoutes[route].path.slice(1)}`, {
         method: 'POST',
         redirect: 'error',
         headers: {
             authorization: `Bearer ${scope.token}`,
             'content-type': 'application/json',
         },
-        body: JSON.stringify(value),
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(3_000),
     })
     const text = await response.text()
     if (!response.ok) {
-        throw new EngineGenericError('EffectTransitionError', `Effect ${name} rejected with status ${response.status}`)
+        const error = decodeOfficeRouteError(route, response.status, text)
+        throw new EngineGenericError('EffectTransitionError', `Effect ${route} rejected with ${error.code}/${response.status}`)
     }
-    return parse(JSON.parse(text))
-}
-
-function decision(input: unknown): EffectDecision {
-    if (!record(input) || typeof input.kind !== 'string') throw new EngineGenericError('EffectResponseError', 'Effect decision is invalid')
-    if (input.kind === 'untracked') return { kind: 'untracked' }
-    const operationId = input.operationId
-    if (typeof operationId !== 'string' || operationId.length < 1 || operationId.length > 80) {
-        throw new EngineGenericError('EffectResponseError', 'Effect operation identifier is invalid')
-    }
-    if (input.kind === 'dispatch' || input.kind === 'reconcile' || input.kind === 'unknown') {
-        return { kind: input.kind, operationId }
-    }
-    if (input.kind === 'completed') return { kind: 'completed', operationId, output: input.output }
-    throw new EngineGenericError('EffectResponseError', 'Effect decision kind is invalid')
-}
-
-function okay(input: unknown) {
-    if (!record(input) || input.ok !== true || Object.keys(input).length !== 1) {
-        throw new EngineGenericError('EffectResponseError', 'Effect acknowledgement is invalid')
-    }
+    return decodeRouteResponse('office', route, response.status, text)
 }
 
 function canonical(input: unknown): string {
@@ -113,9 +105,6 @@ type EffectUnknown = EffectBase & {
     operationId: string
 }
 
-export type EffectDecision =
-    | { kind: 'untracked' }
-    | { kind: 'dispatch'; operationId: string }
-    | { kind: 'reconcile'; operationId: string }
-    | { kind: 'completed'; operationId: string; output: unknown }
-    | { kind: 'unknown'; operationId: string }
+type EffectRoute = Extract<OfficeRouteName, `office_worker_effect_${string}`>
+
+export type EffectDecision = OfficeWorkerEffectDecision

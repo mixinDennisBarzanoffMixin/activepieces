@@ -1,7 +1,6 @@
 import type { ServerContext } from '@activepieces/pieces-framework'
 import type { DataRouteName, RouteErrorFor } from '@veritly/contracts/client'
-import { decodeDataRouteError } from '@veritly/contracts/client'
-import { responses } from '@veritly/contracts/zod'
+import { decodeDataRouteError, decodeRouteResponse } from '@veritly/contracts/client'
 
 class DataClient {
   constructor(private readonly server: ServerContext) {}
@@ -10,7 +9,6 @@ class DataClient {
     return await this.request({
       route: 'data_preps',
       path: 'preps?limit=100',
-      parse: responses.PrepPage.parse,
     })
   }
 
@@ -18,7 +16,6 @@ class DataClient {
     return await this.request({
       route: 'data_datasets',
       path: 'datasets?limit=100',
-      parse: responses.DatasetPage.parse,
     })
   }
 
@@ -27,11 +24,10 @@ class DataClient {
     return await this.request({
       route: 'data_job',
       path: `jobs/${encodeURIComponent(id)}`,
-      parse: responses.Job.parse,
     })
   }
 
-  private async request<T, Name extends DataRouteName>(input: Call<T, Name>) {
+  private async request<Name extends DataRouteName>(input: Call<Name>) {
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 5_000)
     const res = await fetch(url(this.server.apiUrl, input.path), {
@@ -42,7 +38,7 @@ class DataClient {
     }).finally(() => clearTimeout(timer))
     const body = await res.text()
     if (!res.ok) fail({ route: input.route, status: res.status, body })
-    return input.parse(JSON.parse(body))
+    return decodeRouteResponse('data', input.route, res.status, body)
   }
 }
 
@@ -69,10 +65,9 @@ export class DataClientError<Name extends DataRouteName = DataRouteName> extends
   }
 }
 
-type Call<T, Name extends DataRouteName> = {
+type Call<Name extends DataRouteName> = {
   route: Name
   path: string
-  parse: (input: unknown) => T
 }
 
 type Failure<Name extends DataRouteName> = {
