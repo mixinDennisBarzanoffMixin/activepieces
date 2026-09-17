@@ -30,6 +30,9 @@ const buildOptions = {
         '@activepieces/shared': path.resolve(__dirname, '../../shared/src'),
         '@activepieces/pieces-framework': path.resolve(__dirname, '../../pieces/framework/src'),
         '@activepieces/pieces-common': path.resolve(__dirname, '../../pieces/common/src'),
+        '@veritly/contracts/client': path.resolve(__dirname, '../../../../veritly-contracts/typescript/src/client.ts'),
+        '@veritly/contracts/zod': path.resolve(__dirname, '../../../../veritly-contracts/typescript/src/zod.ts'),
+        '@veritly/contracts': path.resolve(__dirname, '../../../../veritly-contracts/typescript/src/index.ts'),
     },
     external: ['isolated-vm', 'utf-8-validate', 'bufferutil'],
     plugins: [

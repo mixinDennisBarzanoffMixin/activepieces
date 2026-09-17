@@ -7,6 +7,7 @@ import type {
 } from '@veritly/contracts';
 import type { OfficeRouteName, RouteErrorFor } from '@veritly/contracts/client';
 import { assertRouteResponse, decodeOfficeRouteError, decodeRouteResponse } from '@veritly/contracts/client';
+import { strict } from '@veritly/contracts/zod';
 import type { ServerContext } from '@activepieces/pieces-framework';
 
 export async function files(input: { server: ServerContext }) {
@@ -107,6 +108,10 @@ export class OfficeClientError<Name extends OfficeRouteName = OfficeRouteName> e
 type Register = OfficeWorkerRegister;
 
 export type Registration = OfficeWorkerRegistration;
+
+export function registration(input: unknown): Registration {
+  return strict.OfficeWorkerRegistration.parse(input);
+}
 
 type Delivery = Omit<OfficeWorkerDelivery, keyof OfficeWorkerRegistration>;
 
