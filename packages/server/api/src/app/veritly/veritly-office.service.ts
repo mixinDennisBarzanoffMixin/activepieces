@@ -19,7 +19,7 @@ import {
 import { safeHttp } from '@activepieces/server-utils'
 import type { FastifyBaseLogger } from 'fastify'
 import { projectService } from '../project/project-service'
-import { edge } from './veritly-edge'
+import { authority, edge } from './veritly-edge'
 import { machineToken } from './veritly-machine-auth'
 
 export async function files(input: Scope): Promise<RouteResult<'office', 'office_list'>> {
@@ -187,6 +187,7 @@ async function send(input: Call): Promise<Wire> {
     const token = await machineToken({ log: input.log, project: input.project })
     const route = officeRoutes[input.route]
     const headers: Record<string, string> = {
+        host: authority(),
         authorization: `Bearer ${token}`,
         'x-request-id': randomUUID(),
         'x-veritly-project-id': scope,

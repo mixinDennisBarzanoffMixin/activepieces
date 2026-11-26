@@ -16,7 +16,7 @@ vi.mock('../../../../src/app/project/project-service', () => ({
     }),
 }))
 
-vi.mock('../../../../src/app/veritly/veritly-edge', () => ({ edge: () => 'https://edge.test' }))
+vi.mock('../../../../src/app/veritly/veritly-edge', () => ({ edge: () => 'https://edge.test', authority: () => 'edge.test' }))
 vi.mock('../../../../src/app/veritly/veritly-machine-auth', () => ({ machineToken: () => Promise.resolve('machine') }))
 vi.mock('../../../../src/app/veritly/veritly-token', () => ({ validToken: () => true }))
 

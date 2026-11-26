@@ -17,3 +17,14 @@ export function edge() {
 export function webhook(flow: string) {
     return new URL(`/activepieces/api/v1/webhooks/${encodeURIComponent(flow)}`, edge()).toString()
 }
+
+// The gateway authenticates the configured public authority even when the TCP hop stays inside the cluster.
+export function authority() {
+    const raw = process.env.PUBLIC_BASE_URL?.trim()
+    if (!raw) throw new Error('PUBLIC_BASE_URL is required')
+    const url = new URL(raw)
+    if (url.protocol !== 'https:' || url.username || url.password || url.search || url.hash || url.pathname !== '/') {
+        throw new Error('PUBLIC_BASE_URL must be the canonical public origin')
+    }
+    return url.host
+}

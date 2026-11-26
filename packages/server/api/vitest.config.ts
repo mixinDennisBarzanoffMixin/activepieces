@@ -17,6 +17,10 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '@veritly/contracts/client': path.resolve(__dirname, '../../../../veritly-contracts/typescript/src/client.ts'),
+      '@veritly/contracts/zod': path.resolve(__dirname, '../../../../veritly-contracts/typescript/src/zod.ts'),
+      '@veritly/contracts/schema': path.resolve(__dirname, '../../../../veritly-contracts/typescript/src/schema.ts'),
+      '@veritly/contracts': path.resolve(__dirname, '../../../../veritly-contracts/typescript/src/index.ts'),
       'isolated-vm': path.resolve(__dirname, '__mocks__/isolated-vm.js'),
       '@activepieces/shared': path.resolve(__dirname, '../../../packages/shared/src/index.ts'),
       '@activepieces/pieces-framework': path.resolve(__dirname, '../../../packages/pieces/framework/src/index.ts'),

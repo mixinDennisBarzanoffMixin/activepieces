@@ -8,7 +8,7 @@ import {
 } from '@veritly/contracts/client'
 import { safeHttp } from '@activepieces/server-utils'
 import type { FastifyRequest } from 'fastify'
-import { edge } from './veritly-edge'
+import { authority, edge } from './veritly-edge'
 import { headers } from './veritly-header'
 import { validToken } from './veritly-token'
 
@@ -25,6 +25,7 @@ export async function projectAccess(input: AccessInput): Promise<ProjectAccess> 
         new URL(path(route.path, input.project), edge()).toString(),
         {
             headers: {
+                host: authority(),
                 authorization: `Bearer ${input.token}`,
                 'x-request-id': randomUUID(),
                 'x-veritly-project-id': input.project,

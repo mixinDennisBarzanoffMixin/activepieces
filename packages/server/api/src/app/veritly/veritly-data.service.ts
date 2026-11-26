@@ -9,7 +9,7 @@ import {
 import { safeHttp } from '@activepieces/server-utils'
 import type { FastifyBaseLogger } from 'fastify'
 import { projectService } from '../project/project-service'
-import { edge } from './veritly-edge'
+import { authority, edge } from './veritly-edge'
 import { machineToken } from './veritly-machine-auth'
 
 class DataService {
@@ -75,6 +75,7 @@ class DataService {
             url: url.toString(),
             method: route.method,
             headers: {
+                host: authority(),
                 authorization: `Bearer ${token}`,
                 'x-request-id': randomUUID(),
                 'x-veritly-project-id': scope,
