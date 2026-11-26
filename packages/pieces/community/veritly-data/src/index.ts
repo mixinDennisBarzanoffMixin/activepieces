@@ -3,7 +3,7 @@ import { PieceCategory } from '@activepieces/shared';
 import {
   getJob,
   listDatasets,
-  listPreps,
+  etls,
 } from './lib/actions';
 
 export const veritlyData = createPiece({
@@ -14,6 +14,6 @@ export const veritlyData = createPiece({
   authors: ['mixinDennisBarzanoffMixin'],
   categories: [PieceCategory.PRODUCTIVITY],
   auth: PieceAuth.None(),
-  actions: [listPreps, listDatasets, getJob],
+  actions: [etls, listDatasets, getJob],
   triggers: [],
 });

@@ -5,10 +5,10 @@ import { decodeDataRouteError, decodeRouteResponse } from '@veritly/contracts/cl
 class DataClient {
   constructor(private readonly server: ServerContext) {}
 
-  async preps() {
+  async etls() {
     return await this.request({
-      route: 'data_preps',
-      path: 'preps?limit=100',
+      route: 'data_etls',
+      path: 'etls?limit=100',
     })
   }
 

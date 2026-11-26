@@ -13,19 +13,19 @@ import { edge } from './veritly-edge'
 import { machineToken } from './veritly-machine-auth'
 
 class DataService {
-    async preps(input: Scope & { query: PageQuery }): Promise<RouteResult<'data', 'data_preps'>> {
-        const res = await this.raw({ ...input, route: 'data_preps', query: input.query })
+    async etls(input: Scope & { query: PageQuery }): Promise<RouteResult<'data', 'data_etls'>> {
+        const res = await this.raw({ ...input, route: 'data_etls', query: input.query })
         if (res.status !== 200) {
             return {
                 kind: 'error',
                 status: res.status,
-                error: decodeDataRouteError('data_preps', res.status, res.body),
+                error: decodeDataRouteError('data_etls', res.status, res.body),
             }
         }
         return {
             kind: 'response',
             status: 200,
-            value: decodeRouteResponse('data', 'data_preps', res.status, res.body),
+            value: decodeRouteResponse('data', 'data_etls', res.status, res.body),
         }
     }
 
@@ -135,7 +135,7 @@ type Scope = {
 }
 
 type Call = Scope & {
-    route: 'data_preps' | 'data_datasets' | 'data_job'
+    route: 'data_etls' | 'data_datasets' | 'data_job'
     params?: Readonly<Record<string, string>>
     query?: PageQuery
 }

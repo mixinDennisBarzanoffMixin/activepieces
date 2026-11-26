@@ -2,6 +2,18 @@ import { describe, expect, test } from 'bun:test'
 import { DataClientError, data } from '../src/lib/client'
 
 describe('Veritly Data automation client', () => {
+  test('decodes ETL pages through the current worker route', async () => {
+    const server = Bun.serve({
+      port: 0,
+      fetch(request) {
+        expect(new URL(request.url).pathname).toBe('/v1/veritly/worker/data/etls')
+        return Response.json({ etls: [], next_cursor: null })
+      },
+    })
+    try {
+      expect(await data.create(context(server.port)).etls()).toEqual({ etls: [], next_cursor: null })
+    } finally { server.stop(true) }
+  })
   test('decodes canonical dataset pages from the engine proxy', async () => {
     const server = Bun.serve({
       port: 0,
@@ -44,7 +56,7 @@ describe('Veritly Data automation client', () => {
         }, { status: 404 })
       },
     })
-    const request = data.create(context(server.port)).preps()
+    const request = data.create(context(server.port)).etls()
     await expect(request).rejects.toMatchObject({
       status: 404,
       route: {

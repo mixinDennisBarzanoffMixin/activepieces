@@ -14,11 +14,11 @@ const Page = z.object({
 const Job = z.object({ id: z.string().min(1).max(128) }).strict()
 
 export const veritlyDataController: FastifyPluginAsyncZod = async (app) => {
-    app.get('/worker/data/preps', worker({
+    app.get('/worker/data/etls', worker({
         querystring: Page,
-        response: { [StatusCodes.OK]: responses.PrepPage },
+        response: { [StatusCodes.OK]: responses.EtlPage },
     }), async (request, reply) => {
-        return send(reply, await data.preps({
+        return send(reply, await data.etls({
             log: request.log,
             project: project(request),
             query: page(request.query),
@@ -78,7 +78,7 @@ type WorkerSchema = {
 }
 
 type Result =
-    | Awaited<ReturnType<typeof data.preps>>
+    | Awaited<ReturnType<typeof data.etls>>
     | Awaited<ReturnType<typeof data.datasets>>
     | Awaited<ReturnType<typeof data.job>>
 

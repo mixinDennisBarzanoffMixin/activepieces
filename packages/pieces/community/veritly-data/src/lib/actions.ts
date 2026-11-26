@@ -1,20 +1,20 @@
 import { createAction, Property } from '@activepieces/pieces-framework'
 import { data } from './client'
 
-export const listPreps = createAction({
-  name: 'list_preps',
-  displayName: 'List Preparations',
-  description: 'List the project data preparations visible to this Veritly project.',
+export const etls = createAction({
+  name: 'list_etls',
+  displayName: 'List ETLs',
+  description: 'List the ETLs visible to this Veritly project.',
   props: {},
   async run(context) {
-    return await data.create(context.server).preps()
+    return await data.create(context.server).etls()
   },
 })
 
 export const listDatasets = createAction({
   name: 'list_datasets',
-  displayName: 'List Datasets',
-  description: 'List the immutable project datasets visible to this Veritly project.',
+  displayName: 'List Tables',
+  description: 'List the project tables visible to this Veritly project.',
   props: {},
   async run(context) {
     return await data.create(context.server).datasets()
